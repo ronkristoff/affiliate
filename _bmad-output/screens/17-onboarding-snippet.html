@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Onboarding: Install Tracking Snippet</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ======= TOPBAR ======= */
+      .onboarding-topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand-logo-mark {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand-logo-mark svg {
+        width: 18px;
+        height: 18px;
+        color: #fff;
+      }
+      .brand-logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: -0.02em;
+      }
+      .topbar-help {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .topbar-help a {
+        color: var(--brand);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      /* ======= PROGRESS STEPPER ======= */
+      .onboarding-progress {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        max-width: 560px;
+        width: 100%;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+      }
+      .step-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .step-circle.completed {
+        background: var(--success);
+        color: #fff;
+      }
+      .step-circle.active {
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(16, 64, 154, 0.15);
+      }
+      .step-circle.pending {
+        background: #fff;
+        color: var(--text-muted);
+        border: 2px solid var(--border);
+      }
+      .step-num {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .step-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .step-name.muted {
+        color: var(--text-muted);
+      }
+      .step-connector {
+        flex: 1;
+        height: 2px;
+        background: var(--border);
+        margin: 0 12px;
+        position: relative;
+        top: -6px;
+      }
+      .step-connector.done {
+        background: var(--success);
+      }
+
+      /* ======= CONTENT AREA ======= */
+      .onboarding-body {
+        flex: 1;
+        padding: 48px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .onboarding-container {
+        width: 100%;
+        max-width: 560px;
+      }
+
+      /* ======= SECTION HEADER ======= */
+      .onboarding-header {
+        margin-bottom: 32px;
+      }
+      .step-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eff6ff;
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 12px;
+      }
+      .onboarding-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      .onboarding-desc {
+        font-size: 15px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* ======= FORM CARD ======= */
+      .form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      }
+      .form-card-header {
+        padding: 18px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+      }
+      .form-card-header-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .form-card-body {
+        padding: 24px;
+      }
+
+      /* ======= CODE BLOCK ======= */
+      .code-block-wrap {
+        position: relative;
+      }
+      .code-block {
+        background: #0f1c2e;
+        border-radius: 10px;
+        padding: 20px 20px 20px 20px;
+        overflow-x: auto;
+        margin-bottom: 0;
+      }
+      .code-block pre {
+        font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        color: #e2e8f0;
+        white-space: pre;
+        margin: 0;
+      }
+      .code-block .kw {
+        color: #7dd3fc;
+      } /* keyword */
+      .code-block .str {
+        color: #86efac;
+      } /* string */
+      .code-block .attr {
+        color: #fca5a5;
+      } /* attribute */
+      .code-block .comment {
+        color: #64748b;
+        font-style: italic;
+      }
+
+      .code-copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: background 0.15s;
+      }
+      .code-copy-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .code-copy-btn.copied {
+        background: rgba(16, 185, 129, 0.25);
+        color: #86efac;
+        border-color: rgba(16, 185, 129, 0.4);
+      }
+
+      /* ======= VERIFICATION STATES ======= */
+      .verification-tabs {
+        display: flex;
+        gap: 0;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      .verify-tab-btn {
+        flex: 1;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border: none;
+        background: #f9fafb;
+        font-family: "Poppins", sans-serif;
+        border-right: 1px solid var(--border);
+        transition:
+          background 0.15s,
+          color 0.15s;
+        text-align: center;
+      }
+      .verify-tab-btn:last-child {
+        border-right: none;
+      }
+      .verify-tab-btn.active {
+        background: #fff;
+        color: var(--brand);
+        font-weight: 700;
+      }
+
+      .verify-panel {
+        display: none;
+      }
+      .verify-panel.active {
+        display: block;
+      }
+
+      /* ======= VERIFICATION STATUS CARDS ======= */
+      .status-card {
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .status-card.awaiting {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+      }
+      .status-card.verified {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+      }
+      .status-card.manual {
+        background: #f9fafb;
+        border: 1px solid var(--border);
+      }
+      .status-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .status-icon.awaiting {
+        background: #fef3c7;
+      }
+      .status-icon.verified {
+        background: #d1fae5;
+      }
+      .status-icon.manual {
+        background: #f3f4f6;
+      }
+      .status-info {
+        flex: 1;
+      }
+      .status-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .status-card.awaiting .status-title {
+        color: #92400e;
+      }
+      .status-card.verified .status-title {
+        color: #065f46;
+      }
+      .status-card.manual .status-title {
+        color: var(--text-heading);
+      }
+      .status-desc {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status-card.awaiting .status-desc {
+        color: #78350f;
+      }
+      .status-card.verified .status-desc {
+        color: #047857;
+      }
+      .status-card.manual .status-desc {
+        color: var(--text-muted);
+      }
+      .status-meta {
+        font-size: 11px;
+        margin-top: 8px;
+        font-weight: 600;
+      }
+      .status-card.awaiting .status-meta {
+        color: #d97706;
+      }
+      .status-card.verified .status-meta {
+        color: #10b981;
+      }
+
+      /* ======= INSTALL STEPS ======= */
+      .install-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .install-step {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+      }
+      .install-step-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .install-step-content {
+        flex: 1;
+      }
+      .install-step-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 3px;
+      }
+      .install-step-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .install-step-code {
+        background: #f3f4f6;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-top: 6px;
+        font-family: monospace;
+        font-size: 12px;
+        color: var(--brand-dark);
+      }
+
+      /* ======= ACTIONS ======= */
+      .actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .actions-right {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+        text-decoration: none;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #0c3280;
+      }
+      .btn-success {
+        background: var(--success);
+        color: #fff;
+      }
+      .btn-success:hover {
+        background: #059669;
+      }
+      .btn-outline {
+        background: #fff;
+        color: var(--text-heading);
+        border: 1px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: #f9fafb;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 13px;
+        border: none;
+        padding: 8px;
+      }
+      .btn-ghost:hover {
+        color: var(--text-heading);
+      }
+      .skip-link {
+        font-size: 13px;
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      .skip-link:hover {
+        color: var(--text-heading);
+        text-decoration: underline;
+      }
+
+      /* ======= CHECK ANIMATION ======= */
+      @keyframes check-pop {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        70% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .verified-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        animation: check-pop 0.4s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOPBAR -->
+    <header class="onboarding-topbar">
+      <div class="brand-logo">
+        <div class="brand-logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <span class="brand-logo-name">salig-affiliate</span>
+      </div>
+      <div class="topbar-help">Need help? <a href="#">View installation guide</a></div>
+    </header>
+
+    <!-- PROGRESS STEPPER -->
+    <div class="onboarding-progress">
+      <div class="stepper" role="list" aria-label="Setup progress">
+        <div class="step" role="listitem">
+          <div class="step-circle completed">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="step-label">
+            <div class="step-num">Step 1</div>
+            <div class="step-name">Connect SaligPay</div>
+          </div>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step" role="listitem">
+          <div class="step-circle completed">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="step-label">
+            <div class="step-num">Step 2</div>
+            <div class="step-name">Create Campaign</div>
+          </div>
+        </div>
+        <div class="step-connector done"></div>
+        <div class="step" role="listitem">
+          <div class="step-circle active" aria-current="step">3</div>
+          <div class="step-label">
+            <div class="step-num">Step 3</div>
+            <div class="step-name">Install Snippet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="onboarding-body">
+      <div class="onboarding-container">
+        <div class="onboarding-header">
+          <div class="step-tag">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+            Step 3 of 3 — Optional
+          </div>
+          <h1 class="onboarding-title">Install tracking snippet</h1>
+          <p class="onboarding-desc">
+            Add one line of JavaScript to your website to enable click and conversion tracking.
+            Commission tracking via SaligPay webhooks already works — this snippet adds referral
+            click tracking on top.
+          </p>
+        </div>
+
+        <!-- SNIPPET CODE BLOCK -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div
+              class="form-card-header-title"
+              style="display: flex; align-items: center; justify-content: space-between"
+            >
+              Your Tracking Snippet
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span id="verify-badge" style="display: none" class="verified-badge">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Tracking Active
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="form-card-body" style="padding: 0">
+            <div class="code-block-wrap">
+              <div class="code-block">
+                <button class="code-copy-btn" id="copy-btn" onclick="copySnippet()">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  Copy
+                </button>
+                <pre><span class="comment">&lt;!-- salig-affiliate tracking — paste before &lt;/body&gt; --&gt;</span>
+<span class="kw">&lt;script</span> <span class="attr">src</span>=<span class="str">"https://cdn.saligaffiliate.com/track.js"</span>
+        <span class="attr">data-key</span>=<span class="str">"pk_live_aBcDeFgHiJkLmNoPqRsTuV"</span>
+        <span class="attr">async</span><span class="kw">&gt;&lt;/script&gt;</span></pre>
+              </div>
+            </div>
+            <div
+              style="
+                padding: 16px 20px;
+                border-top: 1px solid var(--border);
+                font-size: 12px;
+                color: var(--text-muted);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              "
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Paste this snippet anywhere before the
+              <code
+                style="
+                  font-family: monospace;
+                  background: #f3f4f6;
+                  padding: 1px 5px;
+                  border-radius: 3px;
+                "
+                >&lt;/body&gt;</code
+              >
+              closing tag on every page of your website.
+            </div>
+          </div>
+        </div>
+
+        <!-- VERIFICATION STATES (tabbed) -->
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="form-card-header-title">Verification Status</div>
+          </div>
+          <div class="form-card-body">
+            <!-- State tabs -->
+            <div class="verification-tabs">
+              <button class="verify-tab-btn active" onclick="switchVerifyState('awaiting', this)">
+                ⏳ Awaiting
+              </button>
+              <button class="verify-tab-btn" onclick="switchVerifyState('verified', this)">
+                ✅ Verified
+              </button>
+              <button class="verify-tab-btn" onclick="switchVerifyState('manual', this)">
+                📋 Manual
+              </button>
+            </div>
+
+            <!-- AWAITING -->
+            <div class="verify-panel active" id="verify-awaiting">
+              <div class="status-card awaiting">
+                <div class="status-icon awaiting">⏳</div>
+                <div class="status-info">
+                  <div class="status-title">Awaiting first ping</div>
+                  <div class="status-desc">
+                    Add the snippet to your website and load any page. We'll detect it automatically
+                    within a few minutes of the first visitor.
+                  </div>
+                  <div class="status-meta">Checking automatically every 60 seconds…</div>
+                </div>
+              </div>
+              <div style="margin-top: 16px">
+                <div class="install-steps">
+                  <div class="install-step">
+                    <div class="install-step-num">1</div>
+                    <div class="install-step-content">
+                      <div class="install-step-title">Copy the snippet above</div>
+                      <div class="install-step-desc">
+                        Click the Copy button to copy the one-line script to your clipboard.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="install-step">
+                    <div class="install-step-num">2</div>
+                    <div class="install-step-content">
+                      <div class="install-step-title">
+                        Paste before <code style="font-family: monospace">&lt;/body&gt;</code>
+                      </div>
+                      <div class="install-step-desc">
+                        Paste the snippet in your HTML template, just before the closing body tag.
+                        It loads asynchronously — zero page speed impact.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="install-step">
+                    <div class="install-step-num">3</div>
+                    <div class="install-step-content">
+                      <div class="install-step-title">Load any page</div>
+                      <div class="install-step-desc">
+                        Visit any page on your site. We'll send a test ping and mark the snippet as
+                        verified.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  class="btn btn-outline"
+                  style="width: 100%"
+                  onclick="
+                    switchVerifyState('verified', document.querySelectorAll('.verify-tab-btn')[1])
+                  "
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                  </svg>
+                  Check Verification
+                </button>
+              </div>
+            </div>
+
+            <!-- VERIFIED -->
+            <div class="verify-panel" id="verify-verified">
+              <div class="status-card verified">
+                <div class="status-icon verified">✅</div>
+                <div class="status-info">
+                  <div class="status-title">Tracking Active</div>
+                  <div class="status-desc">
+                    Your snippet is installed and sending data correctly. Click tracking is live on
+                    cebutech.io.
+                  </div>
+                  <div class="status-meta">
+                    ✓ Last ping received: Mar 10, 2026 · 10:44 AM · 1 visitor tracked
+                  </div>
+                </div>
+              </div>
+              <div
+                style="
+                  margin-top: 16px;
+                  padding: 14px 16px;
+                  background: #f0fdf4;
+                  border: 1px solid #a7f3d0;
+                  border-radius: 10px;
+                "
+              >
+                <div style="font-size: 13px; font-weight: 700; color: #065f46; margin-bottom: 4px">
+                  What's being tracked:
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: #047857;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Referral link clicks (attributed to affiliate)
+                  </div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: #047857;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Signup page visits from referred traffic
+                  </div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: #047857;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                    "
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Cookie attribution (30-day window)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MANUAL / SKIP -->
+            <div class="verify-panel" id="verify-manual">
+              <div class="status-card manual">
+                <div class="status-icon manual">📋</div>
+                <div class="status-info">
+                  <div class="status-title">Install later</div>
+                  <div class="status-desc">
+                    You can skip this step now. Commission tracking via SaligPay webhooks still
+                    works — you just won't have click attribution data until the snippet is
+                    installed.
+                  </div>
+                </div>
+              </div>
+              <div
+                style="
+                  margin-top: 16px;
+                  padding: 14px 16px;
+                  background: #fffbeb;
+                  border: 1px solid #fde68a;
+                  border-radius: 10px;
+                  font-size: 12px;
+                  color: #92400e;
+                  line-height: 1.6;
+                "
+              >
+                ⚠️ Without the tracking snippet, you won't see click counts or conversion rates in
+                your reports. Your affiliate portal will still show commissions — just no click
+                data. A <strong>"Tracking not verified"</strong> banner will appear on your
+                dashboard as a reminder.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="actions-row">
+          <a href="16-onboarding-campaign.html" class="btn btn-ghost">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back
+          </a>
+          <div class="actions-right">
+            <a href="01-owner-dashboard.html" class="skip-link">Skip for now →</a>
+            <a href="01-owner-dashboard.html" class="btn btn-success" id="finish-btn">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              Setup Complete — Go to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchVerifyState(state, btn) {
+        document.querySelectorAll(".verify-panel").forEach((p) => p.classList.remove("active"));
+        document.querySelectorAll(".verify-tab-btn").forEach((b) => b.classList.remove("active"));
+        document.getElementById("verify-" + state).classList.add("active");
+        btn.classList.add("active");
+
+        // Show verified badge in header when state is verified
+        const badge = document.getElementById("verify-badge");
+        if (state === "verified") {
+          badge.style.display = "inline-flex";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      function copySnippet() {
+        const btn = document.getElementById("copy-btn");
+        const snippet = `<!-- salig-affiliate tracking — paste before </body> -->
+<script src="https://cdn.saligaffiliate.com/track.js"
+        data-key="pk_live_aBcDeFgHiJkLmNoPqRsTuV"
+        async><\/script>`;
+
+        navigator.clipboard.writeText(snippet).catch(() => {});
+
+        btn.classList.add("copied");
+        btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+        }, 2500);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Onboarding: Connect SaligPay</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ======= TOPBAR ======= */
+      .onboarding-topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand-logo-mark {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand-logo-mark svg {
+        width: 18px;
+        height: 18px;
+        color: #fff;
+      }
+      .brand-logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: -0.02em;
+      }
+      .topbar-help {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .topbar-help a {
+        color: var(--brand);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      /* ======= PROGRESS STEPPER ======= */
+      .onboarding-progress {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        max-width: 560px;
+        width: 100%;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        position: relative;
+      }
+      .step-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 2;
+      }
+      .step-circle.completed {
+        background: var(--success);
+        color: #fff;
+      }
+      .step-circle.active {
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(16, 64, 154, 0.15);
+      }
+      .step-circle.pending {
+        background: #fff;
+        color: var(--text-muted);
+        border: 2px solid var(--border);
+      }
+      .step-label {
+      }
+      .step-num {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .step-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .step-name.muted {
+        color: var(--text-muted);
+      }
+      .step-connector {
+        flex: 1;
+        height: 2px;
+        background: var(--border);
+        margin: 0 12px;
+        position: relative;
+        top: -6px;
+      }
+      .step-connector.done {
+        background: var(--success);
+      }
+
+      /* ======= CONTENT AREA ======= */
+      .onboarding-body {
+        flex: 1;
+        padding: 48px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .onboarding-container {
+        width: 100%;
+        max-width: 560px;
+      }
+
+      /* ======= SECTION HEADER ======= */
+      .onboarding-header {
+        margin-bottom: 32px;
+      }
+      .step-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eff6ff;
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 12px;
+      }
+      .onboarding-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      .onboarding-desc {
+        font-size: 15px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* ======= CARD ======= */
+      .form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      }
+      .form-card-header {
+        padding: 18px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+      }
+      .form-card-header-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .form-card-body {
+        padding: 24px;
+      }
+
+      /* ======= FORM ELEMENTS ======= */
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group:last-child {
+        margin-bottom: 0;
+      }
+      .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .form-label .optional {
+        font-weight: 400;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .form-input {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 14px;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-heading);
+        background: #fff;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .form-input:focus {
+        border-color: var(--brand-secondary);
+        box-shadow: 0 0 0 3px rgba(22, 89, 214, 0.12);
+      }
+      .form-input.success {
+        border-color: var(--success);
+        background: #f0fdf4;
+      }
+      .form-input.error {
+        border-color: var(--danger);
+        background: #fef2f2;
+      }
+      .form-input.password {
+        font-family: monospace;
+        letter-spacing: 0.1em;
+      }
+      .form-help {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 5px;
+        line-height: 1.5;
+      }
+      .form-error {
+        font-size: 12px;
+        color: var(--danger);
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .form-success-msg {
+        font-size: 12px;
+        color: var(--success);
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 600;
+      }
+
+      /* ======= INPUT GROUP (with icon) ======= */
+      .input-wrap {
+        position: relative;
+      }
+      .input-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        pointer-events: none;
+      }
+      .input-icon.success-icon {
+        color: var(--success);
+      }
+      .input-icon.error-icon {
+        color: var(--danger);
+      }
+
+      /* ======= HOW TO FIND KEYS ======= */
+      .info-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-bottom: 20px;
+      }
+      .info-box-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--brand);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .info-box-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .info-box-step {
+        font-size: 12px;
+        color: #1e40af;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        line-height: 1.5;
+      }
+      .info-box-step .step-n {
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      /* ======= SUCCESS STATE ======= */
+      .success-state {
+        display: none;
+        text-align: center;
+        padding: 40px 24px;
+      }
+      .success-state.visible {
+        display: block;
+      }
+      .success-icon-wrap {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #ecfdf5;
+        border: 3px solid var(--success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+      }
+      .success-icon-wrap svg {
+        width: 32px;
+        height: 32px;
+        color: var(--success);
+      }
+      .success-title {
+        font-size: 22px;
+        font-weight: 900;
+        color: var(--text-heading);
+        margin-bottom: 8px;
+      }
+      .success-desc {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+        line-height: 1.6;
+      }
+      .success-details {
+        background: #f0fdf4;
+        border: 1px solid #a7f3d0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        text-align: left;
+        margin-bottom: 28px;
+      }
+      .success-detail-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 13px;
+      }
+      .success-detail-row:not(:last-child) {
+        border-bottom: 1px solid #a7f3d0;
+      }
+      .success-detail-label {
+        color: var(--text-muted);
+      }
+      .success-detail-value {
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+
+      /* ======= BUTTONS ======= */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+        text-decoration: none;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #0c3280;
+      }
+      .btn-outline {
+        background: #fff;
+        color: var(--text-heading);
+        border: 1px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: #f9fafb;
+      }
+      .btn-full {
+        width: 100%;
+      }
+      .btn-loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      /* ======= ACTIONS ROW ======= */
+      .actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .actions-right {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* ======= SALIGPAY LOGO ======= */
+      .saligpay-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #0f1c2e;
+        color: #fff;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .saligpay-badge-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+      }
+
+      /* ======= ERROR STATE ======= */
+      .form-card.error-card {
+        border-color: #fecaca;
+      }
+      .connection-error {
+        display: none;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        color: #991b1b;
+        line-height: 1.5;
+      }
+      .connection-error.visible {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .connection-error svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        color: var(--danger);
+        margin-top: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOPBAR -->
+    <header class="onboarding-topbar">
+      <div class="brand-logo">
+        <div class="brand-logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <span class="brand-logo-name">salig-affiliate</span>
+      </div>
+      <div class="topbar-help">Need help? <a href="#">Contact support</a></div>
+    </header>
+
+    <!-- PROGRESS STEPPER -->
+    <div class="onboarding-progress">
+      <div class="stepper" role="list" aria-label="Setup progress">
+        <!-- Step 1: active -->
+        <div class="step" role="listitem">
+          <div class="step-circle active" aria-current="step">1</div>
+          <div class="step-label">
+            <div class="step-num">Step 1</div>
+            <div class="step-name">Connect SaligPay</div>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <!-- Step 2: pending -->
+        <div class="step" role="listitem">
+          <div class="step-circle pending">2</div>
+          <div class="step-label">
+            <div class="step-num">Step 2</div>
+            <div class="step-name muted">Create Campaign</div>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <!-- Step 3: pending -->
+        <div class="step" role="listitem">
+          <div class="step-circle pending">3</div>
+          <div class="step-label">
+            <div class="step-num">Step 3</div>
+            <div class="step-name muted">Install Snippet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="onboarding-body">
+      <div class="onboarding-container">
+        <!-- DEFAULT STATE (form) -->
+        <div id="form-state">
+          <div class="onboarding-header">
+            <div class="step-tag">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              Step 1 of 3
+            </div>
+            <h1 class="onboarding-title">Connect your SaligPay account</h1>
+            <p class="onboarding-desc">
+              Paste your SaligPay API credentials below. Your affiliate commissions will be
+              automatically calculated whenever a referred customer pays — no manual work needed.
+            </p>
+          </div>
+
+          <!-- INFO BOX: where to find keys -->
+          <div class="info-box">
+            <div class="info-box-title">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Where to find your API keys
+            </div>
+            <div class="info-box-steps">
+              <div class="info-box-step">
+                <span class="step-n">1.</span> Log in to your <strong>SaligPay dashboard</strong> at
+                app.saligpay.com
+              </div>
+              <div class="info-box-step">
+                <span class="step-n">2.</span> Go to <strong>Settings → API & Integrations</strong>
+              </div>
+              <div class="info-box-step">
+                <span class="step-n">3.</span> Copy your <strong>Publishable Key</strong> and
+                <strong>Secret Key</strong> below
+              </div>
+            </div>
+          </div>
+
+          <!-- CONNECTION ERROR (shown after failed attempt) -->
+          <div class="connection-error visible" id="connection-error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            <div>
+              <strong>Could not authenticate.</strong> Check that your Secret Key is correct and
+              hasn't been revoked.
+              <a href="#" style="color: var(--danger); font-weight: 600"
+                >View troubleshooting guide →</a
+              >
+            </div>
+          </div>
+
+          <div class="form-card error-card" id="main-form-card">
+            <div class="form-card-header">
+              <div class="form-card-header-title">
+                <div class="saligpay-badge"><span class="saligpay-badge-dot"></span> SaligPay</div>
+                API Credentials
+              </div>
+            </div>
+            <div class="form-card-body">
+              <div class="form-group">
+                <label class="form-label" for="pub-key">Publishable Key</label>
+                <div class="input-wrap">
+                  <input
+                    type="text"
+                    class="form-input success"
+                    id="pub-key"
+                    value="pk_live_aBcDeFgHiJkLmNoPqRsTuVwXyZ"
+                    placeholder="pk_live_..."
+                    autocomplete="off"
+                  />
+                  <svg
+                    class="input-icon success-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div class="form-success-msg">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Publishable key format valid
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="secret-key">Secret Key</label>
+                <div class="input-wrap">
+                  <input
+                    type="password"
+                    class="form-input password error"
+                    id="secret-key"
+                    value="sk_live_wrongkey"
+                    placeholder="sk_live_..."
+                    autocomplete="off"
+                  />
+                  <svg
+                    class="input-icon error-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                </div>
+                <div class="form-error">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  Authentication failed — check your secret key and try again
+                </div>
+                <div class="form-help">
+                  Your secret key is stored encrypted and never displayed again after saving.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <div
+              style="
+                font-size: 12px;
+                color: var(--text-muted);
+                display: flex;
+                align-items: center;
+                gap: 5px;
+              "
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Keys are encrypted at rest
+            </div>
+            <div class="actions-right">
+              <button class="btn btn-outline" onclick="showSuccessState()">Test Connection</button>
+              <button class="btn btn-primary" onclick="showSuccessState()">
+                Connect SaligPay
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS STATE -->
+        <div id="success-state" class="success-state">
+          <div class="success-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <h2 class="success-title">SaligPay Connected!</h2>
+          <p class="success-desc">
+            Your account is now linked. Commissions will be calculated automatically when referred
+            customers make payments. No more manual tracking.
+          </p>
+
+          <div class="success-details">
+            <div class="success-detail-row">
+              <span class="success-detail-label">Account</span>
+              <span class="success-detail-value">CebuTech SaaS (cebutech.io)</span>
+            </div>
+            <div class="success-detail-row">
+              <span class="success-detail-label">Webhook registered</span>
+              <span class="success-detail-value" style="color: var(--success)">✓ Active</span>
+            </div>
+            <div class="success-detail-row">
+              <span class="success-detail-label">Plans detected</span>
+              <span class="success-detail-value">3 active plans (₱290–₱1,490/mo)</span>
+            </div>
+            <div class="success-detail-row">
+              <span class="success-detail-label">Connected</span>
+              <span class="success-detail-value">Mar 10, 2026 · 10:32 AM</span>
+            </div>
+          </div>
+
+          <a href="16-onboarding-campaign.html" class="btn btn-primary btn-full">
+            Continue to Step 2: Create Campaign
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showSuccessState() {
+        document.getElementById("form-state").style.display = "none";
+        document.getElementById("success-state").classList.add("visible");
+      }
+
+      // Toggle password visibility simulation
+      document.getElementById("secret-key").addEventListener("focus", function () {
+        this.type = "text";
+      });
+      document.getElementById("secret-key").addEventListener("blur", function () {
+        this.type = "password";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — UX Design Directions</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap");
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --surface: #ffffff;
+        --bg-page: #f2f2f2;
+        --border: #e5e7eb;
+        --status-pending: #f59e0b;
+        --status-confirmed: #10b981;
+        --status-reversed: #ef4444;
+        --status-paid: #6b7280;
+        --status-processing: #3b82f6;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+      }
+
+      body {
+        font-family: "Poppins", system-ui, sans-serif;
+        background: #0a0f1e;
+        color: #fff;
+        min-height: 100vh;
+      }
+
+      /* ========== NAVIGATION ========== */
+      .nav-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(10, 15, 30, 0.95);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-brand {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .nav-brand span {
+        color: #6b9fff;
+      }
+      .nav-pills {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .nav-pill {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        color: rgba(255, 255, 255, 0.55);
+        background: transparent;
+      }
+      .nav-pill:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+      .nav-pill.active {
+        background: var(--brand-primary);
+        color: #fff;
+        border-color: var(--brand-primary);
+      }
+      .nav-info {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* ========== HERO ========== */
+      .hero {
+        padding: 100px 32px 48px;
+        text-align: center;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .hero-eyebrow {
+        display: inline-block;
+        background: rgba(107, 159, 255, 0.12);
+        border: 1px solid rgba(107, 159, 255, 0.25);
+        color: #6b9fff;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+      }
+      .hero h1 {
+        font-size: 42px;
+        font-weight: 900;
+        line-height: 1.15;
+        margin-bottom: 16px;
+        letter-spacing: -1px;
+      }
+      .hero h1 span {
+        color: #6b9fff;
+      }
+      .hero p {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+
+      /* ========== DIRECTION GRID ========== */
+      .directions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        padding: 0 32px 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .direction-thumb {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.25s;
+        position: relative;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .direction-thumb:hover {
+        border-color: rgba(107, 159, 255, 0.4);
+        transform: translateY(-2px);
+      }
+      .direction-thumb.selected {
+        border-color: #6b9fff;
+        box-shadow: 0 0 0 4px rgba(107, 159, 255, 0.15);
+      }
+      .thumb-label {
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .thumb-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .thumb-tag {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .thumb-selected-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #6b9fff;
+        color: #0a0f1e;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 20px;
+        display: none;
+      }
+      .direction-thumb.selected .thumb-selected-badge {
+        display: block;
+      }
+
+      /* ========== MOCKUP PREVIEW WINDOW ========== */
+      .mockup-window {
+        background: #fff;
+        overflow: hidden;
+        font-family: "Poppins", system-ui, sans-serif;
+        position: relative;
+      }
+      .mockup-window * {
+        box-sizing: border-box;
+      }
+
+      /* ========== DIRECTION DETAIL PANEL ========== */
+      .detail-panel {
+        display: none;
+        max-width: 1400px;
+        margin: 0 auto 32px;
+        padding: 0 32px;
+      }
+      .detail-panel.visible {
+        display: block;
+      }
+      .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        padding: 24px 28px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 24px;
+      }
+      .detail-title {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 6px;
+      }
+      .detail-subtitle {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.5;
+        max-width: 560px;
+      }
+      .detail-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .detail-tag {
+        background: rgba(107, 159, 255, 0.12);
+        border: 1px solid rgba(107, 159, 255, 0.2);
+        color: #6b9fff;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+      .detail-pros-cons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        min-width: 260px;
+      }
+      .pros-box,
+      .cons-box {
+        padding: 14px 16px;
+        border-radius: 10px;
+      }
+      .pros-box {
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+      .cons-box {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .pros-box h4 {
+        font-size: 11px;
+        font-weight: 700;
+        color: #10b981;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .cons-box h4 {
+        font-size: 11px;
+        font-weight: 700;
+        color: #ef4444;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .pros-box li,
+      .cons-box li {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 4px;
+        padding-left: 12px;
+        position: relative;
+        list-style: none;
+      }
+      .pros-box li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #10b981;
+        font-weight: 700;
+      }
+      .cons-box li::before {
+        content: "–";
+        position: absolute;
+        left: 0;
+        color: #ef4444;
+        font-weight: 700;
+      }
+
+      .detail-fullscreen {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #f2f2f2;
+      }
+
+      /* ========== EVALUATION CRITERIA ========== */
+      .eval-section {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 32px 32px 48px;
+      }
+      .eval-title {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 20px;
+      }
+      .eval-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .eval-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .eval-card h4 {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .eval-card p {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.5;
+      }
+      .eval-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      /* ========== COMPARISON ========== */
+      .compare-bar {
+        max-width: 1400px;
+        margin: 0 auto 48px;
+        padding: 0 32px;
+      }
+      .compare-box {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 24px;
+      }
+      .compare-title {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .compare-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+      }
+      .compare-item {
+        text-align: center;
+        padding: 12px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .compare-item:hover {
+        border-color: rgba(107, 159, 255, 0.4);
+      }
+      .compare-item.active {
+        background: rgba(107, 159, 255, 0.1);
+        border-color: #6b9fff;
+      }
+      .compare-item-name {
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .compare-item-tag {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .compare-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin: 6px auto 0;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+      }
+
+      /* ========== DIRECTION 1: Command Center ========== */
+      .d1 .mockup-window {
+        background: #f2f2f2;
+      }
+      .d1-layout {
+        display: flex;
+        height: 360px;
+      }
+      .d1-sidebar {
+        width: 200px;
+        background: #10409a;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 16px 0;
+      }
+      .d1-logo {
+        padding: 0 16px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        margin-bottom: 8px;
+      }
+      .d1-logo-mark {
+        font-size: 13px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .d1-logo-sub {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .d1-nav-item {
+        padding: 9px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.15s;
+        border-radius: 0;
+      }
+      .d1-nav-item.active {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        border-right: 3px solid #fff;
+      }
+      .d1-nav-icon {
+        font-size: 12px;
+        width: 16px;
+        text-align: center;
+      }
+      .d1-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .d1-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .d1-page-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #333;
+      }
+      .d1-btn-primary {
+        background: #10409a;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 7px 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+      }
+      .d1-kpi-row {
+        display: flex;
+        gap: 10px;
+      }
+      .d1-kpi {
+        flex: 1;
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+      .d1-kpi-label {
+        font-size: 9px;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+      .d1-kpi-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: #333;
+        font-variant-numeric: tabular-nums;
+      }
+      .d1-kpi-delta {
+        font-size: 9px;
+        color: #10b981;
+        font-weight: 600;
+      }
+      .d1-table-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        flex: 1;
+        overflow: hidden;
+      }
+      .d1-table-head {
+        display: flex;
+        padding: 0 8px 8px;
+        border-bottom: 1px solid #f0f0f0;
+        gap: 0;
+      }
+      .d1-th {
+        font-size: 9px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .d1-th:first-child {
+        flex: 2;
+      }
+      .d1-th:not(:first-child) {
+        flex: 1;
+        text-align: right;
+      }
+      .d1-tr {
+        display: flex;
+        align-items: center;
+        padding: 8px 8px;
+        border-bottom: 1px solid #f9f9f9;
+        gap: 0;
+        font-size: 10px;
+      }
+      .d1-tr:last-child {
+        border-bottom: none;
+      }
+      .d1-td:first-child {
+        flex: 2;
+      }
+      .d1-td:not(:first-child) {
+        flex: 1;
+        text-align: right;
+      }
+      .d1-td {
+        color: #474747;
+        font-size: 10px;
+      }
+      .d1-td.name {
+        font-weight: 600;
+        color: #333;
+      }
+      .d1-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        font-size: 9px;
+        font-weight: 700;
+      }
+      .badge-confirmed {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .badge-pending {
+        background: #fef9c3;
+        color: #92400e;
+      }
+      .badge-reversed {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      /* ========== DIRECTION 2: Editorial Dark ========== */
+      .d2 .mockup-window {
+        background: #0d1117;
+      }
+      .d2-layout {
+        display: flex;
+        height: 360px;
+      }
+      .d2-sidebar {
+        width: 52px;
+        background: #161b22;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 0;
+        gap: 4px;
+        border-right: 1px solid #21262d;
+      }
+      .d2-nav-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 15px;
+        color: #6e7681;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .d2-nav-icon.active {
+        background: rgba(88, 166, 255, 0.15);
+        color: #58a6ff;
+      }
+      .d2-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .d2-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .d2-page-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #e6edf3;
+      }
+      .d2-btn {
+        background: #238636;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: none;
+      }
+      .d2-kpi-row {
+        display: flex;
+        gap: 10px;
+      }
+      .d2-kpi {
+        flex: 1;
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .d2-kpi-label {
+        font-size: 9px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .d2-kpi-value {
+        font-size: 20px;
+        font-weight: 800;
+        color: #e6edf3;
+        font-variant-numeric: tabular-nums;
+      }
+      .d2-kpi-delta {
+        font-size: 9px;
+        color: #3fb950;
+        font-weight: 600;
+      }
+      .d2-timeline {
+        background: #161b22;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 12px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .d2-timeline-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+      }
+      .d2-event {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid #21262d;
+      }
+      .d2-event:last-child {
+        border-bottom: none;
+      }
+      .d2-event-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-top: 3px;
+        flex-shrink: 0;
+      }
+      .d2-event-body {
+        flex: 1;
+      }
+      .d2-event-title {
+        font-size: 10px;
+        font-weight: 600;
+        color: #e6edf3;
+      }
+      .d2-event-sub {
+        font-size: 9px;
+        color: #8b949e;
+        margin-top: 2px;
+      }
+      .d2-event-time {
+        font-size: 9px;
+        color: #6e7681;
+      }
+
+      /* ========== DIRECTION 3: Clean Minimal ========== */
+      .d3 .mockup-window {
+        background: #fafafa;
+      }
+      .d3-layout {
+        height: 360px;
+        display: flex;
+        flex-direction: column;
+      }
+      .d3-topnav {
+        background: #fff;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 0 20px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .d3-nav-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .d3-brand {
+        font-size: 13px;
+        font-weight: 800;
+        color: #10409a;
+      }
+      .d3-nav-links {
+        display: flex;
+        gap: 20px;
+      }
+      .d3-link {
+        font-size: 11px;
+        color: #6b7280;
+        font-weight: 500;
+        cursor: pointer;
+        padding-bottom: 2px;
+      }
+      .d3-link.active {
+        color: #10409a;
+        border-bottom: 2px solid #10409a;
+        font-weight: 700;
+      }
+      .d3-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .d3-welcome {
+        font-size: 13px;
+        font-weight: 700;
+        color: #333;
+      }
+      .d3-welcome span {
+        color: #6b7280;
+        font-weight: 400;
+        font-size: 11px;
+      }
+      .d3-kpi-row {
+        display: flex;
+        gap: 12px;
+      }
+      .d3-kpi {
+        flex: 1;
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .d3-kpi-label {
+        font-size: 9px;
+        color: #9ca3af;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+      .d3-kpi-value {
+        font-size: 22px;
+        font-weight: 800;
+        color: #111;
+        font-variant-numeric: tabular-nums;
+      }
+      .d3-kpi-change {
+        font-size: 10px;
+        color: #10b981;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .d3-bottom {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .d3-card {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 10px;
+        padding: 14px;
+        overflow: hidden;
+      }
+      .d3-card-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 10px;
+      }
+      .d3-affiliate-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #fafafa;
+      }
+      .d3-affiliate-row:last-child {
+        border-bottom: none;
+      }
+      .d3-aff-name {
+        font-size: 10px;
+        font-weight: 600;
+        color: #333;
+      }
+      .d3-aff-amount {
+        font-size: 10px;
+        font-weight: 700;
+        color: #10409a;
+        font-variant-numeric: tabular-nums;
+      }
+      .d3-progress-bar {
+        height: 4px;
+        background: #f0f0f0;
+        border-radius: 2px;
+        margin-top: 6px;
+        overflow: hidden;
+      }
+      .d3-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10409a, #1659d6);
+        border-radius: 2px;
+      }
+
+      /* ========== DIRECTION 4: Trust & Warmth ========== */
+      .d4 .mockup-window {
+        background: #f5f3ff;
+      }
+      .d4-layout {
+        display: flex;
+        height: 360px;
+      }
+      .d4-sidebar {
+        width: 210px;
+        background: #fff;
+        border-right: 1px solid #ede9fe;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 16px 12px;
+      }
+      .d4-logo-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        padding: 0 4px;
+      }
+      .d4-logo-icon {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        border-radius: 8px;
+      }
+      .d4-logo-name {
+        font-size: 13px;
+        font-weight: 800;
+        color: #1e1b4b;
+      }
+      .d4-section-label {
+        font-size: 9px;
+        font-weight: 700;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0 8px;
+        margin-bottom: 4px;
+      }
+      .d4-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        margin-bottom: 2px;
+      }
+      .d4-nav-item.active {
+        background: #ede9fe;
+        color: #7c3aed;
+      }
+      .d4-nav-icon {
+        font-size: 13px;
+      }
+      .d4-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .d4-hero-card {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        border-radius: 12px;
+        padding: 16px 18px;
+        color: #fff;
+      }
+      .d4-hero-card-title {
+        font-size: 11px;
+        font-weight: 700;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+      .d4-hero-card-value {
+        font-size: 26px;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+      }
+      .d4-hero-card-sub {
+        font-size: 10px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+      .d4-kpi-row {
+        display: flex;
+        gap: 10px;
+      }
+      .d4-kpi {
+        flex: 1;
+        background: #fff;
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid #ede9fe;
+      }
+      .d4-kpi-label {
+        font-size: 9px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .d4-kpi-value {
+        font-size: 16px;
+        font-weight: 800;
+        color: #1e1b4b;
+        font-variant-numeric: tabular-nums;
+      }
+      .d4-feed {
+        background: #fff;
+        border-radius: 10px;
+        border: 1px solid #ede9fe;
+        padding: 12px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .d4-feed-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: #1e1b4b;
+        margin-bottom: 8px;
+      }
+      .d4-feed-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid #f5f3ff;
+      }
+      .d4-feed-item:last-child {
+        border-bottom: none;
+      }
+      .d4-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .d4-feed-text {
+        flex: 1;
+        font-size: 10px;
+        color: #374151;
+      }
+      .d4-feed-text strong {
+        color: #1e1b4b;
+      }
+      .d4-feed-amount {
+        font-size: 10px;
+        font-weight: 700;
+        color: #7c3aed;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ========== DIRECTION 5: Data-Dense Pro ========== */
+      .d5 .mockup-window {
+        background: #111827;
+      }
+      .d5-layout {
+        display: flex;
+        height: 360px;
+      }
+      .d5-sidebar {
+        width: 44px;
+        background: #1f2937;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 0;
+        gap: 2px;
+        border-right: 1px solid #374151;
+      }
+      .d5-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: #6b7280;
+        cursor: pointer;
+      }
+      .d5-icon.active {
+        background: #374151;
+        color: #60a5fa;
+      }
+      .d5-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+      }
+      .d5-topbar {
+        background: #1f2937;
+        border-bottom: 1px solid #374151;
+        padding: 8px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .d5-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #f9fafb;
+      }
+      .d5-tabs {
+        display: flex;
+        gap: 0;
+      }
+      .d5-tab {
+        font-size: 10px;
+        font-weight: 600;
+        color: #6b7280;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .d5-tab.active {
+        color: #60a5fa;
+        border-bottom-color: #60a5fa;
+      }
+      .d5-main {
+        flex: 1;
+        overflow: hidden;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .d5-kpi-row {
+        display: flex;
+        gap: 8px;
+      }
+      .d5-kpi {
+        flex: 1;
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 6px;
+        padding: 10px 12px;
+      }
+      .d5-kpi-label {
+        font-size: 8px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .d5-kpi-value {
+        font-size: 16px;
+        font-weight: 800;
+        color: #f9fafb;
+        font-variant-numeric: tabular-nums;
+      }
+      .d5-kpi-delta {
+        font-size: 8px;
+        font-weight: 600;
+      }
+      .d5-kpi-delta.up {
+        color: #34d399;
+      }
+      .d5-table-wrap {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 6px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .d5-table-header {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+        padding: 8px 12px;
+        border-bottom: 1px solid #374151;
+        font-size: 8px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .d5-table-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+        padding: 7px 12px;
+        border-bottom: 1px solid #1f2937;
+        align-items: center;
+      }
+      .d5-table-row:nth-child(even) {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .d5-cell {
+        font-size: 10px;
+        color: #d1d5db;
+        font-variant-numeric: tabular-nums;
+      }
+      .d5-cell.name {
+        font-weight: 600;
+        color: #f9fafb;
+      }
+      .d5-cell.amount {
+        color: #60a5fa;
+        font-weight: 700;
+      }
+      .d5-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-right: 4px;
+      }
+
+      /* ========== DIRECTION 6: Affiliate Portal Mobile ========== */
+      .d6 .mockup-window {
+        background: #f8fafc;
+      }
+      .d6-phone {
+        width: 200px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        height: 340px;
+        display: flex;
+        flex-direction: column;
+      }
+      .d6-phone-wrap {
+        height: 360px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f4ff;
+        padding: 20px;
+        gap: 16px;
+      }
+      .d6-header {
+        background: #10409a;
+        padding: 12px 14px 10px;
+        flex-shrink: 0;
+      }
+      .d6-header-logo {
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .d6-header-greeting {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .d6-hero-stat {
+        background: linear-gradient(135deg, #10409a 0%, #1659d6 100%);
+        padding: 14px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .d6-hero-label {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .d6-hero-value {
+        font-size: 24px;
+        font-weight: 900;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+      .d6-hero-sub {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .d6-quick-actions {
+        display: flex;
+        gap: 6px;
+        padding: 10px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        flex-shrink: 0;
+      }
+      .d6-action-btn {
+        flex: 1;
+        background: #f0f4ff;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        padding: 7px 4px;
+        text-align: center;
+        font-size: 8px;
+        font-weight: 700;
+        color: #10409a;
+        cursor: pointer;
+      }
+      .d6-action-btn.primary {
+        background: #10409a;
+        color: #fff;
+        border-color: #10409a;
+      }
+      .d6-commissions {
+        padding: 10px 12px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .d6-section-title {
+        font-size: 9px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .d6-commission-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid #f8f8f8;
+      }
+      .d6-commission-row:last-child {
+        border-bottom: none;
+      }
+      .d6-comm-name {
+        font-size: 9px;
+        font-weight: 600;
+        color: #333;
+      }
+      .d6-comm-date {
+        font-size: 8px;
+        color: #9ca3af;
+      }
+      .d6-comm-right {
+        text-align: right;
+      }
+      .d6-comm-amount {
+        font-size: 10px;
+        font-weight: 800;
+        color: #333;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* SECOND PHONE for portal */
+      .d6-phone2 {
+        width: 160px;
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        height: 280px;
+        display: flex;
+        flex-direction: column;
+        opacity: 0.7;
+        transform: scale(0.9);
+      }
+      .d6-phone2-header {
+        background: #e8521a;
+        padding: 10px 12px 8px;
+        flex-shrink: 0;
+      }
+      .d6-phone2-brand {
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff;
+      }
+      .d6-phone2-greeting {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .d6-phone2-hero {
+        background: linear-gradient(135deg, #e8521a 0%, #f97316 100%);
+        padding: 10px 12px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .d6-phone2-label {
+        font-size: 7px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 2px;
+      }
+      .d6-phone2-value {
+        font-size: 18px;
+        font-weight: 900;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+      .d6-phone2-body {
+        flex: 1;
+        padding: 8px 10px;
+      }
+      .d6-phone2-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #dcfce7;
+        color: #15803d;
+        font-size: 8px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 20px;
+        margin-bottom: 6px;
+      }
+      .d6-phone2-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 8px;
+        padding: 4px 0;
+        border-bottom: 1px solid #f5f5f5;
+      }
+      .d6-phone2-row:last-child {
+        border-bottom: none;
+      }
+      .d6-phone2-amount {
+        font-weight: 700;
+        color: #e8521a;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ========== SECTION LABELS ========== */
+      .section-label {
+        max-width: 1400px;
+        margin: 40px auto 12px;
+        padding: 0 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .section-label-text {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+      }
+      .section-label-line {
+        flex: 1;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      /* Buttons */
+      .btn-select {
+        background: #6b9fff;
+        color: #0a0f1e;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 10px 24px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-select:hover {
+        background: #93b8ff;
+        transform: translateY(-1px);
+      }
+      .btn-outline {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 10px 24px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-outline:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav class="nav-header">
+      <div class="nav-brand">salig-affiliate <span>· Design Directions</span></div>
+      <div class="nav-pills">
+        <div class="nav-pill active" onclick="scrollToSection('directions')">Directions</div>
+        <div class="nav-pill" onclick="scrollToSection('evaluation')">Evaluation Guide</div>
+        <div class="nav-pill" onclick="scrollToSection('compare')">Compare</div>
+      </div>
+      <div class="nav-info">Step 9 · UX Design Workflow</div>
+    </nav>
+
+    <!-- HERO -->
+    <div class="hero" id="directions">
+      <div class="hero-eyebrow">UX Design Directions · Step 9</div>
+      <h1>Six visual directions<br />for <span>salig-affiliate</span></h1>
+      <p>
+        Each direction applies our established design tokens, color system, and typography —
+        exploring different approaches to layout, density, navigation, and visual personality. Click
+        any direction to expand it.
+      </p>
+    </div>
+
+    <!-- DIRECTIONS GRID -->
+    <div class="directions-grid">
+      <!-- DIRECTION 1: Command Center -->
+      <div class="direction-thumb" id="thumb-1" onclick="toggleDetail(1)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d1">
+          <div class="d1-layout">
+            <div class="d1-sidebar">
+              <div class="d1-logo">
+                <div class="d1-logo-mark">salig</div>
+                <div class="d1-logo-sub">affiliate</div>
+              </div>
+              <div class="d1-nav-item active"><span class="d1-nav-icon">📊</span> Overview</div>
+              <div class="d1-nav-item"><span class="d1-nav-icon">👥</span> Affiliates</div>
+              <div class="d1-nav-item"><span class="d1-nav-icon">💰</span> Commissions</div>
+              <div class="d1-nav-item"><span class="d1-nav-icon">💳</span> Payouts</div>
+              <div class="d1-nav-item"><span class="d1-nav-icon">📈</span> Reports</div>
+              <div class="d1-nav-item"><span class="d1-nav-icon">⚙️</span> Settings</div>
+            </div>
+            <div class="d1-content">
+              <div class="d1-topbar">
+                <div class="d1-page-title">Overview</div>
+                <button class="d1-btn-primary">+ Invite Affiliate</button>
+              </div>
+              <div class="d1-kpi-row">
+                <div class="d1-kpi">
+                  <div class="d1-kpi-label">Affiliate MRR</div>
+                  <div class="d1-kpi-value">₱84,200</div>
+                  <div class="d1-kpi-delta">↑ 12% vs last month</div>
+                </div>
+                <div class="d1-kpi">
+                  <div class="d1-kpi-label">Active Affiliates</div>
+                  <div class="d1-kpi-value">47</div>
+                  <div class="d1-kpi-delta">↑ 6 new this month</div>
+                </div>
+                <div class="d1-kpi">
+                  <div class="d1-kpi-label">Pending Payouts</div>
+                  <div class="d1-kpi-value">₱12,400</div>
+                  <div class="d1-kpi-delta">→ 8 affiliates</div>
+                </div>
+              </div>
+              <div class="d1-table-wrap">
+                <div class="d1-table-head">
+                  <div class="d1-th" style="flex: 2">Affiliate</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Revenue</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Commission</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Status</div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">Jamie Cruz</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱24,600</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱4,920</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-confirmed">🟢 Confirmed</span>
+                  </div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">Maria Santos</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱18,200</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱3,640</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-pending">🟡 Pending</span>
+                  </div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">RJ Dela Cruz</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱9,100</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱1,820</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-reversed">🔴 Reversed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 1 — Command Center</div>
+          <div class="thumb-tag">Linear-inspired</div>
+        </div>
+      </div>
+
+      <!-- DIRECTION 2: Editorial Dark -->
+      <div class="direction-thumb" id="thumb-2" onclick="toggleDetail(2)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d2">
+          <div class="d2-layout">
+            <div class="d2-sidebar">
+              <div class="d2-nav-icon active">📊</div>
+              <div class="d2-nav-icon">👥</div>
+              <div class="d2-nav-icon">💰</div>
+              <div class="d2-nav-icon">💳</div>
+              <div class="d2-nav-icon">📈</div>
+              <div style="flex: 1"></div>
+              <div class="d2-nav-icon">⚙️</div>
+            </div>
+            <div class="d2-content">
+              <div class="d2-topbar">
+                <div class="d2-page-title">Overview</div>
+                <button class="d2-btn">+ Invite</button>
+              </div>
+              <div class="d2-kpi-row">
+                <div class="d2-kpi">
+                  <div class="d2-kpi-label">Affiliate MRR</div>
+                  <div class="d2-kpi-value">₱84,200</div>
+                  <div class="d2-kpi-delta">↑ 12% vs last month</div>
+                </div>
+                <div class="d2-kpi">
+                  <div class="d2-kpi-label">Active Affiliates</div>
+                  <div class="d2-kpi-value">47</div>
+                  <div class="d2-kpi-delta">↑ 6 new this month</div>
+                </div>
+                <div class="d2-kpi">
+                  <div class="d2-kpi-label">Pending Payouts</div>
+                  <div class="d2-kpi-value">₱12,400</div>
+                  <div class="d2-kpi-delta">→ 8 affiliates</div>
+                </div>
+              </div>
+              <div class="d2-timeline">
+                <div class="d2-timeline-title">Recent Activity</div>
+                <div class="d2-event">
+                  <div class="d2-event-dot" style="background: #3fb950"></div>
+                  <div class="d2-event-body">
+                    <div class="d2-event-title">Commission Confirmed — ₱1,250.00</div>
+                    <div class="d2-event-sub">Jamie Cruz · Campaign: Pro Plan</div>
+                  </div>
+                  <div class="d2-event-time">2m ago</div>
+                </div>
+                <div class="d2-event">
+                  <div class="d2-event-dot" style="background: #d29922"></div>
+                  <div class="d2-event-body">
+                    <div class="d2-event-title">New affiliate pending approval</div>
+                    <div class="d2-event-sub">Maria Santos requested to join</div>
+                  </div>
+                  <div class="d2-event-time">14m ago</div>
+                </div>
+                <div class="d2-event">
+                  <div class="d2-event-dot" style="background: #f85149"></div>
+                  <div class="d2-event-body">
+                    <div class="d2-event-title">Commission Reversed — Self-referral detected</div>
+                    <div class="d2-event-sub">RJ Dela Cruz · ₱820.00 held for review</div>
+                  </div>
+                  <div class="d2-event-time">1h ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 2 — Editorial Dark</div>
+          <div class="thumb-tag">GitHub-inspired</div>
+        </div>
+      </div>
+
+      <!-- DIRECTION 3: Clean Minimal -->
+      <div class="direction-thumb" id="thumb-3" onclick="toggleDetail(3)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d3">
+          <div class="d3-layout">
+            <div class="d3-topnav">
+              <div class="d3-nav-left">
+                <div class="d3-brand">salig-affiliate</div>
+                <div class="d3-nav-links">
+                  <div class="d3-link active">Overview</div>
+                  <div class="d3-link">Affiliates</div>
+                  <div class="d3-link">Commissions</div>
+                  <div class="d3-link">Payouts</div>
+                  <div class="d3-link">Reports</div>
+                </div>
+              </div>
+              <button
+                style="
+                  background: #10409a;
+                  color: #fff;
+                  font-size: 9px;
+                  font-weight: 700;
+                  padding: 5px 12px;
+                  border-radius: 6px;
+                  border: none;
+                "
+              >
+                + Invite
+              </button>
+            </div>
+            <div class="d3-content">
+              <div>
+                <div class="d3-welcome">Good morning, Alex <span>· Monday, Mar 10</span></div>
+              </div>
+              <div class="d3-kpi-row">
+                <div class="d3-kpi">
+                  <div class="d3-kpi-label">Affiliate MRR</div>
+                  <div class="d3-kpi-value">₱84,200</div>
+                  <div class="d3-kpi-change">↑ 12% vs last month</div>
+                </div>
+                <div class="d3-kpi">
+                  <div class="d3-kpi-label">Active Affiliates</div>
+                  <div class="d3-kpi-value">47</div>
+                  <div class="d3-kpi-change">↑ 6 new</div>
+                </div>
+                <div class="d3-kpi">
+                  <div class="d3-kpi-label">Pending Review</div>
+                  <div class="d3-kpi-value">3</div>
+                  <div class="d3-kpi-change" style="color: #f59e0b">↑ needs action</div>
+                </div>
+                <div class="d3-kpi">
+                  <div class="d3-kpi-label">Payouts Due</div>
+                  <div class="d3-kpi-value">₱12,400</div>
+                  <div class="d3-kpi-change" style="color: #f59e0b">8 affiliates</div>
+                </div>
+              </div>
+              <div class="d3-bottom">
+                <div class="d3-card">
+                  <div class="d3-card-title">Top Affiliates</div>
+                  <div class="d3-affiliate-row">
+                    <div>
+                      <div class="d3-aff-name">Jamie Cruz</div>
+                      <div class="d3-progress-bar">
+                        <div class="d3-progress-fill" style="width: 100%"></div>
+                      </div>
+                    </div>
+                    <div class="d3-aff-amount">₱4,920</div>
+                  </div>
+                  <div class="d3-affiliate-row">
+                    <div>
+                      <div class="d3-aff-name">Maria Santos</div>
+                      <div class="d3-progress-bar">
+                        <div class="d3-progress-fill" style="width: 74%"></div>
+                      </div>
+                    </div>
+                    <div class="d3-aff-amount">₱3,640</div>
+                  </div>
+                  <div class="d3-affiliate-row">
+                    <div>
+                      <div class="d3-aff-name">Carlo Reyes</div>
+                      <div class="d3-progress-bar">
+                        <div class="d3-progress-fill" style="width: 42%"></div>
+                      </div>
+                    </div>
+                    <div class="d3-aff-amount">₱2,070</div>
+                  </div>
+                </div>
+                <div class="d3-card">
+                  <div class="d3-card-title">Pending Actions</div>
+                  <div class="d3-affiliate-row">
+                    <div class="d3-aff-name" style="font-size: 9px; color: #374151">
+                      3 affiliates awaiting approval
+                    </div>
+                    <div
+                      style="
+                        background: #10409a;
+                        color: #fff;
+                        font-size: 8px;
+                        font-weight: 700;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                      "
+                    >
+                      Review
+                    </div>
+                  </div>
+                  <div class="d3-affiliate-row">
+                    <div class="d3-aff-name" style="font-size: 9px; color: #374151">
+                      2 commissions for review
+                    </div>
+                    <div
+                      style="
+                        background: #f59e0b;
+                        color: #fff;
+                        font-size: 8px;
+                        font-weight: 700;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                      "
+                    >
+                      Approve
+                    </div>
+                  </div>
+                  <div class="d3-affiliate-row">
+                    <div class="d3-aff-name" style="font-size: 9px; color: #374151">
+                      1 fraud flag flagged
+                    </div>
+                    <div
+                      style="
+                        background: #ef4444;
+                        color: #fff;
+                        font-size: 8px;
+                        font-weight: 700;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                      "
+                    >
+                      Investigate
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 3 — Clean Minimal</div>
+          <div class="thumb-tag">Horizontal nav</div>
+        </div>
+      </div>
+
+      <!-- DIRECTION 4: Trust & Warmth -->
+      <div class="direction-thumb" id="thumb-4" onclick="toggleDetail(4)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d4">
+          <div class="d4-layout">
+            <div class="d4-sidebar">
+              <div class="d4-logo-wrap">
+                <div class="d4-logo-icon"></div>
+                <div class="d4-logo-name">salig</div>
+              </div>
+              <div class="d4-section-label">Program</div>
+              <div class="d4-nav-item active"><span class="d4-nav-icon">📊</span> Overview</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">👥</span> Affiliates</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">💰</span> Commissions</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">💳</span> Payouts</div>
+              <div style="margin-top: 8px"></div>
+              <div class="d4-section-label">Manage</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">📈</span> Reports</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">📧</span> Emails</div>
+              <div class="d4-nav-item"><span class="d4-nav-icon">⚙️</span> Settings</div>
+            </div>
+            <div class="d4-content">
+              <div class="d4-hero-card">
+                <div class="d4-hero-card-title">Affiliate MRR this month</div>
+                <div class="d4-hero-card-value">₱84,200</div>
+                <div class="d4-hero-card-sub">↑ 12% vs last month · 47 active affiliates</div>
+              </div>
+              <div class="d4-kpi-row">
+                <div class="d4-kpi">
+                  <div class="d4-kpi-label">Commissions</div>
+                  <div class="d4-kpi-value">₱16,840</div>
+                </div>
+                <div class="d4-kpi">
+                  <div class="d4-kpi-label">Pending</div>
+                  <div class="d4-kpi-value">3</div>
+                </div>
+                <div class="d4-kpi">
+                  <div class="d4-kpi-label">Payouts Due</div>
+                  <div class="d4-kpi-value">₱12,400</div>
+                </div>
+              </div>
+              <div class="d4-feed">
+                <div class="d4-feed-title">Program Activity</div>
+                <div class="d4-feed-item">
+                  <div class="d4-avatar">JC</div>
+                  <div class="d4-feed-text">
+                    <strong>Jamie Cruz</strong> earned a new commission
+                  </div>
+                  <div class="d4-feed-amount">+₱1,250</div>
+                </div>
+                <div class="d4-feed-item">
+                  <div class="d4-avatar">MS</div>
+                  <div class="d4-feed-text">
+                    <strong>Maria Santos</strong> referred a new subscriber
+                  </div>
+                  <div class="d4-feed-amount">+₱870</div>
+                </div>
+                <div class="d4-feed-item">
+                  <div class="d4-avatar">CR</div>
+                  <div class="d4-feed-text"><strong>Carlo Reyes</strong> joined the program</div>
+                  <div class="d4-feed-amount" style="color: #6b7280">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 4 — Trust & Warmth</div>
+          <div class="thumb-tag">Human-first</div>
+        </div>
+      </div>
+
+      <!-- DIRECTION 5: Data-Dense Pro -->
+      <div class="direction-thumb" id="thumb-5" onclick="toggleDetail(5)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d5">
+          <div class="d5-layout">
+            <div class="d5-sidebar">
+              <div class="d5-icon active">📊</div>
+              <div class="d5-icon">👥</div>
+              <div class="d5-icon">💰</div>
+              <div class="d5-icon">💳</div>
+              <div class="d5-icon">📈</div>
+              <div style="flex: 1"></div>
+              <div class="d5-icon">⚙️</div>
+            </div>
+            <div class="d5-content">
+              <div class="d5-topbar">
+                <div class="d5-title">Commissions</div>
+                <div class="d5-tabs">
+                  <div class="d5-tab active">All</div>
+                  <div class="d5-tab">Pending</div>
+                  <div class="d5-tab">Confirmed</div>
+                  <div class="d5-tab">Payouts</div>
+                </div>
+              </div>
+              <div class="d5-main">
+                <div class="d5-kpi-row">
+                  <div class="d5-kpi">
+                    <div class="d5-kpi-label">Total MRR</div>
+                    <div class="d5-kpi-value">₱84,200</div>
+                    <div class="d5-kpi-delta up">↑ 12%</div>
+                  </div>
+                  <div class="d5-kpi">
+                    <div class="d5-kpi-label">Commissions</div>
+                    <div class="d5-kpi-value">₱16,840</div>
+                    <div class="d5-kpi-delta up">↑ 8%</div>
+                  </div>
+                  <div class="d5-kpi">
+                    <div class="d5-kpi-label">Affiliates</div>
+                    <div class="d5-kpi-value">47</div>
+                    <div class="d5-kpi-delta up">↑ 6</div>
+                  </div>
+                  <div class="d5-kpi">
+                    <div class="d5-kpi-label">Clicks</div>
+                    <div class="d5-kpi-value">2,841</div>
+                    <div class="d5-kpi-delta up">↑ 18%</div>
+                  </div>
+                  <div class="d5-kpi">
+                    <div class="d5-kpi-label">Conv. Rate</div>
+                    <div class="d5-kpi-value">4.2%</div>
+                    <div class="d5-kpi-delta up">↑ 0.3pp</div>
+                  </div>
+                </div>
+                <div class="d5-table-wrap">
+                  <div class="d5-table-header">
+                    <div>Affiliate</div>
+                    <div>Revenue</div>
+                    <div>Commission</div>
+                    <div>Status</div>
+                    <div>Date</div>
+                  </div>
+                  <div class="d5-table-row">
+                    <div class="d5-cell name">Jamie Cruz</div>
+                    <div class="d5-cell amount">₱24,600</div>
+                    <div class="d5-cell amount">₱4,920</div>
+                    <div class="d5-cell">
+                      <span class="d5-dot" style="background: #10b981"></span>Confirmed
+                    </div>
+                    <div class="d5-cell" style="color: #6b7280">Mar 10</div>
+                  </div>
+                  <div class="d5-table-row">
+                    <div class="d5-cell name">Maria Santos</div>
+                    <div class="d5-cell amount">₱18,200</div>
+                    <div class="d5-cell amount">₱3,640</div>
+                    <div class="d5-cell">
+                      <span class="d5-dot" style="background: #f59e0b"></span>Pending
+                    </div>
+                    <div class="d5-cell" style="color: #6b7280">Mar 9</div>
+                  </div>
+                  <div class="d5-table-row">
+                    <div class="d5-cell name">Carlo Reyes</div>
+                    <div class="d5-cell amount">₱10,350</div>
+                    <div class="d5-cell amount">₱2,070</div>
+                    <div class="d5-cell">
+                      <span class="d5-dot" style="background: #10b981"></span>Confirmed
+                    </div>
+                    <div class="d5-cell" style="color: #6b7280">Mar 8</div>
+                  </div>
+                  <div class="d5-table-row">
+                    <div class="d5-cell name">RJ Dela Cruz</div>
+                    <div class="d5-cell amount">₱4,100</div>
+                    <div class="d5-cell amount">₱820</div>
+                    <div class="d5-cell">
+                      <span class="d5-dot" style="background: #ef4444"></span>Reversed
+                    </div>
+                    <div class="d5-cell" style="color: #6b7280">Mar 7</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 5 — Data-Dense Pro</div>
+          <div class="thumb-tag">Power user</div>
+        </div>
+      </div>
+
+      <!-- DIRECTION 6: Affiliate Portal Mobile -->
+      <div class="direction-thumb" id="thumb-6" onclick="toggleDetail(6)">
+        <div class="thumb-selected-badge">✓ Selected</div>
+        <div class="mockup-window d6">
+          <div class="d6-phone-wrap">
+            <!-- Primary phone: Alex's brand (blue) -->
+            <div class="d6-phone">
+              <div class="d6-header">
+                <div class="d6-header-logo">TechFlow Pro</div>
+                <div class="d6-header-greeting">Hi Jamie 👋</div>
+              </div>
+              <div class="d6-hero-stat">
+                <div class="d6-hero-label">Your Earnings</div>
+                <div class="d6-hero-value">₱4,920</div>
+                <div class="d6-hero-sub">this month · 17 referrals total</div>
+              </div>
+              <div class="d6-quick-actions">
+                <div class="d6-action-btn primary">Copy Link</div>
+                <div class="d6-action-btn">Assets</div>
+                <div class="d6-action-btn">History</div>
+              </div>
+              <div class="d6-commissions">
+                <div class="d6-section-title">Recent Commissions</div>
+                <div class="d6-commission-row">
+                  <div>
+                    <div class="d6-comm-name">Pro Plan — Month 3</div>
+                    <div class="d6-comm-date">Mar 10 · Recurring</div>
+                  </div>
+                  <div class="d6-comm-right">
+                    <div class="d6-comm-amount">₱290.00</div>
+                    <span class="d1-badge badge-confirmed" style="font-size: 8px; padding: 2px 5px"
+                      >🟢</span
+                    >
+                  </div>
+                </div>
+                <div class="d6-commission-row">
+                  <div>
+                    <div class="d6-comm-name">Starter Plan — New</div>
+                    <div class="d6-comm-date">Mar 8 · First charge</div>
+                  </div>
+                  <div class="d6-comm-right">
+                    <div class="d6-comm-amount">₱99.00</div>
+                    <span class="d1-badge badge-pending" style="font-size: 8px; padding: 2px 5px"
+                      >🟡</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Secondary phone: different tenant brand (orange) -->
+            <div class="d6-phone2">
+              <div class="d6-phone2-header">
+                <div class="d6-phone2-brand">Launchly</div>
+                <div class="d6-phone2-greeting">Hi Maria 👋</div>
+              </div>
+              <div class="d6-phone2-hero">
+                <div class="d6-phone2-label">Your Earnings</div>
+                <div class="d6-phone2-value">₱3,640</div>
+              </div>
+              <div class="d6-phone2-body">
+                <div class="d6-phone2-badge">🟢 Commission Confirmed</div>
+                <div class="d6-phone2-row">
+                  <span style="color: #6b7280">Growth Plan · Month 2</span>
+                  <span class="d6-phone2-amount">₱580.00</span>
+                </div>
+                <div class="d6-phone2-row">
+                  <span style="color: #6b7280">Starter Plan · New</span>
+                  <span class="d6-phone2-amount">₱145.00</span>
+                </div>
+                <div class="d6-phone2-row">
+                  <span style="color: #6b7280">Pro Upgrade</span>
+                  <span class="d6-phone2-amount">₱290.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="thumb-label">
+          <div class="thumb-name">Direction 6 — Affiliate Portal</div>
+          <div class="thumb-tag">Mobile-first · White-label</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL PANELS -->
+
+    <!-- Detail 1 -->
+    <div class="detail-panel" id="detail-1">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 1 — Command Center</div>
+          <div class="detail-subtitle">
+            A bold 240px blue sidebar inspired by Linear — our established design language in full
+            execution. The sidebar is the product's identity: brand-primary blue from header to
+            footer, icon+label nav items, with the content area as a clean white workspace. Highest
+            visual clarity between navigation and content surfaces.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Linear-inspired</span>
+            <span class="detail-tag">Bold sidebar</span>
+            <span class="detail-tag">Desktop-primary</span>
+            <span class="detail-tag">Brand-forward</span>
+            <span class="detail-tag">Established pattern</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>Brand color immediately visible</li>
+              <li>Navigation always in context</li>
+              <li>Alex feels "in command"</li>
+              <li>Familiar SaaS pattern</li>
+              <li>Status badges pop on white</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Sidebar takes 240px of real estate</li>
+              <li>Blue sidebar can feel heavy</li>
+              <li>Less modern than icon-only nav</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="detail-fullscreen">
+        <div class="mockup-window d1" style="height: 500px">
+          <div class="d1-layout" style="height: 500px">
+            <div class="d1-sidebar" style="width: 220px">
+              <div class="d1-logo" style="padding: 12px 16px 16px">
+                <div class="d1-logo-mark" style="font-size: 15px">salig-affiliate</div>
+                <div class="d1-logo-sub">Alex's Program · Starter Plan</div>
+              </div>
+              <div class="d1-nav-item active" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">📊</span> Overview
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">👥</span> Affiliates
+                <span
+                  style="
+                    background: rgba(255, 255, 255, 0.15);
+                    color: #fff;
+                    font-size: 9px;
+                    padding: 1px 6px;
+                    border-radius: 10px;
+                    margin-left: auto;
+                  "
+                  >47</span
+                >
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">💰</span> Commissions
+                <span
+                  style="
+                    background: #f59e0b;
+                    color: #fff;
+                    font-size: 9px;
+                    padding: 1px 6px;
+                    border-radius: 10px;
+                    margin-left: auto;
+                  "
+                  >3</span
+                >
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">💳</span> Payouts
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">🏷️</span> Campaigns
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">📈</span> Reports
+              </div>
+              <div style="flex: 1"></div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">👤</span> Team
+              </div>
+              <div class="d1-nav-item" style="font-size: 12px; padding: 10px 16px">
+                <span class="d1-nav-icon">⚙️</span> Settings
+              </div>
+            </div>
+            <div class="d1-content" style="padding: 20px; gap: 16px">
+              <div class="d1-topbar">
+                <div>
+                  <div class="d1-page-title" style="font-size: 20px">Good morning, Alex 👋</div>
+                  <div style="font-size: 11px; color: #6b7280; margin-top: 2px">
+                    Monday, Mar 10 · Your affiliate program is healthy
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px">
+                  <button class="d1-btn-primary" style="font-size: 11px; padding: 8px 16px">
+                    + Invite Affiliate
+                  </button>
+                  <button
+                    style="
+                      background: #fff;
+                      color: #10409a;
+                      border: 1px solid #e5e7eb;
+                      font-size: 11px;
+                      font-weight: 700;
+                      padding: 8px 16px;
+                      border-radius: 6px;
+                    "
+                  >
+                    Pay All (₱12,400)
+                  </button>
+                </div>
+              </div>
+              <div class="d1-kpi-row">
+                <div class="d1-kpi" style="padding: 16px">
+                  <div class="d1-kpi-label">Affiliate MRR</div>
+                  <div class="d1-kpi-value" style="font-size: 24px">₱84,200</div>
+                  <div class="d1-kpi-delta">↑ 12% vs last month</div>
+                </div>
+                <div class="d1-kpi" style="padding: 16px">
+                  <div class="d1-kpi-label">Active Affiliates</div>
+                  <div class="d1-kpi-value" style="font-size: 24px">47</div>
+                  <div class="d1-kpi-delta">↑ 6 new this month</div>
+                </div>
+                <div class="d1-kpi" style="padding: 16px">
+                  <div class="d1-kpi-label">Pending Payouts</div>
+                  <div class="d1-kpi-value" style="font-size: 24px">₱12,400</div>
+                  <div class="d1-kpi-delta" style="color: #f59e0b">→ 8 affiliates awaiting</div>
+                </div>
+                <div class="d1-kpi" style="padding: 16px">
+                  <div class="d1-kpi-label">Commissions Due</div>
+                  <div class="d1-kpi-value" style="font-size: 24px">3</div>
+                  <div class="d1-kpi-delta" style="color: #f59e0b">→ pending approval</div>
+                </div>
+              </div>
+              <div class="d1-table-wrap" style="padding: 16px; flex: 1">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+                  "
+                >
+                  <div style="font-size: 13px; font-weight: 700; color: #333">
+                    Recent Commissions
+                  </div>
+                  <div style="font-size: 10px; color: #6b9fff; cursor: pointer">View all →</div>
+                </div>
+                <div class="d1-table-head" style="padding: 0 8px 8px">
+                  <div class="d1-th" style="flex: 2">Affiliate</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Revenue</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Commission</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Event</div>
+                  <div class="d1-th" style="flex: 1; text-align: right">Status</div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">Jamie Cruz</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱24,600</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱4,920</div>
+                  <div
+                    class="d1-td"
+                    style="flex: 1; text-align: right; color: #6b7280; font-size: 9px"
+                  >
+                    Recurring
+                  </div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-confirmed">🟢 Confirmed</span>
+                  </div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">Maria Santos</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱18,200</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱3,640</div>
+                  <div
+                    class="d1-td"
+                    style="flex: 1; text-align: right; color: #6b7280; font-size: 9px"
+                  >
+                    New sub
+                  </div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-pending">🟡 Pending Review</span>
+                  </div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">Carlo Reyes</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱10,350</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱2,070</div>
+                  <div
+                    class="d1-td"
+                    style="flex: 1; text-align: right; color: #6b7280; font-size: 9px"
+                  >
+                    Upgrade
+                  </div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-confirmed">🟢 Confirmed</span>
+                  </div>
+                </div>
+                <div class="d1-tr">
+                  <div class="d1-td name" style="flex: 2">RJ Dela Cruz</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱4,100</div>
+                  <div class="d1-td" style="flex: 1; text-align: right">₱820</div>
+                  <div
+                    class="d1-td"
+                    style="flex: 1; text-align: right; color: #6b7280; font-size: 9px"
+                  >
+                    New sub
+                  </div>
+                  <div class="d1-td" style="flex: 1; text-align: right">
+                    <span class="d1-badge badge-reversed">🔴 Reversed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail 2 -->
+    <div class="detail-panel" id="detail-2">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 2 — Editorial Dark</div>
+          <div class="detail-subtitle">
+            A dark-mode-first interface with icon-only sidebar and activity-timeline-centered
+            layout. Data feels like a live feed — financial events as a narrative stream. Inspired
+            by GitHub's developer-grade aesthetic. Strongest for users who live in the tool all day
+            and prefer low visual fatigue.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Dark mode</span>
+            <span class="detail-tag">Icon sidebar</span>
+            <span class="detail-tag">Timeline-first</span>
+            <span class="detail-tag">Developer feel</span>
+            <span class="detail-tag">High contrast</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>Maximizes content area</li>
+              <li>Low visual fatigue for daily use</li>
+              <li>Timeline = natural for audit trail</li>
+              <li>High contrast status badges</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Departs from light-mode brief</li>
+              <li>Less welcoming to non-technical users</li>
+              <li>Affiliate portal needs separate treatment</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail 3 -->
+    <div class="detail-panel" id="detail-3">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 3 — Clean Minimal</div>
+          <div class="detail-subtitle">
+            Horizontal top navigation eliminates the sidebar entirely, maximizing the content
+            canvas. Light, airy, and approachable — feels like a modern analytics tool. The "Monday
+            morning confidence" check is served by a 4-KPI strip and two action-cards below the
+            fold. Best for users who value breathing room over navigation density.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Horizontal nav</span>
+            <span class="detail-tag">Maximum whitespace</span>
+            <span class="detail-tag">Analytics feel</span>
+            <span class="detail-tag">Approachable</span>
+            <span class="detail-tag">Wide content area</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>Most content space of any direction</li>
+              <li>Lower visual density feels friendly</li>
+              <li>Progress bars add visual delight</li>
+              <li>Actionable cards are immediately clear</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Horizontal nav can get crowded at 6+ items</li>
+              <li>Less "command center" feel</li>
+              <li>Weaker brand presence</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail 4 -->
+    <div class="detail-panel" id="detail-4">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 4 — Trust & Warmth</div>
+          <div class="detail-subtitle">
+            A white sidebar with colored accent nav-items, a gradient hero card at the top of the
+            content, and a person-centric activity feed using avatar initials. Treats every
+            affiliate as a human — names and amounts together, not anonymous rows. Highest emotional
+            resonance for the "I care about my affiliates" SaaS Owner persona. Inspired by Notion's
+            warmth.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Human-first</span>
+            <span class="detail-tag">White sidebar</span>
+            <span class="detail-tag">Gradient hero</span>
+            <span class="detail-tag">Avatar feed</span>
+            <span class="detail-tag">Notion-inspired</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>Highest emotional warmth</li>
+              <li>Affiliates feel like people, not rows</li>
+              <li>Gradient hero creates visual anchor</li>
+              <li>Approachable for non-technical Alexes</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Purple departs from brand tokens</li>
+              <li>Activity feed hides data density</li>
+              <li>Less "financial command" feel</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail 5 -->
+    <div class="detail-panel" id="detail-5">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 5 — Data-Dense Pro</div>
+          <div class="detail-subtitle">
+            Maximum information density with a 5-KPI strip, tabbed navigation within the content
+            area, and a full-bleed data table as the primary UI surface. Designed for Alex's
+            power-user mode: managing 200+ affiliates and running weekly data reviews. Every pixel
+            serves data. Inspired by Stripe's dashboard density with a dark background for contrast.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Power user</span>
+            <span class="detail-tag">Maximum density</span>
+            <span class="detail-tag">Tabbed content</span>
+            <span class="detail-tag">Table-first</span>
+            <span class="detail-tag">Stripe-inspired</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>Most data visible at once</li>
+              <li>5-KPI row answers weekly questions fast</li>
+              <li>Tabbed views keep context</li>
+              <li>Satisfying for data-driven Alexes</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Overwhelming for new users</li>
+              <li>Dark theme adds implementation cost</li>
+              <li>Less friendly for occasional users</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail 6 -->
+    <div class="detail-panel" id="detail-6">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">Direction 6 — Affiliate Portal (Mobile-First)</div>
+          <div class="detail-subtitle">
+            This direction focuses on Jamie's surface — the white-labeled affiliate portal on
+            mobile. Two phones side by side demonstrate the white-label contract: the same component
+            tree rendering in completely different brand colors (Alex's blue vs. a tenant's orange).
+            Jamie's "Commission Confirmed" screenshot moment is the design centerpiece. This is the
+            portal Jamie opens from her phone between tasks.
+          </div>
+          <div class="detail-tags">
+            <span class="detail-tag">Affiliate portal</span>
+            <span class="detail-tag">Mobile-first</span>
+            <span class="detail-tag">White-label demo</span>
+            <span class="detail-tag">Jamie's surface</span>
+            <span class="detail-tag">Screenshot moment</span>
+          </div>
+        </div>
+        <div class="detail-pros-cons">
+          <div class="pros-box">
+            <h4>Strengths</h4>
+            <ul>
+              <li>White-label proven in the mockup</li>
+              <li>Earnings hero is immediately satisfying</li>
+              <li>One-tap copy link placement is obvious</li>
+              <li>Commission status badge is screenshot-worthy</li>
+            </ul>
+          </div>
+          <div class="cons-box">
+            <h4>Tradeoffs</h4>
+            <ul>
+              <li>Only shows affiliate surface</li>
+              <li>Needs pairing with an Owner dashboard direction</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVALUATION CRITERIA -->
+    <div class="section-label" id="evaluation">
+      <div class="section-label-text">Evaluation Guide</div>
+      <div class="section-label-line"></div>
+    </div>
+
+    <div class="eval-section">
+      <div class="eval-title">What to look for as you explore</div>
+      <div class="eval-grid">
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(16, 64, 154, 0.12)">🧭</div>
+            Layout Intuitiveness
+          </h4>
+          <p>
+            Which information hierarchy matches Alex's Monday morning check-in priority? Does the
+            overview answer "how much did affiliates drive, any commissions to approve, any payouts
+            to run?" above the fold?
+          </p>
+        </div>
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(16, 185, 129, 0.12)">⚡</div>
+            Interaction Style
+          </h4>
+          <p>
+            Which navigation pattern lets Alex move from Overview → Commissions → Payouts in the
+            fewest clicks? Which feels like it anticipates his workflow rather than requiring him to
+            learn it?
+          </p>
+        </div>
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(107, 159, 255, 0.12)">⚖️</div>
+            Visual Weight
+          </h4>
+          <p>
+            Which visual density — from airy minimal (D3) to dense pro (D5) — feels right for a
+            financial product that needs to project precision and accuracy? Does it feel trustworthy
+            or overwhelming?
+          </p>
+        </div>
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(245, 158, 11, 0.12)">🎨</div>
+            Brand Alignment
+          </h4>
+          <p>
+            Recall the brand tokens: Brand Primary #10409a, surface white #fff, page background
+            #f2f2f2. Which direction makes those tokens feel intentional, not incidental? Which one
+            is unmistakably salig-affiliate?
+          </p>
+        </div>
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(239, 68, 68, 0.12)">💼</div>
+            Role Scoping Readiness
+          </h4>
+          <p>
+            Dana (Manager) shouldn't see a Payouts tab. Which navigation pattern makes it easiest to
+            simply remove tabs per role — without locked icons, without grey-outs, without
+            explaining absence?
+          </p>
+        </div>
+        <div class="eval-card">
+          <h4>
+            <div class="eval-icon" style="background: rgba(124, 58, 237, 0.12)">🤝</div>
+            Emotional Resonance
+          </h4>
+          <p>
+            Alex needs to feel "in command." Which direction triggers that feeling most immediately?
+            Which would make him think "I built something real here" when he sees that ₱84,200
+            affiliate MRR number?
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARE BAR -->
+    <div class="section-label" id="compare">
+      <div class="section-label-text">Quick Compare</div>
+      <div class="section-label-line"></div>
+    </div>
+
+    <div class="compare-bar">
+      <div class="compare-box">
+        <div class="compare-title">Click to highlight a direction</div>
+        <div class="compare-grid">
+          <div class="compare-item" onclick="toggleDetail(1)">
+            <div class="compare-dot" style="background: #10409a"></div>
+            <div class="compare-item-name">D1</div>
+            <div class="compare-item-tag">Command Center</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              Sidebar · Blue
+            </div>
+          </div>
+          <div class="compare-item" onclick="toggleDetail(2)">
+            <div class="compare-dot" style="background: #238636"></div>
+            <div class="compare-item-name">D2</div>
+            <div class="compare-item-tag">Editorial Dark</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              Icon nav · Dark
+            </div>
+          </div>
+          <div class="compare-item" onclick="toggleDetail(3)">
+            <div class="compare-dot" style="background: #6b9fff"></div>
+            <div class="compare-item-name">D3</div>
+            <div class="compare-item-tag">Clean Minimal</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              Horiz nav · White
+            </div>
+          </div>
+          <div class="compare-item" onclick="toggleDetail(4)">
+            <div class="compare-dot" style="background: #7c3aed"></div>
+            <div class="compare-item-name">D4</div>
+            <div class="compare-item-tag">Trust & Warmth</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              White sidebar · Warm
+            </div>
+          </div>
+          <div class="compare-item" onclick="toggleDetail(5)">
+            <div class="compare-dot" style="background: #60a5fa"></div>
+            <div class="compare-item-name">D5</div>
+            <div class="compare-item-tag">Data-Dense Pro</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              Icon nav · Dense
+            </div>
+          </div>
+          <div class="compare-item" onclick="toggleDetail(6)">
+            <div class="compare-dot" style="background: #10b981"></div>
+            <div class="compare-item-name">D6</div>
+            <div class="compare-item-tag">Affiliate Portal</div>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); margin-top: 4px">
+              Mobile · White-label
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 60px"></div>
+
+    <script>
+      let activeDetail = null;
+
+      function toggleDetail(n) {
+        const thumb = document.getElementById("thumb-" + n);
+        const detail = document.getElementById("detail-" + n);
+
+        if (activeDetail === n) {
+          // Close
+          thumb.classList.remove("selected");
+          detail.classList.remove("visible");
+          activeDetail = null;
+          return;
+        }
+
+        // Close previous
+        if (activeDetail !== null) {
+          document.getElementById("thumb-" + activeDetail).classList.remove("selected");
+          document.getElementById("detail-" + activeDetail).classList.remove("visible");
+        }
+
+        // Open new
+        thumb.classList.add("selected");
+        detail.classList.add("visible");
+        activeDetail = n;
+
+        // Scroll to detail
+        setTimeout(() => {
+          detail.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      }
+
+      function scrollToSection(id) {
+        document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+      }
+
+      // Nav pill active state on scroll
+      const sections = ["directions", "evaluation", "compare"];
+      window.addEventListener("scroll", () => {
+        const pills = document.querySelectorAll(".nav-pill");
+        let current = 0;
+        sections.forEach((id, i) => {
+          const el = document.getElementById(id);
+          if (el && el.getBoundingClientRect().top <= 100) current = i;
+        });
+        pills.forEach((p, i) => p.classList.toggle("active", i === current));
+      });
+    </script>
+  </body>
+</html>

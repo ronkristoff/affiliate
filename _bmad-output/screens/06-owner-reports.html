@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Reports</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-text span {
+        color: #7dd3fc;
+      }
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+      }
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+      .nav-badge {
+        margin-left: auto;
+        background: var(--warning);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 99px;
+      }
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+      }
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* MAIN */
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .page-content {
+        padding: 28px 32px;
+        flex: 1;
+      }
+
+      /* DATE RANGE TABS */
+      .period-tabs {
+        display: flex;
+        gap: 4px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 3px;
+        width: fit-content;
+        margin-bottom: 24px;
+      }
+      .period-tab {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .period-tab.active {
+        background: #fff;
+        color: var(--text-heading);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      /* METRICS GRID */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+      }
+      .metric-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.5px;
+      }
+      .metric-delta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .delta-up {
+        color: var(--success);
+      }
+      .delta-down {
+        color: var(--danger);
+      }
+      .delta-period {
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      /* CHART CARDS */
+      .charts-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .card-body {
+        padding: 20px;
+      }
+
+      /* SVG CHART AREA */
+      .chart-area {
+        width: 100%;
+        height: 180px;
+        position: relative;
+      }
+      svg.chart {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* FUNNEL */
+      .funnel-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .funnel-row:last-child {
+        border-bottom: none;
+      }
+      .funnel-label {
+        font-size: 12px;
+        color: var(--text-body);
+        width: 110px;
+        flex-shrink: 0;
+      }
+      .funnel-bar-wrap {
+        flex: 1;
+        background: #f3f4f6;
+        border-radius: 4px;
+        height: 8px;
+        overflow: hidden;
+      }
+      .funnel-bar {
+        height: 100%;
+        border-radius: 4px;
+        background: var(--brand-primary);
+      }
+      .funnel-value {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-heading);
+        width: 60px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* TOP AFFILIATES TABLE */
+      .bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+      }
+      td {
+        padding: 13px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .amount {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .td-right {
+        text-align: right;
+      }
+      .rank {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: var(--brand-primary);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* PLAN BREAKDOWN */
+      .plan-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .plan-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .plan-row:last-child {
+        border-bottom: none;
+      }
+      .plan-color {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .plan-name {
+        flex: 1;
+        font-size: 13px;
+        color: var(--text-body);
+      }
+      .plan-count {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .plan-amount {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">SA</div>
+          <div class="logo-text">salig<span>affiliate</span></div>
+        </div>
+      </div>
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AC</div>
+          <div>
+            <div class="tenant-name">Alex's SaaS Co.</div>
+            <div class="tenant-plan">Growth Plan</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a class="nav-item" href="01-owner-dashboard.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2" /></svg
+          >Overview
+        </a>
+        <a class="nav-item" href="02-owner-affiliates.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" stroke-width="2" />
+            <path
+              d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M16 3.13a4 4 0 010 7.75" stroke-width="2" />
+            <path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2" /></svg
+          >Affiliates
+          <span class="nav-badge">7</span>
+        </a>
+        <a class="nav-item" href="05-owner-campaigns.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-width="2" />
+            <path
+              d="M17.5 2.5a2.121 2.121 0 013 3L12 14l-4 1 1-4 8.5-8.5z"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >Campaigns
+        </a>
+        <a class="nav-item" href="03-owner-commissions.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" /></svg
+          >Commissions
+        </a>
+        <a class="nav-item" href="04-owner-payouts.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2" />
+            <path d="M2 10h20" stroke-width="2" /></svg
+          >Payouts
+        </a>
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6" stroke-width="2" stroke-linecap="round" /></svg
+          >Reports
+        </a>
+        <div class="nav-section-label">Config</div>
+        <a class="nav-item" href="07-owner-settings.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              stroke-width="2"
+            /></svg
+          >Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">AL</div>
+          <div>
+            <div class="user-name">Alex Lim</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">Reports</div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- PERIOD SELECTOR -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+          "
+        >
+          <div class="period-tabs">
+            <div class="period-tab">7 days</div>
+            <div class="period-tab">30 days</div>
+            <div class="period-tab active">90 days</div>
+            <div class="period-tab">12 months</div>
+            <div class="period-tab">All time</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <select
+              style="
+                padding: 7px 12px;
+                border: 1.5px solid var(--border);
+                border-radius: 6px;
+                font-family: Poppins, sans-serif;
+                font-size: 12px;
+                color: var(--text-body);
+                background: #fff;
+              "
+            >
+              <option>All Campaigns</option>
+              <option>Main Affiliate Program</option>
+              <option>Partner Program</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- KPI METRICS -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">MRR Influenced</div>
+            <div class="metric-value">₱48,220</div>
+            <div class="metric-delta delta-up">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M18 15l-6-6-6 6"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              +18% <span class="delta-period">vs previous 90d</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">New Conversions</div>
+            <div class="metric-value">312</div>
+            <div class="metric-delta delta-up">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M18 15l-6-6-6 6"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              +24% <span class="delta-period">vs previous 90d</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Commissions Confirmed</div>
+            <div class="metric-value">₱9,644</div>
+            <div class="metric-delta delta-up">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M18 15l-6-6-6 6"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              +12% <span class="delta-period">vs previous 90d</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Click-to-Signup Rate</div>
+            <div class="metric-value">4.2%</div>
+            <div class="metric-delta delta-down">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              -0.3% <span class="delta-period">vs previous 90d</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="charts-row">
+          <!-- MRR Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">MRR Influenced Over Time</div>
+              <span style="font-size: 11px; color: var(--text-muted)">Jan – Mar 2026</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-area">
+                <svg class="chart" viewBox="0 0 600 180" preserveAspectRatio="none">
+                  <!-- Grid lines -->
+                  <line x1="0" y1="36" x2="600" y2="36" stroke="#f3f4f6" stroke-width="1" />
+                  <line x1="0" y1="72" x2="600" y2="72" stroke="#f3f4f6" stroke-width="1" />
+                  <line x1="0" y1="108" x2="600" y2="108" stroke="#f3f4f6" stroke-width="1" />
+                  <line x1="0" y1="144" x2="600" y2="144" stroke="#f3f4f6" stroke-width="1" />
+                  <!-- Area fill -->
+                  <path
+                    d="M0,150 L50,140 L100,130 L150,125 L200,115 L250,105 L300,95 L350,85 L380,78 L420,65 L460,55 L500,45 L550,35 L600,30 L600,175 L0,175 Z"
+                    fill="url(#blueGrad)"
+                    opacity="0.3"
+                  />
+                  <!-- Line -->
+                  <path
+                    d="M0,150 L50,140 L100,130 L150,125 L200,115 L250,105 L300,95 L350,85 L380,78 L420,65 L460,55 L500,45 L550,35 L600,30"
+                    fill="none"
+                    stroke="#10409a"
+                    stroke-width="2.5"
+                  />
+                  <!-- Dots -->
+                  <circle cx="600" cy="30" r="4" fill="#10409a" />
+                  <circle cx="300" cy="95" r="4" fill="#10409a" />
+                  <defs>
+                    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#10409a" />
+                      <stop offset="100%" stop-color="#10409a" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <!-- X axis labels -->
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  padding: 0 4px;
+                  margin-top: 4px;
+                "
+              >
+                <span style="font-size: 10px; color: var(--text-muted)">Jan 1</span>
+                <span style="font-size: 10px; color: var(--text-muted)">Jan 22</span>
+                <span style="font-size: 10px; color: var(--text-muted)">Feb 12</span>
+                <span style="font-size: 10px; color: var(--text-muted)">Mar 5</span>
+                <span style="font-size: 10px; color: var(--text-muted)">Mar 10</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conversion Funnel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Conversion Funnel</div>
+            </div>
+            <div class="card-body" style="padding: 16px 20px">
+              <div class="funnel-row">
+                <div class="funnel-label">Clicks</div>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" style="width: 100%; background: #dbeafe"></div>
+                </div>
+                <div class="funnel-value" style="color: var(--blue)">7,420</div>
+              </div>
+              <div class="funnel-row">
+                <div class="funnel-label">Landing Views</div>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" style="width: 82%; background: #bfdbfe"></div>
+                </div>
+                <div class="funnel-value">6,084</div>
+              </div>
+              <div class="funnel-row">
+                <div class="funnel-label">Trial Signups</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width: 58%"></div></div>
+                <div class="funnel-value">4,304</div>
+              </div>
+              <div class="funnel-row">
+                <div class="funnel-label">Conversions</div>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" style="width: 32%; background: #1659d6"></div>
+                </div>
+                <div class="funnel-value">312</div>
+              </div>
+              <div class="funnel-row">
+                <div class="funnel-label">Active Subs</div>
+                <div class="funnel-bar-wrap">
+                  <div class="funnel-bar" style="width: 24%; background: var(--success)"></div>
+                </div>
+                <div class="funnel-value" style="color: var(--success)">241</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM ROW -->
+        <div class="bottom-row">
+          <!-- Top Affiliates by Revenue -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Top Affiliates by Revenue</div>
+              <span style="font-size: 11px; color: var(--text-muted)">Last 90 days</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Affiliate</th>
+                  <th>Conversions</th>
+                  <th class="td-right">Commission</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 36px; padding-left: 16px"><div class="rank">1</div></td>
+                  <td>
+                    <div style="font-weight: 600; color: var(--text-heading)">RJ Santos</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">38 referrals</div>
+                  </td>
+                  <td>38</td>
+                  <td class="td-right amount">₱12,480</td>
+                </tr>
+                <tr>
+                  <td style="width: 36px; padding-left: 16px"><div class="rank">2</div></td>
+                  <td>
+                    <div style="font-weight: 600; color: var(--text-heading)">Jamie Mendoza</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">24 referrals</div>
+                  </td>
+                  <td>24</td>
+                  <td class="td-right amount">₱8,120</td>
+                </tr>
+                <tr>
+                  <td style="width: 36px; padding-left: 16px"><div class="rank">3</div></td>
+                  <td>
+                    <div style="font-weight: 600; color: var(--text-heading)">Karl Reyes</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">19 referrals</div>
+                  </td>
+                  <td>19</td>
+                  <td class="td-right amount">₱5,800</td>
+                </tr>
+                <tr>
+                  <td style="width: 36px; padding-left: 16px"><div class="rank">4</div></td>
+                  <td>
+                    <div style="font-weight: 600; color: var(--text-heading)">Mike Cruz</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">11 referrals</div>
+                  </td>
+                  <td>11</td>
+                  <td class="td-right amount">₱3,190</td>
+                </tr>
+                <tr>
+                  <td style="width: 36px; padding-left: 16px"><div class="rank">5</div></td>
+                  <td>
+                    <div style="font-weight: 600; color: var(--text-heading)">Ana Torres</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">9 referrals</div>
+                  </td>
+                  <td>9</td>
+                  <td class="td-right amount">₱2,610</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Revenue by Plan -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Commissions by Plan</div>
+            </div>
+            <!-- Donut Chart (SVG) -->
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px 0 12px;
+              "
+            >
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <!-- Donut segments -->
+                <circle cx="70" cy="70" r="50" fill="none" stroke="#e5e7eb" stroke-width="22" />
+                <!-- Pro: 45% -->
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="50"
+                  fill="none"
+                  stroke="#10409a"
+                  stroke-width="22"
+                  stroke-dasharray="141.37 172.23"
+                  stroke-dashoffset="0"
+                  transform="rotate(-90 70 70)"
+                />
+                <!-- Growth: 30% -->
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="50"
+                  fill="none"
+                  stroke="#1659d6"
+                  stroke-width="22"
+                  stroke-dasharray="94.25 219.35"
+                  stroke-dashoffset="-141.37"
+                  transform="rotate(-90 70 70)"
+                />
+                <!-- Starter: 25% -->
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="50"
+                  fill="none"
+                  stroke="#93c5fd"
+                  stroke-width="22"
+                  stroke-dasharray="78.54 235.06"
+                  stroke-dashoffset="-235.62"
+                  transform="rotate(-90 70 70)"
+                />
+                <!-- Center -->
+                <text
+                  x="70"
+                  y="66"
+                  text-anchor="middle"
+                  font-family="Poppins"
+                  font-size="13"
+                  font-weight="700"
+                  fill="#333"
+                >
+                  ₱9.6k
+                </text>
+                <text
+                  x="70"
+                  y="80"
+                  text-anchor="middle"
+                  font-family="Poppins"
+                  font-size="9"
+                  fill="#6B7280"
+                >
+                  Total
+                </text>
+              </svg>
+            </div>
+            <div class="plan-list">
+              <div class="plan-row">
+                <div class="plan-color" style="background: #10409a"></div>
+                <div class="plan-name">Pro Plan</div>
+                <div class="plan-count">142 subs</div>
+                <div class="plan-amount">₱4,350</div>
+              </div>
+              <div class="plan-row">
+                <div class="plan-color" style="background: #1659d6"></div>
+                <div class="plan-name">Growth Plan</div>
+                <div class="plan-count">71 subs</div>
+                <div class="plan-amount">₱2,880</div>
+              </div>
+              <div class="plan-row">
+                <div class="plan-color" style="background: #93c5fd"></div>
+                <div class="plan-name">Starter Plan</div>
+                <div class="plan-count">99 subs</div>
+                <div class="plan-amount">₱2,414</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

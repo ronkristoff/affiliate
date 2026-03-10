@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alex's SaaS — Affiliate Portal: Links & Assets</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-light: #eff6ff;
+        --brand-dark: #0c2e6e;
+        --text-heading: #1a1a2e;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f8fafc;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .portal-header {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 16px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .portal-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .portal-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 13px;
+        color: #fff;
+      }
+      .portal-logo-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .header-page-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .portal-layout {
+        display: flex;
+        flex: 1;
+      }
+      .portal-content {
+        flex: 1;
+        padding: 20px 16px 100px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .portal-sidebar {
+        display: none;
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border-right: 1px solid var(--border);
+        padding: 20px 0;
+        position: sticky;
+        top: 56px;
+        height: calc(100vh - 56px);
+      }
+      .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0 12px;
+      }
+      .sidebar-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-body);
+        cursor: pointer;
+        transition: background 0.1s;
+        text-decoration: none;
+      }
+      .sidebar-nav-item:hover {
+        background: var(--bg-page);
+      }
+      .sidebar-nav-item.active {
+        background: var(--brand-light);
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .sidebar-nav-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+      .sidebar-user {
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .sidebar-user-info .name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .sidebar-user-info .email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        height: 64px;
+        z-index: 100;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+      }
+      .bottom-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.15s;
+      }
+      .bottom-nav-item.active {
+        color: var(--brand);
+      }
+      .bottom-nav-item svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* PAGE HEADER */
+      .page-header {
+        margin-bottom: 20px;
+      }
+      .page-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .page-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* SECTION HEADER */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      /* REFERRAL LINK CARD */
+      .referral-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      .referral-card-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 10px;
+      }
+      .link-tag {
+        background: var(--bg-page);
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--brand);
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        overflow: hidden;
+      }
+      .link-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .link-stats {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .link-stat span {
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .btn-copy {
+        padding: 12px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: background 0.15s;
+        width: 100%;
+        min-height: 44px;
+      }
+      .btn-copy:hover {
+        background: var(--brand-dark);
+      }
+      .btn-copy.copied {
+        background: var(--success);
+      }
+
+      /* VANITY LINK SECTION */
+      .vanity-section {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+      }
+      .vanity-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .badge-new {
+        background: #d1fae5;
+        color: #065f46;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 999px;
+      }
+      .vanity-current {
+        font-size: 13px;
+        color: var(--brand);
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .vanity-row {
+        display: flex;
+        gap: 8px;
+      }
+      .vanity-prefix {
+        padding: 10px 12px;
+        background: var(--bg-page);
+        border: 1.5px solid var(--border);
+        border-radius: 10px 0 0 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        border-right: none;
+      }
+      .vanity-input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 0 10px 10px 0;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        outline: none;
+      }
+      .vanity-input:focus {
+        border-color: var(--brand);
+      }
+      .btn-vanity-save {
+        padding: 10px 16px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      /* LINK PERFORMANCE MINI CHART */
+      .perf-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .perf-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 60px;
+        margin-top: 12px;
+      }
+      .perf-bar {
+        flex: 1;
+        border-radius: 4px 4px 0 0;
+        background: var(--brand-light);
+        border: 1px solid #bfdbfe;
+        transition: background 0.15s;
+      }
+      .perf-bar:hover {
+        background: var(--brand);
+      }
+      .perf-bar.today {
+        background: var(--brand);
+      }
+      .perf-days {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .perf-day {
+        flex: 1;
+        text-align: center;
+        font-size: 9px;
+        color: var(--text-muted);
+      }
+      .perf-summary {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .perf-stat {
+        flex: 1;
+        text-align: center;
+      }
+      .perf-stat-val {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .perf-stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ASSET LIBRARY */
+      .asset-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      .asset-tab {
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--bg-page);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+      }
+      .asset-tab.active {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+
+      /* COPY TEMPLATES */
+      .template-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .template-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .template-header {
+        padding: 12px 16px;
+        background: var(--bg-page);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+      .template-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .template-platform {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .template-body {
+        padding: 14px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+      .template-footer {
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+      }
+      .btn-copy-template {
+        padding: 7px 14px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-copy-template.copied {
+        background: var(--success);
+      }
+
+      /* BANNER ASSETS */
+      .banner-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .banner-asset {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .banner-asset:hover {
+        border-color: var(--brand);
+      }
+      .banner-preview {
+        height: 80px;
+        background: linear-gradient(135deg, var(--brand) 0%, #1659d6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        padding: 12px;
+      }
+      .banner-preview.sm {
+        height: 60px;
+      }
+      .banner-preview-text {
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        text-align: center;
+      }
+      .banner-asset-info {
+        padding: 10px 12px;
+      }
+      .banner-asset-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .banner-asset-size {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .btn-download {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--brand);
+        font-weight: 600;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* TOAST */
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a2e;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0;
+        transition: all 0.2s;
+        pointer-events: none;
+        z-index: 300;
+        white-space: nowrap;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (min-width: 1024px) {
+        .portal-sidebar {
+          display: flex;
+          flex-direction: column;
+        }
+        .bottom-nav {
+          display: none;
+        }
+        .portal-content {
+          padding: 28px 32px 40px;
+          max-width: 720px;
+        }
+        .banner-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="portal-header">
+      <div class="portal-logo">
+        <div class="portal-logo-icon">AC</div>
+        <div class="portal-logo-name">Alex's SaaS</div>
+      </div>
+      <div class="header-page-title">Links & Assets</div>
+    </header>
+
+    <div class="portal-layout">
+      <aside class="portal-sidebar">
+        <nav class="sidebar-nav">
+          <a class="sidebar-nav-item" href="09-portal-home.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Home
+          </a>
+          <a class="sidebar-nav-item" href="10-portal-earnings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            Earnings
+          </a>
+          <a class="sidebar-nav-item active" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            Links
+          </a>
+          <a class="sidebar-nav-item" href="12-portal-account.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Account
+          </a>
+        </nav>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">JM</div>
+          <div class="sidebar-user-info">
+            <div class="name">Jamie Mendoza</div>
+            <div class="email">jamie@cebutech.com</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="portal-content">
+        <div class="page-header">
+          <div class="page-title">Links & Assets</div>
+          <div class="page-sub">Your referral links, promo materials, and copy templates</div>
+        </div>
+
+        <!-- REFERRAL LINK CARD -->
+        <div class="referral-card">
+          <div class="referral-card-label">Your Primary Referral Link</div>
+          <div class="link-tag">
+            <div class="link-text">alexsaas.co/ref/jamie-mendoza</div>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              style="flex-shrink: 0"
+            >
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </div>
+          <div class="link-stats">
+            <div><span>234</span> total clicks</div>
+            <div><span>12</span> conversions</div>
+            <div><span>5.1%</span> CTR</div>
+          </div>
+          <button class="btn-copy" id="copyBtn" onclick="copyLink()">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            <span id="copyBtnText">Copy Referral Link</span>
+          </button>
+
+          <!-- VANITY LINK -->
+          <div class="vanity-section">
+            <div class="vanity-label">
+              Custom Vanity Link
+              <span class="badge-new">New</span>
+            </div>
+            <div class="vanity-current">
+              Current: alexsaas.co/ref/<strong>jamie-mendoza</strong>
+            </div>
+            <div class="vanity-row">
+              <div class="vanity-prefix">alexsaas.co/ref/</div>
+              <input
+                class="vanity-input"
+                type="text"
+                placeholder="your-brand"
+                value="jamie-mendoza"
+              />
+              <button class="btn-vanity-save" onclick="saveVanity()">Save</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px">
+              Changing your slug updates your link immediately. Old link stops working.
+            </div>
+          </div>
+        </div>
+
+        <!-- LINK PERFORMANCE -->
+        <div class="perf-card">
+          <div class="section-header">
+            <div class="section-title">Link Performance — Last 7 Days</div>
+          </div>
+          <div class="perf-bars" id="perfBars"></div>
+          <div class="perf-days" id="perfDays"></div>
+          <div class="perf-summary">
+            <div class="perf-stat">
+              <div class="perf-stat-val">47</div>
+              <div class="perf-stat-label">Clicks</div>
+            </div>
+            <div class="perf-stat">
+              <div class="perf-stat-val">3</div>
+              <div class="perf-stat-label">Signups</div>
+            </div>
+            <div class="perf-stat">
+              <div class="perf-stat-val">6.4%</div>
+              <div class="perf-stat-label">Conversion</div>
+            </div>
+            <div class="perf-stat">
+              <div class="perf-stat-val">₱17.40</div>
+              <div class="perf-stat-label">Earned</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ASSET LIBRARY -->
+        <div>
+          <div class="section-header">
+            <div class="section-title">Promo Library</div>
+          </div>
+          <div class="asset-tabs">
+            <div class="asset-tab active" onclick="switchAssetTab(this, 'copy')">
+              Copy Templates
+            </div>
+            <div class="asset-tab" onclick="switchAssetTab(this, 'banners')">Banners</div>
+          </div>
+
+          <!-- COPY TEMPLATES TAB -->
+          <div id="copyTemplatesTab">
+            <div class="template-list">
+              <div class="template-card">
+                <div class="template-header">
+                  <div class="template-title">Newsletter / Blog</div>
+                  <div class="template-platform">✉️ Email / Blog</div>
+                </div>
+                <div class="template-body" id="tpl1">
+                  If you're running a SaaS or selling digital products,
+                  <strong>Alex's SaaS</strong> is honestly one of the best tools I've used. Clean
+                  dashboard, super easy to manage. And right now they're offering a 14-day free
+                  trial. 👉 Try it free: alexsaas.co/ref/jamie-mendoza (Full disclosure: that's my
+                  affiliate link — if you subscribe, I earn a small commission at no extra cost to
+                  you. I only share things I actually use!)
+                </div>
+                <div class="template-footer">
+                  <button class="btn-copy-template" onclick="copyTemplate('tpl1', this)">
+                    📋 Copy Text
+                  </button>
+                </div>
+              </div>
+
+              <div class="template-card">
+                <div class="template-header">
+                  <div class="template-title">Telegram / Discord</div>
+                  <div class="template-platform">💬 Community Chat</div>
+                </div>
+                <div class="template-body" id="tpl2">
+                  🔥 Hey mga ka-group! For those running online businesses or SaaS, check out Alex's
+                  SaaS — super legit ang tools nila for managing your business. Free trial:
+                  alexsaas.co/ref/jamie-mendoza Kumita din ako dito so disclaimer haha — but
+                  seriously, maganda sya!
+                </div>
+                <div class="template-footer">
+                  <button class="btn-copy-template" onclick="copyTemplate('tpl2', this)">
+                    📋 Copy Text
+                  </button>
+                </div>
+              </div>
+
+              <div class="template-card">
+                <div class="template-header">
+                  <div class="template-title">Short Social Post</div>
+                  <div class="template-platform">📱 Instagram / Facebook / TikTok</div>
+                </div>
+                <div class="template-body" id="tpl3">
+                  Tools I actually use for my business 👇 ✅ Alex's SaaS — clean dashboard, great
+                  support, works! Free 14-day trial 👉 alexsaas.co/ref/jamie-mendoza #SaaS
+                  #BusinessTools #WorkFromHome #Cebu
+                </div>
+                <div class="template-footer">
+                  <button class="btn-copy-template" onclick="copyTemplate('tpl3', this)">
+                    📋 Copy Text
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BANNERS TAB (hidden by default) -->
+          <div id="bannersTab" style="display: none">
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px">
+              Use these banners on your blog, newsletter, or social profiles.
+            </div>
+            <div class="banner-grid">
+              <div class="banner-asset">
+                <div class="banner-preview">
+                  <div class="banner-preview-text">
+                    Alex's SaaS<br />Try Free 14 Days<br /><span
+                      style="font-size: 9px; opacity: 0.8"
+                      >alexsaas.co/ref/jamie-mendoza</span
+                    >
+                  </div>
+                </div>
+                <div class="banner-asset-info">
+                  <div class="banner-asset-title">Leaderboard</div>
+                  <div class="banner-asset-size">728 × 90 px</div>
+                  <button class="btn-download" onclick="toast('Downloading banner...')">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download
+                  </button>
+                </div>
+              </div>
+
+              <div class="banner-asset">
+                <div class="banner-preview sm">
+                  <div class="banner-preview-text" style="font-size: 10px">
+                    Alex's SaaS<br />Free Trial →
+                  </div>
+                </div>
+                <div class="banner-asset-info">
+                  <div class="banner-asset-title">Square Ad</div>
+                  <div class="banner-asset-size">300 × 250 px</div>
+                  <button class="btn-download" onclick="toast('Downloading banner...')">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download
+                  </button>
+                </div>
+              </div>
+
+              <div class="banner-asset">
+                <div class="banner-preview sm">
+                  <div class="banner-preview-text" style="font-size: 10px">
+                    Try Alex's SaaS<br />14-Day Free Trial
+                  </div>
+                </div>
+                <div class="banner-asset-info">
+                  <div class="banner-asset-title">Email Banner</div>
+                  <div class="banner-asset-size">600 × 150 px</div>
+                  <button class="btn-download" onclick="toast('Downloading banner...')">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <div class="bottom-nav-item" onclick="window.location = '09-portal-home.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        Home
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '10-portal-earnings.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        Earnings
+      </div>
+      <div class="bottom-nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+        Links
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '12-portal-account.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Account
+      </div>
+    </nav>
+
+    <div class="toast" id="toastEl">Copied!</div>
+
+    <script>
+      // Build performance bar chart
+      const clicks = [8, 4, 12, 5, 9, 7, 12];
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const maxClicks = Math.max(...clicks);
+      const barsContainer = document.getElementById("perfBars");
+      const daysContainer = document.getElementById("perfDays");
+      clicks.forEach((c, i) => {
+        const bar = document.createElement("div");
+        bar.className = "perf-bar" + (i === 6 ? " today" : "");
+        bar.style.height = (c / maxClicks) * 100 + "%";
+        bar.title = days[i] + ": " + c + " clicks";
+        barsContainer.appendChild(bar);
+
+        const day = document.createElement("div");
+        day.className = "perf-day";
+        day.textContent = days[i];
+        daysContainer.appendChild(day);
+      });
+
+      function copyLink() {
+        const btn = document.getElementById("copyBtn");
+        const btnText = document.getElementById("copyBtnText");
+        btn.classList.add("copied");
+        btnText.textContent = "Copied!";
+        showToast("🔗 Link copied to clipboard!");
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          btnText.textContent = "Copy Referral Link";
+        }, 2000);
+      }
+
+      function copyTemplate(id, btn) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).catch(() => {});
+        btn.classList.add("copied");
+        btn.textContent = "✅ Copied!";
+        showToast("Template copied!");
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          btn.textContent = "📋 Copy Text";
+        }, 2500);
+      }
+
+      function saveVanity() {
+        showToast("✅ Vanity link updated!");
+      }
+
+      function switchAssetTab(el, tab) {
+        document.querySelectorAll(".asset-tab").forEach((t) => t.classList.remove("active"));
+        el.classList.add("active");
+        document.getElementById("copyTemplatesTab").style.display =
+          tab === "copy" ? "block" : "none";
+        document.getElementById("bannersTab").style.display = tab === "banners" ? "block" : "none";
+      }
+
+      function toast(msg) {
+        showToast(msg);
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toastEl");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2500);
+      }
+    </script>
+  </body>
+</html>

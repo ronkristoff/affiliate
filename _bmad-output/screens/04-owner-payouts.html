@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Payouts</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      /* SIDEBAR (shared) */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-text span {
+        color: #7dd3fc;
+      }
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+      }
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+      }
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* MAIN */
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+        border: none;
+      }
+      .page-content {
+        padding: 28px 32px;
+        flex: 1;
+      }
+
+      /* PAYOUT HERO BANNER */
+      .payout-hero {
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        border-radius: 16px;
+        padding: 28px 32px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+      .payout-hero-left h2 {
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 8px;
+      }
+      .payout-hero-amount {
+        font-size: 42px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        font-variant-numeric: tabular-nums;
+      }
+      .payout-hero-sub {
+        font-size: 13px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+      .payout-hero-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+      .btn-pay-all {
+        background: #fff;
+        color: var(--brand-primary);
+        font-weight: 700;
+        font-size: 15px;
+        padding: 14px 28px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        transition: all 0.15s;
+      }
+      .btn-pay-all:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      }
+      .payout-hero-stats {
+        display: flex;
+        gap: 32px;
+      }
+      .hero-stat {
+        text-align: center;
+      }
+      .hero-stat-value {
+        font-size: 22px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .hero-stat-label {
+        font-size: 11px;
+        opacity: 0.65;
+        margin-top: 2px;
+      }
+
+      /* METRICS */
+      .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+      }
+      .metric-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+      }
+      .metric-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* CARD */
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      /* TABLE */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+      }
+      th.right {
+        text-align: right;
+      }
+      td {
+        padding: 14px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: #f9fafb;
+        cursor: pointer;
+      }
+      .amount {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .td-right {
+        text-align: right;
+      }
+      .aff-avatar-sm {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        flex-shrink: 0;
+      }
+
+      /* BADGES */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .badge-paid {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-paid .badge-dot {
+        background: var(--text-muted);
+      }
+      .badge-processing {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .badge-processing .badge-dot {
+        background: var(--blue);
+      }
+      .badge-pending-payout {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-pending-payout .badge-dot {
+        background: var(--warning);
+      }
+
+      /* INDIVIDUAL AFFILIATE PAYOUT TABLE */
+      .aff-payout-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .aff-payout-info {
+        flex: 1;
+      }
+      .aff-payout-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-heading);
+      }
+      .aff-payout-method {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .row-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 16px;
+      }
+
+      /* MODAL */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-lg {
+        background: var(--bg-surface);
+        border-radius: 12px;
+        width: 640px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      }
+      .modal-header {
+        padding: 24px 28px 0;
+      }
+      .modal-title {
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .modal-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .modal-body {
+        padding: 20px 28px;
+        flex: 1;
+        overflow-y: auto;
+      }
+      .modal-footer {
+        padding: 16px 28px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .modal-total {
+        flex: 1;
+      }
+      .modal-total-label {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .modal-total-amount {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        font-variant-numeric: tabular-nums;
+      }
+      .warning-box {
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 12px;
+        color: #92400e;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      /* AFFILIATE PAYOUT LIST IN MODAL */
+      .payout-aff-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .payout-aff-row:last-child {
+        border-bottom: none;
+      }
+      .payout-aff-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        flex-shrink: 0;
+      }
+      .payout-aff-info {
+        flex: 1;
+      }
+      .payout-aff-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-heading);
+      }
+      .payout-aff-method {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .payout-aff-commissions {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .payout-aff-amount {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--brand-primary);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">SA</div>
+          <div class="logo-text">salig<span>affiliate</span></div>
+        </div>
+      </div>
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AC</div>
+          <div>
+            <div class="tenant-name">Alex's SaaS Co.</div>
+            <div class="tenant-plan">Growth Plan</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a class="nav-item" href="01-owner-dashboard.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2" /></svg
+          >Overview
+        </a>
+        <a class="nav-item" href="02-owner-affiliates.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" stroke-width="2" />
+            <path
+              d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M16 3.13a4 4 0 010 7.75" stroke-width="2" />
+            <path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2" /></svg
+          >Affiliates
+        </a>
+        <a class="nav-item" href="05-owner-campaigns.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-width="2" />
+            <path
+              d="M17.5 2.5a2.121 2.121 0 013 3L12 14l-4 1 1-4 8.5-8.5z"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >Campaigns
+        </a>
+        <a class="nav-item" href="03-owner-commissions.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" /></svg
+          >Commissions
+        </a>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2" />
+            <path d="M2 10h20" stroke-width="2" /></svg
+          >Payouts
+        </a>
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item" href="06-owner-reports.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6" stroke-width="2" stroke-linecap="round" /></svg
+          >Reports
+        </a>
+        <div class="nav-section-label">Config</div>
+        <a class="nav-item" href="07-owner-settings.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              stroke-width="2"
+            /></svg
+          >Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">AL</div>
+          <div>
+            <div class="user-name">Alex Lim</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title">Payouts</div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- PAYOUT HERO -->
+        <div class="payout-hero">
+          <div class="payout-hero-left">
+            <h2>Ready to Pay</h2>
+            <div class="payout-hero-amount">₱24,850.00</div>
+            <div class="payout-hero-sub">Confirmed commissions awaiting payout — 31 affiliates</div>
+          </div>
+          <div class="payout-hero-right">
+            <button class="btn-pay-all" onclick="openPayoutModal()">💳 Pay All Pending</button>
+            <div class="payout-hero-stats">
+              <div class="hero-stat">
+                <div class="hero-stat-value">31</div>
+                <div class="hero-stat-label">Affiliates</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-value">89</div>
+                <div class="hero-stat-label">Commissions</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-value">Mar 10</div>
+                <div class="hero-stat-label">Today</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-label">Total Paid Out (All Time)</div>
+            <div class="metric-value">₱148,200.00</div>
+            <div class="metric-sub">Across 14 payout batches</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Paid This Month</div>
+            <div class="metric-value">₱32,400.00</div>
+            <div class="metric-sub">2 batches · Mar 2026</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Processing</div>
+            <div class="metric-value" style="color: var(--blue)">₱8,600.00</div>
+            <div class="metric-sub">1 batch · awaiting mark-as-paid</div>
+          </div>
+        </div>
+
+        <!-- INDIVIDUAL AFFILIATES PENDING PAYOUT -->
+        <div style="margin-bottom: 24px">
+          <div
+            class="card-header"
+            style="
+              background: var(--bg-surface);
+              border: 1px solid var(--border);
+              border-radius: 12px 12px 0 0;
+              border-bottom: none;
+            "
+          >
+            <div class="card-title">Affiliates Pending Payout</div>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <span style="font-size: 12px; color: var(--text-muted)"
+                >31 affiliates · ₱24,850 total</span
+              >
+              <button class="btn btn-primary btn-sm" onclick="openPayoutModal()">
+                💳 Pay All Pending
+              </button>
+            </div>
+          </div>
+          <div class="card" style="border-radius: 0 0 12px 12px">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 40px"><input type="checkbox" /></th>
+                  <th>Affiliate</th>
+                  <th>Payout Method</th>
+                  <th>Confirmed Commissions</th>
+                  <th class="right">Amount Due</th>
+                  <th>Last Paid</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td>
+                    <div class="aff-payout-row">
+                      <div class="aff-avatar-sm">JC</div>
+                      <div class="aff-payout-info">
+                        <div class="aff-payout-name">Jamie Cruz</div>
+                        <div class="aff-payout-method">GCash — 0917 123 4567</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="font-size: 12px">GCash</td>
+                  <td style="font-size: 12px; color: var(--text-muted)">8 commissions</td>
+                  <td class="td-right"><span class="amount">₱5,600.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 28, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td>
+                    <div class="aff-payout-row">
+                      <div class="aff-avatar-sm" style="background: #fce7f3; color: #9d174d">
+                        RS
+                      </div>
+                      <div class="aff-payout-info">
+                        <div class="aff-payout-name">Ramon Santos</div>
+                        <div class="aff-payout-method">Bank Transfer — BDO ****4421</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="font-size: 12px">Bank Transfer</td>
+                  <td style="font-size: 12px; color: var(--text-muted)">6 commissions</td>
+                  <td class="td-right"><span class="amount">₱4,200.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 28, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td>
+                    <div class="aff-payout-row">
+                      <div class="aff-avatar-sm" style="background: #ede9fe; color: #5b21b6">
+                        KR
+                      </div>
+                      <div class="aff-payout-info">
+                        <div class="aff-payout-name">Kevin Ramos</div>
+                        <div class="aff-payout-method">GCash — 0920 987 6543</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="font-size: 12px">GCash</td>
+                  <td style="font-size: 12px; color: var(--text-muted)">4 commissions</td>
+                  <td class="td-right"><span class="amount">₱2,800.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Never</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td>
+                    <div class="aff-payout-row">
+                      <div class="aff-avatar-sm" style="background: #ecfdf5; color: #065f46">
+                        AP
+                      </div>
+                      <div class="aff-payout-info">
+                        <div class="aff-payout-name">Ana Pineda</div>
+                        <div class="aff-payout-method">Maya — 0998 345 6789</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="font-size: 12px">Maya</td>
+                  <td style="font-size: 12px; color: var(--text-muted)">3 commissions</td>
+                  <td class="td-right"><span class="amount">₱1,050.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 14, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div
+              style="
+                padding: 12px 16px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <span style="font-size: 12px; color: var(--text-muted)"
+                >Showing 4 of 31 affiliates</span
+              >
+              <button class="btn btn-outline btn-sm">Load 20 more (27 remaining)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYOUT BATCH HISTORY -->
+        <div>
+          <h2
+            style="
+              font-size: 15px;
+              font-weight: 700;
+              color: var(--text-heading);
+              margin-bottom: 16px;
+            "
+          >
+            Payout History
+          </h2>
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Batch ID</th>
+                  <th>Date</th>
+                  <th>Affiliates</th>
+                  <th>Commissions</th>
+                  <th class="right">Total Amount</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-family: monospace; font-size: 12px; color: var(--text-muted)">
+                    BATCH-0014
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Mar 7, 2026</td>
+                  <td style="font-size: 13px">12</td>
+                  <td style="font-size: 13px">38</td>
+                  <td class="td-right"><span class="amount">₱8,600.00</span></td>
+                  <td>
+                    <span class="badge badge-processing"
+                      ><span class="badge-dot"></span>Processing</span
+                    >
+                  </td>
+                  <td><button class="btn btn-outline btn-sm">Mark as Paid</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family: monospace; font-size: 12px; color: var(--text-muted)">
+                    BATCH-0013
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 28, 2026</td>
+                  <td style="font-size: 13px">18</td>
+                  <td style="font-size: 13px">54</td>
+                  <td class="td-right"><span class="amount">₱12,400.00</span></td>
+                  <td>
+                    <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                  </td>
+                  <td><button class="btn btn-outline btn-sm">View</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family: monospace; font-size: 12px; color: var(--text-muted)">
+                    BATCH-0012
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 14, 2026</td>
+                  <td style="font-size: 13px">22</td>
+                  <td style="font-size: 13px">71</td>
+                  <td class="td-right"><span class="amount">₱20,000.00</span></td>
+                  <td>
+                    <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                  </td>
+                  <td><button class="btn btn-outline btn-sm">View</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family: monospace; font-size: 12px; color: var(--text-muted)">
+                    BATCH-0011
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Jan 31, 2026</td>
+                  <td style="font-size: 13px">15</td>
+                  <td style="font-size: 13px">48</td>
+                  <td class="td-right"><span class="amount">₱14,800.00</span></td>
+                  <td>
+                    <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                  </td>
+                  <td><button class="btn btn-outline btn-sm">View</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- PAY ALL MODAL (PayoutBatchSummary) -->
+    <div
+      class="modal-overlay"
+      id="payoutModal"
+      style="display: none"
+      onclick="closePayoutModal(event)"
+    >
+      <div class="modal-lg" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">Confirm Payout Batch</div>
+          <div class="modal-subtitle">
+            Review all affiliates before confirming. This will generate a CSV for manual transfer.
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="warning-box">
+            ⚠️
+            <span
+              ><strong>Important:</strong> This marks commissions as paid in the system. Ensure you
+              have transferred funds externally before confirming. This action cannot be
+              undone.</span
+            >
+          </div>
+
+          <!-- Affiliate payout list -->
+          <div class="payout-aff-row">
+            <input type="checkbox" checked />
+            <div class="payout-aff-avatar">JC</div>
+            <div class="payout-aff-info">
+              <div class="payout-aff-name">Jamie Cruz</div>
+              <div class="payout-aff-method">GCash — 0917 123 4567</div>
+              <div class="payout-aff-commissions">8 confirmed commissions</div>
+            </div>
+            <div class="payout-aff-amount">₱5,600.00</div>
+          </div>
+          <div class="payout-aff-row">
+            <input type="checkbox" checked />
+            <div class="payout-aff-avatar" style="background: #fce7f3; color: #9d174d">RS</div>
+            <div class="payout-aff-info">
+              <div class="payout-aff-name">Ramon Santos</div>
+              <div class="payout-aff-method">Bank Transfer — BDO ****4421</div>
+              <div class="payout-aff-commissions">6 confirmed commissions</div>
+            </div>
+            <div class="payout-aff-amount">₱4,200.00</div>
+          </div>
+          <div class="payout-aff-row">
+            <input type="checkbox" checked />
+            <div class="payout-aff-avatar" style="background: #ede9fe; color: #5b21b6">KR</div>
+            <div class="payout-aff-info">
+              <div class="payout-aff-name">Kevin Ramos</div>
+              <div class="payout-aff-method">GCash — 0920 987 6543</div>
+              <div class="payout-aff-commissions">4 confirmed commissions</div>
+            </div>
+            <div class="payout-aff-amount">₱2,800.00</div>
+          </div>
+          <div class="payout-aff-row">
+            <input type="checkbox" />
+            <div class="payout-aff-avatar" style="background: #ecfdf5; color: #065f46">AP</div>
+            <div class="payout-aff-info">
+              <div class="payout-aff-name">Ana Pineda</div>
+              <div class="payout-aff-method">Maya — 0998 345 6789</div>
+              <div class="payout-aff-commissions">3 confirmed commissions</div>
+            </div>
+            <div class="payout-aff-amount">₱1,050.00</div>
+          </div>
+          <div
+            style="text-align: center; padding: 12px 0; color: var(--text-muted); font-size: 12px"
+          >
+            + 27 more affiliates —
+            <a href="#" style="color: var(--brand-link)">scroll to see all</a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-total">
+            <div class="modal-total-label">Selected total (3 of 31 affiliates)</div>
+            <div class="modal-total-amount">₱12,600.00</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="closePayoutModal()">Cancel</button>
+          <button class="btn btn-outline btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Download CSV
+          </button>
+          <button class="btn btn-primary btn-sm">💳 Confirm & Mark as Paid</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function openPayoutModal() {
+        document.getElementById("payoutModal").style.display = "flex";
+      }
+      function closePayoutModal(e) {
+        if (!e || e.target === document.getElementById("payoutModal"))
+          document.getElementById("payoutModal").style.display = "none";
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closePayoutModal();
+      });
+    </script>
+  </body>
+</html>

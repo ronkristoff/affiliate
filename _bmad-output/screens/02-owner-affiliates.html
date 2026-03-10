@@ -1,0 +1,1456 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Affiliates</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      /* ── SIDEBAR ── */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-text span {
+        color: #7dd3fc;
+      }
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 400;
+      }
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+      .nav-badge {
+        margin-left: auto;
+        background: var(--warning);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 99px;
+      }
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+        flex-shrink: 0;
+      }
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* ── MAIN ── */
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        text-decoration: none;
+      }
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: var(--bg-page);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-danger {
+        background: var(--danger);
+        color: #fff;
+      }
+      .btn-success {
+        background: var(--success);
+        color: #fff;
+      }
+      .page-content {
+        padding: 28px 32px;
+        flex: 1;
+      }
+
+      /* ── TABS ── */
+      .tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 24px;
+      }
+      .tab {
+        padding: 10px 20px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.15s;
+      }
+      .tab:hover {
+        color: var(--text-heading);
+      }
+      .tab.active {
+        color: var(--brand-primary);
+        font-weight: 700;
+        border-bottom-color: var(--brand-primary);
+      }
+      .tab-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--warning);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-left: 6px;
+      }
+
+      /* ── TOOLBAR ── */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .search-input {
+        flex: 1;
+        max-width: 320px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 14px;
+      }
+      .search-input input {
+        border: none;
+        outline: none;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        color: var(--text-body);
+        width: 100%;
+        background: transparent;
+      }
+      .search-input input::placeholder {
+        color: var(--text-muted);
+      }
+      .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-body);
+        cursor: pointer;
+        background: var(--bg-surface);
+        transition: all 0.15s;
+      }
+      .filter-pill:hover {
+        border-color: var(--brand-secondary);
+        color: var(--brand-secondary);
+      }
+      .filter-pill.active {
+        border-color: var(--brand-primary);
+        background: #eff6ff;
+        color: var(--brand-primary);
+      }
+
+      /* ── TABLE ── */
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+      }
+      th.right {
+        text-align: right;
+      }
+      td {
+        padding: 13px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: #f9fafb;
+      }
+      .td-check {
+        width: 40px;
+      }
+      .td-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .aff-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        flex-shrink: 0;
+      }
+      .aff-name {
+        font-weight: 600;
+        color: var(--text-heading);
+        font-size: 13px;
+      }
+      .aff-email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .amount {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .td-right {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── BADGES ── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .badge-active {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge-active .badge-dot {
+        background: var(--success);
+      }
+      .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-pending .badge-dot {
+        background: var(--warning);
+      }
+      .badge-suspended {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge-suspended .badge-dot {
+        background: var(--danger);
+      }
+      .badge-flagged {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-flagged .badge-dot {
+        background: var(--warning);
+      }
+
+      /* ── INLINE ACTIONS (approval row) ── */
+      .approval-row td {
+        background: #fffbeb;
+      }
+      .approval-row:hover td {
+        background: #fef9e7;
+      }
+      .inline-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-approve {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--success);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-reject {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+        cursor: pointer;
+      }
+      .applied-tag {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ── ROW ACTION MENU ── */
+      .row-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 16px;
+        transition: all 0.15s;
+      }
+      .row-action:hover {
+        background: var(--bg-page);
+        color: var(--text-heading);
+      }
+
+      /* ── BULK ACTION BAR ── */
+      .bulk-bar {
+        background: var(--brand-primary);
+        color: #fff;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px 8px 0 0;
+      }
+      .bulk-btn {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      .bulk-clear {
+        margin-left: auto;
+        opacity: 0.7;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      /* ── SECTION BANNER ── */
+      .section-banner {
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: #92400e;
+        margin-bottom: 16px;
+      }
+
+      /* ── DRAWER OVERLAY ── */
+      .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 200;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .drawer {
+        width: 480px;
+        background: var(--bg-surface);
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+      }
+      .drawer-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .drawer-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .drawer-close {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+        background: transparent;
+      }
+      .drawer-body {
+        padding: 24px;
+        flex: 1;
+      }
+      .drawer-section {
+        margin-bottom: 24px;
+      }
+      .drawer-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .drawer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .drawer-row:last-child {
+        border-bottom: none;
+      }
+      .drawer-label {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .drawer-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .drawer-actions {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 12px;
+      }
+      .affiliate-hero {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 0;
+      }
+      .aff-avatar-lg {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--brand-primary);
+      }
+      .aff-hero-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .aff-hero-email {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .stats-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .stat-mini {
+        background: var(--bg-page);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+      }
+      .stat-mini-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .stat-mini-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .commission-mini-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 12px;
+      }
+      .commission-mini-row:last-child {
+        border-bottom: none;
+      }
+      .note-input {
+        width: 100%;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        resize: vertical;
+        min-height: 80px;
+        color: var(--text-body);
+        outline: none;
+      }
+      .note-input:focus {
+        border-color: var(--brand-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">SA</div>
+          <div class="logo-text">salig<span>affiliate</span></div>
+        </div>
+      </div>
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AC</div>
+          <div>
+            <div class="tenant-name">Alex's SaaS Co.</div>
+            <div class="tenant-plan">Growth Plan</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a class="nav-item" href="01-owner-dashboard.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2" />
+          </svg>
+          Overview
+        </a>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" stroke-width="2" />
+            <path
+              d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M16 3.13a4 4 0 010 7.75" stroke-width="2" stroke-linecap="round" />
+            <path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Affiliates
+          <span class="nav-badge">7</span>
+        </a>
+        <a class="nav-item" href="05-owner-campaigns.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M17.5 2.5a2.121 2.121 0 013 3L12 14l-4 1 1-4 8.5-8.5z"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Campaigns
+        </a>
+        <a class="nav-item" href="03-owner-commissions.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Commissions
+        </a>
+        <a class="nav-item" href="04-owner-payouts.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2" />
+            <path d="M2 10h20" stroke-width="2" />
+          </svg>
+          Payouts
+        </a>
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item" href="06-owner-reports.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Reports
+        </a>
+        <div class="nav-section-label">Config</div>
+        <a class="nav-item" href="07-owner-settings.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              stroke-width="2"
+            />
+          </svg>
+          Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">AL</div>
+          <div>
+            <div class="user-name">Alex Lim</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title">Affiliates</div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Export CSV
+          </button>
+          <button class="btn btn-primary btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+            Invite Affiliate
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- TABS -->
+        <div class="tabs">
+          <div class="tab">
+            All Affiliates
+            <span style="color: var(--text-muted); font-size: 12px; margin-left: 4px">47</span>
+          </div>
+          <div class="tab active">Pending Approval <span class="tab-badge">7</span></div>
+          <div class="tab">
+            Active
+            <span style="color: var(--text-muted); font-size: 12px; margin-left: 4px">38</span>
+          </div>
+          <div class="tab">
+            Suspended
+            <span style="color: var(--text-muted); font-size: 12px; margin-left: 4px">2</span>
+          </div>
+        </div>
+
+        <!-- PENDING APPROVAL VIEW -->
+        <div class="section-banner">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 8v4M12 16h.01" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <strong>7 affiliates</strong> are waiting for your approval. Review their applications
+          below.
+        </div>
+
+        <!-- BULK BAR (shown when rows are selected) -->
+        <div class="bulk-bar">
+          <span>3 selected</span>
+          <button class="bulk-btn">✓ Approve All (3)</button>
+          <button class="bulk-btn" style="background: rgba(239, 68, 68, 0.3)">
+            ✗ Reject All (3)
+          </button>
+          <span class="bulk-clear">Clear selection ×</span>
+        </div>
+
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th class="td-check"><input type="checkbox" /></th>
+                <th>Applicant</th>
+                <th>Applied</th>
+                <th>Source</th>
+                <th>Campaign</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- APPROVAL ROWS -->
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" checked /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar">MR</div>
+                    <div>
+                      <div class="aff-name">Maria Reyes</div>
+                      <div class="aff-email">maria.reyes@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">2 hours ago</span></td>
+                <td><span style="font-size: 12px">Referral link</span></td>
+                <td><span style="font-size: 12px">Summer 2026 Campaign</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" checked /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fce7f3; color: #9d174d">JD</div>
+                    <div>
+                      <div class="aff-name">Jose Dela Cruz</div>
+                      <div class="aff-email">jose.dc@yahoo.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">5 hours ago</span></td>
+                <td><span style="font-size: 12px">Social media</span></td>
+                <td><span style="font-size: 12px">Standard Program</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" checked /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #ecfdf5; color: #065f46">AP</div>
+                    <div>
+                      <div class="aff-name">Ana Pineda</div>
+                      <div class="aff-email">ana.pineda@hotmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">1 day ago</span></td>
+                <td><span style="font-size: 12px">Blog post</span></td>
+                <td><span style="font-size: 12px">Summer 2026 Campaign</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #ede9fe; color: #5b21b6">RJ</div>
+                    <div>
+                      <div class="aff-name">Ramon Jimenez</div>
+                      <div class="aff-email">rj.newsletter@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">1 day ago</span></td>
+                <td><span style="font-size: 12px">Newsletter</span></td>
+                <td><span style="font-size: 12px">Standard Program</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fff7ed; color: #92400e">LG</div>
+                    <div>
+                      <div class="aff-name">Liza Garcia</div>
+                      <div class="aff-email">lizagarcia88@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">2 days ago</span></td>
+                <td><span style="font-size: 12px">Direct invite</span></td>
+                <td><span style="font-size: 12px">Summer 2026 Campaign</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #f0fdf4; color: #14532d">MC</div>
+                    <div>
+                      <div class="aff-name">Miguel Castro</div>
+                      <div class="aff-email">mcastro.ph@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">3 days ago</span></td>
+                <td><span style="font-size: 12px">YouTube</span></td>
+                <td><span style="font-size: 12px">Standard Program</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="approval-row">
+                <td class="td-check"><input type="checkbox" /></td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fdf4ff; color: #6b21a8">KT</div>
+                    <div>
+                      <div class="aff-name">Karen Torres</div>
+                      <div class="aff-email">karen.t.writes@gmail.com</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="applied-tag">3 days ago</span></td>
+                <td><span style="font-size: 12px">Referral link</span></td>
+                <td><span style="font-size: 12px">Summer 2026 Campaign</span></td>
+                <td>
+                  <div class="inline-actions">
+                    <button class="btn-approve">✓ Approve</button>
+                    <button class="btn-reject">✗ Reject</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SPACER + ALL AFFILIATES (full list below for reference) -->
+        <div style="margin-top: 32px">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 16px;
+            "
+          >
+            <h2 style="font-size: 15px; font-weight: 700; color: var(--text-heading)">
+              All Active Affiliates
+            </h2>
+            <div class="toolbar" style="margin-bottom: 0">
+              <div class="search-input">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8" stroke-width="2" />
+                  <path d="m21 21-4.35-4.35" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input placeholder="Search by name, email, or referral code" />
+              </div>
+              <div class="filter-pill active">Status: Active</div>
+              <div class="filter-pill">Campaign ▾</div>
+              <div class="filter-pill">Date joined ▾</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th class="td-check"><input type="checkbox" /></th>
+                  <th>Affiliate</th>
+                  <th>Status</th>
+                  <th>Campaign</th>
+                  <th>Referrals</th>
+                  <th>Clicks</th>
+                  <th class="right">Earnings</th>
+                  <th>Joined</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-check"><input type="checkbox" /></td>
+                  <td>
+                    <div class="td-name">
+                      <div class="aff-avatar">JC</div>
+                      <div>
+                        <div class="aff-name">Jamie Cruz</div>
+                        <div class="aff-email">jamie.cruz@gmail.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="font-size: 12px">Summer 2026</td>
+                  <td style="font-size: 13px; font-weight: 600">12</td>
+                  <td style="font-size: 13px; color: var(--text-muted)">847</td>
+                  <td class="td-right"><span class="amount">₱8,400.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Jan 15, 2026</td>
+                  <td><button class="row-action" onclick="openDrawer()">⋯</button></td>
+                </tr>
+
+                <tr>
+                  <td class="td-check"><input type="checkbox" /></td>
+                  <td>
+                    <div class="td-name">
+                      <div class="aff-avatar" style="background: #fce7f3; color: #9d174d">RS</div>
+                      <div>
+                        <div class="aff-name">Ramon Santos</div>
+                        <div class="aff-email">ramon.s@hotmail.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="font-size: 12px">Standard Program</td>
+                  <td style="font-size: 13px; font-weight: 600">8</td>
+                  <td style="font-size: 13px; color: var(--text-muted)">512</td>
+                  <td class="td-right"><span class="amount">₱5,600.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 3, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+
+                <tr>
+                  <td class="td-check"><input type="checkbox" /></td>
+                  <td>
+                    <div class="td-name">
+                      <div class="aff-avatar" style="background: #fff7ed; color: #92400e">BL</div>
+                      <div>
+                        <div class="aff-name">Bianca Lim</div>
+                        <div class="aff-email">bianca.lim@outlook.com</div>
+                        <div style="margin-top: 2px">
+                          <span
+                            class="badge badge-flagged"
+                            style="font-size: 10px; padding: 1px 7px"
+                            ><span class="badge-dot"></span>Flagged</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="font-size: 12px">Summer 2026</td>
+                  <td style="font-size: 13px; font-weight: 600">3</td>
+                  <td style="font-size: 13px; color: var(--text-muted)">1,243</td>
+                  <td class="td-right"><span class="amount">₱1,050.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Feb 18, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+
+                <tr>
+                  <td class="td-check"><input type="checkbox" /></td>
+                  <td>
+                    <div class="td-name">
+                      <div class="aff-avatar" style="background: #ede9fe; color: #5b21b6">KR</div>
+                      <div>
+                        <div class="aff-name">Kevin Ramos</div>
+                        <div class="aff-email">kevinramos.dev@gmail.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="font-size: 12px">Standard Program</td>
+                  <td style="font-size: 13px; font-weight: 600">6</td>
+                  <td style="font-size: 13px; color: var(--text-muted)">398</td>
+                  <td class="td-right"><span class="amount">₱4,200.00</span></td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Mar 1, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+
+                <tr>
+                  <td class="td-check"><input type="checkbox" /></td>
+                  <td>
+                    <div class="td-name">
+                      <div class="aff-avatar" style="background: #fee2e2; color: #991b1b">DV</div>
+                      <div>
+                        <div class="aff-name">Diana Villanueva</div>
+                        <div class="aff-email">diana.v@gmail.com</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge badge-suspended"
+                      ><span class="badge-dot"></span>Suspended</span
+                    >
+                  </td>
+                  <td style="font-size: 12px">Summer 2026</td>
+                  <td style="font-size: 13px; font-weight: 600">1</td>
+                  <td style="font-size: 13px; color: var(--text-muted)">88</td>
+                  <td class="td-right">
+                    <span class="amount" style="color: var(--text-muted)">₱350.00</span>
+                  </td>
+                  <td style="font-size: 12px; color: var(--text-muted)">Mar 5, 2026</td>
+                  <td><button class="row-action">⋯</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div
+              style="
+                padding: 12px 16px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <span style="font-size: 12px; color: var(--text-muted)"
+                >Showing 5 of 38 affiliates</span
+              >
+              <button class="btn btn-outline btn-sm">Load 20 more (33 remaining)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── AFFILIATE DETAIL DRAWER ── -->
+    <div
+      class="drawer-overlay"
+      id="drawerOverlay"
+      style="display: none"
+      onclick="closeDrawer(event)"
+    >
+      <div class="drawer" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+          <div class="drawer-title">Affiliate Profile</div>
+          <button class="drawer-close" onclick="closeDrawer()">×</button>
+        </div>
+        <div class="drawer-body">
+          <!-- Hero -->
+          <div class="affiliate-hero">
+            <div class="aff-avatar-lg">JC</div>
+            <div>
+              <div class="aff-hero-name">Jamie Cruz</div>
+              <div class="aff-hero-email">jamie.cruz@gmail.com</div>
+              <div style="margin-top: 6px; display: flex; gap: 6px; align-items: center">
+                <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                <span style="font-size: 11px; color: var(--text-muted)">Joined Jan 15, 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats mini grid -->
+          <div class="stats-mini-grid" style="margin-bottom: 24px">
+            <div class="stat-mini">
+              <div class="stat-mini-value">12</div>
+              <div class="stat-mini-label">Referrals</div>
+            </div>
+            <div class="stat-mini">
+              <div class="stat-mini-value">847</div>
+              <div class="stat-mini-label">Clicks</div>
+            </div>
+            <div class="stat-mini">
+              <div class="stat-mini-value">₱8,400</div>
+              <div class="stat-mini-label">Total Earned</div>
+            </div>
+          </div>
+
+          <!-- Details -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Details</div>
+            <div class="drawer-row">
+              <span class="drawer-label">Campaign</span>
+              <span class="drawer-value">Summer 2026 Campaign</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Commission Rate</span>
+              <span class="drawer-value">20% recurring</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Referral Code</span>
+              <span
+                class="drawer-value"
+                style="
+                  font-family: monospace;
+                  font-size: 12px;
+                  background: #f3f4f6;
+                  padding: 2px 8px;
+                  border-radius: 4px;
+                "
+                >JAMIE-AFF-2026</span
+              >
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Payout Method</span>
+              <span class="drawer-value">GCash — 09171234567</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Pending Payout</span>
+              <span class="drawer-value" style="color: var(--warning)">₱2,800.00</span>
+            </div>
+          </div>
+
+          <!-- Recent Commissions -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Recent Commissions</div>
+            <div class="commission-mini-row">
+              <span>Carl M. — Pro Plan</span>
+              <span style="display: flex; align-items: center; gap: 8px">
+                <span class="badge badge-confirmed" style="font-size: 10px; padding: 1px 7px"
+                  ><span
+                    class="badge-dot"
+                    style="width: 5px; height: 5px; background: var(--success)"
+                  ></span
+                  >Confirmed</span
+                >
+                <span class="amount">₱700.00</span>
+              </span>
+            </div>
+            <div class="commission-mini-row">
+              <span>Nina R. — Starter Plan</span>
+              <span style="display: flex; align-items: center; gap: 8px">
+                <span class="badge badge-confirmed" style="font-size: 10px; padding: 1px 7px"
+                  ><span
+                    class="badge-dot"
+                    style="width: 5px; height: 5px; background: var(--success)"
+                  ></span
+                  >Confirmed</span
+                >
+                <span class="amount">₱350.00</span>
+              </span>
+            </div>
+            <div class="commission-mini-row">
+              <span>Marco S. — Pro Plan</span>
+              <span style="display: flex; align-items: center; gap: 8px">
+                <span class="badge badge-pending" style="font-size: 10px; padding: 1px 7px"
+                  ><span
+                    class="badge-dot"
+                    style="width: 5px; height: 5px; background: var(--warning)"
+                  ></span
+                  >Pending</span
+                >
+                <span class="amount">₱700.00</span>
+              </span>
+            </div>
+            <div style="margin-top: 10px">
+              <a href="#" style="font-size: 12px; color: var(--brand-link)"
+                >View all 12 commissions →</a
+              >
+            </div>
+          </div>
+
+          <!-- Internal Notes -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Internal Notes</div>
+            <textarea
+              class="note-input"
+              placeholder="Add a private note about this affiliate (not visible to them)…"
+            >
+Newsletter-based promoter with Cebu audience. High-quality traffic.</textarea
+            >
+            <button class="btn btn-outline btn-sm" style="margin-top: 8px">Save Note</button>
+          </div>
+        </div>
+        <div class="drawer-actions">
+          <button class="btn btn-outline btn-sm" style="flex: 1">Send Email</button>
+          <button
+            class="btn btn-outline btn-sm"
+            style="flex: 1; color: var(--danger); border-color: var(--danger)"
+          >
+            Suspend
+          </button>
+          <button class="btn btn-primary btn-sm" style="flex: 1">View Full Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function openDrawer() {
+        document.getElementById("drawerOverlay").style.display = "flex";
+      }
+      function closeDrawer(e) {
+        if (!e || e.target === document.getElementById("drawerOverlay")) {
+          document.getElementById("drawerOverlay").style.display = "none";
+        }
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeDrawer();
+      });
+    </script>
+  </body>
+</html>

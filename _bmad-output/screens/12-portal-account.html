@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alex's SaaS — Affiliate Portal: Account</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-light: #eff6ff;
+        --brand-dark: #0c2e6e;
+        --text-heading: #1a1a2e;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f8fafc;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .portal-header {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 16px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .portal-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .portal-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 13px;
+        color: #fff;
+      }
+      .portal-logo-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .header-page-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .portal-layout {
+        display: flex;
+        flex: 1;
+      }
+      .portal-content {
+        flex: 1;
+        padding: 20px 16px 100px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .portal-sidebar {
+        display: none;
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border-right: 1px solid var(--border);
+        padding: 20px 0;
+        position: sticky;
+        top: 56px;
+        height: calc(100vh - 56px);
+      }
+      .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0 12px;
+      }
+      .sidebar-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-body);
+        cursor: pointer;
+        transition: background 0.1s;
+        text-decoration: none;
+      }
+      .sidebar-nav-item:hover {
+        background: var(--bg-page);
+      }
+      .sidebar-nav-item.active {
+        background: var(--brand-light);
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .sidebar-nav-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+      .sidebar-user {
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .sidebar-user-info .name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .sidebar-user-info .email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        height: 64px;
+        z-index: 100;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+      }
+      .bottom-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.15s;
+      }
+      .bottom-nav-item.active {
+        color: var(--brand);
+      }
+      .bottom-nav-item svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* PROFILE HEADER */
+      .profile-header {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px 20px;
+        margin-bottom: 16px;
+        text-align: center;
+      }
+      .profile-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand), #1659d6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 800;
+        color: #fff;
+        margin: 0 auto 12px;
+      }
+      .profile-name {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .profile-email {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .profile-status {
+        margin-top: 10px;
+      }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+      .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 16px;
+        border: 1px solid var(--border);
+      }
+      .profile-stat {
+        background: var(--bg-surface);
+        padding: 12px;
+        text-align: center;
+      }
+      .profile-stat-val {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .profile-stat-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* SETTINGS SECTIONS */
+      .settings-section {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      .settings-section-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .settings-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .btn-edit {
+        padding: 6px 14px;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+      .btn-edit:hover {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
+      .settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .settings-row:last-child {
+        border-bottom: none;
+      }
+      .settings-row-label {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .settings-row-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        text-align: right;
+      }
+      .settings-row-value.redacted {
+        letter-spacing: 3px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .settings-row-value.brand {
+        color: var(--brand);
+      }
+
+      /* EDIT FORM (hidden by default) */
+      .edit-form {
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        display: none;
+        background: var(--bg-page);
+      }
+      .edit-form.open {
+        display: block;
+      }
+      .form-group {
+        margin-bottom: 12px;
+      }
+      .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+        display: block;
+      }
+      .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        outline: none;
+      }
+      .form-input:focus {
+        border-color: var(--brand);
+      }
+      .form-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .form-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-save {
+        padding: 10px 20px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-cancel {
+        padding: 10px 20px;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
+      /* TOGGLE SWITCH */
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .toggle-row:last-child {
+        border-bottom: none;
+      }
+      .toggle-label {
+        flex: 1;
+      }
+      .toggle-label-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .toggle-label-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+      .toggle {
+        position: relative;
+        width: 42px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: var(--border);
+        border-radius: 999px;
+        transition: 0.2s;
+      }
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        top: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      .toggle input:checked + .toggle-slider {
+        background: var(--brand);
+      }
+      .toggle input:checked + .toggle-slider::before {
+        transform: translateX(18px);
+      }
+
+      /* PAYOUT METHOD */
+      .payout-method {
+        padding: 14px 16px;
+      }
+      .payout-method-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        margin-bottom: 8px;
+      }
+      .payout-method-row.selected {
+        border-color: var(--brand);
+        background: var(--brand-light);
+      }
+      .payout-method-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: var(--bg-page);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+      }
+      .payout-method-icon.selected-bg {
+        background: var(--brand-light);
+      }
+      .payout-method-info {
+        flex: 1;
+      }
+      .payout-method-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .payout-method-detail {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .payout-method-check {
+        color: var(--brand);
+        font-size: 17px;
+      }
+
+      /* DANGER ZONE */
+      .danger-section {
+        background: var(--bg-surface);
+        border: 1px solid #fee2e2;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      .danger-section-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #fee2e2;
+      }
+      .danger-section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--danger);
+      }
+      .danger-row {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #fee2e2;
+      }
+      .danger-row:last-child {
+        border-bottom: none;
+      }
+      .danger-row-label {
+        font-size: 13px;
+        color: var(--text-heading);
+      }
+      .danger-row-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .btn-danger {
+        padding: 7px 14px;
+        background: transparent;
+        border: 1.5px solid var(--danger);
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--danger);
+        cursor: pointer;
+      }
+      .btn-danger:hover {
+        background: #fee2e2;
+      }
+
+      /* SIGN OUT */
+      .btn-signout {
+        width: 100%;
+        padding: 14px;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        margin-bottom: 16px;
+      }
+      .btn-signout:hover {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      /* TOAST */
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a2e;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0;
+        transition: all 0.2s;
+        pointer-events: none;
+        z-index: 300;
+        white-space: nowrap;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @media (min-width: 1024px) {
+        .portal-sidebar {
+          display: flex;
+          flex-direction: column;
+        }
+        .bottom-nav {
+          display: none;
+        }
+        .portal-content {
+          padding: 28px 32px 40px;
+          max-width: 720px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="portal-header">
+      <div class="portal-logo">
+        <div class="portal-logo-icon">AC</div>
+        <div class="portal-logo-name">Alex's SaaS</div>
+      </div>
+      <div class="header-page-title">Account</div>
+    </header>
+
+    <div class="portal-layout">
+      <aside class="portal-sidebar">
+        <nav class="sidebar-nav">
+          <a class="sidebar-nav-item" href="09-portal-home.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Home
+          </a>
+          <a class="sidebar-nav-item" href="10-portal-earnings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            Earnings
+          </a>
+          <a class="sidebar-nav-item" href="11-portal-links.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            Links
+          </a>
+          <a class="sidebar-nav-item active" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Account
+          </a>
+        </nav>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">JM</div>
+          <div class="sidebar-user-info">
+            <div class="name">Jamie Mendoza</div>
+            <div class="email">jamie@cebutech.com</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="portal-content">
+        <!-- PROFILE HEADER -->
+        <div class="profile-header">
+          <div class="profile-avatar">JM</div>
+          <div class="profile-name">Jamie Mendoza</div>
+          <div class="profile-email">jamie@cebutech.com</div>
+          <div class="profile-status">
+            <span class="status-badge"><span class="status-dot"></span>Active Affiliate</span>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <div class="profile-stat-val">₱5,820</div>
+              <div class="profile-stat-label">Lifetime Earned</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-val">12</div>
+              <div class="profile-stat-label">Referrals</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-val">234</div>
+              <div class="profile-stat-label">Total Clicks</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROFILE INFO -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-title">Profile Information</div>
+            <button class="btn-edit" onclick="toggleProfileEdit()">Edit</button>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Full Name</span>
+            <span class="settings-row-value">Jamie Mendoza</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Email Address</span>
+            <span class="settings-row-value">jamie@cebutech.com</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Promotion Channel</span>
+            <span class="settings-row-value">Newsletter / Blog</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Joined</span>
+            <span class="settings-row-value">Jan 15, 2026</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Affiliate Code</span>
+            <span class="settings-row-value brand">JAMIE-MENDOZA</span>
+          </div>
+
+          <!-- EDIT FORM -->
+          <div class="edit-form" id="profileEditForm">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input class="form-input" type="text" value="Jamie Mendoza" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Promotion Channel</label>
+              <select class="form-input">
+                <option selected>Newsletter / Blog</option>
+                <option>YouTube / Video content</option>
+                <option>Social media</option>
+                <option>Telegram / Discord</option>
+                <option>Podcast</option>
+                <option>Other</option>
+              </select>
+              <div class="form-hint">Helps Alex understand your audience</div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-save" onclick="saveProfile()">Save Changes</button>
+              <button class="btn-cancel" onclick="toggleProfileEdit()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYOUT METHOD -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-title">Payout Method</div>
+          </div>
+          <div class="payout-method">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px">
+              Alex will use this information when processing your payouts.
+            </div>
+
+            <div class="payout-method-row selected" onclick="selectPayout(this)">
+              <div class="payout-method-icon selected-bg">📱</div>
+              <div class="payout-method-info">
+                <div class="payout-method-name">GCash</div>
+                <div class="payout-method-detail">09XX XXX XXXX — Jamie Mendoza</div>
+              </div>
+              <div class="payout-method-check">✓</div>
+            </div>
+
+            <div class="payout-method-row" onclick="selectPayout(this)">
+              <div class="payout-method-icon">🏦</div>
+              <div class="payout-method-info">
+                <div class="payout-method-name">Bank Transfer</div>
+                <div class="payout-method-detail">Not set up yet</div>
+              </div>
+            </div>
+
+            <div class="payout-method-row" onclick="selectPayout(this)">
+              <div class="payout-method-icon">💛</div>
+              <div class="payout-method-info">
+                <div class="payout-method-name">PayMaya / Maya</div>
+                <div class="payout-method-detail">Not set up yet</div>
+              </div>
+            </div>
+
+            <!-- GCash EDIT FORM (visible when GCash selected) -->
+            <div
+              id="gcashForm"
+              style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border)"
+            >
+              <div class="form-group">
+                <label class="form-label">GCash Number</label>
+                <input
+                  class="form-input"
+                  type="tel"
+                  placeholder="09XX XXX XXXX"
+                  value="0917 123 4567"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">GCash Name</label>
+                <input
+                  class="form-input"
+                  type="text"
+                  placeholder="Your full name as registered"
+                  value="Jamie Mendoza"
+                />
+                <div class="form-hint">Must match the name on your GCash account</div>
+              </div>
+              <button class="btn-save" onclick="showToast('✅ Payout method updated!')">
+                Save Payout Method
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATION PREFERENCES -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-title">Notifications</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="toggle-label-title">Commission Confirmed</div>
+              <div class="toggle-label-sub">Email when a commission is confirmed</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked onchange="showToast('Preference saved')" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="toggle-label-title">New Click Milestone</div>
+              <div class="toggle-label-sub">Notify at 50, 100, 250, 500 clicks</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked onchange="showToast('Preference saved')" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="toggle-label-title">Payout Processed</div>
+              <div class="toggle-label-sub">Email when Alex marks a payout complete</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked onchange="showToast('Preference saved')" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="toggle-label-title">Commission Reversed</div>
+              <div class="toggle-label-sub">Notify when a commission is reversed</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" onchange="showToast('Preference saved')" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="toggle-label-title">Program Announcements</div>
+              <div class="toggle-label-sub">Updates from Alex about the program</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked onchange="showToast('Preference saved')" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- PASSWORD CHANGE -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <div class="settings-section-title">Security</div>
+            <button class="btn-edit" onclick="togglePasswordEdit()">Change Password</button>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Password</span>
+            <span class="settings-row-value redacted">••••••••</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Last Login</span>
+            <span class="settings-row-value">Mar 10, 2026 at 8:42 AM</span>
+          </div>
+          <div class="edit-form" id="passwordEditForm">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input class="form-input" type="password" placeholder="Enter current password" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input class="form-input" type="password" placeholder="8+ characters" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input class="form-input" type="password" placeholder="Repeat new password" />
+            </div>
+            <div class="form-actions">
+              <button
+                class="btn-save"
+                onclick="
+                  showToast('✅ Password updated!');
+                  togglePasswordEdit();
+                "
+              >
+                Update Password
+              </button>
+              <button class="btn-cancel" onclick="togglePasswordEdit()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIGN OUT -->
+        <button class="btn-signout" onclick="confirmSignOut()">Sign Out</button>
+
+        <!-- DANGER ZONE -->
+        <div class="danger-section">
+          <div class="danger-section-header">
+            <div class="danger-section-title">Danger Zone</div>
+          </div>
+          <div class="danger-row">
+            <div>
+              <div class="danger-row-label">Leave Program</div>
+              <div class="danger-row-sub">
+                You will lose access to your affiliate link and commission history
+              </div>
+            </div>
+            <button class="btn-danger" onclick="confirmLeave()">Leave</button>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div
+          style="
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding-bottom: 16px;
+          "
+        >
+          © 2026 Alex's SaaS Co. · <a href="#" style="color: var(--brand)">Privacy Policy</a> ·
+          <a href="#" style="color: var(--brand)">Terms</a>
+        </div>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <div class="bottom-nav-item" onclick="window.location = '09-portal-home.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        Home
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '10-portal-earnings.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        Earnings
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '11-portal-links.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+        Links
+      </div>
+      <div class="bottom-nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Account
+      </div>
+    </nav>
+
+    <div class="toast" id="toastEl">Saved!</div>
+
+    <script>
+      function toggleProfileEdit() {
+        const form = document.getElementById("profileEditForm");
+        form.classList.toggle("open");
+      }
+
+      function togglePasswordEdit() {
+        const form = document.getElementById("passwordEditForm");
+        form.classList.toggle("open");
+      }
+
+      function saveProfile() {
+        document.getElementById("profileEditForm").classList.remove("open");
+        showToast("✅ Profile updated!");
+      }
+
+      function selectPayout(row) {
+        document.querySelectorAll(".payout-method-row").forEach((r) => {
+          r.classList.remove("selected");
+          r.querySelector(".payout-method-icon").classList.remove("selected-bg");
+          const check = r.querySelector(".payout-method-check");
+          if (check) check.remove();
+        });
+        row.classList.add("selected");
+        row.querySelector(".payout-method-icon").classList.add("selected-bg");
+        const check = document.createElement("div");
+        check.className = "payout-method-check";
+        check.textContent = "✓";
+        row.appendChild(check);
+      }
+
+      function confirmSignOut() {
+        if (confirm("Sign out of Jamie's SaaS Affiliate Portal?")) {
+          window.location = "08-portal-login.html";
+        }
+      }
+
+      function confirmLeave() {
+        if (
+          confirm(
+            "Are you sure you want to leave the affiliate program? You will lose access to your referral link and commission history.",
+          )
+        ) {
+          showToast("You have left the program.");
+        }
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toastEl");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2500);
+      }
+    </script>
+  </body>
+</html>

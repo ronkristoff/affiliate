@@ -1,0 +1,2303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Affiliate Program Management for SaaS on SaligPay</title>
+    <meta
+      name="description"
+      content="Launch, manage, and pay your affiliate program natively on SaligPay. Automatic commission tracking, branded affiliate portal, fraud detection. 14-day free trial."
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.14);
+        --radius: 12px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-surface);
+        color: var(--text-body);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      /* ─── UTILITY ─── */
+      .container {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+      .section {
+        padding: 80px 0;
+      }
+      .section-sm {
+        padding: 56px 0;
+      }
+
+      /* ─── NAVIGATION ─── */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        height: 64px;
+        display: flex;
+        align-items: center;
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+      }
+
+      .nav-logo-icon {
+        width: 34px;
+        height: 34px;
+        background: var(--brand-primary);
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Passion One", sans-serif;
+        font-size: 16px;
+        color: #fff;
+        letter-spacing: -0.5px;
+        flex-shrink: 0;
+      }
+
+      .nav-logo-text {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.3px;
+      }
+
+      .nav-logo-text span {
+        color: var(--brand-primary);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+
+      .nav-links a:hover {
+        color: var(--text-heading);
+      }
+
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* ─── BUTTONS ─── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 22px;
+        border-radius: 9px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        text-decoration: none;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+
+      .btn-ghost:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+      }
+
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(16, 64, 154, 0.25);
+      }
+
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+        box-shadow: 0 4px 16px rgba(16, 64, 154, 0.35);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary-lg {
+        padding: 14px 32px;
+        font-size: 16px;
+      }
+
+      .btn-white {
+        background: #fff;
+        color: var(--brand-primary);
+        font-weight: 700;
+      }
+
+      .btn-white:hover {
+        background: #f0f4ff;
+        transform: translateY(-1px);
+      }
+
+      .btn-white-outline {
+        background: transparent;
+        color: #fff;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+      }
+
+      .btn-white-outline:hover {
+        border-color: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* ─── HERO ─── */
+      .hero {
+        background: linear-gradient(160deg, #fff 0%, var(--bg-page) 100%);
+        padding: 96px 0 80px;
+        overflow: hidden;
+      }
+
+      .hero-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        align-items: center;
+      }
+
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 64, 154, 0.07);
+        border: 1px solid rgba(16, 64, 154, 0.15);
+        color: var(--brand-primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 99px;
+        margin-bottom: 24px;
+      }
+
+      .hero-eyebrow .dot {
+        width: 6px;
+        height: 6px;
+        background: var(--success);
+        border-radius: 50%;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: scale(0.85);
+        }
+      }
+
+      .hero h1 {
+        font-family: "Passion One", sans-serif;
+        font-size: 54px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--text-heading);
+        letter-spacing: -0.5px;
+        margin-bottom: 20px;
+      }
+
+      .hero h1 .accent {
+        color: var(--brand-primary);
+      }
+
+      .hero-sub {
+        font-size: 17px;
+        color: var(--text-body);
+        line-height: 1.7;
+        margin-bottom: 36px;
+        max-width: 520px;
+      }
+
+      .hero-sub strong {
+        color: var(--brand-primary);
+        font-weight: 600;
+      }
+
+      .hero-cta-group {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .hero-cta-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .hero-cta-sub::before {
+        content: "✓";
+        color: var(--success);
+        font-weight: 700;
+      }
+
+      /* ─── HERO VISUAL ─── */
+      .hero-visual {
+        position: relative;
+      }
+
+      .browser-chrome {
+        background: #e8ecf0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+          var(--shadow-lg),
+          0 0 0 1px rgba(0, 0, 0, 0.07);
+      }
+
+      .browser-toolbar {
+        background: #e8ecf0;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid #d4d8dc;
+      }
+
+      .browser-dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .browser-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .browser-dot.red {
+        background: #ff5f57;
+      }
+      .browser-dot.yellow {
+        background: #ffbd2e;
+      }
+      .browser-dot.green {
+        background: #28c840;
+      }
+
+      .browser-url {
+        flex: 1;
+        background: #fff;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "Poppins", sans-serif;
+      }
+
+      .browser-body {
+        background: var(--bg-surface);
+        overflow: hidden;
+      }
+
+      /* Dashboard mockup inside browser */
+      .dash-mock {
+        display: flex;
+        height: 340px;
+        font-family: "Poppins", sans-serif;
+      }
+
+      .dash-sidebar {
+        width: 160px;
+        background: var(--brand-dark);
+        flex-shrink: 0;
+        padding: 14px 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .dash-logo {
+        padding: 0 14px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 8px;
+      }
+
+      .dash-logo-mark {
+        font-size: 11px;
+        font-weight: 800;
+        color: #fff;
+      }
+
+      .dash-logo-sub {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .dash-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        border-left: 2px solid transparent;
+      }
+
+      .dash-nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.07);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+
+      .dash-nav-icon {
+        font-size: 11px;
+      }
+
+      .dash-main {
+        flex: 1;
+        background: var(--bg-page);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow: hidden;
+      }
+
+      .dash-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .dash-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      .dash-btn {
+        background: var(--brand-primary);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .dash-kpis {
+        display: flex;
+        gap: 8px;
+      }
+
+      .dash-kpi {
+        flex: 1;
+        background: var(--bg-surface);
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .dash-kpi-label {
+        font-size: 8px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 3px;
+      }
+
+      .dash-kpi-value {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+        line-height: 1.2;
+      }
+
+      .dash-kpi-delta {
+        font-size: 8px;
+        color: var(--success);
+        font-weight: 600;
+        margin-top: 2px;
+      }
+
+      .dash-table {
+        background: var(--bg-surface);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        flex: 1;
+      }
+
+      .dash-table-head {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        font-size: 8px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+
+      .dash-table-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f9f9f9;
+        align-items: center;
+      }
+
+      .dash-table-row:last-child {
+        border-bottom: none;
+      }
+
+      .dash-cell {
+        font-size: 9.5px;
+        color: var(--text-body);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dash-cell.name {
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+
+      .dash-cell.amount {
+        color: var(--brand-primary);
+        font-weight: 600;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 7px;
+        border-radius: 99px;
+        font-size: 8px;
+        font-weight: 700;
+      }
+
+      .badge-confirmed {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .badge-pending {
+        background: #fef9c3;
+        color: #92400e;
+      }
+      .badge-reversed {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      /* Floating notification card */
+      .hero-notif {
+        position: absolute;
+        bottom: -18px;
+        left: -24px;
+        background: var(--bg-surface);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--border);
+        min-width: 220px;
+        animation: floatUp 3s ease-in-out infinite;
+      }
+
+      @keyframes floatUp {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      .notif-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      .notif-text .notif-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      .notif-text .notif-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── SOCIAL PROOF BAR ─── */
+      .proof-bar {
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding: 28px 0;
+      }
+
+      .proof-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        flex-wrap: wrap;
+      }
+
+      .proof-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 40px;
+        border-right: 1px solid var(--border);
+      }
+
+      .proof-pill:last-child {
+        border-right: none;
+      }
+
+      .proof-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(16, 64, 154, 0.08);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .proof-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        white-space: nowrap;
+      }
+
+      .proof-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── SECTION HEADERS ─── */
+      .section-eyebrow {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--brand-primary);
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.2;
+        margin-bottom: 16px;
+        letter-spacing: -0.5px;
+      }
+
+      .section-sub {
+        font-size: 17px;
+        color: var(--text-muted);
+        max-width: 600px;
+        line-height: 1.65;
+      }
+
+      .section-header-center {
+        text-align: center;
+        margin-bottom: 56px;
+      }
+
+      .section-header-center .section-sub {
+        margin: 0 auto;
+      }
+
+      /* ─── PROBLEM STATEMENT ─── */
+      .problem {
+        background: var(--bg-page);
+      }
+
+      .problem-inner {
+        max-width: 720px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .problem-title {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.3;
+        margin-bottom: 32px;
+        letter-spacing: -0.3px;
+      }
+
+      .pain-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        text-align: left;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-surface);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .pain-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+      }
+
+      .pain-item:last-child {
+        border-bottom: none;
+      }
+      .pain-item:hover {
+        background: #fafafa;
+      }
+
+      .pain-icon {
+        width: 36px;
+        height: 36px;
+        background: rgba(239, 68, 68, 0.08);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .pain-text {
+        flex: 1;
+      }
+
+      .pain-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 4px;
+      }
+
+      .pain-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
+      /* ─── FEATURES ─── */
+      .features {
+        background: var(--bg-surface);
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .feature-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 28px;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .feature-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        border-color: rgba(16, 64, 154, 0.2);
+      }
+
+      .feature-card:hover::before {
+        opacity: 1;
+      }
+
+      .feature-icon {
+        width: 44px;
+        height: 44px;
+        background: rgba(16, 64, 154, 0.08);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin-bottom: 16px;
+      }
+
+      .feature-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 8px;
+      }
+
+      .feature-desc {
+        font-size: 13.5px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* ─── SALIGPAY CALLOUT ─── */
+      .saligpay-callout {
+        background: var(--brand-dark);
+        padding: 80px 0;
+      }
+
+      .saligpay-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        align-items: center;
+      }
+
+      .saligpay-copy h2 {
+        font-family: "Passion One", sans-serif;
+        font-size: 44px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 20px;
+        letter-spacing: -0.3px;
+      }
+
+      .saligpay-copy h2 .accent {
+        color: #7dd3fc;
+      }
+
+      .saligpay-copy p {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1.7;
+        margin-bottom: 16px;
+      }
+
+      .saligpay-cta {
+        margin-top: 32px;
+      }
+
+      .saligpay-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .saligpay-stat-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: background 0.2s;
+      }
+
+      .saligpay-stat-card:hover {
+        background: rgba(255, 255, 255, 0.09);
+      }
+
+      .saligpay-stat-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(125, 211, 252, 0.12);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .saligpay-stat-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.1;
+      }
+
+      .saligpay-stat-label {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 2px;
+      }
+
+      /* ─── HOW IT WORKS ─── */
+      .howitworks {
+        background: var(--bg-page);
+      }
+
+      .steps-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+        position: relative;
+      }
+
+      .steps-row::before {
+        content: "";
+        position: absolute;
+        top: 28px;
+        left: calc(16.66% + 28px);
+        right: calc(16.66% + 28px);
+        height: 2px;
+        background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+        z-index: 0;
+      }
+
+      .step {
+        text-align: center;
+        padding: 0 24px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .step-number {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--brand-primary);
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        border: 3px solid var(--bg-page);
+        box-shadow: 0 0 0 3px var(--brand-primary);
+        position: relative;
+        z-index: 2;
+      }
+
+      .step-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 12px;
+      }
+
+      .step-desc {
+        font-size: 14px;
+        color: var(--text-muted);
+        line-height: 1.65;
+      }
+
+      .step-tag {
+        display: inline-block;
+        background: rgba(16, 64, 154, 0.07);
+        color: var(--brand-primary);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 99px;
+        margin-top: 12px;
+      }
+
+      /* ─── PRICING ─── */
+      .pricing {
+        background: var(--bg-surface);
+      }
+
+      .pricing-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 48px;
+      }
+
+      .toggle-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .toggle-label.active {
+        color: var(--text-heading);
+      }
+
+      .toggle-track {
+        width: 44px;
+        height: 24px;
+        background: var(--brand-primary);
+        border-radius: 99px;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 22px;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: var(--shadow-sm);
+        transition: left 0.2s;
+      }
+
+      .toggle-save {
+        display: inline-block;
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 99px;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .pricing-card {
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        position: relative;
+        transition: all 0.2s;
+      }
+
+      .pricing-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+
+      .pricing-card.featured {
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+        color: #fff;
+        box-shadow:
+          var(--shadow-lg),
+          0 0 0 4px rgba(16, 64, 154, 0.15);
+        transform: scale(1.04);
+        z-index: 10;
+      }
+
+      .pricing-card.featured:hover {
+        transform: scale(1.04) translateY(-2px);
+      }
+
+      .popular-badge {
+        position: absolute;
+        top: -13px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--warning);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 16px;
+        border-radius: 99px;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
+      }
+
+      .pricing-tier {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .pricing-card.featured .pricing-tier {
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      .pricing-price {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+
+      .pricing-currency {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-heading);
+        align-self: flex-start;
+        margin-top: 6px;
+      }
+
+      .pricing-card.featured .pricing-currency {
+        color: #fff;
+      }
+
+      .pricing-amount {
+        font-size: 48px;
+        font-weight: 900;
+        color: var(--text-heading);
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -2px;
+      }
+
+      .pricing-card.featured .pricing-amount {
+        color: #fff;
+      }
+
+      .pricing-period {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .pricing-card.featured .pricing-period {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .pricing-tagline {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+        line-height: 1.5;
+      }
+
+      .pricing-card.featured .pricing-tagline {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .pricing-divider {
+        height: 1px;
+        background: var(--border);
+        margin-bottom: 24px;
+      }
+
+      .pricing-card.featured .pricing-divider {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .pricing-features {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+
+      .pricing-feat {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 13.5px;
+        color: var(--text-body);
+      }
+
+      .pricing-card.featured .pricing-feat {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .pricing-feat .check {
+        color: var(--success);
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .pricing-card.featured .pricing-feat .check {
+        color: #7dd3fc;
+      }
+
+      .pricing-cta {
+        width: 100%;
+        padding: 13px;
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 2px solid var(--brand-primary);
+        background: transparent;
+        color: var(--brand-primary);
+        transition: all 0.15s;
+        text-align: center;
+      }
+
+      .pricing-cta:hover {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+
+      .pricing-card.featured .pricing-cta {
+        background: #fff;
+        color: var(--brand-primary);
+        border-color: #fff;
+      }
+
+      .pricing-card.featured .pricing-cta:hover {
+        background: #e8efff;
+      }
+
+      .pricing-footnote {
+        text-align: center;
+        margin-top: 32px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .pricing-footnote strong {
+        color: var(--text-body);
+      }
+
+      .enterprise-callout {
+        text-align: center;
+        margin-top: 20px;
+        padding: 20px;
+        background: var(--bg-page);
+        border-radius: 10px;
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      .enterprise-callout a {
+        color: var(--brand-primary);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .enterprise-callout a:hover {
+        text-decoration: underline;
+      }
+
+      /* ─── TESTIMONIALS ─── */
+      .testimonials {
+        background: var(--bg-page);
+      }
+
+      .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+
+      .testimonial-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 28px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s;
+      }
+
+      .testimonial-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+
+      .testimonial-stars {
+        display: flex;
+        gap: 3px;
+        margin-bottom: 16px;
+      }
+
+      .star {
+        color: var(--warning);
+        font-size: 16px;
+      }
+
+      .testimonial-quote {
+        font-size: 15px;
+        color: var(--text-body);
+        line-height: 1.7;
+        font-style: italic;
+        margin-bottom: 20px;
+      }
+
+      .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .testimonial-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+
+      .testimonial-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      .testimonial-role {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* ─── FINAL CTA ─── */
+      .final-cta {
+        background: var(--brand-primary);
+        padding: 80px 0;
+        text-align: center;
+      }
+
+      .final-cta h2 {
+        font-family: "Passion One", sans-serif;
+        font-size: 48px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 16px;
+        letter-spacing: -0.3px;
+      }
+
+      .final-cta p {
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.75);
+        margin-bottom: 36px;
+      }
+
+      .final-cta-sub {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .final-cta-sub::before {
+        content: "✓";
+        color: #7dd3fc;
+        font-weight: 700;
+      }
+
+      /* ─── FOOTER ─── */
+      .footer {
+        background: var(--brand-dark);
+        padding: 64px 0 0;
+      }
+
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 48px;
+        margin-bottom: 48px;
+      }
+
+      .footer-brand .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        text-decoration: none;
+      }
+
+      .footer-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Passion One", sans-serif;
+        font-size: 15px;
+        color: #fff;
+      }
+
+      .footer-logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .footer-desc {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.45);
+        line-height: 1.65;
+        margin-bottom: 16px;
+      }
+
+      .footer-built-on {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      .footer-built-on strong {
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 600;
+      }
+
+      .footer-col-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 16px;
+      }
+
+      .footer-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .footer-links a {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+
+      .footer-links a:hover {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .footer-links .tag {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.3);
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+
+      .footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 20px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .footer-copy {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.25);
+      }
+
+      .footer-badges {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .footer-badge {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      /* ─── SCREEN LABEL ─── */
+      .screen-label {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(2, 34, 50, 0.92);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 99px;
+        z-index: 9999;
+        pointer-events: none;
+        letter-spacing: 0.3px;
+      }
+
+      /* ─── SCROLLBAR ─── */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SCREEN LABEL -->
+    <div class="screen-label">Screen 20 · Marketing Page · Surface 6</div>
+
+    <!-- ── NAVIGATION ── -->
+    <nav class="nav">
+      <div class="container">
+        <div class="nav-inner">
+          <a class="nav-brand" href="#">
+            <div class="nav-logo-icon">SA</div>
+            <div class="nav-logo-text">salig<span>-affiliate</span></div>
+          </a>
+          <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#saligpay">SaligPay</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a href="18-auth-login.html" class="btn btn-ghost">Log in</a>
+            <a href="19-auth-signup.html" class="btn btn-primary">Start free trial →</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── HERO ── -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-inner">
+          <!-- Copy -->
+          <div class="hero-copy">
+            <div class="hero-eyebrow">
+              <span class="dot"></span>
+              Now in Beta — 14-day free trial
+            </div>
+
+            <h1>
+              The affiliate program<br />your SaaS <span class="accent">actually needs.</span>
+            </h1>
+
+            <p class="hero-sub">
+              salig-affiliate connects <strong>natively to SaligPay</strong> — so every recurring
+              charge, upgrade, and refund updates your affiliates' commissions automatically. No
+              connectors. No webhooks. No manual work.
+            </p>
+
+            <div class="hero-cta-group">
+              <a href="19-auth-signup.html" class="btn btn-primary btn-primary-lg">
+                Start your free trial →
+              </a>
+              <a href="#features" class="btn btn-ghost" style="padding: 14px 24px; font-size: 15px">
+                See how it works
+              </a>
+            </div>
+            <div class="hero-cta-sub">14 days free · No credit card required · Cancel anytime</div>
+          </div>
+
+          <!-- Visual -->
+          <div class="hero-visual">
+            <div class="browser-chrome">
+              <div class="browser-toolbar">
+                <div class="browser-dots">
+                  <div class="browser-dot red"></div>
+                  <div class="browser-dot yellow"></div>
+                  <div class="browser-dot green"></div>
+                </div>
+                <div class="browser-url">app.saligaffiliate.com/commissions</div>
+              </div>
+              <div class="browser-body">
+                <div class="dash-mock">
+                  <!-- Sidebar -->
+                  <div class="dash-sidebar">
+                    <div class="dash-logo">
+                      <div class="dash-logo-mark">salig-affiliate</div>
+                      <div class="dash-logo-sub">by Alex's SaaS</div>
+                    </div>
+                    <div class="dash-nav-item"><span class="dash-nav-icon">📊</span> Overview</div>
+                    <div class="dash-nav-item">
+                      <span class="dash-nav-icon">👥</span> Affiliates
+                    </div>
+                    <div class="dash-nav-item active">
+                      <span class="dash-nav-icon">💰</span> Commissions
+                    </div>
+                    <div class="dash-nav-item"><span class="dash-nav-icon">💳</span> Payouts</div>
+                    <div class="dash-nav-item"><span class="dash-nav-icon">📈</span> Reports</div>
+                    <div class="dash-nav-item"><span class="dash-nav-icon">⚙️</span> Settings</div>
+                  </div>
+                  <!-- Main -->
+                  <div class="dash-main">
+                    <div class="dash-topbar">
+                      <div class="dash-title">Commissions</div>
+                      <button class="dash-btn">Run Payout ▸</button>
+                    </div>
+                    <div class="dash-kpis">
+                      <div class="dash-kpi">
+                        <div class="dash-kpi-label">Total Earned</div>
+                        <div class="dash-kpi-value">₱84,200</div>
+                        <div class="dash-kpi-delta">↑ 12% vs last mo.</div>
+                      </div>
+                      <div class="dash-kpi">
+                        <div class="dash-kpi-label">Confirmed</div>
+                        <div class="dash-kpi-value">₱67,400</div>
+                        <div class="dash-kpi-delta">↑ ready to pay</div>
+                      </div>
+                      <div class="dash-kpi">
+                        <div class="dash-kpi-label">Pending</div>
+                        <div class="dash-kpi-value">₱16,800</div>
+                        <div class="dash-kpi-delta" style="color: #f59e0b">→ awaiting confirm</div>
+                      </div>
+                    </div>
+                    <div class="dash-table">
+                      <div class="dash-table-head">
+                        <div>Affiliate</div>
+                        <div>Amount</div>
+                        <div>Commission</div>
+                        <div>Status</div>
+                      </div>
+                      <div class="dash-table-row">
+                        <div class="dash-cell name">Jamie Cruz</div>
+                        <div class="dash-cell amount">₱24,600</div>
+                        <div class="dash-cell amount">₱4,920</div>
+                        <div class="dash-cell">
+                          <span class="badge badge-confirmed">✓ Confirmed</span>
+                        </div>
+                      </div>
+                      <div class="dash-table-row">
+                        <div class="dash-cell name">Maria Santos</div>
+                        <div class="dash-cell amount">₱18,200</div>
+                        <div class="dash-cell amount">₱3,640</div>
+                        <div class="dash-cell">
+                          <span class="badge badge-confirmed">✓ Confirmed</span>
+                        </div>
+                      </div>
+                      <div class="dash-table-row">
+                        <div class="dash-cell name">RJ dela Cruz</div>
+                        <div class="dash-cell amount">₱9,100</div>
+                        <div class="dash-cell amount">₱1,820</div>
+                        <div class="dash-cell">
+                          <span class="badge badge-pending">⏳ Pending</span>
+                        </div>
+                      </div>
+                      <div class="dash-table-row">
+                        <div class="dash-cell name">Ana Reyes</div>
+                        <div class="dash-cell amount">₱15,500</div>
+                        <div class="dash-cell amount">₱3,100</div>
+                        <div class="dash-cell">
+                          <span class="badge badge-confirmed">✓ Confirmed</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating notification -->
+            <div class="hero-notif">
+              <div class="notif-icon">✅</div>
+              <div class="notif-text">
+                <div class="notif-title">Commission confirmed — ₱1,250.00</div>
+                <div class="notif-sub">Jamie Cruz · Plan upgrade · just now</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SOCIAL PROOF BAR ── -->
+    <div class="proof-bar">
+      <div class="container">
+        <div class="proof-inner">
+          <div class="proof-pill">
+            <div class="proof-icon">🚀</div>
+            <div>
+              <div class="proof-text">14-day free trial</div>
+              <div class="proof-sub">No credit card required</div>
+            </div>
+          </div>
+          <div class="proof-pill">
+            <div class="proof-icon">⚡</div>
+            <div>
+              <div class="proof-text">Native SaligPay integration</div>
+              <div class="proof-sub">Zero webhook setup</div>
+            </div>
+          </div>
+          <div class="proof-pill">
+            <div class="proof-icon">⏱️</div>
+            <div>
+              <div class="proof-text">Set up in under 15 minutes</div>
+              <div class="proof-sub">Connect · Configure · Invite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROBLEM STATEMENT ── -->
+    <section class="section problem" id="problem">
+      <div class="container">
+        <div class="problem-inner">
+          <div class="section-eyebrow">The problem</div>
+          <h2 class="problem-title">
+            Managing affiliate commissions manually<br />is costing you — and your affiliates.
+          </h2>
+
+          <ul class="pain-list">
+            <li class="pain-item">
+              <div class="pain-icon">📋</div>
+              <div class="pain-text">
+                <div class="pain-title">Plan upgrades go untracked</div>
+                <div class="pain-desc">
+                  Every time a referred customer upgrades their plan, that delta should trigger a
+                  commission. If you're not on SaligPay-native tooling, that never happens
+                  automatically.
+                </div>
+              </div>
+            </li>
+            <li class="pain-item">
+              <div class="pain-icon">🔌</div>
+              <div class="pain-text">
+                <div class="pain-title">Webhooks you have to maintain yourself</div>
+                <div class="pain-desc">
+                  Every competitor connects to your billing via a third-party webhook. That's
+                  connector lag, reliability risk, and an integration you own — forever.
+                </div>
+              </div>
+            </li>
+            <li class="pain-item">
+              <div class="pain-icon">🔄</div>
+              <div class="pain-text">
+                <div class="pain-title">Refunds don't reverse commissions</div>
+                <div class="pain-desc">
+                  A customer refunds. Did you remember to reverse the affiliate commission? Probably
+                  not. Now you've overpaid, and the ledger is wrong.
+                </div>
+              </div>
+            </li>
+            <li class="pain-item">
+              <div class="pain-icon">📊</div>
+              <div class="pain-text">
+                <div class="pain-title">Spreadsheets break the moment you scale</div>
+                <div class="pain-desc">
+                  10 affiliates is manageable in a spreadsheet. 50 is chaos. You need a real system
+                  before you hit the wall — not after.
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FEATURES ── -->
+    <section class="section features" id="features">
+      <div class="container">
+        <div class="section-header-center">
+          <div class="section-eyebrow">Platform Capabilities</div>
+          <h2 class="section-title">
+            Everything your affiliate program needs.<br />Nothing it doesn't.
+          </h2>
+          <p class="section-sub">
+            Built specifically for SaaS founders on SaligPay — not a generic affiliate tool
+            retrofitted to subscriptions.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Native SaligPay Integration</div>
+            <div class="feature-desc">
+              Zero webhook setup. Connect with your SaligPay API key and every billing event — new
+              charges, upgrades, refunds — automatically triggers commission logic the moment it
+              happens.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <div class="feature-title">Recurring Commission Engine</div>
+            <div class="feature-desc">
+              Commissions aren't a one-time event. Every renewal, every upgrade, every chargeback —
+              handled automatically. Your commission ledger stays accurate without manual
+              intervention.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <div class="feature-title">Branded Affiliate Portal</div>
+            <div class="feature-desc">
+              Your affiliates see your logo, your colors, your domain — not ours. The portal is
+              white-labeled from day one, so your affiliates promote with confidence in your brand.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">💸</div>
+            <div class="feature-title">Payout Workflow</div>
+            <div class="feature-desc">
+              Generate a payout batch, download a CSV, mark as paid. Your affiliates get notified
+              automatically. No spreadsheet. No chasing. No manual emails.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <div class="feature-title">Built-in Fraud Detection</div>
+            <div class="feature-desc">
+              Self-referral detection, reCAPTCHA bot protection, IP deduplication, and a fraud
+              signals panel. Commission accuracy is protected — automatically, without you watching.
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Real-Time Reporting</div>
+            <div class="feature-desc">
+              Overview, campaign performance, affiliate leaderboards — with date range filtering and
+              CSV export. Answer "how much did affiliates drive this month?" in under 3 seconds.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SALIGPAY CALLOUT ── -->
+    <section class="saligpay-callout" id="saligpay">
+      <div class="container">
+        <div class="saligpay-inner">
+          <div class="saligpay-copy">
+            <div class="section-eyebrow" style="color: #7dd3fc">The Native Advantage</div>
+            <h2>Built natively on SaligPay.<br /><span class="accent">Not bolted on.</span></h2>
+            <p>
+              Every other affiliate tool in the market connects to your billing via a third-party
+              webhook. That means connector lag, reliability risk, and an integration you own and
+              maintain.
+            </p>
+            <p>
+              salig-affiliate is different. It reads your SaligPay billing events directly — new
+              charges, recurring billing, upgrades, cancellations, refunds, chargebacks. Commission
+              logic runs the moment billing happens. Not eventually. Not manually.
+              <strong style="color: #fff">Instantly.</strong>
+            </p>
+            <div class="saligpay-cta">
+              <a href="19-auth-signup.html" class="btn btn-white">Start your free trial →</a>
+            </div>
+          </div>
+
+          <div class="saligpay-stats">
+            <div class="saligpay-stat-card">
+              <div class="saligpay-stat-icon">🔑</div>
+              <div>
+                <div class="saligpay-stat-value">1 API key</div>
+                <div class="saligpay-stat-label">
+                  Paste your SaligPay API key. That's the entire setup. No developers required.
+                </div>
+              </div>
+            </div>
+            <div class="saligpay-stat-card">
+              <div class="saligpay-stat-icon">📡</div>
+              <div>
+                <div class="saligpay-stat-value">7 event types</div>
+                <div class="saligpay-stat-label">
+                  New charge, upgrade, downgrade, renewal, refund, chargeback, cancellation — all
+                  handled.
+                </div>
+              </div>
+            </div>
+            <div class="saligpay-stat-card">
+              <div class="saligpay-stat-icon">🎯</div>
+              <div>
+                <div class="saligpay-stat-value">99.99% accuracy target</div>
+                <div class="saligpay-stat-label">
+                  Every billing event maps to the right affiliate commission. No manual
+                  reconciliation.
+                </div>
+              </div>
+            </div>
+            <div class="saligpay-stat-card">
+              <div class="saligpay-stat-icon">⚡</div>
+              <div>
+                <div class="saligpay-stat-value">Real-time, always</div>
+                <div class="saligpay-stat-label">
+                  Commission records update the moment SaligPay processes the transaction. Zero lag.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HOW IT WORKS ── -->
+    <section class="section howitworks" id="how-it-works">
+      <div class="container">
+        <div class="section-header-center">
+          <div class="section-eyebrow">Get Started in Minutes</div>
+          <h2 class="section-title">Three steps from zero to running affiliate program.</h2>
+          <p class="section-sub">
+            No developers. No webhooks. No 30-page setup guides. Just three steps.
+          </p>
+        </div>
+
+        <div class="steps-row">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-title">Connect SaligPay</div>
+            <div class="step-desc">
+              Paste your SaligPay API key. That's the entire setup. No webhooks. No developer
+              required. You're connected and salig-affiliate can see your billing events
+              immediately.
+            </div>
+            <div class="step-tag">⏱ 2 minutes</div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-title">Create Campaign & Invite Affiliates</div>
+            <div class="step-desc">
+              Set your commission structure — percentage or flat fee, one-time or recurring.
+              Generate referral links. Invite your first affiliate in 30 seconds. They get a branded
+              portal immediately.
+            </div>
+            <div class="step-tag">⏱ 5 minutes</div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-title">Track, Pay, Grow</div>
+            <div class="step-desc">
+              Watch commissions appear automatically as SaligPay processes payments. Run a payout
+              batch when you're ready. Your affiliates get notified. Your program runs itself.
+            </div>
+            <div class="step-tag">✅ Done — ongoing</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PRICING ── -->
+    <section class="section pricing" id="pricing">
+      <div class="container">
+        <div class="section-header-center">
+          <div class="section-eyebrow">Transparent Pricing</div>
+          <h2 class="section-title">Simple pricing. No surprises.</h2>
+          <p class="section-sub">
+            No "contact us for pricing." No usage fees buried in the fine print. Pick a plan, start
+            free, scale when ready.
+          </p>
+        </div>
+
+        <!-- Toggle -->
+        <div class="pricing-toggle">
+          <span class="toggle-label active">Monthly</span>
+          <div
+            class="toggle-track"
+            onclick="
+              this.querySelector('.toggle-thumb').style.left =
+                this.querySelector('.toggle-thumb').style.left === '2px' ? '22px' : '2px'
+            "
+          >
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">Annual</span>
+          <span class="toggle-save">Save 17%</span>
+        </div>
+
+        <div class="pricing-grid">
+          <!-- Starter -->
+          <div class="pricing-card">
+            <div class="pricing-tier">Starter</div>
+            <div class="pricing-price">
+              <span class="pricing-currency">₱</span>
+              <span class="pricing-amount">1,999</span>
+            </div>
+            <div class="pricing-period">per month</div>
+            <div class="pricing-tagline" style="margin-top: 8px">
+              For early-stage SaaS with a growing affiliate base.
+            </div>
+            <div class="pricing-divider"></div>
+            <ul class="pricing-features">
+              <li class="pricing-feat"><span class="check">✓</span> Up to 1,000 affiliates</li>
+              <li class="pricing-feat"><span class="check">✓</span> Up to 3 campaigns</li>
+              <li class="pricing-feat"><span class="check">✓</span> Native SaligPay integration</li>
+              <li class="pricing-feat"><span class="check">✓</span> Branded affiliate portal</li>
+              <li class="pricing-feat"><span class="check">✓</span> Core commission tracking</li>
+              <li class="pricing-feat"><span class="check">✓</span> Manual payout CSV export</li>
+              <li class="pricing-feat">
+                <span class="check">✓</span> Standard email notifications
+              </li>
+              <li class="pricing-feat"><span class="check">✓</span> Fraud detection</li>
+            </ul>
+            <button class="pricing-cta">Start free trial</button>
+          </div>
+
+          <!-- Growth (Featured) -->
+          <div class="pricing-card featured">
+            <div class="popular-badge">★ Most Popular</div>
+            <div class="pricing-tier">Growth</div>
+            <div class="pricing-price">
+              <span class="pricing-currency">₱</span>
+              <span class="pricing-amount">4,499</span>
+            </div>
+            <div class="pricing-period">per month</div>
+            <div class="pricing-tagline" style="margin-top: 8px">
+              For scaling SaaS with an active affiliate program.
+            </div>
+            <div class="pricing-divider"></div>
+            <ul class="pricing-features">
+              <li class="pricing-feat"><span class="check">✓</span> Up to 5,000 affiliates</li>
+              <li class="pricing-feat"><span class="check">✓</span> Up to 10 campaigns</li>
+              <li class="pricing-feat"><span class="check">✓</span> Everything in Starter</li>
+              <li class="pricing-feat"><span class="check">✓</span> Priority support</li>
+              <li class="pricing-feat">
+                <span class="check">✓</span> Advanced analytics & reports
+              </li>
+              <li class="pricing-feat"><span class="check">✓</span> Custom email templates</li>
+              <li class="pricing-feat"><span class="check">✓</span> Multi-tier commission rules</li>
+              <li class="pricing-feat"><span class="check">✓</span> Affiliate performance tiers</li>
+            </ul>
+            <button class="pricing-cta">Start free trial</button>
+          </div>
+
+          <!-- Scale -->
+          <div class="pricing-card">
+            <div class="pricing-tier">Scale</div>
+            <div class="pricing-price">
+              <span class="pricing-currency">₱</span>
+              <span class="pricing-amount">8,999</span>
+            </div>
+            <div class="pricing-period">per month</div>
+            <div class="pricing-tagline" style="margin-top: 8px">
+              For established SaaS running affiliate as a core channel.
+            </div>
+            <div class="pricing-divider"></div>
+            <ul class="pricing-features">
+              <li class="pricing-feat"><span class="check">✓</span> Unlimited affiliates</li>
+              <li class="pricing-feat"><span class="check">✓</span> Unlimited campaigns</li>
+              <li class="pricing-feat"><span class="check">✓</span> Everything in Growth</li>
+              <li class="pricing-feat"><span class="check">✓</span> Custom domain + SSL</li>
+              <li class="pricing-feat"><span class="check">✓</span> Full CSV data export</li>
+              <li class="pricing-feat"><span class="check">✓</span> API access (v2)</li>
+              <li class="pricing-feat"><span class="check">✓</span> Dedicated onboarding call</li>
+              <li class="pricing-feat"><span class="check">✓</span> SLA support response</li>
+            </ul>
+            <button class="pricing-cta">Start free trial</button>
+          </div>
+        </div>
+
+        <p class="pricing-footnote">
+          <strong>All plans start with a 14-day free trial at full Scale tier access.</strong><br />
+          No credit card required. Downgrade, upgrade, or cancel anytime.
+        </p>
+
+        <div class="enterprise-callout">
+          Need custom limits, volume pricing, or a dedicated account manager?
+          <a href="mailto:hello@saligaffiliate.com">Talk to us →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TESTIMONIALS ── -->
+    <section class="section testimonials" id="testimonials">
+      <div class="container">
+        <div class="section-header-center">
+          <div class="section-eyebrow">Early Adopters</div>
+          <h2 class="section-title">Real founders. Real results.</h2>
+          <p class="section-sub">
+            From the first SaaS owners who set up their affiliate program with salig-affiliate.
+          </p>
+        </div>
+
+        <div class="testimonials-grid">
+          <div class="testimonial-card">
+            <div class="testimonial-stars">
+              <span class="star">★</span><span class="star">★</span><span class="star">★</span
+              ><span class="star">★</span><span class="star">★</span>
+            </div>
+            <p class="testimonial-quote">
+              "Set up my affiliate program in 12 minutes. It tracked a plan upgrade I would have
+              missed manually. Paid 6 affiliates before my coffee was done. The SaligPay integration
+              is exactly what I needed — I don't have to think about it anymore."
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">AR</div>
+              <div>
+                <div class="testimonial-name">Alex R.</div>
+                <div class="testimonial-role">SaaS founder · Manila, Philippines</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">
+              <span class="star">★</span><span class="star">★</span><span class="star">★</span
+              ><span class="star">★</span><span class="star">★</span>
+            </div>
+            <p class="testimonial-quote">
+              "I've been an affiliate for three programs. Most portals feel like they were designed
+              in 2012. This one actually looked like a real product — I trusted it immediately. My
+              commission history was accurate, my referral link worked, and I got paid on time."
+            </p>
+            <div class="testimonial-author">
+              <div
+                class="testimonial-avatar"
+                style="background: linear-gradient(135deg, #059669, #10b981)"
+              >
+                JL
+              </div>
+              <div>
+                <div class="testimonial-name">Jamie L.</div>
+                <div class="testimonial-role">Newsletter creator & affiliate · Cebu</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">
+              <span class="star">★</span><span class="star">★</span><span class="star">★</span
+              ><span class="star">★</span><span class="star">★</span>
+            </div>
+            <p class="testimonial-quote">
+              "The fraud detection caught a self-referral attempt I never would have seen manually.
+              That alone paid for the subscription. The recurring commission engine handles plan
+              changes automatically — I haven't touched a spreadsheet in two months."
+            </p>
+            <div class="testimonial-author">
+              <div
+                class="testimonial-avatar"
+                style="background: linear-gradient(135deg, #7c3aed, #4f46e5)"
+              >
+                MC
+              </div>
+              <div>
+                <div class="testimonial-name">Maria C.</div>
+                <div class="testimonial-role">B2B SaaS founder · Davao</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">
+              <span class="star">★</span><span class="star">★</span><span class="star">★</span
+              ><span class="star">★</span><span class="star">★</span>
+            </div>
+            <p class="testimonial-quote">
+              "Switched from a competitor that required a webhook integration. The difference is
+              night and day. salig-affiliate just works — billing events appear in real time,
+              commissions are accurate, and my affiliates can actually see their earnings without
+              emailing me."
+            </p>
+            <div class="testimonial-author">
+              <div
+                class="testimonial-avatar"
+                style="background: linear-gradient(135deg, #d97706, #f59e0b)"
+              >
+                RC
+              </div>
+              <div>
+                <div class="testimonial-name">Ramon C.</div>
+                <div class="testimonial-role">EdTech SaaS · Quezon City</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FINAL CTA ── -->
+    <section class="final-cta">
+      <div class="container">
+        <h2>Your affiliate program is<br />15 minutes away.</h2>
+        <p>14-day free trial. Full Scale tier access. No credit card required.</p>
+        <a href="19-auth-signup.html" class="btn btn-white btn-primary-lg">
+          Start your free trial →
+        </a>
+        <div class="final-cta-sub">No credit card · Cancel anytime · Instant setup</div>
+      </div>
+    </section>
+
+    <!-- ── FOOTER ── -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <!-- Brand -->
+          <div class="footer-brand">
+            <a class="footer-logo" href="#">
+              <div class="footer-logo-icon">SA</div>
+              <div class="footer-logo-text">salig-affiliate</div>
+            </a>
+            <p class="footer-desc">
+              Affiliate program management built natively for SaaS on SaligPay. Automatic commission
+              tracking, branded affiliate portals, and transparent payouts — without the
+              spreadsheets.
+            </p>
+            <div class="footer-built-on">
+              ⚡ <strong>Built on SaligPay</strong> · Native billing integration
+            </div>
+          </div>
+
+          <!-- Product -->
+          <div>
+            <div class="footer-col-title">Product</div>
+            <ul class="footer-links">
+              <li><a href="#features">Features</a></li>
+              <li><a href="#pricing">Pricing</a></li>
+              <li><a href="18-auth-login.html">Log In</a></li>
+              <li><a href="19-auth-signup.html">Sign Up</a></li>
+            </ul>
+          </div>
+
+          <!-- Company -->
+          <div>
+            <div class="footer-col-title">Company</div>
+            <ul class="footer-links">
+              <li>
+                <a href="#">About <span class="tag">v2</span></a>
+              </li>
+              <li>
+                <a href="#">Blog <span class="tag">v2</span></a>
+              </li>
+              <li><a href="mailto:hello@saligaffiliate.com">Contact</a></li>
+              <li><a href="#">Status</a></li>
+            </ul>
+          </div>
+
+          <!-- Legal -->
+          <div>
+            <div class="footer-col-title">Legal</div>
+            <ul class="footer-links">
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+              <li><a href="#">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div class="footer-copy">© 2026 salig-affiliate. All rights reserved.</div>
+          <div class="footer-badges">
+            <div class="footer-badge">🔒 SOC 2 in progress</div>
+            <div class="footer-badge">🇵🇭 Made in the Philippines</div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

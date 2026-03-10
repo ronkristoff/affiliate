@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Settings</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-text span {
+        color: #7dd3fc;
+      }
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+      }
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+      .nav-badge {
+        margin-left: auto;
+        background: var(--warning);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 99px;
+      }
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+      }
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+      .btn-danger {
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      /* SETTINGS LAYOUT */
+      .settings-layout {
+        display: flex;
+        gap: 0;
+        flex: 1;
+      }
+      .settings-nav {
+        width: 220px;
+        background: var(--bg-surface);
+        border-right: 1px solid var(--border);
+        padding: 20px 0;
+        flex-shrink: 0;
+      }
+      .settings-nav-item {
+        display: block;
+        padding: 9px 20px;
+        font-size: 13px;
+        color: var(--text-muted);
+        cursor: pointer;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+      }
+      .settings-nav-item:hover {
+        color: var(--text-body);
+        background: #fafafa;
+      }
+      .settings-nav-item.active {
+        color: var(--brand-primary);
+        font-weight: 600;
+        border-left-color: var(--brand-primary);
+        background: #eff6ff;
+      }
+      .settings-content {
+        flex: 1;
+        padding: 28px 36px;
+        max-width: 720px;
+      }
+
+      /* SECTIONS */
+      .settings-section {
+        margin-bottom: 36px;
+      }
+      .settings-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 4px;
+      }
+      .settings-section-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+      }
+      .settings-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .settings-row {
+        padding: 18px 20px;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .settings-row:last-child {
+        border-bottom: none;
+      }
+      .settings-row-info {
+        flex: 1;
+      }
+      .settings-row-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .settings-row-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .form-input {
+        padding: 9px 13px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        color: var(--text-heading);
+        outline: none;
+      }
+      .form-input:focus {
+        border-color: var(--brand-secondary);
+      }
+      .form-input-wide {
+        width: 260px;
+      }
+      .connected-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #d1fae5;
+        color: #065f46;
+        border-radius: 99px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .connected-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      /* TOGGLE */
+      .toggle-switch {
+        width: 36px;
+        height: 20px;
+        background: var(--success);
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .toggle-switch.off {
+        background: #d1d5db;
+      }
+      .toggle-knob {
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      .toggle-switch.off .toggle-knob {
+        right: unset;
+        left: 2px;
+      }
+
+      /* TEAM TABLE */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+      }
+      td {
+        padding: 13px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .role-owner {
+        background: #dbeafe;
+        color: var(--brand-primary);
+      }
+      .role-manager {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .role-viewer {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      /* BRAND COLOR */
+      .color-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+      }
+      .brand-preview {
+        background: #10409a;
+        border-radius: 10px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand-preview-text {
+        color: #fff;
+      }
+      .brand-preview-title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .brand-preview-sub {
+        font-size: 12px;
+        opacity: 0.7;
+      }
+
+      /* BILLING */
+      .plan-card {
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        border-radius: 12px;
+        padding: 20px 24px;
+        color: #fff;
+        margin-bottom: 14px;
+      }
+      .plan-card-name {
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.75;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .plan-card-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .plan-card-price {
+        font-size: 14px;
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+      .plan-usage-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .plan-usage-bar {
+        flex: 1;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .plan-usage-fill {
+        height: 100%;
+        background: #fff;
+        border-radius: 3px;
+      }
+      .plan-usage-label {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      /* MODAL */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-sm {
+        background: var(--bg-surface);
+        border-radius: 14px;
+        width: 480px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+      .modal-header {
+        padding: 24px 24px 0;
+      }
+      .modal-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .modal-body {
+        padding: 18px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .form-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">SA</div>
+          <div class="logo-text">salig<span>affiliate</span></div>
+        </div>
+      </div>
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AC</div>
+          <div>
+            <div class="tenant-name">Alex's SaaS Co.</div>
+            <div class="tenant-plan">Growth Plan</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a class="nav-item" href="01-owner-dashboard.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2" /></svg
+          >Overview
+        </a>
+        <a class="nav-item" href="02-owner-affiliates.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" stroke-width="2" />
+            <path
+              d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M16 3.13a4 4 0 010 7.75" stroke-width="2" />
+            <path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2" /></svg
+          >Affiliates <span class="nav-badge">7</span>
+        </a>
+        <a class="nav-item" href="05-owner-campaigns.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-width="2" />
+            <path d="M17.5 2.5a2.121 2.121 0 013 3L12 14l-4 1 1-4 8.5-8.5z" stroke-width="2" /></svg
+          >Campaigns
+        </a>
+        <a class="nav-item" href="03-owner-commissions.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" /></svg
+          >Commissions
+        </a>
+        <a class="nav-item" href="04-owner-payouts.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2" />
+            <path d="M2 10h20" stroke-width="2" /></svg
+          >Payouts
+        </a>
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item" href="06-owner-reports.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6" stroke-width="2" stroke-linecap="round" /></svg
+          >Reports
+        </a>
+        <div class="nav-section-label">Config</div>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              stroke-width="2"
+            /></svg
+          >Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">AL</div>
+          <div>
+            <div class="user-name">Alex Lim</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">Settings</div>
+      </div>
+
+      <div class="settings-layout">
+        <!-- Settings Sub-Nav -->
+        <div class="settings-nav">
+          <a class="settings-nav-item active" href="#">SaligPay Integration</a>
+          <a class="settings-nav-item" href="#">Portal Branding</a>
+          <a class="settings-nav-item" href="#">Team Members</a>
+          <a class="settings-nav-item" href="#">Notifications</a>
+          <a class="settings-nav-item" href="#">API Keys</a>
+          <a class="settings-nav-item" href="#">Billing</a>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="settings-content">
+          <!-- SALIGPAY INTEGRATION -->
+          <div class="settings-section">
+            <div class="settings-section-title">SaligPay Integration</div>
+            <div class="settings-section-sub">
+              Connect your SaligPay account to automatically track commissions from billing events.
+            </div>
+
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Connection Status</div>
+                  <div class="settings-row-hint">
+                    Last synced 2 minutes ago · 312 events received
+                  </div>
+                </div>
+                <div class="connected-badge">
+                  <div class="connected-dot"></div>
+                  Connected
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Client ID</div>
+                  <div class="settings-row-hint">Your SaligPay API client identifier</div>
+                </div>
+                <input
+                  class="form-input form-input-wide"
+                  type="text"
+                  value="sp_live_cid_8f2d4a..."
+                  readonly
+                  style="font-family: monospace; font-size: 12px; background: #fafafa"
+                />
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Client Secret</div>
+                  <div class="settings-row-hint">Keep this private — never share or commit</div>
+                </div>
+                <input
+                  class="form-input form-input-wide"
+                  type="password"
+                  value="sp_live_secret_••••••••"
+                  readonly
+                  style="font-family: monospace; font-size: 12px; background: #fafafa"
+                />
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Webhook Endpoint</div>
+                  <div class="settings-row-hint">
+                    Register this URL in SaligPay's webhook settings
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <input
+                    class="form-input"
+                    type="text"
+                    value="https://hooks.salig.ph/wh/ac84f…"
+                    readonly
+                    style="
+                      font-size: 11px;
+                      font-family: monospace;
+                      background: #fafafa;
+                      width: 240px;
+                    "
+                  />
+                  <button class="btn btn-outline btn-sm">Copy</button>
+                </div>
+              </div>
+              <div
+                class="settings-row"
+                style="justify-content: flex-end; gap: 10px; background: #fafafa"
+              >
+                <button class="btn btn-danger btn-sm">Disconnect</button>
+                <button class="btn btn-primary btn-sm">Verify Connection</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PORTAL BRANDING -->
+          <div class="settings-section">
+            <div class="settings-section-title">Affiliate Portal Branding</div>
+            <div class="settings-section-sub">
+              Customize how your affiliate portal looks. Affiliates see your brand, not
+              salig-affiliate's.
+            </div>
+
+            <div class="settings-card" style="margin-bottom: 14px">
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Program Name</div>
+                  <div class="settings-row-hint">
+                    Shown as the portal header and in affiliate emails
+                  </div>
+                </div>
+                <input
+                  class="form-input form-input-wide"
+                  type="text"
+                  value="Alex's SaaS Affiliate Program"
+                />
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Logo</div>
+                  <div class="settings-row-hint">
+                    PNG or SVG · max 200×60px · transparent bg preferred
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <div
+                    style="
+                      width: 80px;
+                      height: 40px;
+                      background: #f3f4f6;
+                      border: 1.5px solid var(--border);
+                      border-radius: 6px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 11px;
+                      color: var(--text-muted);
+                    "
+                  >
+                    logo.png
+                  </div>
+                  <button class="btn btn-outline btn-sm">Change</button>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">Brand Color</div>
+                  <div class="settings-row-hint">
+                    Used for buttons, accents, and active states in the portal
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <div class="color-swatch" style="background: #10409a"></div>
+                  <input
+                    class="form-input"
+                    type="text"
+                    value="#10409a"
+                    style="width: 100px; font-family: monospace; font-size: 12px"
+                  />
+                  <span style="font-size: 11px; color: var(--success); font-weight: 600"
+                    >✓ 7.2:1 contrast</span
+                  >
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-label">
+                    Custom Portal Domain
+                    <span style="font-weight: 400; color: var(--text-muted)">(optional)</span>
+                  </div>
+                  <div class="settings-row-hint">
+                    e.g. affiliates.yourapp.com — requires DNS CNAME setup
+                  </div>
+                </div>
+                <input
+                  class="form-input form-input-wide"
+                  type="text"
+                  placeholder="affiliates.yourapp.com"
+                />
+              </div>
+            </div>
+            <!-- Brand Preview -->
+            <div class="brand-preview">
+              <div
+                style="
+                  width: 36px;
+                  height: 36px;
+                  background: rgba(255, 255, 255, 0.2);
+                  border-radius: 8px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 900;
+                  font-size: 14px;
+                  color: #fff;
+                "
+              >
+                AC
+              </div>
+              <div class="brand-preview-text">
+                <div class="brand-preview-title">Alex's SaaS Affiliate Program</div>
+                <div class="brand-preview-sub">Portal preview with your brand color</div>
+              </div>
+              <div
+                style="
+                  margin-left: auto;
+                  background: rgba(255, 255, 255, 0.15);
+                  border-radius: 8px;
+                  padding: 7px 14px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: #fff;
+                  cursor: pointer;
+                "
+              >
+                Preview Portal
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 14px">
+              <button class="btn btn-primary">Save Branding</button>
+            </div>
+          </div>
+
+          <!-- TEAM MEMBERS -->
+          <div class="settings-section">
+            <div class="settings-section-title">Team Members</div>
+            <div class="settings-section-sub">
+              Invite teammates and assign roles. Manager can approve affiliates but cannot access
+              Payouts or Billing.
+            </div>
+
+            <div class="settings-card">
+              <div
+                style="
+                  padding: 14px 16px;
+                  border-bottom: 1px solid var(--border);
+                  display: flex;
+                  justify-content: flex-end;
+                "
+              >
+                <button
+                  class="btn btn-primary btn-sm"
+                  onclick="document.getElementById('inviteModal').style.display = 'flex'"
+                >
+                  + Invite Team Member
+                </button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Last Active</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 10px">
+                        <div
+                          style="
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            background: #dbeafe;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: var(--brand-primary);
+                          "
+                        >
+                          AL
+                        </div>
+                        <div>
+                          <div style="font-weight: 600; color: var(--text-heading)">Alex Lim</div>
+                          <div style="font-size: 11px; color: var(--text-muted)">alex@saas.co</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="role-badge role-owner">Owner</span></td>
+                    <td style="font-size: 12px; color: var(--text-muted)">Now</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 10px">
+                        <div
+                          style="
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            background: #fef3c7;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: #92400e;
+                          "
+                        >
+                          DM
+                        </div>
+                        <div>
+                          <div style="font-weight: 600; color: var(--text-heading)">
+                            Dana Manalac
+                          </div>
+                          <div style="font-size: 11px; color: var(--text-muted)">dana@saas.co</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="role-badge role-manager">Manager</span></td>
+                    <td style="font-size: 12px; color: var(--text-muted)">2 hours ago</td>
+                    <td style="text-align: right">
+                      <button class="btn btn-outline btn-sm">Edit</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 10px">
+                        <div
+                          style="
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            background: #f3f4f6;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: #374151;
+                          "
+                        >
+                          JR
+                        </div>
+                        <div>
+                          <div style="font-weight: 600; color: var(--text-heading)">Jose Ramos</div>
+                          <div style="font-size: 11px; color: var(--text-muted)">
+                            jose@saas.co · Invite pending
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="role-badge role-viewer">Viewer</span></td>
+                    <td style="font-size: 12px; color: var(--text-muted)">—</td>
+                    <td style="text-align: right">
+                      <button class="btn btn-outline btn-sm">Revoke</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BILLING -->
+          <div class="settings-section">
+            <div class="settings-section-title">Plan &amp; Billing</div>
+            <div class="settings-card" style="border: none; background: none; padding: 0">
+              <div class="plan-card">
+                <div class="plan-card-name">Current Plan</div>
+                <div class="plan-card-title">Growth</div>
+                <div class="plan-card-price">₱1,490 / month · Renews Apr 10, 2026</div>
+                <div class="plan-usage-row">
+                  <div style="font-size: 12px; opacity: 0.8; width: 100px">Affiliates</div>
+                  <div class="plan-usage-bar">
+                    <div class="plan-usage-fill" style="width: 47%"></div>
+                  </div>
+                  <div class="plan-usage-label">47 / 100</div>
+                </div>
+                <div class="plan-usage-row">
+                  <div style="font-size: 12px; opacity: 0.8; width: 100px">Campaigns</div>
+                  <div class="plan-usage-bar">
+                    <div class="plan-usage-fill" style="width: 75%"></div>
+                  </div>
+                  <div class="plan-usage-label">3 / 4</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px">
+                <button class="btn btn-outline btn-sm">View Invoices</button>
+                <button class="btn btn-primary btn-sm">Upgrade to Pro</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVITE MODAL -->
+    <div id="inviteModal" class="modal-overlay" style="display: none">
+      <div class="modal-sm">
+        <div class="modal-header">
+          <div class="modal-title">Invite Team Member</div>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input
+              class="form-input"
+              type="email"
+              placeholder="teammate@yourcompany.com"
+              style="width: 100%"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="form-input" style="width: 100%">
+              <option>Owner — Full access</option>
+              <option selected>
+                Manager — Manage affiliates, campaigns, reports. No Payouts or Billing.
+              </option>
+              <option>Viewer — Read-only access to all dashboards and reports</option>
+            </select>
+            <span class="form-hint"
+              >Manager cannot access Payouts, Settings → Billing, or API Keys.</span
+            >
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-outline"
+            onclick="document.getElementById('inviteModal').style.display = 'none'"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary">Send Invite</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("inviteModal").addEventListener("click", function (e) {
+        if (e.target === this) this.style.display = "none";
+      });
+    </script>
+  </body>
+</html>

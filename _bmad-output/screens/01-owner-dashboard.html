@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Owner Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      /* ── SIDEBAR ── */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .sidebar-logo .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+
+      .logo-text span {
+        color: #7dd3fc;
+      }
+
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 400;
+      }
+
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+
+      .nav-badge {
+        margin-left: auto;
+        background: var(--warning);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 99px;
+      }
+
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+        flex-shrink: 0;
+      }
+
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* ── MAIN CONTENT ── */
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+
+      .btn-outline:hover {
+        background: var(--bg-page);
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .page-content {
+        padding: 28px 32px;
+        flex: 1;
+      }
+
+      /* ── METRIC CARDS ── */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px 22px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+
+      .metric-card.blue::before {
+        background: var(--brand-secondary);
+      }
+      .metric-card.green::before {
+        background: var(--success);
+      }
+      .metric-card.yellow::before {
+        background: var(--warning);
+      }
+      .metric-card.gray::before {
+        background: var(--text-muted);
+      }
+
+      .metric-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      .metric-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.5px;
+        margin-bottom: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric-delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .metric-delta.up {
+        color: var(--success);
+      }
+      .metric-delta.down {
+        color: var(--danger);
+      }
+      .metric-delta.neutral {
+        color: var(--text-muted);
+      }
+
+      .metric-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── GRID LAYOUT ── */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      .card-body {
+        padding: 0;
+      }
+
+      /* ── TABLES ── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+      }
+
+      td {
+        padding: 13px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tr:hover td {
+        background: #f9fafb;
+      }
+
+      .td-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .aff-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        flex-shrink: 0;
+      }
+
+      .aff-name {
+        font-weight: 600;
+        color: var(--text-heading);
+        font-size: 13px;
+      }
+      .aff-email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .amount {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+
+      /* ── STATUS BADGES ── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .badge-confirmed {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge-confirmed .badge-dot {
+        background: var(--success);
+      }
+
+      .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-pending .badge-dot {
+        background: var(--warning);
+      }
+
+      .badge-reversed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge-reversed .badge-dot {
+        background: var(--danger);
+      }
+
+      .badge-paid {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-paid .badge-dot {
+        background: var(--text-muted);
+      }
+
+      .badge-processing {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .badge-processing .badge-dot {
+        background: var(--blue);
+      }
+
+      .badge-active {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge-active .badge-dot {
+        background: var(--success);
+      }
+
+      /* ── ACTIVITY FEED ── */
+      .activity-list {
+        padding: 8px 0;
+      }
+
+      .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      .activity-item:last-child {
+        border-bottom: none;
+      }
+
+      .activity-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      .ai-green {
+        background: #d1fae5;
+      }
+      .ai-yellow {
+        background: #fef3c7;
+      }
+      .ai-blue {
+        background: #dbeafe;
+      }
+      .ai-red {
+        background: #fee2e2;
+      }
+
+      .activity-text {
+        flex: 1;
+      }
+      .activity-main {
+        font-size: 13px;
+        color: var(--text-body);
+        line-height: 1.4;
+      }
+      .activity-main strong {
+        color: var(--text-heading);
+        font-weight: 600;
+      }
+      .activity-time {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── QUICK ACTIONS ── */
+      .quick-action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 16px;
+      }
+
+      .quick-action {
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+      }
+
+      .quick-action:hover {
+        border-color: var(--brand-secondary);
+        background: #eff6ff;
+      }
+
+      .qa-icon {
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+      .qa-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .qa-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ── EMPTY STATE ── */
+      .empty-state {
+        padding: 48px 24px;
+        text-align: center;
+      }
+
+      .empty-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+      .empty-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .empty-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+      }
+
+      /* ── ALERT BANNER ── */
+      .alert-banner {
+        background: #fef3c7;
+        border-bottom: 1px solid #fcd34d;
+        padding: 10px 32px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: #92400e;
+      }
+
+      .alert-banner strong {
+        font-weight: 700;
+      }
+      .alert-banner a {
+        color: var(--brand-link);
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      /* ── DATE RANGE ── */
+      .date-range-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-body);
+        cursor: pointer;
+        background: var(--bg-surface);
+      }
+
+      .date-range-pill:hover {
+        background: var(--bg-page);
+      }
+
+      /* ── TABLE ACTIONS ── */
+      .action-dots {
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      .action-dots:hover {
+        background: var(--bg-page);
+        color: var(--text-body);
+      }
+
+      .text-right {
+        text-align: right;
+      }
+      .text-muted {
+        color: var(--text-muted);
+      }
+      .font-mono {
+        font-family: monospace;
+      }
+      .mt-4 {
+        margin-top: 16px;
+      }
+      .mb-0 {
+        margin-bottom: 0;
+      }
+      .w-full {
+        width: 100%;
+      }
+
+      /* ── PAY ALL BUTTON ── */
+      .pay-cta {
+        background: var(--success);
+        color: #fff;
+      }
+      .pay-cta:hover {
+        background: #059669;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">S</div>
+          <div>
+            <div class="logo-text">salig<span>affiliate</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AP</div>
+          <div>
+            <div class="tenant-name">AlexProd SaaS</div>
+            <div class="tenant-plan">Growth Plan · 14 days trial</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Program</div>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+            />
+          </svg>
+          Overview
+        </a>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          Affiliates
+          <span class="nav-badge">7</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
+            />
+          </svg>
+          Campaigns
+        </a>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
+          </svg>
+          Commissions
+          <span class="nav-badge">4</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"
+            />
+          </svg>
+          Payouts
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 8px">Insights</div>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          Reports
+        </a>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+          Emails
+        </a>
+
+        <div class="nav-section-label" style="margin-top: 8px">Account</div>
+        <a class="nav-item" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          Settings
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Alex Reyes</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- Persistent alert banner -->
+      <div class="alert-banner">
+        ⚠️ <strong>Tracking snippet not yet verified.</strong> Install the JS snippet on your
+        website to track referrals. <a href="#">View Setup Guide →</a>
+      </div>
+
+      <div class="topbar">
+        <div class="topbar-title">Overview</div>
+        <div class="topbar-actions">
+          <div class="date-range-pill">
+            📅 Last 30 days
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
+          <button class="btn btn-outline btn-sm">Export CSV</button>
+          <button class="btn btn-primary btn-sm">+ Invite Affiliate</button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- KPI Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card blue">
+            <div class="metric-label">MRR Influenced</div>
+            <div class="metric-value">₱3,400</div>
+            <div class="metric-delta up">▲ 12% vs last month</div>
+            <div class="metric-sub">from 6 active affiliates</div>
+          </div>
+          <div class="metric-card green">
+            <div class="metric-label">Active Affiliates</div>
+            <div class="metric-value">47</div>
+            <div class="metric-delta up">▲ 8 this month</div>
+            <div class="metric-sub">3 pending approval</div>
+          </div>
+          <div class="metric-card yellow">
+            <div class="metric-label">Pending Commissions</div>
+            <div class="metric-value">4</div>
+            <div class="metric-delta neutral">— same as last week</div>
+            <div class="metric-sub">₱2,180 total value</div>
+          </div>
+          <div class="metric-card gray">
+            <div class="metric-label">Total Paid Out</div>
+            <div class="metric-value">₱12,840</div>
+            <div class="metric-delta up">▲ 22% all time</div>
+            <div class="metric-sub">to 47 affiliates</div>
+          </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+          <!-- Recent Commissions Table -->
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Recent Commissions</div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <button class="btn btn-outline btn-sm">View All</button>
+                  <button class="btn btn-sm pay-cta">💸 Pay All Pending</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Affiliate</th>
+                      <th>Commission</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar">MR</div>
+                          <div>
+                            <div class="aff-name">Maria Reyes</div>
+                            <div class="aff-email">Pro Plan · $29/mo</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="amount">₱580</span></td>
+                      <td>
+                        <span class="badge badge-confirmed"
+                          ><span class="badge-dot"></span>Confirmed</span
+                        >
+                      </td>
+                      <td class="text-muted">Mar 10</td>
+                      <td><span class="action-dots">···</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #fce7f3; color: #9d174d">
+                            JC
+                          </div>
+                          <div>
+                            <div class="aff-name">Jamie Cruz</div>
+                            <div class="aff-email">Starter Plan · $9/mo</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="amount">₱180</span></td>
+                      <td>
+                        <span class="badge badge-pending"
+                          ><span class="badge-dot"></span>Pending</span
+                        >
+                      </td>
+                      <td class="text-muted">Mar 9</td>
+                      <td><span class="action-dots">···</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #ecfdf5; color: #065f46">
+                            BL
+                          </div>
+                          <div>
+                            <div class="aff-name">Bea Lim</div>
+                            <div class="aff-email">Growth Plan · $49/mo</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="amount">₱980</span></td>
+                      <td>
+                        <span class="badge badge-confirmed"
+                          ><span class="badge-dot"></span>Confirmed</span
+                        >
+                      </td>
+                      <td class="text-muted">Mar 8</td>
+                      <td><span class="action-dots">···</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #fff7ed; color: #9a3412">
+                            RS
+                          </div>
+                          <div>
+                            <div class="aff-name">RJ Santos</div>
+                            <div class="aff-email">Pro Plan · $29/mo</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="amount">₱580</span></td>
+                      <td>
+                        <span class="badge badge-reversed"
+                          ><span class="badge-dot"></span>Reversed</span
+                        >
+                      </td>
+                      <td class="text-muted">Mar 7</td>
+                      <td><span class="action-dots">···</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #ede9fe; color: #5b21b6">
+                            DT
+                          </div>
+                          <div>
+                            <div class="aff-name">Don Torres</div>
+                            <div class="aff-email">Scale Plan · $99/mo</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="amount">₱1,980</span></td>
+                      <td>
+                        <span class="badge badge-pending"
+                          ><span class="badge-dot"></span>Pending</span
+                        >
+                      </td>
+                      <td class="text-muted">Mar 6</td>
+                      <td><span class="action-dots">···</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Top Affiliates -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <div class="card-title">Top Affiliates</div>
+                <button class="btn btn-outline btn-sm">View All</button>
+              </div>
+              <div class="card-body">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Affiliate</th>
+                      <th>Clicks</th>
+                      <th>Conversions</th>
+                      <th>Revenue</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar">MR</div>
+                          <div>
+                            <div class="aff-name">Maria Reyes</div>
+                            <div class="aff-email">@mariareyes</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>1,204</td>
+                      <td>32</td>
+                      <td class="amount">₱8,640</td>
+                      <td>
+                        <span class="badge badge-active"
+                          ><span class="badge-dot"></span>Active</span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #ecfdf5; color: #065f46">
+                            BL
+                          </div>
+                          <div>
+                            <div class="aff-name">Bea Lim</div>
+                            <div class="aff-email">@bealim_ph</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>873</td>
+                      <td>18</td>
+                      <td class="amount">₱3,240</td>
+                      <td>
+                        <span class="badge badge-active"
+                          ><span class="badge-dot"></span>Active</span
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="td-name">
+                          <div class="aff-avatar" style="background: #ede9fe; color: #5b21b6">
+                            DT
+                          </div>
+                          <div>
+                            <div class="aff-name">Don Torres</div>
+                            <div class="aff-email">@dontorres</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>540</td>
+                      <td>11</td>
+                      <td class="amount">₱1,980</td>
+                      <td>
+                        <span class="badge badge-active"
+                          ><span class="badge-dot"></span>Active</span
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column: Activity + Quick Actions -->
+          <div style="display: flex; flex-direction: column; gap: 20px">
+            <!-- Quick Actions -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Quick Actions</div>
+              </div>
+              <div class="quick-action-grid">
+                <div class="quick-action">
+                  <div class="qa-icon">📨</div>
+                  <div class="qa-label">Invite Affiliate</div>
+                  <div class="qa-sub">Send by email</div>
+                </div>
+                <div class="quick-action">
+                  <div class="qa-icon">💸</div>
+                  <div class="qa-label">Pay All</div>
+                  <div class="qa-sub">4 pending</div>
+                </div>
+                <div class="quick-action">
+                  <div class="qa-icon">🎯</div>
+                  <div class="qa-label">New Campaign</div>
+                  <div class="qa-sub">Set commissions</div>
+                </div>
+                <div class="quick-action">
+                  <div class="qa-icon">📊</div>
+                  <div class="qa-label">Export Report</div>
+                  <div class="qa-sub">CSV download</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity Feed -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Recent Activity</div>
+                <button class="btn btn-outline btn-sm">View all</button>
+              </div>
+              <div class="activity-list">
+                <div class="activity-item">
+                  <div class="activity-icon ai-green">✅</div>
+                  <div class="activity-text">
+                    <div class="activity-main">
+                      <strong>Commission confirmed</strong> — Maria Reyes ₱580
+                    </div>
+                    <div class="activity-time">2 hours ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon ai-blue">👤</div>
+                  <div class="activity-text">
+                    <div class="activity-main">
+                      <strong>New affiliate applied</strong> — carlo@email.com
+                    </div>
+                    <div class="activity-time">4 hours ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon ai-yellow">⚠️</div>
+                  <div class="activity-text">
+                    <div class="activity-main">
+                      <strong>Self-referral detected</strong> — RJ Santos flagged
+                    </div>
+                    <div class="activity-time">Yesterday</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon ai-green">💰</div>
+                  <div class="activity-text">
+                    <div class="activity-main">
+                      <strong>Payout batch completed</strong> — 6 affiliates · ₱4,200
+                    </div>
+                    <div class="activity-time">Mar 8</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon ai-blue">🔗</div>
+                  <div class="activity-text">
+                    <div class="activity-main">
+                      <strong>SaligPay reconnected</strong> by Alex Reyes
+                    </div>
+                    <div class="activity-time">Mar 7</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Plan Usage -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Plan Usage</div>
+                <span class="badge badge-processing"><span class="badge-dot"></span>Growth</span>
+              </div>
+              <div style="padding: 16px">
+                <div style="margin-bottom: 14px">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-body)"
+                      >Affiliates</span
+                    >
+                    <span style="font-size: 12px; color: var(--text-muted)">47 / 5,000</span>
+                  </div>
+                  <div style="background: #f3f4f6; border-radius: 99px; height: 6px">
+                    <div
+                      style="
+                        background: var(--brand-secondary);
+                        width: 1%;
+                        height: 6px;
+                        border-radius: 99px;
+                      "
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-body)"
+                      >Campaigns</span
+                    >
+                    <span style="font-size: 12px; color: var(--text-muted)">2 / 10</span>
+                  </div>
+                  <div style="background: #f3f4f6; border-radius: 99px; height: 6px">
+                    <div
+                      style="
+                        background: var(--brand-secondary);
+                        width: 20%;
+                        height: 6px;
+                        border-radius: 99px;
+                      "
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

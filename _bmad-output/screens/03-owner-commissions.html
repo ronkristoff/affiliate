@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Commissions</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand-primary: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-link: #2b7bb9;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --blue: #3b82f6;
+        --sidebar-w: 240px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        display: flex;
+        min-height: 100vh;
+        font-size: 14px;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--brand-dark);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .sidebar-logo {
+        padding: 24px 20px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .logo-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 14px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.3px;
+      }
+      .logo-text span {
+        color: #7dd3fc;
+      }
+      .sidebar-tenant {
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .tenant-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--brand-secondary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .tenant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .tenant-plan {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sidebar-nav {
+        padding: 12px 0;
+        flex: 1;
+      }
+      .nav-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 12px 20px 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 400;
+      }
+      .nav-item:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-item.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border-left-color: #7dd3fc;
+        font-weight: 600;
+      }
+      .nav-item .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+      .nav-item.active .nav-icon {
+        opacity: 1;
+      }
+      .sidebar-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        background: #1e4a8c;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #7dd3fc;
+        flex-shrink: 0;
+      }
+      .user-name {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+      }
+      .user-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* MAIN */
+      .main {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .topbar-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--brand-primary);
+        color: #fff;
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-body);
+        border: 1.5px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: var(--bg-page);
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .btn-danger {
+        background: var(--danger);
+        color: #fff;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+        border: none;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .page-content {
+        padding: 28px 32px;
+        flex: 1;
+      }
+
+      /* METRICS */
+      .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .metric-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .metric-card.yellow::before {
+        background: var(--warning);
+      }
+      .metric-card.green::before {
+        background: var(--success);
+      }
+      .metric-card.red::before {
+        background: var(--danger);
+      }
+      .metric-card.gray::before {
+        background: var(--text-muted);
+      }
+      .metric-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* TOOLBAR */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 14px;
+        min-width: 280px;
+      }
+      .search-wrap input {
+        border: none;
+        outline: none;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        color: var(--text-body);
+        background: transparent;
+        width: 100%;
+      }
+      .search-wrap input::placeholder {
+        color: var(--text-muted);
+      }
+      .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-body);
+        cursor: pointer;
+        background: var(--bg-surface);
+      }
+      .filter-pill.active {
+        border-color: var(--brand-primary);
+        background: #eff6ff;
+        color: var(--brand-primary);
+      }
+
+      /* TABLE */
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #fafafa;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      th.sort {
+        cursor: pointer;
+        user-select: none;
+      }
+      th.sort:hover {
+        color: var(--text-heading);
+      }
+      th.right {
+        text-align: right;
+      }
+      td {
+        padding: 13px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: #f9fafb;
+        cursor: pointer;
+      }
+      .td-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .aff-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--brand-primary);
+        flex-shrink: 0;
+      }
+      .aff-name {
+        font-weight: 600;
+        color: var(--text-heading);
+        font-size: 13px;
+      }
+      .aff-email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .amount {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .td-right {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .row-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 16px;
+      }
+      .row-action:hover {
+        background: var(--bg-page);
+        color: var(--text-heading);
+      }
+
+      /* BADGES */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .badge-confirmed {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge-confirmed .badge-dot {
+        background: var(--success);
+      }
+      .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-pending .badge-dot {
+        background: var(--warning);
+      }
+      .badge-reversed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .badge-reversed .badge-dot {
+        background: var(--danger);
+      }
+      .badge-paid {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-paid .badge-dot {
+        background: var(--text-muted);
+      }
+      .badge-flagged {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+      }
+      .badge-flagged .badge-dot {
+        background: var(--warning);
+      }
+
+      /* FRAUD ROW */
+      .fraud-row td {
+        background: #fffbeb !important;
+      }
+      .fraud-row:hover td {
+        background: #fef9e7 !important;
+      }
+      .fraud-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fraud-tag {
+        font-size: 10px;
+        font-weight: 700;
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 4px;
+        padding: 1px 6px;
+        white-space: nowrap;
+      }
+
+      /* DRAWER */
+      .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 200;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .drawer {
+        width: 500px;
+        background: var(--bg-surface);
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+      }
+      .drawer-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .drawer-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .drawer-close {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+        background: transparent;
+      }
+      .drawer-body {
+        padding: 24px;
+        flex: 1;
+      }
+      .drawer-section {
+        margin-bottom: 24px;
+      }
+      .drawer-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .drawer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .drawer-row:last-child {
+        border-bottom: none;
+      }
+      .drawer-label {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .drawer-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .drawer-actions {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 12px;
+      }
+
+      /* FRAUD EVIDENCE BOX */
+      .fraud-box {
+        background: #fffbeb;
+        border: 1.5px solid #fcd34d;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .fraud-box-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #92400e;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .evidence-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+      }
+      .evidence-row:last-child {
+        border-bottom: none;
+      }
+      .evidence-icon {
+        width: 24px;
+        height: 24px;
+        background: #fef3c7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      .evidence-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #92400e;
+      }
+      .evidence-detail {
+        font-size: 11px;
+        color: #a16207;
+        margin-top: 1px;
+        font-family: monospace;
+      }
+
+      /* AMOUNT HERO */
+      .commission-amount-hero {
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+      }
+      .commission-amount-hero .amount-big {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+      }
+      .commission-amount-hero .amount-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* MODAL */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal {
+        background: var(--bg-surface);
+        border-radius: 12px;
+        width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      }
+      .modal-header {
+        padding: 20px 24px 0;
+      }
+      .modal-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .modal-body {
+        padding: 12px 24px 20px;
+        font-size: 13px;
+        color: var(--text-body);
+        line-height: 1.6;
+      }
+      .modal-body strong {
+        color: var(--text-heading);
+      }
+      .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+      .modal-input {
+        width: 100%;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        color: var(--text-body);
+        outline: none;
+        margin-top: 12px;
+      }
+      .modal-input:focus {
+        border-color: var(--brand-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <div class="logo-icon">SA</div>
+          <div class="logo-text">salig<span>affiliate</span></div>
+        </div>
+      </div>
+      <div class="sidebar-tenant">
+        <div class="tenant-info">
+          <div class="tenant-avatar">AC</div>
+          <div>
+            <div class="tenant-name">Alex's SaaS Co.</div>
+            <div class="tenant-plan">Growth Plan</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a class="nav-item" href="01-owner-dashboard.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2" />
+            <rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2" /></svg
+          >Overview
+        </a>
+        <a class="nav-item" href="02-owner-affiliates.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" stroke-width="2" />
+            <path
+              d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path d="M16 3.13a4 4 0 010 7.75" stroke-width="2" />
+            <path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2" stroke-linecap="round" /></svg
+          >Affiliates
+        </a>
+        <a class="nav-item" href="05-owner-campaigns.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M17.5 2.5a2.121 2.121 0 013 3L12 14l-4 1 1-4 8.5-8.5z"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >Campaigns
+        </a>
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" /></svg
+          >Commissions
+        </a>
+        <a class="nav-item" href="04-owner-payouts.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2" />
+            <path d="M2 10h20" stroke-width="2" /></svg
+          >Payouts
+        </a>
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item" href="06-owner-reports.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6" stroke-width="2" stroke-linecap="round" /></svg
+          >Reports
+        </a>
+        <div class="nav-section-label">Config</div>
+        <a class="nav-item" href="07-owner-settings.html">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+              stroke-width="2"
+            /></svg
+          >Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">AL</div>
+          <div>
+            <div class="user-name">Alex Lim</div>
+            <div class="user-role">Owner</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title">Commissions</div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- METRICS -->
+        <div class="metrics-row">
+          <div class="metric-card yellow">
+            <div class="metric-label">Pending Review</div>
+            <div class="metric-value">₱14,850</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px">
+              23 commissions
+            </div>
+          </div>
+          <div class="metric-card green">
+            <div class="metric-label">Confirmed (This Month)</div>
+            <div class="metric-value">₱38,400</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px">
+              61 commissions
+            </div>
+          </div>
+          <div class="metric-card red">
+            <div class="metric-label">Reversed (This Month)</div>
+            <div class="metric-value">₱2,100</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px">
+              4 commissions
+            </div>
+          </div>
+          <div class="metric-card gray">
+            <div class="metric-label">Flagged for Review</div>
+            <div class="metric-value">3</div>
+            <div style="font-size: 11px; color: var(--warning); margin-top: 4px">
+              Needs attention
+            </div>
+          </div>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" stroke-width="2" />
+              <path d="m21 21-4.35-4.35" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <input placeholder="Search by affiliate, customer, or order ID" />
+          </div>
+          <div class="filter-pill active">Status: Pending (23)</div>
+          <div class="filter-pill">Campaign ▾</div>
+          <div class="filter-pill">Date range ▾</div>
+          <div class="filter-pill">Affiliate ▾</div>
+          <div style="margin-left: auto; display: flex; gap: 8px">
+            <button class="btn btn-primary btn-sm" onclick="openApproveAllModal()">
+              ✓ Approve All Pending
+            </button>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" /></th>
+                <th class="sort">Date ↓</th>
+                <th>Affiliate</th>
+                <th>Customer</th>
+                <th>Plan / Event</th>
+                <th>Campaign</th>
+                <th class="right">Amount</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- FRAUD-FLAGGED ROW -->
+              <tr class="fraud-row" onclick="openFraudDrawer()">
+                <td><input type="checkbox" onclick="event.stopPropagation()" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 10, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fff7ed; color: #92400e">BL</div>
+                    <div>
+                      <div class="aff-name">Bianca Lim</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">bianca.lim@outlook.com</td>
+                <td style="font-size: 12px">Pro Plan · Subscription</td>
+                <td style="font-size: 12px">Summer 2026</td>
+                <td class="td-right"><span class="amount">₱700.00</span></td>
+                <td>
+                  <div class="fraud-indicator">
+                    <span class="badge badge-flagged"><span class="badge-dot"></span>Flagged</span>
+                  </div>
+                  <div style="margin-top: 4px">
+                    <span class="fraud-tag">⚠ Self-Referral Detected</span>
+                  </div>
+                </td>
+                <td><button class="row-action" onclick="event.stopPropagation()">⋯</button></td>
+              </tr>
+
+              <!-- PENDING ROWS -->
+              <tr onclick="openDrawer()">
+                <td><input type="checkbox" onclick="event.stopPropagation()" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 10, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar">JC</div>
+                    <div><div class="aff-name">Jamie Cruz</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">carl.m@gmail.com</td>
+                <td style="font-size: 12px">Pro Plan · Subscription</td>
+                <td style="font-size: 12px">Summer 2026</td>
+                <td class="td-right"><span class="amount">₱700.00</span></td>
+                <td>
+                  <span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>
+                </td>
+                <td><button class="row-action" onclick="event.stopPropagation()">⋯</button></td>
+              </tr>
+
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 9, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fce7f3; color: #9d174d">RS</div>
+                    <div><div class="aff-name">Ramon Santos</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">nina.r@yahoo.com</td>
+                <td style="font-size: 12px">Starter Plan · Subscription</td>
+                <td style="font-size: 12px">Standard Program</td>
+                <td class="td-right"><span class="amount">₱350.00</span></td>
+                <td>
+                  <span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>
+                </td>
+                <td><button class="row-action">⋯</button></td>
+              </tr>
+
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 9, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar">JC</div>
+                    <div><div class="aff-name">Jamie Cruz</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">marco.s@gmail.com</td>
+                <td style="font-size: 12px">Pro Plan · Subscription</td>
+                <td style="font-size: 12px">Summer 2026</td>
+                <td class="td-right"><span class="amount">₱700.00</span></td>
+                <td>
+                  <span class="badge badge-confirmed"
+                    ><span class="badge-dot"></span>Confirmed</span
+                  >
+                </td>
+                <td><button class="row-action">⋯</button></td>
+              </tr>
+
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 8, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #ede9fe; color: #5b21b6">KR</div>
+                    <div><div class="aff-name">Kevin Ramos</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">grace.t@gmail.com</td>
+                <td style="font-size: 12px">Starter Plan · Subscription</td>
+                <td style="font-size: 12px">Standard Program</td>
+                <td class="td-right"><span class="amount">₱350.00</span></td>
+                <td>
+                  <span class="badge badge-confirmed"
+                    ><span class="badge-dot"></span>Confirmed</span
+                  >
+                </td>
+                <td><button class="row-action">⋯</button></td>
+              </tr>
+
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 7, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar" style="background: #fce7f3; color: #9d174d">RS</div>
+                    <div><div class="aff-name">Ramon Santos</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">mark.a@gmail.com</td>
+                <td style="font-size: 12px">Pro Plan · Refund</td>
+                <td style="font-size: 12px">Standard Program</td>
+                <td class="td-right">
+                  <span class="amount" style="color: var(--danger)">-₱700.00</span>
+                </td>
+                <td>
+                  <span class="badge badge-reversed"><span class="badge-dot"></span>Reversed</span>
+                </td>
+                <td><button class="row-action">⋯</button></td>
+              </tr>
+
+              <tr>
+                <td><input type="checkbox" /></td>
+                <td style="font-size: 12px; color: var(--text-muted)">Mar 6, 2026</td>
+                <td>
+                  <div class="td-name">
+                    <div class="aff-avatar">JC</div>
+                    <div><div class="aff-name">Jamie Cruz</div></div>
+                  </div>
+                </td>
+                <td style="font-size: 12px">pia.v@gmail.com</td>
+                <td style="font-size: 12px">Starter Plan · Subscription</td>
+                <td style="font-size: 12px">Summer 2026</td>
+                <td class="td-right"><span class="amount">₱350.00</span></td>
+                <td>
+                  <span class="badge" style="background: #f3f4f6; color: #374151"
+                    ><span class="badge-dot" style="background: var(--text-muted)"></span>Paid</span
+                  >
+                </td>
+                <td><button class="row-action">⋯</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div
+            style="
+              padding: 12px 16px;
+              border-top: 1px solid var(--border);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
+            <span style="font-size: 12px; color: var(--text-muted)"
+              >Showing 7 of 88 commissions</span
+            >
+            <button class="btn btn-outline btn-sm">Load 20 more (81 remaining)</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- COMMISSION DETAIL DRAWER (normal) -->
+    <div
+      class="drawer-overlay"
+      id="drawerOverlay"
+      style="display: none"
+      onclick="closeDrawer(event)"
+    >
+      <div class="drawer" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+          <div class="drawer-title">Commission Detail</div>
+          <button class="drawer-close" onclick="closeDrawer()">×</button>
+        </div>
+        <div class="drawer-body">
+          <div class="commission-amount-hero">
+            <div class="amount-big">₱700.00</div>
+            <div class="amount-sub">20% of ₱3,500.00 · Pro Plan Subscription</div>
+            <div style="margin-top: 8px">
+              <span class="badge badge-pending"><span class="badge-dot"></span>Pending Review</span>
+            </div>
+          </div>
+          <div class="drawer-section">
+            <div class="drawer-section-title">Commission Details</div>
+            <div class="drawer-row">
+              <span class="drawer-label">Affiliate</span
+              ><span class="drawer-value">Jamie Cruz</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Customer</span
+              ><span class="drawer-value">carl.m@gmail.com</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Plan</span
+              ><span class="drawer-value">Pro Plan — ₱3,500/mo</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Event Type</span
+              ><span class="drawer-value">Subscription Created</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">SaligPay Tx ID</span
+              ><span class="drawer-value" style="font-family: monospace; font-size: 11px"
+                >sp_txn_abc123def456</span
+              >
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Campaign</span
+              ><span class="drawer-value">Summer 2026 Campaign</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Commission Rate</span
+              ><span class="drawer-value">20% recurring</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Date Created</span
+              ><span class="drawer-value">Mar 10, 2026 · 2:14 PM</span>
+            </div>
+          </div>
+          <div class="drawer-section">
+            <div class="drawer-section-title">Fraud Signals</div>
+            <div
+              style="
+                background: #f0fdf4;
+                border: 1.5px solid #bbf7d0;
+                border-radius: 8px;
+                padding: 12px;
+                font-size: 12px;
+                color: #166534;
+              "
+            >
+              ✅ No fraud signals detected — IP, device, and email all clean.
+            </div>
+          </div>
+        </div>
+        <div class="drawer-actions">
+          <button
+            class="btn btn-outline btn-sm"
+            style="flex: 1; color: var(--danger); border-color: var(--danger)"
+            onclick="openDeclineModal()"
+          >
+            ✗ Decline
+          </button>
+          <button class="btn btn-primary btn-sm" style="flex: 1">✓ Approve</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FRAUD DETAIL DRAWER -->
+    <div
+      class="drawer-overlay"
+      id="fraudDrawerOverlay"
+      style="display: none"
+      onclick="closeFraudDrawer(event)"
+    >
+      <div class="drawer" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+          <div class="drawer-title">Commission Detail — Flagged</div>
+          <button class="drawer-close" onclick="closeFraudDrawer()">×</button>
+        </div>
+        <div class="drawer-body">
+          <div class="commission-amount-hero">
+            <div class="amount-big" style="color: var(--warning)">₱700.00</div>
+            <div class="amount-sub">20% of ₱3,500.00 · Pro Plan Subscription</div>
+            <div style="margin-top: 8px">
+              <span class="badge badge-flagged"
+                ><span class="badge-dot"></span>Flagged — Self-Referral Detected</span
+              >
+            </div>
+          </div>
+
+          <!-- FRAUD EVIDENCE BOX -->
+          <div class="fraud-box">
+            <div class="fraud-box-title">⚠️ Fraud Evidence</div>
+            <div class="evidence-row">
+              <div class="evidence-icon">🌐</div>
+              <div>
+                <div class="evidence-label">IP Address Match</div>
+                <div class="evidence-detail">
+                  Affiliate signup IP: 103.22.45.88 — Customer signup IP: 103.22.45.88
+                </div>
+              </div>
+            </div>
+            <div class="evidence-row">
+              <div class="evidence-icon">📧</div>
+              <div>
+                <div class="evidence-label">Email Pattern</div>
+                <div class="evidence-detail">
+                  Affiliate: bianca.lim@outlook.com — Customer: bianca.lim.2@gmail.com
+                </div>
+              </div>
+            </div>
+            <div class="evidence-row">
+              <div class="evidence-icon">⏱</div>
+              <div>
+                <div class="evidence-label">Timing</div>
+                <div class="evidence-detail">
+                  Referral link clicked 4 minutes before customer signup (unusual proximity)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <div class="drawer-section-title">Commission Details</div>
+            <div class="drawer-row">
+              <span class="drawer-label">Affiliate</span
+              ><span class="drawer-value">Bianca Lim</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Customer</span
+              ><span class="drawer-value">bianca.lim@outlook.com</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Plan</span
+              ><span class="drawer-value">Pro Plan — ₱3,500/mo</span>
+            </div>
+            <div class="drawer-row">
+              <span class="drawer-label">Date Created</span
+              ><span class="drawer-value">Mar 10, 2026 · 9:33 AM</span>
+            </div>
+          </div>
+        </div>
+        <div class="drawer-actions">
+          <button
+            class="btn btn-sm"
+            style="flex: 1; background: var(--danger); color: #fff"
+            onclick="openDeclineModal()"
+          >
+            ✗ Decline Commission
+          </button>
+          <button class="btn btn-outline btn-sm" style="flex: 1" onclick="closeFraudDrawer()">
+            Override — Mark Legitimate
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DECLINE MODAL -->
+    <div class="modal-overlay" id="declineModal" style="display: none">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">Decline this commission?</div>
+        </div>
+        <div class="modal-body">
+          <strong>Bianca Lim</strong> will be notified. This commission will be marked
+          <strong>Reversed</strong> and cannot be undone without creating a new commission manually.
+          <input
+            class="modal-input"
+            placeholder="Optional note to affiliate (e.g. 'Self-referral detected')"
+          />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost btn-sm" onclick="closeDeclineModal()">Cancel</button>
+          <button class="btn btn-danger btn-sm">Confirm: Decline Commission</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPROVE ALL MODAL -->
+    <div class="modal-overlay" id="approveAllModal" style="display: none">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">Approve all pending commissions?</div>
+        </div>
+        <div class="modal-body">
+          This will approve <strong>23 pending commissions</strong> totaling
+          <strong>₱14,850.00</strong>. Each affiliate will be notified. Flagged commissions will be
+          skipped and require individual review.
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost btn-sm" onclick="closeApproveAllModal()">Cancel</button>
+          <button class="btn btn-primary btn-sm">Confirm: Approve All (23)</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function openDrawer() {
+        document.getElementById("drawerOverlay").style.display = "flex";
+      }
+      function closeDrawer(e) {
+        if (!e || e.target === document.getElementById("drawerOverlay"))
+          document.getElementById("drawerOverlay").style.display = "none";
+      }
+      function openFraudDrawer() {
+        document.getElementById("fraudDrawerOverlay").style.display = "flex";
+      }
+      function closeFraudDrawer(e) {
+        if (!e || e.target === document.getElementById("fraudDrawerOverlay"))
+          document.getElementById("fraudDrawerOverlay").style.display = "none";
+      }
+      function openDeclineModal() {
+        document.getElementById("declineModal").style.display = "flex";
+      }
+      function closeDeclineModal() {
+        document.getElementById("declineModal").style.display = "none";
+      }
+      function openApproveAllModal() {
+        document.getElementById("approveAllModal").style.display = "flex";
+      }
+      function closeApproveAllModal() {
+        document.getElementById("approveAllModal").style.display = "none";
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeDrawer();
+          closeFraudDrawer();
+          closeDeclineModal();
+          closeApproveAllModal();
+        }
+      });
+    </script>
+  </body>
+</html>

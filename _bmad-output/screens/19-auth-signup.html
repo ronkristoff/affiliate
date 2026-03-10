@@ -1,0 +1,1369 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Start Free Trial</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ======= TOPBAR ======= */
+      .auth-topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand-logo-mark {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand-logo-mark svg {
+        width: 18px;
+        height: 18px;
+        color: #fff;
+      }
+      .brand-logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: -0.02em;
+      }
+      .topbar-signin {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .topbar-signin a {
+        color: var(--brand);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .topbar-signin a:hover {
+        text-decoration: underline;
+      }
+
+      /* ======= MAIN LAYOUT ======= */
+      .signup-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 24px 60px;
+      }
+
+      /* ======= HERO HEADER ======= */
+      .signup-hero {
+        text-align: center;
+        max-width: 540px;
+        margin-bottom: 36px;
+      }
+      .trial-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #15803d;
+        margin-bottom: 16px;
+      }
+      .trial-badge svg {
+        width: 13px;
+        height: 13px;
+        color: #16a34a;
+      }
+      .signup-title {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.025em;
+        line-height: 1.2;
+        margin-bottom: 10px;
+      }
+      .signup-subtitle {
+        font-size: 14px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* ======= PLAN SELECTOR ======= */
+      .plan-selector-section {
+        width: 100%;
+        max-width: 780px;
+        margin-bottom: 32px;
+      }
+      .plan-selector-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 14px;
+        text-align: center;
+      }
+      .plan-selector-label span {
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .plan-card {
+        background: var(--bg-surface);
+        border: 2px solid var(--border);
+        border-radius: 14px;
+        padding: 22px 20px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s,
+          transform 0.1s;
+        position: relative;
+      }
+      .plan-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 4px 16px rgba(16, 64, 154, 0.08);
+        transform: translateY(-2px);
+      }
+      .plan-card.selected {
+        border-color: var(--brand);
+        box-shadow:
+          0 0 0 4px rgba(16, 64, 154, 0.1),
+          0 4px 16px rgba(16, 64, 154, 0.12);
+      }
+      .plan-card.popular {
+        border-color: var(--brand);
+      }
+
+      .plan-popular-badge {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--brand);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-radius: 20px;
+        padding: 3px 12px;
+        white-space: nowrap;
+      }
+
+      .plan-radio-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .plan-radio {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--brand);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .plan-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .plan-price {
+        margin-bottom: 6px;
+      }
+      .plan-price-amount {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: -0.03em;
+      }
+      .plan-price-period {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .plan-trial-note {
+        font-size: 11px;
+        color: #16a34a;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+      .plan-features {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .plan-features li {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-body);
+        line-height: 1.4;
+      }
+      .plan-features li svg {
+        width: 13px;
+        height: 13px;
+        color: var(--success);
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .plan-limit-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--bg-page);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 6px;
+        margin-top: 10px;
+      }
+
+      /* Billing toggle */
+      .billing-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .billing-toggle-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .billing-toggle-label.active {
+        color: var(--text-heading);
+        font-weight: 600;
+      }
+      .toggle-switch {
+        width: 42px;
+        height: 24px;
+        background: var(--brand);
+        border-radius: 12px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: none;
+      }
+      .toggle-switch::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background: #fff;
+        border-radius: 50%;
+        top: 3px;
+        left: 20px;
+        transition: left 0.2s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      .toggle-switch.monthly::after {
+        left: 3px;
+      }
+      .annual-savings-tag {
+        background: #dcfce7;
+        color: #15803d;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        padding: 2px 8px;
+      }
+
+      /* ======= SIGNUP FORM CARD ======= */
+      .signup-form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+      }
+      .signup-form-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .signup-form-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+        line-height: 1.5;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .form-input-wrap {
+        position: relative;
+      }
+      .form-input-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 15px;
+        height: 15px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+      .form-input {
+        width: 100%;
+        height: 42px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 0 12px 0 36px;
+        font-size: 14px;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-heading);
+        background: #ffffff;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+        outline: none;
+      }
+      .form-input.no-icon {
+        padding-left: 12px;
+      }
+      .form-input:focus {
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px rgba(16, 64, 154, 0.1);
+      }
+      .form-input-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+      }
+      .form-input-toggle svg {
+        width: 15px;
+        height: 15px;
+      }
+      .form-input-toggle:hover {
+        color: var(--text-body);
+      }
+
+      .password-strength {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .strength-bars {
+        display: flex;
+        gap: 4px;
+      }
+      .strength-bar {
+        width: 28px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border);
+        transition: background 0.2s;
+      }
+      .strength-bar.filled-weak {
+        background: var(--danger);
+      }
+      .strength-bar.filled-fair {
+        background: var(--warning);
+      }
+      .strength-bar.filled-good {
+        background: var(--success);
+      }
+      .strength-label {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* Terms checkbox */
+      .form-checkbox-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .form-checkbox {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--brand);
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .form-checkbox-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        cursor: pointer;
+      }
+      .form-checkbox-label a {
+        color: var(--brand);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .form-checkbox-label a:hover {
+        text-decoration: underline;
+      }
+
+      /* Submit */
+      .btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 46px;
+        background: var(--brand);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: "Poppins", sans-serif;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          box-shadow 0.15s,
+          transform 0.1s;
+        letter-spacing: 0.01em;
+        margin-bottom: 12px;
+      }
+      .btn-primary:hover {
+        background: var(--brand-secondary);
+        box-shadow: 0 4px 14px rgba(16, 64, 154, 0.3);
+        transform: translateY(-1px);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+      .btn-primary .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: none;
+      }
+      .btn-primary.loading .btn-label {
+        display: none;
+      }
+      .btn-primary.loading .spinner {
+        display: block;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .no-cc-note {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .no-cc-note svg {
+        width: 13px;
+        height: 13px;
+        color: var(--success);
+      }
+
+      /* Plan summary strip */
+      .plan-summary-strip {
+        background: #f0f7ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .plan-summary-info {
+        font-size: 13px;
+        color: #1e40af;
+      }
+      .plan-summary-info strong {
+        font-weight: 700;
+      }
+      .plan-summary-change {
+        font-size: 12px;
+        color: var(--brand);
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .plan-summary-change:hover {
+        text-decoration: underline;
+      }
+
+      /* ======= TRUST STRIP ======= */
+      .trust-strip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        margin-top: 32px;
+        flex-wrap: wrap;
+      }
+      .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .trust-item svg {
+        width: 14px;
+        height: 14px;
+        color: var(--success);
+      }
+
+      /* ======= DEMO TOGGLE ======= */
+      .demo-toggle-bar {
+        background: #eff6ff;
+        border-bottom: 1px solid #bfdbfe;
+        padding: 8px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .demo-toggle-label {
+        font-size: 11px;
+        color: #1d4ed8;
+        font-weight: 500;
+      }
+      .demo-toggle-btn {
+        font-size: 11px;
+        font-weight: 600;
+        font-family: "Poppins", sans-serif;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border: 1px solid #93c5fd;
+        border-radius: 4px;
+        padding: 3px 10px;
+        cursor: pointer;
+      }
+      .demo-toggle-btn:hover {
+        background: #bfdbfe;
+      }
+
+      /* Responsive */
+      @media (max-width: 860px) {
+        .plan-grid {
+          grid-template-columns: 1fr;
+          max-width: 420px;
+          margin: 0 auto;
+        }
+        .plan-selector-section {
+          max-width: 420px;
+        }
+      }
+      @media (max-width: 520px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+        .signup-form-card {
+          padding: 24px 18px;
+        }
+        .auth-topbar {
+          padding: 0 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Demo Toggle -->
+    <div class="demo-toggle-bar">
+      <span class="demo-toggle-label">Dev reference — select plan view:</span>
+      <button class="demo-toggle-btn" onclick="selectPlan('starter')">Starter Selected</button>
+      <button class="demo-toggle-btn" onclick="selectPlan('growth')">Growth Selected</button>
+      <button class="demo-toggle-btn" onclick="selectPlan('scale')">Scale Selected</button>
+      <button class="demo-toggle-btn" onclick="toggleBilling()">Toggle Annual/Monthly</button>
+    </div>
+
+    <!-- ======= TOPBAR ======= -->
+    <header class="auth-topbar">
+      <div class="brand-logo">
+        <div class="brand-logo-mark">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <span class="brand-logo-name">salig-affiliate</span>
+      </div>
+      <div class="topbar-signin">
+        Already have an account? <a href="18-auth-login.html">Sign in</a>
+      </div>
+    </header>
+
+    <!-- ======= MAIN CONTENT ======= -->
+    <main class="signup-main">
+      <!-- Hero -->
+      <div class="signup-hero">
+        <div class="trial-badge">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          14-day free trial — no credit card required
+        </div>
+        <div class="signup-title">Launch your affiliate program today</div>
+        <div class="signup-subtitle">
+          Full access to all features during your trial. Choose the plan that fits you best — you
+          can change anytime.
+        </div>
+      </div>
+
+      <!-- Billing Toggle -->
+      <div class="billing-toggle" style="margin-bottom: 18px">
+        <span class="billing-toggle-label active" id="monthly-label">Monthly</span>
+        <button
+          class="toggle-switch monthly"
+          id="billing-toggle"
+          onclick="toggleBilling()"
+          aria-label="Toggle billing period"
+        ></button>
+        <span class="billing-toggle-label" id="annual-label">Annual</span>
+        <span class="annual-savings-tag">Save 17%</span>
+      </div>
+
+      <!-- Plan Selector -->
+      <div class="plan-selector-section">
+        <div class="plan-selector-label">
+          Choose your plan <span>— all plans include a 14-day free trial</span>
+        </div>
+        <div class="plan-grid">
+          <!-- Starter -->
+          <div class="plan-card" id="plan-starter" onclick="selectPlan('starter')">
+            <div class="plan-radio-wrap">
+              <input
+                type="radio"
+                name="plan"
+                class="plan-radio"
+                id="radio-starter"
+                value="starter"
+              />
+              <label class="plan-name" for="radio-starter">Starter</label>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-amount" id="starter-price">₱1,999</span>
+              <span class="plan-price-period">/mo</span>
+            </div>
+            <div class="plan-trial-note">Free for 14 days, then ₱1,999/mo</div>
+            <ul class="plan-features">
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Commission tracking + auto-detection
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Manual payouts + CSV export
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Standard email templates
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                White-labeled affiliate portal
+              </li>
+            </ul>
+            <div class="plan-limit-tag">Up to 1,000 affiliates · 3 campaigns</div>
+          </div>
+
+          <!-- Growth (Popular) -->
+          <div class="plan-card popular selected" id="plan-growth" onclick="selectPlan('growth')">
+            <div class="plan-popular-badge">Most Popular</div>
+            <div class="plan-radio-wrap">
+              <input
+                type="radio"
+                name="plan"
+                class="plan-radio"
+                id="radio-growth"
+                value="growth"
+                checked
+              />
+              <label class="plan-name" for="radio-growth">Growth</label>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-amount" id="growth-price">₱4,499</span>
+              <span class="plan-price-period">/mo</span>
+            </div>
+            <div class="plan-trial-note">Free for 14 days, then ₱4,499/mo</div>
+            <ul class="plan-features">
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Everything in Starter
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Advanced reports + analytics
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Custom email templates
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Priority support
+              </li>
+            </ul>
+            <div class="plan-limit-tag">Up to 5,000 affiliates · 10 campaigns</div>
+          </div>
+
+          <!-- Scale -->
+          <div class="plan-card" id="plan-scale" onclick="selectPlan('scale')">
+            <div class="plan-radio-wrap">
+              <input type="radio" name="plan" class="plan-radio" id="radio-scale" value="scale" />
+              <label class="plan-name" for="radio-scale">Scale</label>
+            </div>
+            <div class="plan-price">
+              <span class="plan-price-amount" id="scale-price">₱8,999</span>
+              <span class="plan-price-period">/mo</span>
+            </div>
+            <div class="plan-trial-note">Free for 14 days, then ₱8,999/mo</div>
+            <ul class="plan-features">
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Everything in Growth
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Custom domain + SSL
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                API access (v2)
+              </li>
+              <li>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Dedicated onboarding
+              </li>
+            </ul>
+            <div class="plan-limit-tag">Unlimited affiliates &amp; campaigns</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signup Form Card -->
+      <div class="signup-form-card">
+        <div class="signup-form-title">Create your account</div>
+        <div class="signup-form-subtitle">
+          You won't be charged until after your 14-day trial ends.
+        </div>
+
+        <!-- Plan Summary Strip -->
+        <div class="plan-summary-strip">
+          <div class="plan-summary-info">
+            Selected: <strong id="selected-plan-name">Growth</strong> —
+            <span id="selected-plan-price">₱4,499/mo</span>
+          </div>
+          <a class="plan-summary-change" onclick="scrollToPlans()">Change plan</a>
+        </div>
+
+        <form onsubmit="handleSubmit(event)">
+          <!-- Name row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="first-name">First name</label>
+              <div class="form-input-wrap">
+                <svg
+                  class="form-input-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <input
+                  type="text"
+                  id="first-name"
+                  class="form-input"
+                  placeholder="Alex"
+                  autocomplete="given-name"
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="last-name">Last name</label>
+              <div class="form-input-wrap">
+                <input
+                  type="text"
+                  id="last-name"
+                  class="form-input no-icon"
+                  placeholder="Reyes"
+                  autocomplete="family-name"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Company -->
+          <div class="form-group">
+            <label class="form-label" for="company">Company / SaaS name</label>
+            <div class="form-input-wrap">
+              <svg
+                class="form-input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+              <input
+                type="text"
+                id="company"
+                class="form-input"
+                placeholder="My SaaS Co."
+                autocomplete="organization"
+              />
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label" for="email">Work email</label>
+            <div class="form-input-wrap">
+              <svg
+                class="form-input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <input
+                type="email"
+                id="email"
+                class="form-input"
+                placeholder="alex@yourcompany.com"
+                autocomplete="email"
+              />
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <div class="form-input-wrap">
+              <svg
+                class="form-input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <input
+                type="password"
+                id="password"
+                class="form-input"
+                placeholder="Min. 8 characters"
+                autocomplete="new-password"
+                oninput="updateStrength(this.value)"
+              />
+              <button
+                type="button"
+                class="form-input-toggle"
+                onclick="togglePassword()"
+                aria-label="Show password"
+              >
+                <svg
+                  id="pw-show-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg
+                  id="pw-hide-icon"
+                  style="display: none"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              </button>
+            </div>
+            <div class="password-strength">
+              <div class="strength-bars">
+                <div class="strength-bar" id="bar1"></div>
+                <div class="strength-bar" id="bar2"></div>
+                <div class="strength-bar" id="bar3"></div>
+                <div class="strength-bar" id="bar4"></div>
+              </div>
+              <span class="strength-label" id="strength-label">Enter a password</span>
+            </div>
+          </div>
+
+          <!-- Terms -->
+          <div class="form-checkbox-row">
+            <input type="checkbox" id="terms" class="form-checkbox" />
+            <label for="terms" class="form-checkbox-label">
+              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. I
+              understand salig-affiliate processes affiliate personal data on my behalf as a data
+              processor under the Philippine Data Privacy Act.
+            </label>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="btn-primary" id="submit-btn">
+            <span class="btn-label">Start free trial →</span>
+            <div class="spinner"></div>
+          </button>
+
+          <div class="no-cc-note">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            No credit card required. Cancel anytime during trial.
+          </div>
+        </form>
+      </div>
+
+      <!-- Trust Strip -->
+      <div class="trust-strip">
+        <div class="trust-item">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Native SaligPay integration
+        </div>
+        <div class="trust-item">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          White-labeled affiliate portal
+        </div>
+        <div class="trust-item">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Live in under 15 minutes
+        </div>
+        <div class="trust-item">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          WCAG 2.1 AA compliant
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // ======= Plan selection =======
+      const plans = {
+        starter: {
+          name: "Starter",
+          monthly: "₱1,999",
+          annual: "₱1,659",
+          monthlyNote: "Free for 14 days, then ₱1,999/mo",
+          annualNote: "Free for 14 days, then ₱1,659/mo (billed ₱19,908/yr)",
+        },
+        growth: {
+          name: "Growth",
+          monthly: "₱4,499",
+          annual: "₱3,734",
+          monthlyNote: "Free for 14 days, then ₱4,499/mo",
+          annualNote: "Free for 14 days, then ₱3,734/mo (billed ₱44,808/yr)",
+        },
+        scale: {
+          name: "Scale",
+          monthly: "₱8,999",
+          annual: "₱7,469",
+          monthlyNote: "Free for 14 days, then ₱8,999/mo",
+          annualNote: "Free for 14 days, then ₱7,469/mo (billed ₱89,628/yr)",
+        },
+      };
+
+      let currentPlan = "growth";
+      let isAnnual = false;
+
+      function selectPlan(plan) {
+        currentPlan = plan;
+        // Update card states
+        ["starter", "growth", "scale"].forEach((p) => {
+          const card = document.getElementById("plan-" + p);
+          const radio = document.getElementById("radio-" + p);
+          if (p === plan) {
+            card.classList.add("selected");
+            radio.checked = true;
+          } else {
+            card.classList.remove("selected");
+            radio.checked = false;
+          }
+        });
+        updatePlanSummary();
+      }
+
+      function toggleBilling() {
+        isAnnual = !isAnnual;
+        const toggle = document.getElementById("billing-toggle");
+        const monthlyLabel = document.getElementById("monthly-label");
+        const annualLabel = document.getElementById("annual-label");
+
+        if (isAnnual) {
+          toggle.classList.remove("monthly");
+          monthlyLabel.classList.remove("active");
+          annualLabel.classList.add("active");
+          // Update prices to annual
+          document.getElementById("starter-price").textContent = plans.starter.annual;
+          document.getElementById("growth-price").textContent = plans.growth.annual;
+          document.getElementById("scale-price").textContent = plans.scale.annual;
+        } else {
+          toggle.classList.add("monthly");
+          monthlyLabel.classList.add("active");
+          annualLabel.classList.remove("active");
+          document.getElementById("starter-price").textContent = plans.starter.monthly;
+          document.getElementById("growth-price").textContent = plans.growth.monthly;
+          document.getElementById("scale-price").textContent = plans.scale.monthly;
+        }
+        updatePlanSummary();
+      }
+
+      function updatePlanSummary() {
+        const plan = plans[currentPlan];
+        document.getElementById("selected-plan-name").textContent = plan.name;
+        document.getElementById("selected-plan-price").textContent = isAnnual
+          ? plan.annual + "/mo (annual)"
+          : plan.monthly + "/mo";
+      }
+
+      function scrollToPlans() {
+        document
+          .querySelector(".plan-selector-section")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      // ======= Password toggle =======
+      function togglePassword() {
+        const input = document.getElementById("password");
+        const showIcon = document.getElementById("pw-show-icon");
+        const hideIcon = document.getElementById("pw-hide-icon");
+        if (input.type === "password") {
+          input.type = "text";
+          showIcon.style.display = "none";
+          hideIcon.style.display = "block";
+        } else {
+          input.type = "password";
+          showIcon.style.display = "block";
+          hideIcon.style.display = "none";
+        }
+      }
+
+      // ======= Password strength =======
+      function updateStrength(val) {
+        const bars = [
+          document.getElementById("bar1"),
+          document.getElementById("bar2"),
+          document.getElementById("bar3"),
+          document.getElementById("bar4"),
+        ];
+        const label = document.getElementById("strength-label");
+        bars.forEach((b) => {
+          b.className = "strength-bar";
+        });
+
+        if (!val) {
+          label.textContent = "Enter a password";
+          return;
+        }
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (val.length >= 12) score++;
+        if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const classes = ["filled-weak", "filled-fair", "filled-good", "filled-good"];
+        const labels = ["Weak", "Fair", "Good", "Strong"];
+        for (let i = 0; i < score; i++) {
+          bars[i].classList.add(classes[score - 1]);
+        }
+        label.textContent = labels[score - 1] || "Too short";
+        const colors = {
+          "filled-weak": "#EF4444",
+          "filled-fair": "#F59E0B",
+          "filled-good": "#10B981",
+        };
+        label.style.color = colors[classes[score - 1]] || "#6B7280";
+      }
+
+      // ======= Submit =======
+      function handleSubmit(e) {
+        e.preventDefault();
+        const btn = document.getElementById("submit-btn");
+        btn.classList.add("loading");
+        setTimeout(() => {
+          btn.classList.remove("loading");
+        }, 2000);
+      }
+    </script>
+  </body>
+</html>

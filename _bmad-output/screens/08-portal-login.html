@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alex's SaaS — Affiliate Portal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        /* Tenant brand colors — these would be set by Alex's config */
+        --brand: #10409a;
+        --brand-light: #eff6ff;
+        --brand-dark: #0c2e6e;
+        --text-heading: #1a1a2e;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f8fafc;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* PORTAL HEADER — TENANT BRANDED (no salig-affiliate brand) */
+      .portal-header {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 20px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .portal-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .portal-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 13px;
+        color: #fff;
+      }
+      .portal-logo-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+
+      /* MAIN AREA */
+      .auth-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
+      }
+
+      /* AUTH TABS */
+      .auth-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+      }
+      .auth-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-bottom: 1px solid var(--border);
+      }
+      .auth-tab {
+        padding: 14px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        background: #fafafa;
+      }
+      .auth-tab.active {
+        color: var(--brand);
+        border-bottom-color: var(--brand);
+        background: var(--bg-surface);
+      }
+
+      /* AUTH FORM */
+      .auth-form {
+        padding: 28px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .form-input {
+        padding: 12px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        color: var(--text-heading);
+        outline: none;
+        transition: border 0.15s;
+      }
+      .form-input:focus {
+        border-color: var(--brand);
+      }
+      .form-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .btn-submit {
+        width: 100%;
+        padding: 14px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s;
+        margin-top: 4px;
+      }
+      .btn-submit:hover {
+        background: var(--brand-dark);
+      }
+      .form-divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .form-divider::before,
+      .form-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .forgot-link {
+        text-align: right;
+        font-size: 12px;
+        color: var(--brand);
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .forgot-link:hover {
+        text-decoration: underline;
+      }
+      .terms-text {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.6;
+      }
+      .terms-link {
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      /* REGISTER FORM (hidden by default) */
+      #registerForm {
+        display: none;
+      }
+
+      /* SOCIAL PROOF / TRUST SIGNAL */
+      .trust-strip {
+        text-align: center;
+        margin-top: 24px;
+      }
+      .trust-text {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .trust-avatars {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        margin-top: 8px;
+      }
+      .trust-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-page);
+        margin-left: -6px;
+        background: var(--brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .trust-avatar:first-child {
+        margin-left: 0;
+      }
+      .trust-count {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-body);
+        margin-left: 8px;
+      }
+
+      /* PENDING APPROVAL STATE */
+      .pending-state {
+        padding: 32px 24px;
+        text-align: center;
+        display: none;
+      }
+      .pending-icon {
+        width: 64px;
+        height: 64px;
+        background: #fef3c7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin: 0 auto 16px;
+      }
+      .pending-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 8px;
+      }
+      .pending-body {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* FOOTER */
+      .portal-footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TENANT-BRANDED HEADER -->
+    <header class="portal-header">
+      <div class="portal-logo">
+        <div class="portal-logo-icon">AC</div>
+        <div class="portal-logo-name">Alex's SaaS Affiliate Program</div>
+      </div>
+    </header>
+
+    <!-- AUTH AREA -->
+    <div class="auth-container">
+      <div class="auth-card">
+        <!-- TABS -->
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="loginTab" onclick="switchTab('login')">Sign In</div>
+          <div class="auth-tab" id="registerTab" onclick="switchTab('register')">Join Program</div>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginForm" class="auth-form">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input
+              class="form-input"
+              type="email"
+              placeholder="jamie@example.com"
+              value="jamie@cebutech.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" value="••••••••" />
+            <a class="forgot-link" href="#">Forgot password?</a>
+          </div>
+          <button class="btn-submit">Sign In</button>
+          <div class="terms-text">
+            By signing in you agree to the <a class="terms-link" href="#">Terms of Service</a> and
+            <a class="terms-link" href="#">Privacy Policy</a>
+          </div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerForm" class="auth-form">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" type="text" placeholder="Jamie Mendoza" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="email" placeholder="jamie@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" placeholder="8+ characters" />
+            <span class="form-hint">Minimum 8 characters</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">How will you promote Alex's SaaS?</label>
+            <select class="form-input">
+              <option value="">Select your channel...</option>
+              <option>Newsletter / Blog</option>
+              <option>YouTube / Video content</option>
+              <option>Social media (Facebook, Instagram, TikTok)</option>
+              <option>Telegram / Discord community</option>
+              <option>Podcast</option>
+              <option>Other</option>
+            </select>
+            <span class="form-hint">Helps Alex understand your audience</span>
+          </div>
+          <button class="btn-submit">Apply to Join</button>
+          <div class="terms-text">
+            By joining you agree to the <a class="terms-link" href="#">Affiliate Terms</a> and
+            <a class="terms-link" href="#">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRUST SIGNAL -->
+      <div class="trust-strip">
+        <div class="trust-avatars">
+          <div class="trust-avatar" style="background: #10409a">RJ</div>
+          <div class="trust-avatar" style="background: #1659d6">KR</div>
+          <div class="trust-avatar" style="background: #065f46">AT</div>
+          <div class="trust-avatar" style="background: #92400e">MC</div>
+          <div class="trust-avatar" style="background: #6b21a8">PL</div>
+          <div class="trust-count">+42 affiliates earning</div>
+        </div>
+        <div class="trust-text" style="margin-top: 6px">Avg. ₱5,820 / month in commissions</div>
+      </div>
+    </div>
+
+    <!-- FOOTER (no salig-affiliate branding) -->
+    <div class="portal-footer">© 2026 Alex's SaaS Co. · All rights reserved</div>
+
+    <!-- PENDING APPROVAL OVERLAY (shown after registration when approval required) -->
+    <div
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+      "
+      id="pendingOverlay"
+    >
+      <div
+        style="
+          background: #fff;
+          border-radius: 16px;
+          width: 360px;
+          padding: 32px 28px;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        "
+      >
+        <div class="pending-icon">⏳</div>
+        <div class="pending-title">Application Submitted!</div>
+        <div class="pending-body">
+          Your application to join <strong>Alex's SaaS Affiliate Program</strong> has been received.
+          Alex will review it and you'll get an email once you're approved.<br /><br />Usually takes
+          1–2 business days.
+        </div>
+        <div style="margin-top: 20px; font-size: 12px; color: var(--text-muted)">
+          Questions? Email <a href="#" style="color: var(--brand)">affiliates@alexsaas.co</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchTab(tab) {
+        document.getElementById("loginTab").classList.toggle("active", tab === "login");
+        document.getElementById("registerTab").classList.toggle("active", tab === "register");
+        document.getElementById("loginForm").style.display = tab === "login" ? "flex" : "none";
+        document.getElementById("registerForm").style.display =
+          tab === "register" ? "flex" : "none";
+      }
+    </script>
+  </body>
+</html>

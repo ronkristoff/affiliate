@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Onboarding: Create Campaign</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Passion+One:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ======= TOPBAR ======= */
+      .onboarding-topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand-logo-mark {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand-logo-mark svg {
+        width: 18px;
+        height: 18px;
+        color: #fff;
+      }
+      .brand-logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--brand-dark);
+        letter-spacing: -0.02em;
+      }
+      .topbar-help {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .topbar-help a {
+        color: var(--brand);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      /* ======= PROGRESS STEPPER ======= */
+      .onboarding-progress {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 20px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        max-width: 560px;
+        width: 100%;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+      }
+      .step-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .step-circle.completed {
+        background: var(--success);
+        color: #fff;
+      }
+      .step-circle.active {
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(16, 64, 154, 0.15);
+      }
+      .step-circle.pending {
+        background: #fff;
+        color: var(--text-muted);
+        border: 2px solid var(--border);
+      }
+      .step-num {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .step-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .step-name.muted {
+        color: var(--text-muted);
+      }
+      .step-connector {
+        flex: 1;
+        height: 2px;
+        background: var(--border);
+        margin: 0 12px;
+        position: relative;
+        top: -6px;
+      }
+      .step-connector.done {
+        background: var(--success);
+      }
+
+      /* ======= CONTENT AREA ======= */
+      .onboarding-body {
+        flex: 1;
+        padding: 48px 32px;
+        display: flex;
+        justify-content: center;
+      }
+      .onboarding-container {
+        width: 100%;
+        max-width: 560px;
+      }
+
+      /* ======= SECTION HEADER ======= */
+      .onboarding-header {
+        margin-bottom: 32px;
+      }
+      .step-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eff6ff;
+        color: var(--brand);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 12px;
+      }
+      .onboarding-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      .onboarding-desc {
+        font-size: 15px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* ======= FORM CARD ======= */
+      .form-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      }
+      .form-card-header {
+        padding: 18px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+      }
+      .form-card-header-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .form-card-body {
+        padding: 24px;
+      }
+
+      /* ======= COMMISSION TYPE SELECTOR ======= */
+      .commission-type-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .type-option {
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 16px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+        position: relative;
+      }
+      .type-option:hover {
+        border-color: #bfdbfe;
+        background: #f8fbff;
+      }
+      .type-option.selected {
+        border-color: var(--brand);
+        background: #eff6ff;
+      }
+      .type-option-radio {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .type-option.selected .type-option-radio {
+        border-color: var(--brand);
+        background: var(--brand);
+      }
+      .type-option.selected .type-option-radio::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
+      }
+      .type-icon {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+      .type-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 3px;
+      }
+      .type-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+      .type-example {
+        font-size: 11px;
+        color: var(--brand);
+        font-weight: 600;
+        margin-top: 6px;
+      }
+
+      /* ======= FORM ELEMENTS ======= */
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group:last-child {
+        margin-bottom: 0;
+      }
+      .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .form-input {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 14px;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-heading);
+        background: #fff;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .form-input:focus {
+        border-color: var(--brand-secondary);
+        box-shadow: 0 0 0 3px rgba(22, 89, 214, 0.12);
+      }
+      .form-help {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 5px;
+        line-height: 1.5;
+      }
+
+      /* ======= RATE INPUT WITH SUFFIX ======= */
+      .input-group {
+        display: flex;
+      }
+      .input-group .form-input {
+        border-radius: 9px 0 0 9px;
+        border-right: none;
+        flex: 1;
+      }
+      .input-group .form-input:focus {
+        z-index: 1;
+        position: relative;
+      }
+      .input-suffix {
+        padding: 11px 16px;
+        background: #f3f4f6;
+        border: 1px solid var(--border);
+        border-radius: 0 9px 9px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-muted);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+      }
+
+      /* ======= LIVE PREVIEW ======= */
+      .preview-card {
+        background: linear-gradient(135deg, #10409a 0%, #1659d6 100%);
+        border-radius: 14px;
+        padding: 20px 24px;
+        margin-top: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .preview-card::before {
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .preview-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .preview-label-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .preview-equation {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .preview-rate {
+        font-size: 28px;
+        font-weight: 900;
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+      .preview-arrow {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .preview-result {
+        font-size: 24px;
+        font-weight: 700;
+        color: #10b981;
+        font-variant-numeric: tabular-nums;
+      }
+      .preview-context {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+      .preview-context strong {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .preview-na {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.4);
+        font-style: italic;
+      }
+
+      /* ======= RECURRING TOGGLE ======= */
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 0;
+        border-top: 1px solid var(--border);
+        margin-top: 20px;
+      }
+      .toggle-info {
+        flex: 1;
+      }
+      .toggle-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .toggle-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: var(--border);
+        border-radius: 999px;
+        transition: background 0.2s;
+      }
+      .toggle-slider:before {
+        content: "";
+        position: absolute;
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+      .toggle input:checked + .toggle-slider {
+        background: var(--brand);
+      }
+      .toggle input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+      }
+
+      /* ======= ACTIONS ROW ======= */
+      .actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .actions-right {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* ======= BUTTONS ======= */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+        text-decoration: none;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #0c3280;
+      }
+      .btn-outline {
+        background: #fff;
+        color: var(--text-heading);
+        border: 1px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: #f9fafb;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 13px;
+        border: none;
+        padding: 8px;
+      }
+      .btn-ghost:hover {
+        color: var(--text-heading);
+      }
+
+      /* ======= SELECT ======= */
+      .form-select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        font-size: 14px;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-heading);
+        background: #fff;
+        outline: none;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+      }
+      .form-select:focus {
+        border-color: var(--brand-secondary);
+        box-shadow: 0 0 0 3px rgba(22, 89, 214, 0.12);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOPBAR -->
+    <header class="onboarding-topbar">
+      <div class="brand-logo">
+        <div class="brand-logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <span class="brand-logo-name">salig-affiliate</span>
+      </div>
+      <div class="topbar-help">Need help? <a href="#">Contact support</a></div>
+    </header>
+
+    <!-- PROGRESS STEPPER -->
+    <div class="onboarding-progress">
+      <div class="stepper" role="list" aria-label="Setup progress">
+        <!-- Step 1: completed -->
+        <div class="step" role="listitem">
+          <div class="step-circle completed">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="step-label">
+            <div class="step-num">Step 1</div>
+            <div class="step-name">Connect SaligPay</div>
+          </div>
+        </div>
+        <div class="step-connector done"></div>
+        <!-- Step 2: active -->
+        <div class="step" role="listitem">
+          <div class="step-circle active" aria-current="step">2</div>
+          <div class="step-label">
+            <div class="step-num">Step 2</div>
+            <div class="step-name">Create Campaign</div>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <!-- Step 3: pending -->
+        <div class="step" role="listitem">
+          <div class="step-circle pending">3</div>
+          <div class="step-label">
+            <div class="step-num">Step 3</div>
+            <div class="step-name muted">Install Snippet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="onboarding-body">
+      <div class="onboarding-container">
+        <div class="onboarding-header">
+          <div class="step-tag">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            Step 2 of 3
+          </div>
+          <h1 class="onboarding-title">Create your first campaign</h1>
+          <p class="onboarding-desc">
+            Set the commission structure your affiliates will earn. You can create more campaigns
+            later with different rates for different audiences.
+          </p>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="form-card-header-title">Commission Type</div>
+          </div>
+          <div class="form-card-body">
+            <!-- COMMISSION TYPE SELECTOR -->
+            <div class="commission-type-grid" id="type-grid">
+              <div class="type-option selected" onclick="selectType('percent', this)">
+                <div class="type-option-radio"></div>
+                <div class="type-icon">%</div>
+                <div class="type-name">Percentage</div>
+                <div class="type-desc">A % of each referred customer's recurring payment</div>
+                <div class="type-example">e.g. 20% of ₱290/mo = ₱58/mo</div>
+              </div>
+              <div class="type-option" onclick="selectType('flat', this)">
+                <div class="type-option-radio"></div>
+                <div class="type-icon">₱</div>
+                <div class="type-name">Flat Fee</div>
+                <div class="type-desc">A fixed amount per referred subscription</div>
+                <div class="type-example">e.g. ₱200 per new subscriber</div>
+              </div>
+            </div>
+
+            <!-- RATE INPUT -->
+            <div class="form-group" id="rate-group">
+              <label class="form-label" for="commission-rate" id="rate-label"
+                >Commission Rate</label
+              >
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-input"
+                  id="commission-rate"
+                  value="20"
+                  min="1"
+                  max="100"
+                  oninput="updatePreview()"
+                  placeholder="20"
+                />
+                <div class="input-suffix" id="rate-suffix">%</div>
+              </div>
+              <div class="form-help" id="rate-help">
+                Enter a value between 1% and 100%. Most affiliates programs use 10–30%.
+              </div>
+            </div>
+
+            <!-- LIVE COMMISSION PREVIEW -->
+            <div class="preview-card">
+              <div class="preview-label">
+                <div class="preview-label-dot"></div>
+                Live Preview
+              </div>
+              <div class="preview-equation">
+                <span class="preview-rate" id="preview-rate">20%</span>
+                <span class="preview-arrow">→</span>
+                <span class="preview-result" id="preview-result">₱58/mo</span>
+              </div>
+              <div class="preview-context" id="preview-context">
+                Your affiliate earns <strong>₱58.00 per month</strong> for every customer on the
+                <strong>Starter plan (₱290/mo)</strong> — recurring, as long as they stay
+                subscribed.
+              </div>
+            </div>
+
+            <!-- RECURRING TOGGLE -->
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Recurring commissions</div>
+                <div class="toggle-desc">
+                  Affiliate earns on every renewal, not just the first payment
+                </div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked id="recurring-toggle" onchange="updatePreview()" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-header">
+            <div class="form-card-header-title">Campaign Details</div>
+          </div>
+          <div class="form-card-body">
+            <div class="form-group">
+              <label class="form-label" for="campaign-name">Campaign Name</label>
+              <input
+                type="text"
+                class="form-input"
+                id="campaign-name"
+                value="Newsletter Affiliates"
+                placeholder="e.g. Newsletter Affiliates, Influencer Program..."
+              />
+              <div class="form-help">This name is visible to your affiliates on the portal.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cookie-days">Cookie Duration</label>
+              <select class="form-select" id="cookie-days">
+                <option value="30">30 days (recommended)</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="365">1 year</option>
+                <option value="0">Session only</option>
+              </select>
+              <div class="form-help">
+                How long after clicking a referral link a conversion is attributed to the affiliate.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="auto-approve">Commission Approval</label>
+              <select class="form-select" id="auto-approve">
+                <option value="auto">Auto-approve after 7 days (recommended)</option>
+                <option value="manual">Manual review required</option>
+                <option value="instant">Approve instantly</option>
+              </select>
+              <div class="form-help">
+                Auto-approve confirms commissions after a waiting period to allow for refunds and
+                chargebacks.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <a href="15-onboarding-saligpay.html" class="btn btn-ghost">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back
+          </a>
+          <div class="actions-right">
+            <a href="17-onboarding-snippet.html" class="btn btn-primary">
+              Save & Continue
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // State
+      let commissionType = "percent"; // or 'flat'
+      const PLAN_PRICE = 290; // ₱290/mo — detected from SaligPay
+
+      function selectType(type, el) {
+        commissionType = type;
+        document.querySelectorAll(".type-option").forEach((o) => o.classList.remove("selected"));
+        el.classList.add("selected");
+
+        const rateLabel = document.getElementById("rate-label");
+        const rateSuffix = document.getElementById("rate-suffix");
+        const rateHelp = document.getElementById("rate-help");
+        const rateInput = document.getElementById("commission-rate");
+
+        if (type === "percent") {
+          rateLabel.textContent = "Commission Rate";
+          rateSuffix.textContent = "%";
+          rateHelp.textContent =
+            "Enter a value between 1% and 100%. Most affiliate programs use 10–30%.";
+          rateInput.max = 100;
+          rateInput.value = 20;
+        } else {
+          rateLabel.textContent = "Flat Commission Amount";
+          rateSuffix.textContent = "₱";
+          rateHelp.textContent = "Enter a fixed amount per referred subscription. Minimum ₱1.";
+          rateInput.max = "";
+          rateInput.value = 200;
+        }
+        updatePreview();
+      }
+
+      function updatePreview() {
+        const rate = parseFloat(document.getElementById("commission-rate").value) || 0;
+        const isRecurring = document.getElementById("recurring-toggle").checked;
+        const previewRate = document.getElementById("preview-rate");
+        const previewResult = document.getElementById("preview-result");
+        const previewContext = document.getElementById("preview-context");
+
+        if (!rate || rate <= 0) {
+          previewRate.textContent = "—";
+          previewResult.textContent = "₱0";
+          previewContext.innerHTML = "Enter a rate above to see the preview.";
+          return;
+        }
+
+        if (commissionType === "percent") {
+          const earnPerMonth = (rate / 100) * PLAN_PRICE;
+          previewRate.textContent = rate + "%";
+          previewResult.textContent = isRecurring
+            ? "₱" + earnPerMonth.toFixed(2) + "/mo"
+            : "₱" + earnPerMonth.toFixed(2) + " once";
+          previewContext.innerHTML = `Your affiliate earns <strong>₱${earnPerMonth.toFixed(2)} ${isRecurring ? "per month" : "one-time"}</strong> for every customer on the <strong>Starter plan (₱290/mo)</strong>${isRecurring ? " — recurring, as long as they stay subscribed." : "."}`;
+        } else {
+          previewRate.textContent = "₱" + rate.toFixed(0);
+          previewResult.textContent = isRecurring
+            ? "₱" + rate.toFixed(2) + "/mo"
+            : "₱" + rate.toFixed(2) + " once";
+          previewContext.innerHTML = `Your affiliate earns a flat <strong>₱${rate.toFixed(2)} ${isRecurring ? "per month per customer" : "per referral"}</strong>, regardless of the plan price.`;
+        }
+      }
+
+      // Initialize
+      updatePreview();
+    </script>
+  </body>
+</html>

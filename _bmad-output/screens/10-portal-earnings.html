@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alex's SaaS — Affiliate Portal: Earnings</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-light: #eff6ff;
+        --brand-dark: #0c2e6e;
+        --text-heading: #1a1a2e;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f8fafc;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* PORTAL HEADER */
+      .portal-header {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 16px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .portal-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .portal-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--brand);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 13px;
+        color: #fff;
+      }
+      .portal-logo-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .header-page-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      /* LAYOUT */
+      .portal-layout {
+        display: flex;
+        flex: 1;
+      }
+      .portal-content {
+        flex: 1;
+        padding: 20px 16px 100px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      /* Desktop sidebar */
+      .portal-sidebar {
+        display: none;
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--bg-surface);
+        border-right: 1px solid var(--border);
+        padding: 20px 0;
+        position: sticky;
+        top: 56px;
+        height: calc(100vh - 56px);
+      }
+      .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0 12px;
+      }
+      .sidebar-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-body);
+        cursor: pointer;
+        transition: background 0.1s;
+        text-decoration: none;
+      }
+      .sidebar-nav-item:hover {
+        background: var(--bg-page);
+      }
+      .sidebar-nav-item.active {
+        background: var(--brand-light);
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .sidebar-nav-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+      .sidebar-user {
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .sidebar-user-info .name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .sidebar-user-info .email {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        height: 64px;
+        z-index: 100;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+      }
+      .bottom-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.15s;
+      }
+      .bottom-nav-item.active {
+        color: var(--brand);
+      }
+      .bottom-nav-item svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* PAGE HEADER */
+      .page-header {
+        margin-bottom: 20px;
+      }
+      .page-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .page-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* PAYOUT STATUS BANNER */
+      .payout-banner {
+        background: #d1fae5;
+        border: 1px solid #6ee7b7;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .payout-banner-icon {
+        font-size: 20px;
+      }
+      .payout-banner-body {
+        flex: 1;
+      }
+      .payout-banner-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #065f46;
+      }
+      .payout-banner-sub {
+        font-size: 12px;
+        color: #047857;
+        margin-top: 1px;
+      }
+      .payout-banner-amount {
+        font-size: 18px;
+        font-weight: 800;
+        color: #065f46;
+      }
+
+      /* TOTAL EARNED HERO */
+      .earnings-hero {
+        background: linear-gradient(135deg, var(--brand) 0%, #1659d6 100%);
+        border-radius: 16px;
+        padding: 24px 20px;
+        color: #fff;
+        margin-bottom: 20px;
+      }
+      .earnings-hero-label {
+        font-size: 12px;
+        opacity: 0.85;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+      }
+      .earnings-hero-value {
+        font-size: 36px;
+        font-weight: 900;
+      }
+      .earnings-hero-sub {
+        font-size: 13px;
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+      .earnings-hero-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 16px;
+      }
+      .earnings-hero-stat-val {
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .earnings-hero-stat-label {
+        font-size: 11px;
+        opacity: 0.75;
+        margin-top: 2px;
+      }
+
+      /* PERIOD TABS */
+      .period-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 16px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      .period-tab {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1.5px solid var(--border);
+        color: var(--text-muted);
+        background: var(--bg-surface);
+        transition: all 0.15s;
+      }
+      .period-tab.active {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+
+      /* COMMISSION LIST */
+      .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 12px;
+      }
+      .commission-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* COMMISSION CONFIRMED CARD — screenshot-shareable hero moment */
+      .commission-confirmed-card {
+        background: linear-gradient(135deg, #022232 0%, var(--brand) 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      .commission-confirmed-card::before {
+        content: "";
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+      }
+      .commission-confirmed-card::after {
+        content: "";
+        position: absolute;
+        bottom: -50px;
+        left: -20px;
+        width: 160px;
+        height: 160px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 50%;
+      }
+      .cc-brand-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        opacity: 0.9;
+      }
+      .cc-brand-icon {
+        width: 24px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 900;
+      }
+      .cc-brand-name {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .cc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.25);
+        border: 1px solid rgba(16, 185, 129, 0.5);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #6ee7b7;
+        margin-bottom: 12px;
+      }
+      .cc-badge-dot {
+        width: 6px;
+        height: 6px;
+        background: #6ee7b7;
+        border-radius: 50%;
+      }
+      .cc-label {
+        font-size: 12px;
+        opacity: 0.75;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+      }
+      .cc-amount {
+        font-size: 40px;
+        font-weight: 900;
+        line-height: 1;
+      }
+      .cc-recur {
+        font-size: 12px;
+        opacity: 0.75;
+        margin-top: 4px;
+        margin-bottom: 16px;
+      }
+      .cc-meta {
+        display: flex;
+        gap: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        padding-top: 14px;
+      }
+      .cc-meta-item .label {
+        font-size: 10px;
+        opacity: 0.65;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .cc-meta-item .value {
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .cc-share-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .cc-share-btn {
+        flex: 1;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        color: #fff;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .cc-share-btn:hover {
+        background: rgba(255, 255, 255, 0.22);
+      }
+
+      /* REGULAR COMMISSION ITEM */
+      .commission-item {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: box-shadow 0.1s;
+      }
+      .commission-item:hover {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      .commission-item-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .commission-item-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .commission-item-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .commission-item-amount {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--success);
+        white-space: nowrap;
+      }
+      .commission-item-amount.pending {
+        color: var(--warning);
+      }
+      .commission-item-amount.reversed {
+        color: var(--danger);
+      }
+      .commission-item-footer {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* STATUS BADGE */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .status-badge.confirmed {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .status-badge.reversed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status-badge.paid {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .status-badge.processing {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .status-dot.confirmed {
+        background: var(--success);
+      }
+      .status-dot.pending {
+        background: var(--warning);
+      }
+      .status-dot.reversed {
+        background: var(--danger);
+      }
+      .status-dot.paid {
+        background: var(--text-muted);
+      }
+      .status-dot.processing {
+        background: var(--info);
+      }
+      .commission-time {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* DRAWER */
+      .drawer-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 200;
+      }
+      .drawer-backdrop.open {
+        display: block;
+      }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        bottom: 0;
+        width: 100%;
+        max-width: 420px;
+        background: var(--bg-surface);
+        z-index: 201;
+        transition: right 0.25s ease;
+        overflow-y: auto;
+      }
+      .drawer.open {
+        right: 0;
+      }
+      .drawer-header {
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        background: var(--bg-surface);
+        z-index: 10;
+      }
+      .drawer-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .drawer-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--text-muted);
+      }
+      .drawer-body {
+        padding: 20px;
+      }
+      .drawer-section {
+        margin-bottom: 20px;
+      }
+      .drawer-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+      }
+      .drawer-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .drawer-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .drawer-row:last-child {
+        border-bottom: none;
+      }
+      .drawer-row-label {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .drawer-row-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+
+      /* LOAD MORE */
+      .load-more {
+        text-align: center;
+        margin-top: 20px;
+      }
+      .btn-load-more {
+        padding: 10px 24px;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 999px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+      .btn-load-more:hover {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
+      @media (min-width: 1024px) {
+        .portal-sidebar {
+          display: flex;
+          flex-direction: column;
+        }
+        .bottom-nav {
+          display: none;
+        }
+        .portal-content {
+          padding: 28px 32px 40px;
+          max-width: 720px;
+        }
+        .drawer {
+          width: 480px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- PORTAL HEADER -->
+    <header class="portal-header">
+      <div class="portal-logo">
+        <div class="portal-logo-icon">AC</div>
+        <div class="portal-logo-name">Alex's SaaS</div>
+      </div>
+      <div class="header-page-title">Earnings</div>
+    </header>
+
+    <div class="portal-layout">
+      <!-- DESKTOP SIDEBAR -->
+      <aside class="portal-sidebar">
+        <nav class="sidebar-nav">
+          <a class="sidebar-nav-item" href="09-portal-home.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Home
+          </a>
+          <a class="sidebar-nav-item active" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            Earnings
+          </a>
+          <a class="sidebar-nav-item" href="11-portal-links.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            Links
+          </a>
+          <a class="sidebar-nav-item" href="12-portal-account.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Account
+          </a>
+        </nav>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">JM</div>
+          <div class="sidebar-user-info">
+            <div class="name">Jamie Mendoza</div>
+            <div class="email">jamie@cebutech.com</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="portal-content">
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div class="page-title">Earnings</div>
+          <div class="page-sub">Track your commissions and payout history</div>
+        </div>
+
+        <!-- PAYOUT READY BANNER -->
+        <div class="payout-banner">
+          <div class="payout-banner-icon">💸</div>
+          <div class="payout-banner-body">
+            <div class="payout-banner-title">Payout Coming Soon</div>
+            <div class="payout-banner-sub">Alex processes payouts on the 1st of each month</div>
+          </div>
+          <div class="payout-banner-amount">₱1,240</div>
+        </div>
+
+        <!-- TOTAL EARNED HERO -->
+        <div class="earnings-hero">
+          <div class="earnings-hero-label">Total Lifetime Earnings</div>
+          <div class="earnings-hero-value">₱5,820</div>
+          <div class="earnings-hero-sub">Across 12 confirmed commissions</div>
+          <div class="earnings-hero-grid">
+            <div>
+              <div class="earnings-hero-stat-val">₱5,240</div>
+              <div class="earnings-hero-stat-label">Paid Out</div>
+            </div>
+            <div>
+              <div class="earnings-hero-stat-val">₱580</div>
+              <div class="earnings-hero-stat-label">Pending</div>
+            </div>
+            <div>
+              <div class="earnings-hero-stat-val">20%</div>
+              <div class="earnings-hero-stat-label">Your Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERIOD FILTER -->
+        <div class="period-tabs">
+          <div class="period-tab" onclick="setTab(this)">All Time</div>
+          <div class="period-tab active" onclick="setTab(this)">This Month</div>
+          <div class="period-tab" onclick="setTab(this)">Last Month</div>
+          <div class="period-tab" onclick="setTab(this)">Last 3 Months</div>
+        </div>
+
+        <!-- COMMISSION LIST -->
+        <div class="section-title">Commission History — March 2026</div>
+        <div class="commission-list">
+          <!-- COMMISSION CONFIRMED CARD (hero, screenshot-shareable) -->
+          <div class="commission-confirmed-card">
+            <div class="cc-brand-row">
+              <div class="cc-brand-icon">AC</div>
+              <div class="cc-brand-name">Alex's SaaS Affiliate Program</div>
+            </div>
+            <div class="cc-badge">
+              <div class="cc-badge-dot"></div>
+              Commission Confirmed ✓
+            </div>
+            <div class="cc-label">Your Commission</div>
+            <div class="cc-amount">₱5.80</div>
+            <div class="cc-recur">Recurring · every month</div>
+            <div class="cc-meta">
+              <div class="cc-meta-item">
+                <div class="label">Customer Plan</div>
+                <div class="value">Pro — ₱29/mo</div>
+              </div>
+              <div class="cc-meta-item">
+                <div class="label">Confirmed</div>
+                <div class="value">Mar 8, 2026</div>
+              </div>
+              <div class="cc-meta-item">
+                <div class="label">Rate</div>
+                <div class="value">20% / mo</div>
+              </div>
+            </div>
+            <div class="cc-share-row">
+              <button class="cc-share-btn" onclick="shareConfirmed()">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                Share this win
+              </button>
+              <button
+                class="cc-share-btn"
+                onclick="openCommissionDrawer('confirmed', '₱5.80', 'Pro Plan', 'Mar 8, 2026')"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+
+          <!-- PENDING COMMISSION -->
+          <div
+            class="commission-item"
+            onclick="openCommissionDrawer('pending', '₱5.80', 'Pro Plan', 'Mar 5, 2026')"
+          >
+            <div class="commission-item-top">
+              <div>
+                <div class="commission-item-title">Commission Pending</div>
+                <div class="commission-item-sub">
+                  Customer on Pro Plan · ₱29/mo · Confirms ~Mar 20
+                </div>
+              </div>
+              <div class="commission-item-amount pending">+₱5.80</div>
+            </div>
+            <div class="commission-item-footer">
+              <span class="status-badge pending"
+                ><span class="status-dot pending"></span>Pending</span
+              >
+              <span class="commission-time">Mar 5, 2026</span>
+            </div>
+          </div>
+
+          <!-- CONFIRMED COMMISSION (regular row) -->
+          <div
+            class="commission-item"
+            onclick="openCommissionDrawer('confirmed', '₱3.80', 'Starter Plan', 'Mar 2, 2026')"
+          >
+            <div class="commission-item-top">
+              <div>
+                <div class="commission-item-title">Commission Confirmed</div>
+                <div class="commission-item-sub">Customer on Starter Plan · ₱19/mo</div>
+              </div>
+              <div class="commission-item-amount">+₱3.80</div>
+            </div>
+            <div class="commission-item-footer">
+              <span class="status-badge confirmed"
+                ><span class="status-dot confirmed"></span>Confirmed</span
+              >
+              <span class="commission-time">Mar 2, 2026</span>
+            </div>
+          </div>
+
+          <!-- PENDING -->
+          <div
+            class="commission-item"
+            onclick="openCommissionDrawer('pending', '₱5.80', 'Pro Plan', 'Feb 28, 2026')"
+          >
+            <div class="commission-item-top">
+              <div>
+                <div class="commission-item-title">Commission Pending</div>
+                <div class="commission-item-sub">
+                  Customer on Pro Plan · ₱29/mo · Confirms ~Mar 14
+                </div>
+              </div>
+              <div class="commission-item-amount pending">+₱5.80</div>
+            </div>
+            <div class="commission-item-footer">
+              <span class="status-badge pending"
+                ><span class="status-dot pending"></span>Pending</span
+              >
+              <span class="commission-time">Feb 28, 2026</span>
+            </div>
+          </div>
+
+          <!-- PAID OUT -->
+          <div
+            class="commission-item"
+            onclick="openCommissionDrawer('paid', '₱5.80', 'Pro Plan', 'Feb 8, 2026')"
+          >
+            <div class="commission-item-top">
+              <div>
+                <div class="commission-item-title">Commission Confirmed</div>
+                <div class="commission-item-sub">
+                  Customer on Pro Plan · Included in Feb 2026 payout
+                </div>
+              </div>
+              <div class="commission-item-amount" style="color: var(--text-muted)">₱5.80</div>
+            </div>
+            <div class="commission-item-footer">
+              <span class="status-badge paid"><span class="status-dot paid"></span>Paid</span>
+              <span class="commission-time">Feb 8, 2026</span>
+            </div>
+          </div>
+
+          <!-- REVERSED -->
+          <div
+            class="commission-item"
+            onclick="openCommissionDrawer('reversed', '₱3.80', 'Starter Plan', 'Feb 3, 2026')"
+          >
+            <div class="commission-item-top">
+              <div>
+                <div class="commission-item-title">Commission Reversed</div>
+                <div class="commission-item-sub">
+                  Customer cancelled subscription · refund issued
+                </div>
+              </div>
+              <div class="commission-item-amount reversed">-₱3.80</div>
+            </div>
+            <div class="commission-item-footer">
+              <span class="status-badge reversed"
+                ><span class="status-dot reversed"></span>Reversed</span
+              >
+              <span class="commission-time">Feb 3, 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="load-more">
+          <button class="btn-load-more">Load 10 more (18 remaining)</button>
+        </div>
+      </main>
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <div class="bottom-nav-item" onclick="window.location = '09-portal-home.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        Home
+      </div>
+      <div class="bottom-nav-item active" onclick="window.location = '10-portal-earnings.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        Earnings
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '11-portal-links.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+        Links
+      </div>
+      <div class="bottom-nav-item" onclick="window.location = '12-portal-account.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Account
+      </div>
+    </nav>
+
+    <!-- COMMISSION DETAIL DRAWER -->
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+    <div class="drawer" id="commissionDrawer">
+      <div class="drawer-header">
+        <div class="drawer-title">Commission Detail</div>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-section" style="text-align: center; padding: 20px 0">
+          <div
+            id="drawerStatusBadge"
+            class="status-badge confirmed"
+            style="display: inline-flex; font-size: 13px; padding: 6px 14px; margin-bottom: 16px"
+          >
+            <span class="status-dot confirmed"></span>Confirmed
+          </div>
+          <div
+            style="font-size: 36px; font-weight: 900; color: var(--text-heading)"
+            id="drawerAmount"
+          >
+            ₱5.80
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px">
+            Commission earned
+          </div>
+        </div>
+        <div class="drawer-section">
+          <div class="drawer-label">Commission Details</div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Plan</span
+            ><span class="drawer-row-value" id="drawerPlan">Pro — ₱29/mo</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Date</span
+            ><span class="drawer-row-value" id="drawerDate">Mar 8, 2026</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Commission Rate</span
+            ><span class="drawer-row-value">20% of MRR</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Billing Event</span
+            ><span class="drawer-row-value">Monthly renewal</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Your Referral Code</span
+            ><span class="drawer-row-value" style="color: var(--brand)">JAMIE-MENDOZA</span>
+          </div>
+        </div>
+        <div class="drawer-section">
+          <div class="drawer-label">Payout Info</div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Status</span
+            ><span class="drawer-row-value">Included in March 2026 payout</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Expected Date</span
+            ><span class="drawer-row-value">Apr 1, 2026</span>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-row-label">Payout Method</span
+            ><span class="drawer-row-value">GCash — 09XX XXX XXXX</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function setTab(el) {
+        document.querySelectorAll(".period-tab").forEach((t) => t.classList.remove("active"));
+        el.classList.add("active");
+      }
+
+      function openCommissionDrawer(status, amount, plan, date) {
+        document.getElementById("drawerAmount").textContent = amount;
+        document.getElementById("drawerPlan").textContent =
+          plan + (plan.includes("Pro") ? " · ₱29/mo" : " · ₱19/mo");
+        document.getElementById("drawerDate").textContent = date;
+
+        const badge = document.getElementById("drawerStatusBadge");
+        badge.className = "status-badge " + status;
+        const labels = {
+          confirmed: "Confirmed",
+          pending: "Pending",
+          reversed: "Reversed",
+          paid: "Paid",
+        };
+        badge.innerHTML = '<span class="status-dot ' + status + '"></span>' + labels[status];
+
+        document.getElementById("drawerBackdrop").classList.add("open");
+        document.getElementById("commissionDrawer").classList.add("open");
+      }
+
+      function closeDrawer() {
+        document.getElementById("drawerBackdrop").classList.remove("open");
+        document.getElementById("commissionDrawer").classList.remove("open");
+      }
+
+      function shareConfirmed() {
+        if (navigator.share) {
+          navigator.share({
+            title: "Commission Confirmed! 🎉",
+            text: "Just earned ₱5.80 recurring commission from Alex's SaaS! Join using my link:",
+            url: "https://alexsaas.co/ref/jamie-mendoza",
+          });
+        } else {
+          alert("Screenshot this card and share it with your community! 📸");
+        }
+      }
+    </script>
+  </body>
+</html>

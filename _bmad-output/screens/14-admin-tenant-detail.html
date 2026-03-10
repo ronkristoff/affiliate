@@ -1,0 +1,1694 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>salig-affiliate — Platform Admin: Tenant Detail</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --brand: #10409a;
+        --brand-secondary: #1659d6;
+        --brand-dark: #022232;
+        --text-heading: #333333;
+        --text-body: #474747;
+        --text-muted: #6b7280;
+        --bg-page: #f2f2f2;
+        --bg-surface: #ffffff;
+        --border: #e5e7eb;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-page);
+        color: var(--text-body);
+        min-height: 100vh;
+        display: flex;
+      }
+
+      /* ======= IMPERSONATION BANNER ======= */
+      .impersonation-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #fef3c7;
+        border-bottom: 2px solid #f59e0b;
+        padding: 10px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .impersonation-banner-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .impersonation-banner-icon {
+        font-size: 18px;
+      }
+      .impersonation-banner-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: #92400e;
+      }
+      .impersonation-banner-text span {
+        font-weight: 400;
+        color: #78350f;
+      }
+      .impersonation-exit-btn {
+        background: #92400e;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .impersonation-exit-btn:hover {
+        background: #78350f;
+      }
+
+      /* ======= ADMIN SIDEBAR ======= */
+      .admin-sidebar {
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--brand-dark);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        top: 44px; /* offset for impersonation banner */
+        bottom: 0;
+        z-index: 50;
+      }
+      .sidebar-brand {
+        padding: 20px 18px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .sidebar-brand-name {
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.01em;
+      }
+      .sidebar-brand-sub {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 1px;
+      }
+
+      .admin-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px 10px;
+        flex: 1;
+      }
+      .admin-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: background 0.1s;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+      }
+      .admin-nav-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+      }
+      .admin-nav-item.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        font-weight: 600;
+        border-left-color: #7dd3fc;
+      }
+      .admin-nav-item svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .admin-nav-section {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 14px 10px 4px;
+      }
+
+      .sidebar-user {
+        padding: 14px 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .sidebar-user-info .name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .sidebar-user-info .role {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* ======= MAIN LAYOUT ======= */
+      .admin-main {
+        margin-left: 220px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        padding-top: 44px;
+      }
+      .admin-topbar {
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 24px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        position: sticky;
+        top: 44px;
+        z-index: 40;
+      }
+      .topbar-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .topbar-breadcrumb a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      .topbar-breadcrumb a:hover {
+        color: var(--brand);
+      }
+      .topbar-breadcrumb .sep {
+        color: var(--border);
+      }
+      .topbar-breadcrumb .current {
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .admin-content {
+        padding: 24px;
+        flex: 1;
+      }
+
+      /* ======= BUTTONS ======= */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        border: none;
+        transition: background 0.15s;
+        text-decoration: none;
+      }
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #0c3280;
+      }
+      .btn-outline {
+        background: #fff;
+        color: var(--text-heading);
+        border: 1px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: #f9fafb;
+      }
+      .btn-danger {
+        background: #fef2f2;
+        color: var(--danger);
+        border: 1px solid #fecaca;
+      }
+      .btn-danger:hover {
+        background: #fecaca;
+      }
+      .btn-warning {
+        background: #fffbeb;
+        color: #92400e;
+        border: 1px solid #fde68a;
+      }
+      .btn-warning:hover {
+        background: #fef3c7;
+      }
+      .btn-sm {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+
+      /* ======= TENANT HEADER ======= */
+      .tenant-header {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      .tenant-avatar-lg {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: #eff6ff;
+        border: 2px solid #bfdbfe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--brand);
+        flex-shrink: 0;
+      }
+      .tenant-header-info {
+        flex: 1;
+      }
+      .tenant-name-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+      .tenant-name-row h1 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .tenant-domain {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      .tenant-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .tenant-meta-item {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .tenant-meta-item svg {
+        width: 12px;
+        height: 12px;
+      }
+      .tenant-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      /* ======= STATUS BADGES ======= */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .badge-active {
+        background: #ecfdf5;
+        color: #065f46;
+      }
+      .badge-active .badge-dot {
+        background: var(--success);
+      }
+      .badge-trial {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+      .badge-trial .badge-dot {
+        background: var(--info);
+      }
+      .badge-suspended {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+      .badge-suspended .badge-dot {
+        background: var(--danger);
+      }
+      .badge-flagged {
+        background: #fffbeb;
+        color: #92400e;
+      }
+      .badge-flagged .badge-dot {
+        background: var(--warning);
+      }
+      .badge-plan {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-error {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+      .badge-error .badge-dot {
+        background: var(--danger);
+      }
+      .badge-processing {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+      .badge-processing .badge-dot {
+        background: var(--info);
+      }
+      .badge-paid {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-paid .badge-dot {
+        background: var(--text-muted);
+      }
+      .badge-confirmed {
+        background: #ecfdf5;
+        color: #065f46;
+      }
+      .badge-confirmed .badge-dot {
+        background: var(--success);
+      }
+      .badge-pending {
+        background: #fffbeb;
+        color: #92400e;
+      }
+      .badge-pending .badge-dot {
+        background: var(--warning);
+      }
+
+      /* ======= STATS STRIP ======= */
+      .stats-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+      }
+      .stat-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-heading);
+        font-variant-numeric: tabular-nums;
+      }
+      .stat-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .stat-card.warning-card {
+        border-color: #fde68a;
+        background: #fffbeb;
+      }
+      .stat-card.warning-card .stat-value {
+        color: #92400e;
+      }
+
+      /* ======= ALERT INSET ======= */
+      .alert-inset {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .alert-inset-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .alert-inset-text {
+        flex: 1;
+      }
+      .alert-inset-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #991b1b;
+      }
+      .alert-inset-desc {
+        font-size: 12px;
+        color: #b91c1c;
+        margin-top: 1px;
+      }
+      .alert-inset-action {
+        color: #991b1b;
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      /* ======= TABS ======= */
+      .tabs-bar {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+        background: var(--bg-surface);
+        border-radius: 10px 10px 0 0;
+        overflow: hidden;
+      }
+      .tab-btn {
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        font-family: "Poppins", sans-serif;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s;
+        white-space: nowrap;
+      }
+      .tab-btn:hover {
+        color: var(--text-heading);
+      }
+      .tab-btn.active {
+        color: var(--brand);
+        border-bottom-color: var(--brand);
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* ======= CARD WRAPPER ======= */
+      .card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .card-header-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .card-body {
+        padding: 20px;
+      }
+
+      /* ======= TABLE ======= */
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .data-table th {
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+      }
+      .data-table td {
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--text-body);
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+      }
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
+      .data-table tr:hover td {
+        background: #f9fafb;
+      }
+      .amount-cell {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+
+      /* ======= FORM ELEMENTS ======= */
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+      }
+      .form-input,
+      .form-textarea,
+      .form-select {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-body);
+        background: #fff;
+        outline: none;
+      }
+      .form-input:focus,
+      .form-textarea:focus {
+        border-color: var(--brand-secondary);
+        box-shadow: 0 0 0 3px rgba(22, 89, 214, 0.12);
+      }
+      .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .form-help {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* ======= ACTIVITY LOG ======= */
+      .activity-log {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .activity-item {
+        display: flex;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .activity-item:last-child {
+        border-bottom: none;
+      }
+      .activity-dot-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+      .activity-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border);
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+      .activity-dot.success {
+        background: var(--success);
+      }
+      .activity-dot.warning {
+        background: var(--warning);
+      }
+      .activity-dot.danger {
+        background: var(--danger);
+      }
+      .activity-dot.info {
+        background: var(--info);
+      }
+      .activity-dot.muted {
+        background: var(--text-muted);
+      }
+      .activity-content {
+        flex: 1;
+      }
+      .activity-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-heading);
+      }
+      .activity-title strong {
+        font-weight: 700;
+      }
+      .activity-meta {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* ======= NOTES ======= */
+      .note-item {
+        background: #fffbf0;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+      .note-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .note-author {
+        font-size: 12px;
+        font-weight: 700;
+        color: #92400e;
+      }
+      .note-date {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .note-text {
+        font-size: 13px;
+        color: var(--text-body);
+        line-height: 1.5;
+      }
+
+      /* ======= IMPERSONATE MODAL ======= */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 14px;
+        padding: 28px;
+        width: 420px;
+        max-width: calc(100vw - 40px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      }
+      .modal-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #fffbeb;
+        border: 2px solid #fde68a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin-bottom: 16px;
+      }
+      .modal-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 8px;
+      }
+      .modal-body {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .modal-body strong {
+        color: var(--text-heading);
+      }
+      .modal-audit-note {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 12px;
+        color: #92400e;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .modal-footer {
+        display: flex;
+        gap: 8px;
+      }
+      .modal-footer .btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      /* ======= PLAN LIMIT BAR ======= */
+      .plan-limit-bar {
+        background: #f3f4f6;
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+        margin: 6px 0;
+      }
+      .plan-limit-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--brand);
+        transition: width 0.3s;
+      }
+      .plan-limit-fill.warning {
+        background: var(--warning);
+      }
+      .plan-limit-fill.danger {
+        background: var(--danger);
+      }
+
+      /* ======= INTEGRATION STATUS ======= */
+      .integration-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .integration-row:last-child {
+        border-bottom: none;
+      }
+      .integration-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .integration-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #eff6ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+      .integration-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-heading);
+      }
+      .integration-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- IMPERSONATION BANNER (active state) -->
+    <div class="impersonation-banner" role="alert" aria-live="assertive">
+      <div class="impersonation-banner-left">
+        <span class="impersonation-banner-icon">⚠️</span>
+        <div>
+          <div class="impersonation-banner-text">
+            Acting as <strong>alex@cebutech.com</strong> —
+            <span>all actions are logged. You are viewing this tenant's dashboard.</span>
+          </div>
+        </div>
+      </div>
+      <button class="impersonation-exit-btn" onclick="exitImpersonation()">
+        Exit Impersonation
+      </button>
+    </div>
+
+    <!-- ADMIN SIDEBAR -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">salig-affiliate</div>
+        <div class="sidebar-brand-sub">Platform Admin</div>
+      </div>
+      <nav class="admin-nav">
+        <a href="#" class="admin-nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="7" height="9" rx="1" />
+            <rect x="13" y="3" width="9" height="5" rx="1" />
+            <rect x="13" y="12" width="9" height="9" rx="1" />
+            <rect x="2" y="16" width="7" height="5" rx="1" />
+          </svg>
+          Tenants
+        </a>
+        <a href="#" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          Platform Health
+        </a>
+        <div class="admin-nav-section">System</div>
+        <a href="#" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z" />
+          </svg>
+          Settings
+        </a>
+        <a href="#" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          Audit Log
+        </a>
+      </nav>
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar">SA</div>
+        <div class="sidebar-user-info">
+          <div class="name">Sam Admin</div>
+          <div class="role">Platform Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-main">
+      <!-- TOPBAR -->
+      <div class="admin-topbar">
+        <div class="topbar-breadcrumb">
+          <a href="13-admin-tenants.html">Tenants</a>
+          <span class="sep">/</span>
+          <span class="current">CebuTech SaaS</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+          <button class="btn btn-warning btn-sm" onclick="openImpersonateModal()">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Impersonate Tenant
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-content">
+        <!-- SALIGPAY DISCONNECTED ALERT -->
+        <div class="alert-inset">
+          <span class="alert-inset-icon">🔴</span>
+          <div class="alert-inset-text">
+            <div class="alert-inset-title">SaligPay connection lost</div>
+            <div class="alert-inset-desc">
+              This tenant's SaligPay API key has expired. Webhooks are not being received.
+              Commission tracking is paused.
+            </div>
+          </div>
+          <span class="alert-inset-action">View Details →</span>
+        </div>
+
+        <!-- TENANT HEADER -->
+        <div class="tenant-header">
+          <div class="tenant-avatar-lg">CT</div>
+          <div class="tenant-header-info">
+            <div class="tenant-name-row">
+              <h1>CebuTech SaaS</h1>
+              <span class="badge badge-flagged"><span class="badge-dot"></span>Flagged</span>
+              <span class="badge badge-plan">Pro Plan</span>
+            </div>
+            <div class="tenant-domain">cebutech.io · alex@cebutech.com</div>
+            <div class="tenant-meta-row">
+              <span class="tenant-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Joined Jan 12, 2026
+              </span>
+              <span class="tenant-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+                47 affiliates
+              </span>
+              <span class="tenant-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                ₱24,580 total commissions
+              </span>
+              <span class="tenant-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                SaligPay: <span style="color: var(--danger); font-weight: 600">Disconnected</span>
+              </span>
+            </div>
+          </div>
+          <div class="tenant-header-actions">
+            <button class="btn btn-outline btn-sm">Send Email</button>
+            <button class="btn btn-warning btn-sm" onclick="openImpersonateModal()">
+              Impersonate
+            </button>
+          </div>
+        </div>
+
+        <!-- STATS STRIP -->
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-label">MRR Influenced</div>
+            <div class="stat-value">₱8,240</div>
+            <div class="stat-sub">+12% last 30 days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Affiliates</div>
+            <div class="stat-value">47</div>
+            <div class="stat-sub">3 pending approval</div>
+          </div>
+          <div class="stat-card warning-card">
+            <div class="stat-label">Pending Commissions</div>
+            <div class="stat-value">₱3,120</div>
+            <div class="stat-sub">8 commissions awaiting</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Open Payouts</div>
+            <div class="stat-value">2</div>
+            <div class="stat-sub">₱2,890 total outstanding</div>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs-bar">
+          <button class="tab-btn active" onclick="switchTab('overview', this)">Overview</button>
+          <button class="tab-btn" onclick="switchTab('affiliates', this)">Affiliates (47)</button>
+          <button class="tab-btn" onclick="switchTab('payouts', this)">Payout Batches</button>
+          <button class="tab-btn" onclick="switchTab('integrations', this)">Integrations</button>
+          <button class="tab-btn" onclick="switchTab('notes', this)">Admin Notes (2)</button>
+          <button class="tab-btn" onclick="switchTab('audit', this)">Audit Log</button>
+        </div>
+
+        <!-- TAB: OVERVIEW -->
+        <div class="tab-panel active" id="tab-overview">
+          <div style="display: grid; grid-template-columns: 1fr 360px; gap: 16px">
+            <!-- Recent commissions -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-header-title">Recent Commissions</span>
+                <button class="btn btn-outline btn-sm">View All</button>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Affiliate</th>
+                    <th>Campaign</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Jamie Mendoza</strong></td>
+                    <td>Newsletter 20%</td>
+                    <td class="amount-cell">₱580</td>
+                    <td>
+                      <span class="badge badge-confirmed"
+                        ><span class="badge-dot"></span>Confirmed</span
+                      >
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px">Mar 8, 2026</td>
+                  </tr>
+                  <tr>
+                    <td><strong>RJ Santos</strong></td>
+                    <td>Newsletter 20%</td>
+                    <td class="amount-cell">₱580</td>
+                    <td>
+                      <span class="badge badge-pending"
+                        ><span class="badge-dot"></span>Pending</span
+                      >
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px">Mar 7, 2026</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Maria Cruz</strong></td>
+                    <td>Flat ₱200</td>
+                    <td class="amount-cell">₱200</td>
+                    <td>
+                      <span class="badge badge-confirmed"
+                        ><span class="badge-dot"></span>Confirmed</span
+                      >
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px">Mar 6, 2026</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ben Reyes</strong></td>
+                    <td>Newsletter 20%</td>
+                    <td class="amount-cell">₱580</td>
+                    <td>
+                      <span class="badge badge-error"><span class="badge-dot"></span>Reversed</span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px">Mar 5, 2026</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Jamie Mendoza</strong></td>
+                    <td>Newsletter 20%</td>
+                    <td class="amount-cell">₱580</td>
+                    <td>
+                      <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                    </td>
+                    <td style="color: var(--text-muted); font-size: 12px">Mar 1, 2026</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Plan & limits -->
+            <div>
+              <div class="card" style="margin-bottom: 16px">
+                <div class="card-header"><span class="card-header-title">Plan & Limits</span></div>
+                <div class="card-body" style="padding: 16px 20px">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      margin-bottom: 12px;
+                    "
+                  >
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-heading)"
+                      >Pro Plan</span
+                    >
+                    <button class="btn btn-outline btn-sm">Change Plan</button>
+                  </div>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">
+                    Affiliates
+                  </div>
+                  <div
+                    style="
+                      font-size: 13px;
+                      font-weight: 600;
+                      color: var(--text-heading);
+                      margin-bottom: 4px;
+                    "
+                  >
+                    47 / 200
+                  </div>
+                  <div class="plan-limit-bar">
+                    <div class="plan-limit-fill" style="width: 23%"></div>
+                  </div>
+                  <div
+                    style="
+                      font-size: 11px;
+                      color: var(--text-muted);
+                      margin-top: 2px;
+                      margin-bottom: 12px;
+                    "
+                  >
+                    23% used
+                  </div>
+
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">
+                    Monthly Commissions
+                  </div>
+                  <div
+                    style="
+                      font-size: 13px;
+                      font-weight: 600;
+                      color: var(--text-heading);
+                      margin-bottom: 4px;
+                    "
+                  >
+                    ₱24,580 / Unlimited
+                  </div>
+                  <div class="plan-limit-bar">
+                    <div class="plan-limit-fill" style="width: 100%; background: #10b981"></div>
+                  </div>
+                  <div
+                    style="
+                      font-size: 11px;
+                      color: var(--text-muted);
+                      margin-top: 2px;
+                      margin-bottom: 12px;
+                    "
+                  >
+                    Unlimited on Pro
+                  </div>
+
+                  <div
+                    style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px"
+                  >
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">
+                      Next billing
+                    </div>
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-heading)">
+                      Apr 12, 2026 · ₱1,490/mo
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header"><span class="card-header-title">Quick Actions</span></div>
+                <div
+                  class="card-body"
+                  style="padding: 12px 16px; display: flex; flex-direction: column; gap: 8px"
+                >
+                  <button
+                    class="btn btn-warning"
+                    style="justify-content: flex-start; width: 100%"
+                    onclick="openImpersonateModal()"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    Impersonate Tenant
+                  </button>
+                  <button class="btn btn-outline" style="justify-content: flex-start; width: 100%">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                      />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    Send Resolution Email
+                  </button>
+                  <button class="btn btn-outline" style="justify-content: flex-start; width: 100%">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Add Admin Note
+                  </button>
+                  <button class="btn btn-danger" style="justify-content: flex-start; width: 100%">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg>
+                    Suspend Tenant
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: AFFILIATES -->
+        <div class="tab-panel" id="tab-affiliates">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-header-title">All Affiliates</span>
+              <div style="display: flex; gap: 8px">
+                <input
+                  type="text"
+                  placeholder="Search affiliates..."
+                  style="
+                    padding: 6px 10px;
+                    border: 1px solid var(--border);
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-family: &quot;Poppins&quot;, sans-serif;
+                    color: var(--text-body);
+                    outline: none;
+                    width: 200px;
+                  "
+                />
+              </div>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Referrals</th>
+                  <th>Total Earned</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Jamie Mendoza</strong></td>
+                  <td style="color: var(--text-muted)">jamie@cebutech.com</td>
+                  <td>12</td>
+                  <td class="amount-cell">₱6,960</td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">Jan 20, 2026</td>
+                </tr>
+                <tr>
+                  <td><strong>RJ Santos</strong></td>
+                  <td style="color: var(--text-muted)">rj@influencer.ph</td>
+                  <td>8</td>
+                  <td class="amount-cell">₱4,640</td>
+                  <td>
+                    <span class="badge badge-flagged"><span class="badge-dot"></span>Flagged</span>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">Feb 3, 2026</td>
+                </tr>
+                <tr>
+                  <td><strong>Maria Cruz</strong></td>
+                  <td style="color: var(--text-muted)">maria@blogph.com</td>
+                  <td>5</td>
+                  <td class="amount-cell">₱1,000</td>
+                  <td>
+                    <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">Feb 14, 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB: PAYOUT BATCHES -->
+        <div class="tab-panel" id="tab-payouts">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-header-title">Payout Batches</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Batch ID</th>
+                  <th>Affiliates</th>
+                  <th>Total Amount</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code
+                      style="
+                        font-size: 12px;
+                        background: #f3f4f6;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                      "
+                      >#PAY-024</code
+                    >
+                  </td>
+                  <td>3</td>
+                  <td class="amount-cell">₱1,740</td>
+                  <td>
+                    <span class="badge badge-processing"
+                      ><span class="badge-dot"></span>Processing</span
+                    >
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">
+                    Mar 7, 2026 · <span style="color: var(--danger)">48h stalled</span>
+                  </td>
+                  <td><button class="btn btn-warning btn-sm">Review</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <code
+                      style="
+                        font-size: 12px;
+                        background: #f3f4f6;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                      "
+                      >#PAY-018</code
+                    >
+                  </td>
+                  <td>5</td>
+                  <td class="amount-cell">₱2,900</td>
+                  <td>
+                    <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">Feb 28, 2026</td>
+                  <td><button class="btn btn-outline btn-sm">View</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <code
+                      style="
+                        font-size: 12px;
+                        background: #f3f4f6;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                      "
+                      >#PAY-011</code
+                    >
+                  </td>
+                  <td>4</td>
+                  <td class="amount-cell">₱2,320</td>
+                  <td>
+                    <span class="badge badge-paid"><span class="badge-dot"></span>Paid</span>
+                  </td>
+                  <td style="color: var(--text-muted); font-size: 12px">Feb 14, 2026</td>
+                  <td><button class="btn btn-outline btn-sm">View</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB: INTEGRATIONS -->
+        <div class="tab-panel" id="tab-integrations">
+          <div class="card">
+            <div class="card-header"><span class="card-header-title">Integration Status</span></div>
+            <div class="card-body">
+              <div class="integration-row">
+                <div class="integration-info">
+                  <div class="integration-icon">💳</div>
+                  <div>
+                    <div class="integration-name">SaligPay</div>
+                    <div class="integration-desc">Billing webhook & commission engine</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span class="badge badge-error"><span class="badge-dot"></span>Disconnected</span>
+                  <span style="font-size: 12px; color: var(--text-muted)"
+                    >Key expired Mar 6, 2026</span
+                  >
+                  <button class="btn btn-primary btn-sm">Trigger Re-auth Email</button>
+                </div>
+              </div>
+              <div class="integration-row">
+                <div class="integration-info">
+                  <div class="integration-icon">🔍</div>
+                  <div>
+                    <div class="integration-name">Tracking Snippet</div>
+                    <div class="integration-desc">JS snippet on cebutech.io</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span class="badge badge-confirmed"><span class="badge-dot"></span>Verified</span>
+                  <span style="font-size: 12px; color: var(--text-muted)"
+                    >Last ping Mar 6, 2026</span
+                  >
+                </div>
+              </div>
+              <div class="integration-row">
+                <div class="integration-info">
+                  <div class="integration-icon">📧</div>
+                  <div>
+                    <div class="integration-name">Email Notifications</div>
+                    <div class="integration-desc">Transactional emails via platform relay</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px">
+                  <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+                  <span style="font-size: 12px; color: var(--text-muted)">Last sent 2h ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: ADMIN NOTES -->
+        <div class="tab-panel" id="tab-notes">
+          <div class="note-item">
+            <div class="note-header">
+              <span class="note-author">Sam Admin</span>
+              <span class="note-date">Mar 8, 2026 · 14:32</span>
+            </div>
+            <div class="note-text">
+              SaligPay key expired after tenant reset their password. Sent re-authentication email.
+              Awaiting tenant action to reconnect. Payout batch #PAY-024 is stalled — do not
+              force-close until SaligPay is reconnected and webhooks resume.
+            </div>
+          </div>
+          <div class="note-item">
+            <div class="note-header">
+              <span class="note-author">Sam Admin</span>
+              <span class="note-date">Feb 21, 2026 · 09:10</span>
+            </div>
+            <div class="note-text">
+              Affiliate RJ Santos flagged for potential self-referral on commission #COM-089. Alex
+              has been notified. Monitor for additional fraud signals on this account.
+            </div>
+          </div>
+          <!-- Add Note -->
+          <div class="card" style="margin-top: 16px">
+            <div class="card-header"><span class="card-header-title">Add New Note</span></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Note</label>
+                <textarea
+                  class="form-textarea"
+                  placeholder="Add an internal note about this tenant..."
+                ></textarea>
+                <div class="form-help">
+                  Notes are only visible to Platform Admins and are logged with your identity and
+                  timestamp.
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm">Save Note</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: AUDIT LOG -->
+        <div class="tab-panel" id="tab-audit">
+          <div class="card">
+            <div class="card-header"><span class="card-header-title">Audit Log</span></div>
+            <div class="card-body" style="padding: 0 20px">
+              <div class="activity-log">
+                <div class="activity-item">
+                  <div class="activity-dot-wrap"><div class="activity-dot warning"></div></div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <strong>[Sam Admin]</strong> started impersonation session for this tenant
+                    </div>
+                    <div class="activity-meta">Mar 10, 2026 · 10:14 AM · IP: 203.0.113.45</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-dot-wrap"><div class="activity-dot info"></div></div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <strong>[Sam Admin]</strong> added admin note:
+                      <em>"SaligPay key expired after tenant reset..."</em>
+                    </div>
+                    <div class="activity-meta">Mar 8, 2026 · 2:32 PM</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-dot-wrap"><div class="activity-dot danger"></div></div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <strong>[System]</strong> SaligPay webhook delivery failed — key revoked
+                    </div>
+                    <div class="activity-meta">Mar 6, 2026 · 8:01 AM · Automated event</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-dot-wrap"><div class="activity-dot success"></div></div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <strong>[alex@cebutech.com]</strong> processed payout batch #PAY-018 — marked
+                      as paid
+                    </div>
+                    <div class="activity-meta">Feb 28, 2026 · 3:45 PM</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-dot-wrap"><div class="activity-dot muted"></div></div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <strong>[Sam Admin]</strong> added admin note:
+                      <em>"Affiliate RJ Santos flagged..."</em>
+                    </div>
+                    <div class="activity-meta">Feb 21, 2026 · 9:10 AM</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- IMPERSONATE MODAL -->
+    <div class="modal-overlay" id="impersonate-modal">
+      <div class="modal">
+        <div class="modal-icon">⚠️</div>
+        <h2 class="modal-title">Impersonate this tenant?</h2>
+        <p class="modal-body">
+          You are about to act as <strong>alex@cebutech.com</strong> (CebuTech SaaS). You will see
+          their exact dashboard view and can interact as if you were the tenant owner.
+        </p>
+        <div class="modal-audit-note">
+          🔒 All actions taken while impersonating are logged with your identity (Sam Admin) and a
+          timestamp. This session will appear in the audit trail.
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeImpersonateModal()">Cancel</button>
+          <button class="btn btn-warning" onclick="startImpersonation()">
+            Begin Impersonation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchTab(tabId, btn) {
+        document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        document.getElementById("tab-" + tabId).classList.add("active");
+        btn.classList.add("active");
+      }
+
+      function openImpersonateModal() {
+        document.getElementById("impersonate-modal").classList.add("open");
+      }
+
+      function closeImpersonateModal() {
+        document.getElementById("impersonate-modal").classList.remove("open");
+      }
+
+      function startImpersonation() {
+        closeImpersonateModal();
+        // Banner is already shown — in real app this would navigate
+        alert(
+          "Impersonation session started. Banner is now active.\n\nIn production this would redirect to the tenant's dashboard with the impersonation banner active.",
+        );
+      }
+
+      function exitImpersonation() {
+        alert(
+          "Exiting impersonation. Returning to admin view of CebuTech SaaS.\n\nSession logged: Sam Admin · 10:14 AM – 10:22 AM",
+        );
+      }
+
+      // Close modal on backdrop click
+      document.getElementById("impersonate-modal").addEventListener("click", function (e) {
+        if (e.target === this) closeImpersonateModal();
+      });
+    </script>
+  </body>
+</html>
