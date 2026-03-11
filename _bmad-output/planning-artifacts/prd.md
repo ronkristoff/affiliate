@@ -316,7 +316,7 @@ Based on review of the SaligPay API documentation (`https://api.saligpay.com/gui
 - **Subscription Event Dependency Gate** — The subscription billing webhook schema (recurring charge, upgrade, cancellation, refund, chargeback events) must be confirmed and tested with the SaligPay team **prior to architecture finalization**. This is a hard dependency for the commission engine. Architecture work on the commission event processor should not be locked until this schema is in hand.
 - **Multi-tenant Data Isolation** — Row-level security enforced at the data layer on all queries — not just application layer. Every query scoped to the authenticated tenant ID. Zero cross-tenant data access permitted. Automated integration tests for cross-tenant isolation are required before launch.
 - **Financial Audit Log** — Every commission event (created, adjusted, approved, declined, reversed), every payout action, and every admin impersonation must be written to an immutable, append-only audit log. Required for dispute resolution, fraud investigation, and compliance. Audit log entries must never be editable or deletable by any application-level operation.
-- **Affiliate Portal Authentication** — MVP: email/password with secure session management (httpOnly cookies, CSRF protection). Magic link and OAuth (Google/GitHub) are v2 enhancements.
+- **Affiliate Portal Authentication** — MVP: email/password with secure session management via Better Auth (httpOnly cookies, CSRF protection). Magic link and OAuth (Google/GitHub) are v2 enhancements. Better Auth provides built-in organization support for managing affiliate accounts.
 - **Commission Accuracy Safeguard** — Before any commission record is written: (1) validate payment status is COMPLETED (not PENDING or FAILED), (2) check for existing commission record for the same event ID (idempotency), (3) verify the referral attribution chain is intact. Refund and chargeback events must trigger automatic commission reversal, not deletion — preserving the audit trail.
 
 ### MVP Payout Model
@@ -423,6 +423,8 @@ salig-affiliate is a multi-tenant B2B SaaS platform serving three distinct user 
 
 **Backend:** Convex — real-time reactive database, server functions, and native Convex Workflows for all async job orchestration (webhook processing pipeline, commission calculation jobs, payout batch generation, email dispatch queues). No external workflow or queue infrastructure required.
 
+**Authentication:** Better Auth — comprehensive authentication solution for SaaS Owners and Affiliates. Provides email/password authentication, OAuth (Google, GitHub), session management, organization/team support, and role-based access control. Integrated with Convex for secure server-side verification.
+
 **Email Delivery:** Resend — all transactional and broadcast emails sent via Resend API from Convex Actions. API key stored as a Convex environment variable. Email templates are React Email components; SaaS Owners customize subject lines and basic body content from dashboard settings.
 
 **Workflow Orchestration:** Convex Workflows handles all multi-step async processes:
@@ -485,12 +487,13 @@ salig-affiliate is a multi-tenant B2B SaaS platform serving three distinct user 
 | Integration                               | Purpose                                                 | Scope             | Notes                                                    |
 | ----------------------------------------- | ------------------------------------------------------- | ----------------- | -------------------------------------------------------- |
 | **SaligPay**                              | Billing events, OAuth auth, tenant subscription billing | MVP — Core        | Hard dependency; see Domain Requirements                 |
+| **Better Auth**                           | Authentication for SaaS Owners and Affiliates            | MVP — Core        | Email/password, OAuth providers, session management       |
 | **Resend**                                | Transactional + broadcast email delivery                | MVP               | Called via Convex Actions; API key as Convex env var     |
 | **Google reCAPTCHA v3**                   | Affiliate portal bot protection on signup               | MVP               | Score-based, invisible to legitimate users               |
 | **Custom domain + SSL**                   | White-labeled affiliate portal per tenant               | v1.1 — Scale tier | DNS CNAME configuration; auto-SSL provisioning           |
-| **Convex Workflows**                      | Internal async job orchestration                        | MVP — Internal    | Not user-facing; no external queue infrastructure needed |
+| **Convex Workflows**                      | Internal async job orchestration                       | MVP — Internal    | Not user-facing; no external queue infrastructure needed |
 | **Zapier / Make**                         | External workflow automation for SaaS Owners            | v2                | Pipe affiliate events to tenants' own tools              |
-| **Stripe / Paddle / Chargebee / Recurly** | Non-SaligPay billing integrations                       | v2                | Opens platform to non-SaligPay customers                 |
+| **Stripe / Paddle / Chargebee / Recurly** | Non-SaligPay billing integrations                     | v2                | Opens platform to non-SaligPay customers                 |
 | **Wise Payouts API**                      | Automated affiliate payout disbursement                 | v2                | Parallel track to SaligPay Payouts API                   |
 
 ### Affiliate Email & Portal — Brand Trust Requirements
@@ -506,7 +509,7 @@ salig-affiliate is a multi-tenant B2B SaaS platform serving three distinct user 
 
 - **Subscription agreement:** SaaS Owners must accept Terms of Service on signup before accessing the dashboard. Terms must cover: data processing responsibilities for their affiliates, acceptable use policy, and limitation of liability on commission accuracy for events outside salig-affiliate's control.
 - **Data processing agreement (DPA):** A template DPA is provided to SaaS Owners for use with their affiliates. salig-affiliate acts as data processor; SaaS Owner acts as data controller for their affiliates' personal data.
-- **Session security:** Authenticated sessions use httpOnly cookies, CSRF protection, and configurable session timeout. Platform Admin sessions have a shorter forced timeout (30 min idle) than SaaS Owner sessions.
+- **Session security:** Authenticated sessions managed by Better Auth with httpOnly cookies, CSRF protection, and configurable session timeout. Better Auth handles secure session lifecycle including token refresh and revocation. Platform Admin sessions have a shorter forced timeout (30 min idle) than SaaS Owner sessions.
 - **Audit log retention:** All audit log entries (commission events, payout actions, admin impersonations) retained for minimum 2 years. Accessible to Platform Admin; SaaS Owners can view their own tenant's audit log.
 - _(Full compliance detail including PCI DSS, KYC/AML, Philippine DPA, and tax reporting obligations is in the Domain-Specific Requirements section.)_
 
@@ -815,7 +818,7 @@ _Goal: Global market, enterprise tier, platform network effects_
 - **NFR8:** All data at rest must be encrypted — including SaligPay credentials, affiliate personal data, and commission records
 - **NFR9:** SaligPay OAuth credentials (`client_id`, `client_secret`) must never appear in client-side code, browser storage, or API responses
 - **NFR10:** HMAC-SHA256 webhook signature verification must be performed using timing-safe comparison (`crypto.timingSafeEqual`) on the raw request body before any payload processing
-- **NFR11:** Authenticated sessions must use httpOnly cookies with CSRF protection — no token storage in localStorage or sessionStorage
+- **NFR11:** Authenticated sessions must use httpOnly cookies with CSRF protection — no token storage in localStorage or sessionStorage. Better Auth handles secure session management by default.
 - **NFR12:** Platform Admin sessions must enforce a 30-minute idle timeout — shorter than standard SaaS Owner session timeout
 - **NFR13:** All impersonation actions by Platform Admin must be recorded in the audit log with start timestamp, end timestamp, acting admin identity, and all mutations performed during the session
 - **NFR14:** Audit log records must be immutable — no application-level operation may update or delete an audit log entry
