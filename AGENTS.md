@@ -46,6 +46,13 @@ pnpm convex env set VARIABLE_NAME value
 pnpm convex env set VARIABLE_NAME value --prod
 ```
 
+## 🛠️ Dynamic Skill Loading & Task Initialization
+Before performing any task, the agent MUST execute the following protocol:
+
+1.  **Context Discovery**: Analyze the task to identify the relevant technologies (e.g., Convex, Next.js 16, Better Auth, Tailwind v4, Lucide, Radix UI).
+2.  **Skill Activation**: Proactively load and apply the best practices, strict type definitions, and architectural patterns for every identified technology.
+3.  **Cross-Reference**: Check `convex/schema.ts` for database constraints and `src/proxy.ts` for route protection rules before suggesting any logic changes.
+
 ## Code Style Guidelines
 
 ### TypeScript Configuration

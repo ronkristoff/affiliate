@@ -98,10 +98,9 @@ export default function EnableTwoFactor() {
     }
     try {
       setLoading(true);
-      await authClient.forgetPassword({
-        email: user.email,
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
-      });
+        await authClient.forgetPassword.emailOtp({
+          email: user.email,
+        });
       alert("Check your email for password reset instructions");
     } catch {
       alert("Failed to send password reset email. Please try again.");

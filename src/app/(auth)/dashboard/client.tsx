@@ -59,7 +59,7 @@ const WelcomeSection = () => {
     <div>
       <h1 className="text-2xl font-semibold">Dashboard</h1>
       <p className="text-muted-foreground mt-1">
-        Welcome back, {user?.name || user?.email}
+        Welcome back, {user?.name || user?.email || "User"}
       </p>
     </div>
   );

@@ -1,0 +1,250 @@
+# generated: 2026-03-12
+# project: salig-affiliate
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-03-12
+project: salig-affiliate
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ========================================
+  # EPIC 1: Foundation & Infrastructure
+  # 7 stories | FRs: FR69, FR70 | NFRs: NFR7-21, NFR28-33
+  # ========================================
+  epic-1: in-progress
+  1-1-convex-schema-foundation: done
+  1-2-config-driven-integration-layer: done
+  1-3-saas-owner-authentication: done
+  1-4-affiliate-portal-authentication: done
+  1-5-multi-tenant-data-isolation: done
+  1-6-rbac-permission-system: done
+  1-7-tier-configuration-service: in-progress
+  epic-1-retrospective: optional
+
+  # ========================================
+  # EPIC 2: SaaS Owner Onboarding
+  # 9 stories | FRs: FR1-FR9, FR19, FR21, FR89
+  # Screens: 18-auth-signup.html, 19-auth-login.html, 15-onboarding-saligpay.html, 17-onboarding-snippet.html, 07-owner-settings.html
+  # ========================================
+  epic-2: in-progress
+  2-1-saas-owner-registration: done
+  2-2-saas-owner-login: ready-for-dev
+  2-3-mock-saligpay-oauth-connection: backlog
+  2-4-team-member-invitation: backlog
+  2-5-team-member-invitation-acceptance: backlog
+  2-6-team-member-removal: backlog
+  2-7-account-profile-settings: backlog
+  2-8-tracking-snippet-installation-guide: backlog
+  2-9-saligpay-checkout-attribution-setup: backlog
+  epic-2-retrospective: optional
+
+  # ========================================
+  # EPIC 3: Subscription & Billing Management
+  # 6 stories | FRs: FR5, FR83-FR86, FR88
+  # Screens: 07-owner-settings.html
+  # ========================================
+  epic-3: backlog
+  3-1-mock-subscription-checkout: backlog
+  3-2-trial-to-paid-conversion: backlog
+  3-3-subscription-tier-upgrade: backlog
+  3-4-subscription-downgrade: backlog
+  3-5-subscription-cancellation: backlog
+  3-6-view-subscription-status: backlog
+  epic-3-retrospective: optional
+
+  # ========================================
+  # EPIC 4: Campaign Management
+  # 7 stories | FRs: FR10-FR15
+  # Screens: 05-owner-campaigns.html, 16-onboarding-campaign.html, 07-owner-settings.html
+  # ========================================
+  epic-4: backlog
+  4-1-campaign-creation: backlog
+  4-2-percentage-commission-configuration: backlog
+  4-3-flat-fee-commission-configuration: backlog
+  4-4-recurring-commission-support: backlog
+  4-5-campaign-edit-pause-archive: backlog
+  4-6-commission-approval-thresholds: backlog
+  4-7-per-affiliate-commission-rate-overrides: backlog
+  epic-4-retrospective: optional
+
+  # ========================================
+  # EPIC 5: Affiliate Acquisition & Management
+  # 7 stories | FRs: FR30-FR36
+  # Screens: 02-owner-affiliates.html
+  # ========================================
+  epic-5: backlog
+  5-1-affiliate-registration-on-portal: backlog
+  5-2-recaptcha-protection-on-registration: backlog
+  5-3-affiliate-application-review: backlog
+  5-4-affiliate-suspend-reactivate: backlog
+  5-5-affiliate-profile-and-activity-view: backlog
+  5-6-self-referral-detection: backlog
+  5-7-fraud-signals-dashboard: backlog
+  epic-5-retrospective: optional
+
+  # ========================================
+  # EPIC 6: Referral Tracking Engine
+  # 6 stories | FRs: FR16-FR18, FR20, FR87 | NFRs: NFR3, NFR10
+  # Screens: 17-onboarding-snippet.html
+  # ========================================
+  epic-6: backlog
+  6-1-referral-link-generation: backlog
+  6-2-click-tracking-with-deduplication: backlog
+  6-3-conversion-attribution: backlog
+  6-4-cookie-based-attribution-window: backlog
+  6-5-mock-payment-webhook-processing: backlog
+  6-6-click-tracking-performance: backlog
+  epic-6-retrospective: optional
+
+  # ========================================
+  # EPIC 7: Commission Engine
+  # 8 stories | FRs: FR22-FR29 | NFRs: NFR4, NFR24-25, NFR28
+  # Screens: 03-owner-commissions.html
+  # ========================================
+  epic-7: backlog
+  7-1-payment-updated-event-processing: backlog
+  7-2-subscription-lifecycle-event-processing: backlog
+  7-3-failed-pending-payment-rejection: backlog
+  7-4-commission-reversal: backlog
+  7-5-event-deduplication: backlog
+  7-6-raw-event-storage: backlog
+  7-7-manual-commission-approval: backlog
+  7-8-commission-audit-log: backlog
+  epic-7-retrospective: optional
+
+  # ========================================
+  # EPIC 8: Affiliate Portal Experience
+  # 8 stories | FRs: FR37-FR44 | NFRs: NFR1, NFR34
+  # Screens: 08-portal-login.html, 09-portal-home.html, 10-portal-earnings.html, 11-portal-links.html, 12-portal-account.html
+  # ========================================
+  epic-8: backlog
+  8-1-affiliate-portal-login: backlog
+  8-2-referral-link-management: backlog
+  8-3-real-time-statistics-dashboard: backlog
+  8-4-commission-history-view: backlog
+  8-5-payout-balance-view: backlog
+  8-6-brand-asset-library: backlog
+  8-7-portal-brand-configuration: backlog
+  8-8-custom-domain-scale-tier: backlog
+  epic-8-retrospective: optional
+
+  # ========================================
+  # EPIC 9: Reporting & Analytics
+  # 5 stories | FRs: FR58-FR62 | NFRs: NFR2, NFR5-6
+  # Screens: 01-owner-dashboard.html, 06-owner-reports.html
+  # ========================================
+  epic-9: backlog
+  9-1-dashboard-overview: backlog
+  9-2-campaign-performance-metrics: backlog
+  9-3-affiliate-performance-metrics: backlog
+  9-4-date-range-filtering: backlog
+  9-5-csv-export: backlog
+  epic-9-retrospective: optional
+
+  # ========================================
+  # EPIC 10: Email Communications
+  # 7 stories | FRs: FR51-FR57 | NFRs: NFR27, NFR31
+  # Screens: None (backend + email templates)
+  # ========================================
+  epic-10: backlog
+  10-1-welcome-email: backlog
+  10-2-commission-confirmed-email: backlog
+  10-3-payout-sent-email: backlog
+  10-4-new-referral-alert-email: backlog
+  10-5-broadcast-email: backlog
+  10-6-broadcast-email-log: backlog
+  10-7-email-template-customization: backlog
+  epic-10-retrospective: optional
+
+  # ========================================
+  # EPIC 11: Platform Administration
+  # 6 stories | FRs: FR63-FR68 | NFRs: NFR12-16
+  # Screens: 13-admin-tenants.html, 14-admin-tenant-detail.html
+  # ========================================
+  epic-11: backlog
+  11-1-tenant-search: backlog
+  11-2-tenant-account-details: backlog
+  11-3-tenant-impersonation: backlog
+  11-4-plan-limit-usage-view: backlog
+  11-5-tier-limit-override: backlog
+  11-6-tier-configuration-management: backlog
+  epic-11-retrospective: optional
+
+  # ========================================
+  # EPIC 12: Marketing & Authentication
+  # 8 stories | FRs: FR75-FR82 | NFRs: NFR1, NFR35
+  # Screens: 20-marketing-landing.html, 18-auth-login.html, 19-auth-signup.html
+  # ========================================
+  epic-12: backlog
+  12-1-marketing-landing-page: backlog
+  12-2-pricing-section: backlog
+  12-3-features-section: backlog
+  12-4-social-proof-section: backlog
+  12-5-navigation-header: backlog
+  12-6-seo-optimization: backlog
+  12-7-responsive-load-time: backlog
+  12-8-cta-routing-to-signup: backlog
+  epic-12-retrospective: optional
+
+  # ========================================
+  # EPIC 13: Payout Management
+  # 6 stories | FRs: FR45-FR50
+  # Screens: 04-owner-payouts.html
+  # ========================================
+  epic-13: backlog
+  13-1-payout-batch-generation: backlog
+  13-2-payout-batch-csv-download: backlog
+  13-3-mark-payouts-as-paid: backlog
+  13-4-payout-notification-email: backlog
+  13-5-payout-history-view: backlog
+  13-6-payout-audit-log: backlog
+  epic-13-retrospective: optional
+
+  # ========================================
+  # EPIC 14: SaligPay Real Integration
+  # 8 stories | FRs: FR3-FR4, FR71-FR74 | NFRs: NFR29-NFR30
+  # Screens: 15-onboarding-saligpay.html
+  # ========================================
+  epic-14: backlog
+  14-1-real-saligpay-oauth-connection: backlog
+  14-2-real-saligpay-credential-update: backlog
+  14-3-webhook-signature-verification: backlog
+  14-4-webhook-rejection-and-quarantine: backlog
+  14-5-credential-encryption-at-rest: backlog
+  14-6-re-authentication-prompt: backlog
+  14-7-automatic-token-refresh: backlog
+  14-8-api-401-graceful-handling: backlog
+  epic-14-retrospective: optional

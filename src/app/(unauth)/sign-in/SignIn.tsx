@@ -1,16 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -21,466 +12,378 @@ export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
-  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [signInMethod, setSignInMethod] = useState<"password" | "passwordless">(
-    "passwordless"
-  );
-  const [otpSent, setOtpSent] = useState(false);
-  const [anonymousLoading, setAnonymousLoading] = useState(false);
-  const [githubLoading, setGithubLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [slackLoading, setSlackLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSignIn = async () => {
-    const { data, error } = await authClient.signIn.email(
-      {
-        email,
-        password,
-      },
-      {
-        onRequest: () => {
-          setOtpLoading(true);
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { data, error: authError } = await authClient.signIn.email(
+        {
+          email,
+          password,
         },
-        onSuccess: (ctx) => {
-          setOtpLoading(false);
-          if (ctx.data.twoFactorRedirect) {
-            router.push("/verify-2fa");
-          } else {
-            router.push("/");
-          }
-        },
-        onError: (ctx) => {
-          setOtpLoading(false);
-          alert(ctx.error.message);
-        },
+        {
+          onRequest: () => {
+            setLoading(true);
+          },
+          onSuccess: (ctx) => {
+            setLoading(false);
+            if (ctx.data.twoFactorRedirect) {
+              router.push("/verify-2fa");
+            } else {
+              router.push("/dashboard");
+            }
+          },
+          onError: (ctx) => {
+            setLoading(false);
+            setError(ctx.error.message);
+          },
+        }
+      );
+
+      if (authError) {
+        setError(authError.message || "Authentication failed");
       }
-    );
-
-    console.log({ data, error });
+    } catch (err) {
+      setLoading(false);
+      setError("An unexpected error occurred");
+    }
   };
 
-  const handleResetPassword = async () => {
-    setForgotLoading(true);
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first");
+      return;
+    }
     try {
-      await authClient.forgetPassword({
+      await authClient.forgetPassword.emailOtp({
         email,
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
       });
       alert("Check your email for the reset password link!");
     } catch {
       alert("Failed to send reset password link. Please try again.");
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const handleAnonymousSignIn = async () => {
-    await authClient.signIn.anonymous(
-      {},
-      {
-        onRequest: () => {
-          setAnonymousLoading(true);
-        },
-        onSuccess: () => {
-          setAnonymousLoading(false);
-          router.push("/");
-        },
-        onError: (ctx) => {
-          setAnonymousLoading(false);
-          alert(ctx.error.message);
-        },
-      }
-    );
-  };
-
-  const handleMagicLinkSignIn = async () => {
-    await authClient.signIn.magicLink(
-      {
-        email,
-      },
-      {
-        onRequest: () => {
-          setMagicLinkLoading(true);
-        },
-        onSuccess: () => {
-          setMagicLinkLoading(false);
-          alert("Check your email for the magic link!");
-        },
-        onError: (ctx) => {
-          setMagicLinkLoading(false);
-          alert(ctx.error.message);
-        },
-      }
-    );
-  };
-
-  const handleGithubSignIn = async () => {
-    await authClient.signIn.social(
-      {
-        provider: "github",
-      },
-      {
-        onRequest: () => {
-          setGithubLoading(true);
-        },
-        onResponse: () => setGithubLoading(false),
-        onError: (ctx) => {
-          setGithubLoading(false);
-          alert(ctx.error.message);
-        },
-      }
-    );
-  };
-
-  const handleGoogleSignIn = async () => {
-    await authClient.signIn.social(
-      {
-        provider: "google",
-      },
-      {
-        onRequest: () => {
-          setGoogleLoading(true);
-        },
-        onResponse: () => setGoogleLoading(false),
-        onError: (ctx) => {
-          setGoogleLoading(false);
-          alert(ctx.error.message);
-        },
-      }
-    );
-  };
-
-  const handleSlackSignIn = async () => {
-    await authClient.signIn.oauth2(
-      {
-        providerId: "slack",
-      },
-      {
-        onRequest: () => {
-          setSlackLoading(true);
-        },
-        onResponse: () => setSlackLoading(false),
-        onError: (ctx) => {
-          setSlackLoading(false);
-          alert(ctx.error.message);
-        },
-      }
-    );
-  };
-
-  const handleOtpSignIn = async () => {
-    if (!otpSent) {
-      await authClient.emailOtp.sendVerificationOtp(
-        {
-          email,
-          type: "sign-in",
-        },
-        {
-          onRequest: () => {
-            setOtpLoading(true);
-          },
-          onSuccess: () => {
-            setOtpLoading(false);
-            setOtpSent(true);
-          },
-          onError: (ctx) => {
-            setOtpLoading(false);
-            alert(ctx.error.message);
-          },
-        }
-      );
-    } else {
-      await authClient.signIn.emailOtp(
-        {
-          email,
-          otp,
-        },
-        {
-          onRequest: () => {
-            setOtpLoading(true);
-          },
-          onSuccess: () => {
-            setOtpLoading(false);
-            router.push("/dashboard/client-only");
-          },
-          onError: (ctx) => {
-            setOtpLoading(false);
-            alert(ctx.error.message);
-          },
-        }
-      );
     }
   };
 
   return (
-    <Card className="max-w-md">
-      <CardHeader>
-        <CardTitle className="text-lg md:text-xl">Sign In</CardTitle>
-        <CardDescription className="text-xs md:text-sm">
-          Enter your email below to login to your account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (signInMethod === "password") {
-              handleSignIn();
-            } else if (otpSent) {
-              handleOtpSignIn();
-            }
-          }}
-          className="grid gap-4"
-        >
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
-              required
-              onChange={(e) => {
-                setEmail(e.target.value);
-              }}
-              value={email}
-            />
-          </div>
+    <div className="flex min-h-screen">
+      {/* Left Panel - Brand */}
+      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#022232] relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute top-[-120px] right-[-120px] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(22,89,214,0.25)_0%,transparent_70%)] pointer-events-none" />
+        <div className="absolute bottom-[-80px] left-[-80px] w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,64,154,0.3)_0%,transparent_70%)] pointer-events-none" />
 
-          {signInMethod === "password" && (
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Button
-                  variant="link"
-                  size="sm"
-                  type="button"
-                  onClick={handleResetPassword}
-                  className="cursor-pointer"
-                  disabled={forgotLoading || !email}
-                >
-                  {forgotLoading ? (
-                    <Loader2 size={14} className="animate-spin mr-1" />
-                  ) : null}
-                  Forgot your password?
-                </Button>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="password"
-                autoComplete="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          )}
-
-          {signInMethod === "passwordless" && otpSent && (
-            <div className="grid gap-2">
-              <Label htmlFor="otp">Verification Code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter verification code"
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                pattern="[0-9]*"
-                inputMode="numeric"
-                maxLength={6}
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2">
-            {signInMethod === "password" && (
-              <Button type="submit" className="w-full" disabled={otpLoading}>
-                {otpLoading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  "Sign in with Password"
-                )}
-              </Button>
-            )}
-            <Button
-              type="button"
-              className="w-full"
-              disabled={anonymousLoading}
-              onClick={handleAnonymousSignIn}
+        {/* Logo */}
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 bg-[#10409a] rounded-[10px] flex items-center justify-center shadow-[0_4px_16px_rgba(16,64,154,0.5)]">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-[22px] h-[22px] text-white"
             >
-              {anonymousLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                "Sign in anonymously"
-              )}
-            </Button>
-            {signInMethod === "passwordless" && !otpSent && (
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  className="w-full"
-                  disabled={magicLinkLoading || otpLoading}
-                  onClick={handleMagicLinkSignIn}
-                >
-                  {magicLinkLoading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    "Send Magic Link"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  className="w-full"
-                  variant="outline"
-                  disabled={magicLinkLoading || otpLoading}
-                  onClick={handleOtpSignIn}
-                >
-                  {otpLoading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    "Send Verification Code"
-                  )}
-                </Button>
-              </div>
-            )}
-            {signInMethod === "passwordless" && otpSent && (
-              <Button type="submit" className="w-full" disabled={otpLoading}>
-                {otpLoading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  "Verify Code"
-                )}
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-sm"
-              onClick={() => {
-                setSignInMethod(
-                  signInMethod === "password" ? "passwordless" : "password"
-                );
-                setPassword("");
-                setOtp("");
-                setOtpSent(false);
-              }}
-            >
-              {signInMethod === "password"
-                ? "Sign in with magic link or OTP instead"
-                : "Sign in with a password instead"}
-            </Button>
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
           </div>
+          <span className="text-xl font-extrabold text-white tracking-tight">salig-affiliate</span>
+        </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-neutral-800" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-2 text-neutral-500">
-                or continue with
-              </span>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-2"
-            disabled={githubLoading}
-            onClick={handleGithubSignIn}
-          >
-            {githubLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1em"
-                  height="1em"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34c-.46-1.16-1.11-1.47-1.11-1.47c-.91-.62.07-.6.07-.6c1 .07 1.53 1.03 1.53 1.03c.87 1.52 2.34 1.07 2.91.83c.09-.65.35-1.09.63-1.34c-2.22-.25-4.55-1.11-4.55-4.92c0-1.11.38-2 1.03-2.71c-.1-.25-.45-1.29.1-2.64c0 0 .84-.27 2.75 1.02c.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02c.55 1.35.2 2.39.1 2.64c.65.71 1.03 1.6 1.03 2.71c0 3.82-2.34 4.66-4.57 4.91c.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"
-                  />
-                </svg>
-                Sign in with Github
-              </>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-2"
-            disabled={googleLoading}
-            onClick={handleGoogleSignIn}
-          >
-            {googleLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="0.98em"
-                  height="1em"
-                  viewBox="0 0 256 262"
-                >
-                  <path
-                    fill="#4285F4"
-                    d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622l38.755 30.023l2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055c-34.523 0-63.824-22.773-74.269-54.25l-1.531.13l-40.298 31.187l-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82c0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602z"
-                  />
-                  <path
-                    fill="#EB4335"
-                    d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
-                  />
-                </svg>
-                Sign in with Google
-              </>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-2"
-            disabled={slackLoading}
-            onClick={handleSlackSignIn}
-          >
-            {slackLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              "Sign in with Slack"
-            )}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter>
-        <div className="flex justify-center w-full border-t py-4">
-          <p className="text-center text-xs text-neutral-500">
-            Powered by{" "}
-            <Link
-              href="https://better-auth.com"
-              className="underline"
-              target="_blank"
-            >
-              <span className="dark:text-orange-200/90">better-auth</span>
-            </Link>
+        {/* Hero */}
+        <div className="flex flex-col justify-center relative z-10 py-8">
+          <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
+            Your affiliate<br />program,<br /><span className="text-[#7dd3fc]">on autopilot.</span>
+          </h1>
+          <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
+            Commission tracking, payout management, and a branded affiliate portal — all natively
+            integrated with SaligPay.
           </p>
         </div>
-      </CardFooter>
-    </Card>
+
+        {/* Stats */}
+        <div className="flex flex-col gap-3.5 relative z-10">
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Commissions tracked</div>
+              <div className="text-sm text-white font-semibold mt-px">Zero-latency SaligPay integration</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Setup time</div>
+              <div className="text-sm text-white font-semibold mt-px">First campaign live in under 15 minutes</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">White-labeled portal</div>
+              <div className="text-sm text-white font-semibold mt-px">Your brand. Your affiliates. Zero salig marks.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-[400px]">
+          {/* Header */}
+          <div className="mb-9">
+            <h2 className="text-[26px] font-bold text-[#333] tracking-tight mb-2">Welcome back</h2>
+            <p className="text-sm text-[#6b7280] leading-relaxed">
+              Sign in to your salig-affiliate account. New here?{" "}
+              <Link href="/sign-up" className="text-[#10409a] font-semibold no-underline hover:underline">
+                Start your free 14-day trial →
+              </Link>
+            </p>
+          </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 text-red-500 flex-shrink-0 mt-px"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div className="text-[13px] text-red-800 leading-relaxed">
+                {error}. Please try again, or{" "}
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-red-800 font-semibold bg-transparent border-none cursor-pointer p-0"
+                >
+                  reset your password
+                </button>
+                .
+              </div>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSignIn}>
+            {/* Email */}
+            <div className="mb-[18px]">
+              <label htmlFor="email" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+                Email address
+              </label>
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  placeholder="alex@yourcompany.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="mb-[18px]">
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="text-[13px] font-semibold text-[#333]">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[12px] text-[#10409a] font-medium no-underline hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[#6b7280] hover:text-[#474747]"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-4 h-4"
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center gap-2.5 mb-6">
+              <input
+                type="checkbox"
+                id="remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 accent-[#10409a] cursor-pointer flex-shrink-0"
+              />
+              <label htmlFor="remember" className="text-[13px] text-[#6b7280] cursor-pointer">
+                Keep me signed in for 30 days
+              </label>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg cursor-pointer transition-all hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in to dashboard"
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3.5 my-6">
+            <div className="flex-1 h-px bg-[#e5e7eb]" />
+            <span className="text-[12px] text-[#6b7280] whitespace-nowrap">or</span>
+            <div className="flex-1 h-px bg-[#e5e7eb]" />
+          </div>
+
+          {/* Footer */}
+          <div className="text-center pt-6 border-t border-[#e5e7eb]">
+            <p className="text-[13px] text-[#6b7280]">
+              Don&apos;t have an account?{" "}
+              <Link href="/sign-up" className="text-[#10409a] font-semibold no-underline hover:underline">
+                Start free trial — no credit card required
+              </Link>
+            </p>
+          </div>
+
+          {/* Terms */}
+          <p className="text-[11px] text-[#6b7280] text-center mt-4 leading-relaxed">
+            By signing in, you agree to our{" "}
+            <a href="#" className="text-[#10409a] no-underline hover:underline">Terms of Service</a> and{" "}
+            <a href="#" className="text-[#10409a] no-underline hover:underline">Privacy Policy</a>.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

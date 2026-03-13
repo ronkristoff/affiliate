@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { AppContainer } from "@/components/server";
 import { DashboardClient } from "./client";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 // Stat Card Component - Reusable card for displaying metrics (cached)
 const StatCard = ({

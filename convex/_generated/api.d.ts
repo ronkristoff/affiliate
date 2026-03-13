@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as affiliateAuth from "../affiliateAuth.js";
+import type * as affiliates from "../affiliates.js";
+import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as email from "../email.js";
 import type * as emails_components_BaseEmail from "../emails/components/BaseEmail.js";
@@ -16,6 +19,11 @@ import type * as emails_resetPassword from "../emails/resetPassword.js";
 import type * as emails_verifyEmail from "../emails/verifyEmail.js";
 import type * as emails_verifyOTP from "../emails/verifyOTP.js";
 import type * as http from "../http.js";
+import type * as permissions from "../permissions.js";
+import type * as sessions from "../sessions.js";
+import type * as tenantContext from "../tenantContext.js";
+import type * as tenants from "../tenants.js";
+import type * as tierConfig from "../tierConfig.js";
 import type * as users from "../users.js";
 import type * as util from "../util.js";
 
@@ -26,6 +34,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  affiliateAuth: typeof affiliateAuth;
+  affiliates: typeof affiliates;
+  audit: typeof audit;
   auth: typeof auth;
   email: typeof email;
   "emails/components/BaseEmail": typeof emails_components_BaseEmail;
@@ -34,6 +45,11 @@ declare const fullApi: ApiFromModules<{
   "emails/verifyEmail": typeof emails_verifyEmail;
   "emails/verifyOTP": typeof emails_verifyOTP;
   http: typeof http;
+  permissions: typeof permissions;
+  sessions: typeof sessions;
+  tenantContext: typeof tenantContext;
+  tenants: typeof tenants;
+  tierConfig: typeof tierConfig;
   users: typeof users;
   util: typeof util;
 }>;

@@ -78,13 +78,12 @@ const createOptions = (ctx: GenericCtx) =>
       },
     },
     user: {
-      // This field is available in the `onCreateUser` hook from the component,
-      // but will not be committed to the database. Must be persisted in the
-      // hook if persistence is required.
+      // Store company name for tenant creation
       additionalFields: {
-        foo: {
+        companyName: {
           type: "string",
           required: false,
+          input: true, // Allow passing during registration
         },
       },
       deleteUser: {
@@ -127,12 +126,11 @@ const createOptions = (ctx: GenericCtx) =>
         create: {
           after: async (user) => {
             if ("runMutation" in ctx) {
+              // Use the new syncUserCreation with tenant creation
               await ctx.runMutation(internal.users.syncUserCreation, {
                 email: user.email,
-              });
-            } else if ("db" in ctx) {
-              await (ctx as MutationCtx).db.insert("users", {
-                email: user.email,
+                name: user.name || undefined,
+                companyName: (user as any).companyName || undefined,
               });
             }
           },
@@ -143,23 +141,6 @@ const createOptions = (ctx: GenericCtx) =>
               await ctx.runMutation(internal.users.syncUserDeletion, {
                 email: user.email,
               });
-            } else if ("db" in ctx) {
-              const mutationCtx = ctx as MutationCtx;
-              const appUser = await mutationCtx.db
-                .query("users")
-                .withIndex("email", (q) => q.eq("email", user.email))
-                .first();
-
-              if (appUser) {
-                const todos = await mutationCtx.db
-                  .query("todos")
-                  .withIndex("userId", (q) => q.eq("userId", appUser._id))
-                  .collect();
-                await asyncMap(todos, async (todo) => {
-                  await mutationCtx.db.delete(todo._id);
-                });
-                await mutationCtx.db.delete(appUser._id);
-              }
             }
           },
         },

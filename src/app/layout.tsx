@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins, Passion_One } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/next-theme/theme-provider";
 import { Footer } from "@/components/footer";
 
 import { ConvexClientProvider } from "./ConvexClientProvider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"]
-})
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700", "900"],
+});
+
+const passionOne = Passion_One({
+  variable: "--font-passion",
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+});
 
 export const metadata: Metadata = {
-  title: "Nextjs with convex",
-  description: "First templete by Podalls",
+  title: "salig-affiliate",
+  description: "Affiliate program management with SaligPay integration",
 };
 
 export default function RootLayout({
@@ -24,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} min-h-[calc(100vh-2rem)] flex flex-col gap-4 antialiased`}
+        className={`${poppins.variable} ${passionOne.variable} min-h-[calc(100vh-2rem)] flex flex-col gap-4 antialiased font-sans`}
       >
          <ThemeProvider
             attribute="class"
