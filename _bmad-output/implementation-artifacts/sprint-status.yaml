@@ -61,7 +61,7 @@ development_status:
   # ========================================
   epic-2: in-progress
   2-1-saas-owner-registration: done
-  2-2-saas-owner-login: ready-for-dev
+  2-2-saas-owner-login: done
   2-3-mock-saligpay-oauth-connection: backlog
   2-4-team-member-invitation: backlog
   2-5-team-member-invitation-acceptance: backlog

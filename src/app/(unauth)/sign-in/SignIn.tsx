@@ -2,11 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function SignIn() {
   const router = useRouter();
@@ -16,33 +18,105 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lockoutEndTime, setLockoutEndTime] = useState<number | null>(null);
+  const [remainingAttempts, setRemainingAttempts] = useState<number>(5);
+
+  // Check rate limit status
+  const rateLimitStatus = useQuery(
+    api.rateLimit.checkRateLimit,
+    email ? { email } : "skip"
+  );
+
+  // Record failed attempt mutation
+  const recordFailedAttempt = useMutation(api.rateLimit.recordFailedAttempt);
+  
+  // Clear failed attempts mutation
+  const clearFailedAttempts = useMutation(api.rateLimit.clearFailedAttempts);
+
+  // Update rate limit state when query result changes
+  useEffect(() => {
+    if (rateLimitStatus) {
+      if (rateLimitStatus.isLocked && rateLimitStatus.lockedUntil) {
+        setLockoutEndTime(rateLimitStatus.lockedUntil);
+        setRemainingAttempts(0);
+      } else {
+        setLockoutEndTime(null);
+        setRemainingAttempts(rateLimitStatus.remainingAttempts);
+      }
+    }
+  }, [rateLimitStatus]);
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockoutEndTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (now >= lockoutEndTime) {
+        setLockoutEndTime(null);
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutEndTime]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Check if currently locked out
+    if (lockoutEndTime) {
+      const remainingSeconds = Math.ceil((lockoutEndTime - Date.now()) / 1000);
+      setError(`Too many failed attempts. Please try again in ${Math.floor(remainingSeconds / 60)} minutes ${remainingSeconds % 60} seconds.`);
+      return;
+    }
+
     setLoading(true);
+
+    // Capture IP address for security audit
+    let ipAddress: string | undefined;
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      ipAddress = data.ip;
+    } catch {
+      // IP detection failed, continue without it
+      ipAddress = undefined;
+    }
 
     try {
       const { data, error: authError } = await authClient.signIn.email(
         {
           email,
           password,
+          rememberMe,
         },
         {
           onRequest: () => {
             setLoading(true);
           },
-          onSuccess: (ctx) => {
+          onSuccess: async (ctx) => {
             setLoading(false);
+            // Clear failed attempts on successful login
+            await clearFailedAttempts({ email });
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {
               router.push("/dashboard");
             }
           },
-          onError: (ctx) => {
+          onError: async (ctx) => {
             setLoading(false);
-            setError(ctx.error.message);
+            // Record failed attempt with IP
+            const result = await recordFailedAttempt({ email, ipAddress });
+            if (result.isLocked) {
+              setLockoutEndTime(result.lockedUntil ?? null);
+              setError("Too many failed login attempts. Your account has been temporarily locked for 15 minutes.");
+            } else {
+              setError(ctx.error.message || "Authentication failed");
+              setRemainingAttempts(result.remainingAttempts);
+            }
           },
         }
       );
@@ -208,15 +282,23 @@ export default function SignIn() {
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <div className="text-[13px] text-red-800 leading-relaxed">
-                {error}. Please try again, or{" "}
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-red-800 font-semibold bg-transparent border-none cursor-pointer p-0"
-                >
-                  reset your password
-                </button>
-                .
+                {error}
+                {!lockoutEndTime && remainingAttempts < 5 && remainingAttempts > 0 && (
+                  <span className="block mt-1 text-[12px]">
+                    You have {remainingAttempts} attempt{remainingAttempts !== 1 ? "s" : ""} remaining before your account is locked.
+                  </span>
+                )}
+                {lockoutEndTime && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Let user retry after cooldown
+                    }}
+                    className="text-red-800 font-semibold bg-transparent border-none cursor-pointer ml-1"
+                  >
+                    Try again later
+                  </button>
+                )}
               </div>
             </div>
           )}

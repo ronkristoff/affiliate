@@ -248,4 +248,13 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"])
     .index("by_recipient", ["recipientEmail"]),
+
+  // Rate limiting for failed login attempts
+  loginAttempts: defineTable({
+    email: v.string(),
+    ipAddress: v.optional(v.string()),
+    failedAt: v.number(),
+    lockedUntil: v.optional(v.number()),
+  }).index("by_email", ["email"])
+    .index("by_email_and_locked", ["email", "lockedUntil"]),
 });

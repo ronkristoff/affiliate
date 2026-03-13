@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * @deprecated This component is deprecated and should not be used for new code.
+ * Use the SignIn page component at src/app/(unauth)/sign-in/SignIn.tsx instead,
+ * which includes proper rate limiting, enhanced security, and full feature support.
+ * This component remains for backward compatibility only.
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
