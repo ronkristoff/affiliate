@@ -58,6 +58,12 @@ export const getCurrentUser = query({
       return null;
     }
 
+    // Check if user has been removed (soft-deleted)
+    if (appUser.status === "removed") {
+      console.warn(`Removed user attempted login: ${betterAuthUser.email}`);
+      return null;
+    }
+
     // Get tenant data
     const tenant = await ctx.db.get(appUser.tenantId);
     if (!tenant) {
@@ -147,6 +153,11 @@ export const validateTenantAccess = query({
       return false;
     }
 
+    // Check if user has been removed (soft-deleted)
+    if (appUser.status === "removed") {
+      return false;
+    }
+
     return appUser.tenantId === args.tenantId;
   },
 });
@@ -174,6 +185,11 @@ export const getCurrentTenantId = query({
       .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
       .first();
 
-    return appUser?.tenantId ?? null;
+    // Check if user has been removed (soft-deleted)
+    if (!appUser || appUser.status === "removed") {
+      return null;
+    }
+
+    return appUser.tenantId;
   },
 });

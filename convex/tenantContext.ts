@@ -37,6 +37,11 @@ export async function getAuthenticatedUser(
     return null;
   }
 
+  // Check if user has been removed (soft-deleted)
+  if (appUser.status === "removed") {
+    return null;
+  }
+
   return {
     userId: appUser._id,
     tenantId: appUser.tenantId,
