@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, Check, CreditCard, Users, Code, ArrowRight, SkipForward } from "lucide-react";
+import { Check, CreditCard, Users, Code, ArrowRight, SkipForward, Loader2, TrendingUp } from "lucide-react";
+import { TeamInvitationForm } from "@/components/settings/TeamInvitationForm";
 
 interface OnboardingStep {
   id: number;
@@ -48,6 +52,14 @@ const steps: OnboardingStep[] = [
     href: "/onboarding/snippet",
     skippable: true,
   },
+  {
+    id: 5,
+    title: "Checkout Attribution",
+    description: "Configure conversion attribution through checkout",
+    icon: <TrendingUp className="w-5 h-5" />,
+    href: "/onboarding/checkout-attribution",
+    skippable: true,
+  },
 ];
 
 export function OnboardingWizard() {
@@ -67,6 +79,13 @@ export function OnboardingWizard() {
     } else {
       // Complete onboarding
       router.push("/dashboard");
+    }
+  };
+
+  // Task 4.4: Helper to mark team step (step 2) as complete
+  const markTeamStepComplete = () => {
+    if (!completedSteps.includes(2)) {
+      setCompletedSteps([...completedSteps, 2]);
     }
   };
 
@@ -147,10 +166,13 @@ export function OnboardingWizard() {
             <SaligPayStepContent />
           )}
           {currentStep === 2 && (
-            <TeamStepContent />
+            <TeamStepContent onComplete={markTeamStepComplete} />
           )}
           {currentStep === 3 && (
             <SnippetStepContent />
+          )}
+          {currentStep === 4 && (
+            <AttributionStepContent />
           )}
 
           {/* Action Buttons */}
@@ -233,44 +255,176 @@ function WelcomeStepContent() {
 
 // SaligPay Step Content
 function SaligPayStepContent() {
+  const router = useRouter();
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Get current user with tenant context
+  const currentUser = useQuery(api.auth.getCurrentUser);
+  
+  // Get connection status for the user's tenant
+  const connectionStatus = useQuery(
+    api.tenants.getSaligPayConnectionStatus,
+    currentUser?.tenantId ? { tenantId: currentUser.tenantId as Id<"tenants"> } : "skip"
+  );
+
+  // Mutations for connect/disconnect
+  const connectMockSaligPay = useMutation(api.tenants.connectMockSaligPay);
+  const disconnectSaligPay = useMutation(api.tenants.disconnectSaligPay);
+
+  const isConnected = connectionStatus?.isConnected ?? false;
+
+  const handleConnect = async () => {
+    if (!currentUser?.tenantId) {
+      setConnectionError("Unable to get tenant information. Please refresh the page.");
+      return;
+    }
+    
+    try {
+      setIsConnecting(true);
+      setConnectionError(null);
+      
+      await connectMockSaligPay({ tenantId: currentUser.tenantId as Id<"tenants"> });
+    } catch (error) {
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!currentUser?.tenantId) {
+      setConnectionError("Unable to get tenant information. Please refresh the page.");
+      return;
+    }
+    
+    try {
+      setIsConnecting(true);
+      setConnectionError(null);
+      
+      await disconnectSaligPay({ tenantId: currentUser.tenantId as Id<"tenants"> });
+    } catch (error) {
+      setConnectionError(error instanceof Error ? error.message : "Failed to disconnect");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  if (isConnected) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+              <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h4 className="font-medium text-green-900 dark:text-green-100">
+                Connected (Mock Mode)
+              </h4>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                Your SaligPay account is connected for testing
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDisconnect}
+            disabled={isConnecting}
+            className="flex-1"
+          >
+            {isConnecting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              "Disconnect"
+            )}
+          </Button>
+        </div>
+        
+        <p className="text-sm text-muted-foreground text-center">
+          You can now proceed to the next step or configure more settings in Settings &gt; SaligPay
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
         Connect your SaligPay account to receive payments from your affiliate program.
+        For testing purposes, you can use the mock integration.
       </p>
-      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          Coming Soon
-        </h4>
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          SaligPay integration is being developed in Story 2.3. You can skip this step for now.
-        </p>
-      </div>
+      
+      {connectionError && (
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p className="text-sm text-red-600 dark:text-red-400">{connectionError}</p>
+        </div>
+      )}
+      
+      {!currentUser ? (
+        <div className="flex items-center justify-center p-4">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Button
+            onClick={handleConnect}
+            disabled={isConnecting}
+            className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Connect SaligPay (Mock)
+              </>
+            )}
+          </Button>
+          
+          <p className="text-xs text-muted-foreground text-center">
+            Using mock integration for development/testing
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-// Team Step Content
-function TeamStepContent() {
+// Team Step Content - Task 4.2: Integrated invitation form into onboarding flow
+// Task 4.4: Mark step complete when invitation sent
+function TeamStepContent({ onComplete }: { onComplete?: () => void }) {
+  const handleInvitationSent = () => {
+    // Mark step complete when invitation is sent successfully
+    onComplete?.();
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
         Invite team members to help manage your affiliate program.
       </p>
-      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          Coming Soon
-        </h4>
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          Team member invitation is being developed in Story 2.4. You can skip this step for now.
-        </p>
-      </div>
+      
+      {/* Task 4.2: Integrate invitation form into onboarding flow */}
+      <TeamInvitationForm onInvitationSent={handleInvitationSent} />
+      
+      <p className="text-xs text-muted-foreground text-center">
+        You can skip this step for now and invite team members later from the Settings page.
+      </p>
     </div>
   );
 }
 
-// Snippet Step Content
+// Snippet Step Content - Redirect to dedicated snippet page
 function SnippetStepContent() {
+  const router = useRouter();
+  
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
@@ -278,11 +432,44 @@ function SnippetStepContent() {
       </p>
       <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          Coming Soon
+          Step 3: Install Tracking Snippet
         </h4>
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          Tracking snippet setup is being developed in Story 2.8. You can skip this step for now.
+        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+          Configure and install your tracking snippet to enable click and conversion attribution.
         </p>
+        <Button
+          onClick={() => router.push("/onboarding/snippet")}
+          className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+        >
+          Continue to Snippet Setup
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Attribution Step Content - Redirect to checkout attribution page
+function AttributionStepContent() {
+  const router = useRouter();
+  
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground text-center">
+        Configure how referral data flows through your SaligPay checkout sessions.
+      </p>
+      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+          Step 4: Checkout Attribution Setup
+        </h4>
+        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+          Pass attribution metadata through checkout to track conversions and attribute commissions automatically.
+        </p>
+        <Button
+          onClick={() => router.push("/onboarding/checkout-attribution")}
+          className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+        >
+          Configure Attribution
+        </Button>
       </div>
     </div>
   );

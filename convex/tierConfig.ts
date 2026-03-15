@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
@@ -642,5 +642,98 @@ export const getAllTierConfigs = query({
       maxApiCalls: c.maxApiCalls,
       features: c.features,
     }));
+  },
+});
+
+/**
+ * Internal function to check campaign limit
+ * Can be called from other Convex modules (like campaigns.ts)
+ */
+export const checkCampaignLimitInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.object({
+    allowed: v.boolean(),
+    reason: v.optional(v.string()),
+    current: v.number(),
+    limit: v.number(),
+    percentage: v.number(),
+    status: v.union(v.literal("ok"), v.literal("warning"), v.literal("critical"), v.literal("blocked")),
+  }),
+  handler: async (ctx, args) => {
+    // Get tenant to find plan
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      return {
+        allowed: false,
+        reason: "Tenant not found",
+        current: 0,
+        limit: 0,
+        percentage: 0,
+        status: "blocked" as const,
+      };
+    }
+
+    // Get current campaign count
+    const campaigns = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+
+    const current = campaigns.length;
+
+    // Get tier limits from tierConfigs
+    const tierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", tenant.plan || "starter"))
+      .unique();
+
+    // Use default limits if not in database
+    const tierName = (tenant.plan || "starter") as TierName;
+    const limit = tierConfig?.maxCampaigns ?? DEFAULT_TIER_CONFIGS[tierName].maxCampaigns;
+
+    // Unlimited
+    if (limit === UNLIMITED) {
+      return {
+        allowed: true,
+        current,
+        limit: UNLIMITED,
+        percentage: 0,
+        status: "ok" as const,
+      };
+    }
+
+    const percentage = limit > 0 ? Math.round((current / limit) * 100) : 0;
+
+    // Determine status
+    let status: "ok" | "warning" | "critical" | "blocked" = "ok";
+    if (percentage >= 100) {
+      status = "blocked";
+    } else if (percentage >= 95) {
+      status = "critical";
+    } else if (percentage >= 80) {
+      status = "warning";
+    }
+
+    // Check if at or over limit
+    if (current >= limit) {
+      return {
+        allowed: false,
+        reason: `You have reached the maximum number of campaigns (${limit}) for your plan. Please upgrade to create more.`,
+        current,
+        limit,
+        percentage,
+        status,
+      };
+    }
+
+    return {
+      allowed: true,
+      current,
+      limit,
+      percentage,
+      status,
+    };
   },
 });

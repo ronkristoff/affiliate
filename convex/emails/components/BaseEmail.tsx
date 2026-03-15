@@ -70,6 +70,20 @@ export const styles = {
     border: "1px solid #eee",
     color: "#333",
   },
+  button: {
+    backgroundColor: "#10409a",
+    borderRadius: "5px",
+    color: "#fff",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
+    fontSize: "14px",
+    fontWeight: "bold",
+    textDecoration: "none",
+    textAlign: "center" as const,
+    display: "inline-block",
+    padding: "12px 24px",
+    margin: "16px 0",
+  },
 };
 
 export function BaseEmail({

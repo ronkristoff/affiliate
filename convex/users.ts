@@ -1,8 +1,18 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, internalAction, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
-import { getTenantId, requireTenantId, getTenant } from "./tenantContext";
+import { getTenantId, requireTenantId, getTenant, getAuthenticatedUser } from "./tenantContext";
+import { internal } from "./_generated/api";
+import { Resend } from "@convex-dev/resend";
+import { components } from "./_generated/api";
+import { render } from "@react-email/components";
+import React from "react";
+
+// Initialize Resend with the convex component
+const resend = new Resend(components.resend, {
+  testMode: process.env.NODE_ENV === "test",
+});
 
 /**
  * User document type for type safety.
@@ -296,7 +306,8 @@ export const getUserByEmail = query({
 });
 
 /**
- * Get all users within the current tenant.
+ * Get all active users within the current tenant.
+ * Filters out removed users (soft deleted).
  * 
  * @security Requires authentication. Results are automatically filtered by tenant.
  */
@@ -321,10 +332,13 @@ export const getUsersByTenant = query({
   handler: async (ctx) => {
     const tenantId = await requireTenantId(ctx);
     
-    return await ctx.db
+    const users = await ctx.db
       .query("users")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
       .collect();
+    
+    // Filter out removed users (soft delete)
+    return users.filter(user => user.status !== "removed");
   },
 });
 
@@ -470,6 +484,422 @@ export const getUserWithTenant = query({
         plan: tenant.plan,
         status: tenant.status,
       },
+    };
+  },
+});
+
+/**
+ * Remove a team member from the current tenant.
+ * Only Owners can remove team members.
+ * Self-removal is prevented.
+ * Last Owner cannot be removed.
+ * User data is preserved (soft delete).
+ * 
+ * @security Requires Owner role. Validates target user belongs to current tenant.
+ */
+export const removeTeamMember = mutation({
+  args: {
+    userId: v.id("users"),
+    reason: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // 1. Get current user from auth context
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (!currentUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // 2. Verify current user has Owner role
+    if (currentUser.role !== "owner") {
+      throw new Error("Only Owners can remove team members");
+    }
+
+    // 3. Get target user
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // 4. Verify target user belongs to current tenant (multi-tenant isolation)
+    if (targetUser.tenantId !== currentUser.tenantId) {
+      throw new Error("User not found");
+    }
+
+    // 5. Prevent self-removal
+    if (targetUser._id === currentUser.userId) {
+      throw new Error("Cannot remove yourself. Transfer ownership first.");
+    }
+
+    // 6. Prevent removal of last Owner
+    if (targetUser.role === "owner") {
+      const allUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", currentUser.tenantId))
+        .collect();
+      
+      const activeOwners = allUsers.filter(u => 
+        u.role === "owner" && u.status !== "removed"
+      );
+      
+      if (activeOwners.length <= 1) {
+        throw new Error("Cannot remove the last Owner. Add another Owner first.");
+      }
+    }
+
+    // 7. Soft delete - mark as removed
+    await ctx.db.patch(args.userId, {
+      status: "removed",
+      removedAt: Date.now(),
+      removedBy: currentUser.userId,
+    });
+
+    // 8. Log audit trail
+    await ctx.db.insert("auditLogs", {
+      tenantId: currentUser.tenantId,
+      action: "TEAM_MEMBER_REMOVED",
+      entityType: "user",
+      entityId: args.userId,
+      actorId: currentUser.userId,
+      actorType: "user",
+      previousValue: {
+        email: targetUser.email,
+        name: targetUser.name,
+        role: targetUser.role,
+        status: targetUser.status,
+      },
+      newValue: {
+        status: "removed",
+        removedAt: Date.now(),
+        removedBy: currentUser.userId,
+      },
+      metadata: {
+        additionalInfo: args.reason || "No reason provided",
+      },
+    });
+
+    // 9. Schedule removal notification email
+    await ctx.scheduler.runAfter(0, internal.users.sendRemovalNotification, {
+      userId: args.userId,
+      tenantId: currentUser.tenantId,
+      removedByEmail: currentUser.email,
+      reason: args.reason,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Send removal notification email to the removed team member.
+ * Internal action - called by removeTeamMember mutation.
+ */
+export const sendRemovalNotification = internalAction({
+  args: {
+    userId: v.id("users"),
+    tenantId: v.id("tenants"),
+    removedByEmail: v.string(),
+    reason: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get user details via internal query
+    const user = await ctx.runQuery(internal.users.getUserInternal, {
+      userId: args.userId,
+    });
+    
+    // Get tenant details via internal query
+    const tenant = await ctx.runQuery(internal.tenants.getTenantInternal, {
+      tenantId: args.tenantId,
+    });
+
+    if (!user || !tenant) {
+      console.error("Cannot send removal notification: user or tenant not found");
+      return null;
+    }
+
+    // Import email template dynamically
+    const TeamRemovalEmail = (await import("./emails/TeamRemovalNotification")).default;
+
+    try {
+      // Send email via Resend component
+      await resend.sendEmail(ctx, {
+        from: "Team Notifications <notifications@boboddy.business>",
+        to: user.email,
+        subject: `You've been removed from ${tenant.name}`,
+        html: await render(
+          React.createElement(TeamRemovalEmail, {
+            userEmail: user.email,
+            userName: user.name,
+            tenantName: tenant.name || "Your Organization",
+            removedByEmail: args.removedByEmail,
+            removedAt: new Date().toISOString(),
+            reason: args.reason,
+          })
+        ),
+      });
+
+      // Track email in the emails table via runMutation
+      await ctx.runMutation(internal.emails.trackEmailSent, {
+        tenantId: args.tenantId,
+        type: "team_removal_notification",
+        recipientEmail: user.email,
+        subject: `You've been removed from ${tenant.name}`,
+        status: "sent",
+      });
+
+      console.log(`Team removal notification sent to ${user.email}`);
+    } catch (error) {
+      console.error("Failed to send removal notification:", error);
+
+      // Track failed email via runMutation
+      await ctx.runMutation(internal.emails.trackEmailSent, {
+        tenantId: args.tenantId,
+        type: "team_removal_notification",
+        recipientEmail: user.email,
+        subject: `You've been removed from ${tenant.name}`,
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Internal query to get user details for email notification.
+ */
+export const getUserInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.union(
+    v.object({
+      email: v.string(),
+      name: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return null;
+    }
+    return {
+      email: user.email,
+      name: user.name,
+    };
+  },
+});
+
+// =============================================================================
+// PROFILE FUNCTIONS
+// =============================================================================
+
+/**
+ * Get the current user's profile with tenant information.
+ * This query returns the authenticated user's profile data for the settings page.
+ * 
+ * @security Requires authentication. Returns null if not authenticated.
+ */
+export const getCurrentUserProfile = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      user: v.object({
+        _id: v.id("users"),
+        _creationTime: v.number(),
+        tenantId: v.id("tenants"),
+        email: v.string(),
+        name: v.optional(v.string()),
+        role: v.string(),
+        emailVerified: v.optional(v.boolean()),
+      }),
+      tenant: v.object({
+        _id: v.id("tenants"),
+        name: v.string(),
+        plan: v.string(),
+      }),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      return null;
+    }
+
+    // Get full user record
+    const user = await ctx.db.get(authUser.userId);
+    if (!user) {
+      return null;
+    }
+
+    // Get tenant information
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      user: {
+        _id: user._id,
+        _creationTime: user._creationTime,
+        tenantId: user.tenantId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        emailVerified: user.emailVerified,
+      },
+      tenant: {
+        _id: tenant._id,
+        name: tenant.name,
+        plan: tenant.plan,
+      },
+    };
+  },
+});
+
+/**
+ * Update the current user's profile.
+ * Only allows updating name (email is read-only for security).
+ * 
+ * @security Requires authentication. Only updates the current user's own profile.
+ */
+export const updateUserProfile = mutation({
+  args: {
+    name: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Validate name field
+    if (args.name.length < 2) {
+      throw new Error("Name must be at least 2 characters");
+    }
+    if (args.name.length > 100) {
+      throw new Error("Name must be less than 100 characters");
+    }
+
+    // Validate name format (letters, spaces, hyphens, apostrophes only)
+    const nameRegex = /^[a-zA-Z\s'-]+$/;
+    if (!nameRegex.test(args.name)) {
+      throw new Error("Name can only contain letters, spaces, hyphens, and apostrophes");
+    }
+
+    // Get current user record for audit logging
+    const currentUser = await ctx.db.get(authUser.userId);
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+
+    // Multi-tenant isolation: verify user belongs to current tenant
+    if (currentUser.tenantId !== authUser.tenantId) {
+      throw new Error("Access denied: Cannot update profile for another tenant");
+    }
+
+    // Store previous values for audit log
+    const previousName = currentUser.name;
+
+    // Update user profile (only name can be updated - email is read-only)
+    await ctx.db.patch(authUser.userId, {
+      name: args.name,
+    });
+
+    // Log audit trail for profile update
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "USER_PROFILE_UPDATED",
+      entityType: "user",
+      entityId: authUser.userId,
+      targetId: authUser.userId, // Target is the user being updated (self)
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: {
+        name: previousName,
+      },
+      newValue: {
+        name: args.name,
+      },
+      metadata: {
+        additionalInfo: "Profile update - changed fields: name",
+      },
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Internal query to get owners by tenant.
+ * Used by actions that need to contact tenant owners.
+ */
+export const _getOwnersByTenantInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("users"),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) => q.eq(q.field("role"), "owner"))
+      .collect();
+
+    return users.map((user) => ({
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    }));
+  },
+});
+
+/**
+ * Internal query to get the first owner user by tenant ID.
+ * Used by fraud alert email to find the SaaS owner to notify.
+ */
+export const getOwnerByTenantInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("users"),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) => q.eq(q.field("role"), "owner"))
+      .first();
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
     };
   },
 });

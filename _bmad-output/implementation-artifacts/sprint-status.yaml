@@ -59,16 +59,16 @@ development_status:
   # 9 stories | FRs: FR1-FR9, FR19, FR21, FR89
   # Screens: 18-auth-signup.html, 19-auth-login.html, 15-onboarding-saligpay.html, 17-onboarding-snippet.html, 07-owner-settings.html
   # ========================================
-  epic-2: in-progress
+  epic-2: done
   2-1-saas-owner-registration: done
   2-2-saas-owner-login: done
-  2-3-mock-saligpay-oauth-connection: backlog
-  2-4-team-member-invitation: backlog
-  2-5-team-member-invitation-acceptance: backlog
-  2-6-team-member-removal: backlog
-  2-7-account-profile-settings: backlog
-  2-8-tracking-snippet-installation-guide: backlog
-  2-9-saligpay-checkout-attribution-setup: backlog
+  2-3-mock-saligpay-oauth-connection: done
+  2-4-team-member-invitation: done
+  2-5-team-member-invitation-acceptance: done
+  2-6-team-member-removal: done
+  2-7-account-profile-settings: done
+  2-8-tracking-snippet-installation-guide: done
+  2-9-saligpay-checkout-attribution-setup: done
   epic-2-retrospective: optional
 
   # ========================================
@@ -76,13 +76,13 @@ development_status:
   # 6 stories | FRs: FR5, FR83-FR86, FR88
   # Screens: 07-owner-settings.html
   # ========================================
-  epic-3: backlog
-  3-1-mock-subscription-checkout: backlog
-  3-2-trial-to-paid-conversion: backlog
-  3-3-subscription-tier-upgrade: backlog
-  3-4-subscription-downgrade: backlog
-  3-5-subscription-cancellation: backlog
-  3-6-view-subscription-status: backlog
+  epic-3: done
+  3-1-mock-subscription-checkout: done
+  3-2-trial-to-paid-conversion: done
+  3-3-subscription-tier-upgrade: done
+  3-4-subscription-downgrade: done
+  3-5-subscription-cancellation: done
+  3-6-view-subscription-status: done
   epic-3-retrospective: optional
 
   # ========================================
@@ -90,14 +90,14 @@ development_status:
   # 7 stories | FRs: FR10-FR15
   # Screens: 05-owner-campaigns.html, 16-onboarding-campaign.html, 07-owner-settings.html
   # ========================================
-  epic-4: backlog
-  4-1-campaign-creation: backlog
-  4-2-percentage-commission-configuration: backlog
-  4-3-flat-fee-commission-configuration: backlog
-  4-4-recurring-commission-support: backlog
-  4-5-campaign-edit-pause-archive: backlog
-  4-6-commission-approval-thresholds: backlog
-  4-7-per-affiliate-commission-rate-overrides: backlog
+  epic-4: in-progress
+  4-1-campaign-creation: done
+  4-2-percentage-commission-configuration: done
+  4-3-flat-fee-commission-configuration: done
+  4-4-recurring-commission-support: done
+  4-5-campaign-edit-pause-archive: done
+  4-6-commission-approval-thresholds: done
+  4-7-per-affiliate-commission-rate-overrides: done
   epic-4-retrospective: optional
 
   # ========================================
@@ -105,14 +105,14 @@ development_status:
   # 7 stories | FRs: FR30-FR36
   # Screens: 02-owner-affiliates.html
   # ========================================
-  epic-5: backlog
-  5-1-affiliate-registration-on-portal: backlog
-  5-2-recaptcha-protection-on-registration: backlog
-  5-3-affiliate-application-review: backlog
-  5-4-affiliate-suspend-reactivate: backlog
-  5-5-affiliate-profile-and-activity-view: backlog
-  5-6-self-referral-detection: backlog
-  5-7-fraud-signals-dashboard: backlog
+  epic-5: in-progress
+  5-1-affiliate-registration-on-portal: done
+  5-2-recaptcha-protection-on-registration: done
+  5-3-affiliate-application-review: done
+  5-4-affiliate-suspend-reactivate: done
+  5-5-affiliate-profile-and-activity-view: done
+  5-6-self-referral-detection: done
+  5-7-fraud-signals-dashboard: done
   epic-5-retrospective: optional
 
   # ========================================

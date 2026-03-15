@@ -1,6 +1,8 @@
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, mutation, action, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+import { sendAffiliateWelcomeEmail, sendNewAffiliateNotificationEmail } from "./email";
 
 /**
  * Affiliate Session Management
@@ -172,16 +174,17 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
 }
 
 /**
- * Register a new affiliate.
- * Creates an affiliate record with "pending" status.
- * The affiliate will be able to login once approved by the SaaS owner.
+ * Internal mutation for creating affiliate account.
+ * Separated from the action to allow proper transaction handling.
  */
-export const registerAffiliateAccount = mutation({
+export const createAffiliateAccountInternal = internalMutation({
   args: {
     tenantSlug: v.string(),
     email: v.string(),
     name: v.string(),
-    password: v.string(),
+    passwordHash: v.string(),
+    promotionChannel: v.optional(v.string()),
+    uniqueCode: v.string(),
   },
   returns: v.object({
     success: v.boolean(),
@@ -213,12 +216,20 @@ export const registerAffiliateAccount = mutation({
       return { success: false, error: "An affiliate with this email already exists for this tenant" };
     }
 
-    // Generate unique referral code
+    // Generate unique referral code using cryptographically secure randomness
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let uniqueCode = "";
-    for (let i = 0; i < 8; i++) {
-      uniqueCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    
+    function generateSecureCode(): string {
+      const array = new Uint8Array(8);
+      crypto.getRandomValues(array);
+      let code = "";
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(array[i] % chars.length);
+      }
+      return code;
     }
+    
+    let uniqueCode = generateSecureCode();
 
     // Check uniqueness
     let attempts = 0;
@@ -232,10 +243,7 @@ export const registerAffiliateAccount = mutation({
       
       if (!existing) break;
       
-      uniqueCode = "";
-      for (let i = 0; i < 8; i++) {
-        uniqueCode += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+      uniqueCode = generateSecureCode();
       attempts++;
     }
 
@@ -243,17 +251,14 @@ export const registerAffiliateAccount = mutation({
       return { success: false, error: "Failed to generate unique referral code" };
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(args.password);
-
     // Create affiliate with pending status
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId: tenant._id,
       email: args.email,
       name: args.name,
-      uniqueCode,
+      uniqueCode: args.uniqueCode,
       status: "pending",
-      passwordHash,
+      passwordHash: args.passwordHash,
     });
 
     // Create audit log
@@ -266,12 +271,159 @@ export const registerAffiliateAccount = mutation({
       newValue: { email: args.email, name: args.name, uniqueCode, status: "pending" },
     });
 
+    // Send welcome email to affiliate (async, don't fail registration if email fails)
+    let welcomeEmailSent = false;
+    let welcomeEmailError: string | undefined;
+    try {
+      await sendAffiliateWelcomeEmail(ctx, {
+        to: args.email,
+        affiliateName: args.name,
+        affiliateEmail: args.email,
+        uniqueCode,
+        portalName: tenant.branding?.portalName || tenant.name,
+        brandLogoUrl: tenant.branding?.logoUrl,
+        brandPrimaryColor: tenant.branding?.primaryColor,
+        approvalTimeframe: "1-2 business days",
+        contactEmail: undefined, // Could be extended to store in tenant settings
+      });
+      welcomeEmailSent = true;
+    } catch (emailError) {
+      welcomeEmailError = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error("Failed to send welcome email:", emailError);
+    }
+    
+    // Store welcome email result in emails table
+    await ctx.db.insert("emails", {
+      tenantId: tenant._id,
+      type: "affiliate_welcome",
+      recipientEmail: args.email,
+      subject: `Welcome to ${tenant.branding?.portalName || tenant.name}!`,
+      status: welcomeEmailSent ? "sent" : "failed",
+      sentAt: welcomeEmailSent ? Date.now() : undefined,
+      errorMessage: welcomeEmailError,
+    });
+
+    // Send notification to SaaS Owner (async, don't fail registration if email fails)
+    let ownerNotificationSent = false;
+    let ownerNotificationError: string | undefined;
+    let ownerEmail: string | undefined;
+    try {
+      // Find the owner user for this tenant (role === "owner")
+      const ownerUser = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+        .filter((q) => q.eq(q.field("role"), "owner"))
+        .first();
+
+      if (ownerUser?.email) {
+        ownerEmail = ownerUser.email;
+        await sendNewAffiliateNotificationEmail(ctx, {
+          to: ownerUser.email,
+          affiliateName: args.name,
+          affiliateEmail: args.email,
+          promotionChannel: args.promotionChannel,
+          uniqueCode,
+          merchantName: ownerUser.name || "Merchant",
+          portalName: tenant.branding?.portalName || tenant.name,
+          brandLogoUrl: tenant.branding?.logoUrl,
+          brandPrimaryColor: tenant.branding?.primaryColor,
+          dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/affiliates`,
+        });
+        ownerNotificationSent = true;
+      }
+    } catch (emailError) {
+      ownerNotificationError = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error("Failed to send owner notification email:", emailError);
+    }
+    
+    // Store owner notification email result in emails table (only if we found an owner)
+    if (ownerEmail) {
+      await ctx.db.insert("emails", {
+        tenantId: tenant._id,
+        type: "new_affiliate_notification",
+        recipientEmail: ownerEmail,
+        subject: `New Affiliate Application from ${args.name}`,
+        status: ownerNotificationSent ? "sent" : "failed",
+        sentAt: ownerNotificationSent ? Date.now() : undefined,
+        errorMessage: ownerNotificationError,
+      });
+    }
+
     return {
       success: true,
       affiliateId,
-      uniqueCode,
+      uniqueCode: args.uniqueCode,
       status: "pending",
     };
+  },
+});
+
+/**
+ * Register a new affiliate with reCAPTCHA protection.
+ * Creates an affiliate record with "pending" status.
+ * The affiliate will be able to login once approved by the SaaS owner.
+ * 
+ * Security: reCAPTCHA token is validated server-side before account creation.
+ */
+export const registerAffiliateAccount = action({
+  args: {
+    tenantSlug: v.string(),
+    email: v.string(),
+    name: v.string(),
+    password: v.string(),
+    promotionChannel: v.optional(v.string()),
+    recaptchaToken: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    affiliateId: v.optional(v.id("affiliates")),
+    uniqueCode: v.optional(v.string()),
+    status: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    // Validate reCAPTCHA token first (bot protection)
+    const recaptchaResult: { success: boolean; score?: number; error?: string } = await ctx.runAction(
+      internal.affiliateAuth.validateRecaptchaToken,
+      { token: args.recaptchaToken }
+    );
+
+    if (!recaptchaResult.success) {
+      return {
+        success: false,
+        error: recaptchaResult.error || "Verification failed - please try again",
+      };
+    }
+
+    // Hash password before storing
+    const passwordHash = await hashPassword(args.password);
+
+    // Generate unique referral code
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const array = new Uint8Array(8);
+    crypto.getRandomValues(array);
+    let uniqueCode = "";
+    for (let i = 0; i < 8; i++) {
+      uniqueCode += chars.charAt(array[i] % chars.length);
+    }
+
+    // Call internal mutation to create affiliate account
+    const result: {
+      success: boolean;
+      affiliateId?: Id<"affiliates">;
+      uniqueCode?: string;
+      status?: string;
+      error?: string;
+    } = await ctx.runMutation(internal.affiliateAuth.createAffiliateAccountInternal, {
+      tenantSlug: args.tenantSlug,
+      email: args.email,
+      name: args.name,
+      passwordHash,
+      promotionChannel: args.promotionChannel,
+      uniqueCode,
+    });
+
+    return result;
   },
 });
 
@@ -347,6 +499,19 @@ export const loginAffiliate = mutation({
       entityId: affiliate._id,
       actorType: "affiliate",
     });
+
+    // Update affiliate login tracking for self-referral detection (Story 5.6)
+    // Note: In a real implementation, we'd get the IP from the request context
+    // For now, this is a placeholder - the actual IP would come from the HTTP request
+    try {
+      await ctx.db.patch(affiliate._id, {
+        lastLoginIp: undefined, // Would be set from request context in production
+        lastDeviceFingerprint: undefined, // Would be set from client in production
+      });
+    } catch (e) {
+      // Don't fail login if tracking update fails
+      console.error("Failed to update affiliate login tracking:", e);
+    }
 
     // Create server-side session with expiration
     const sessionToken = await createAffiliateSession(ctx, affiliate._id, tenant._id);
@@ -571,6 +736,73 @@ export const changeAffiliatePassword = mutation({
     });
 
     return { success: true };
+  },
+});
+
+/**
+ * Validate reCAPTCHA token with Google's verification API.
+ * Returns validation result with score-based assessment.
+ */
+export const validateRecaptchaToken = internalAction({
+  args: {
+    token: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    score: v.optional(v.number()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; score?: number; error?: string }> => {
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    const scoreThreshold = parseFloat(process.env.RECAPTCHA_SCORE_THRESHOLD || "0.5");
+
+    if (!secretKey) {
+      console.error("RECAPTCHA_SECRET_KEY is not configured");
+      return { success: false, error: "Server configuration error" };
+    }
+
+    try {
+      // Make HTTP request to Google's reCAPTCHA verification API
+      const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: secretKey,
+          response: args.token,
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        console.error("reCAPTCHA verification request failed:", response.statusText);
+        return { success: false, error: "Verification service unavailable" };
+      }
+
+      const data = await response.json();
+
+      // Check if token is valid
+      if (!data.success) {
+        console.error("reCAPTCHA token validation failed:", data["error-codes"]);
+        return { success: false, error: "Invalid verification token" };
+      }
+
+      // Check score threshold (reCAPTCHA v3 returns score from 0.0 to 1.0)
+      const score = data.score as number;
+      if (score < scoreThreshold) {
+        console.warn(`reCAPTCHA score ${score} below threshold ${scoreThreshold}`);
+        return {
+          success: false,
+          score,
+          error: "We couldn't verify you're human - please try again",
+        };
+      }
+
+      return { success: true, score };
+    } catch (error) {
+      console.error("reCAPTCHA validation error:", error);
+      return { success: false, error: "Verification failed - please try again" };
+    }
   },
 });
 

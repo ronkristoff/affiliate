@@ -120,6 +120,38 @@ pnpm convex env set GITHUB_CLIENT_ID your-github-client-id --prod
 pnpm convex env set GITHUB_CLIENT_SECRET your-github-client-secret --prod
 ```
 
+#### 🤖 reCAPTCHA v3 (Bot Protection)
+
+Affiliate registration is protected by Google reCAPTCHA v3 to prevent bot abuse.
+
+1. Go to [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin)
+2. Create a new site:
+   - Label: Your affiliate portal name
+   - reCAPTCHA type: reCAPTCHA v3
+   - Domains: Add your production domain(s) and `localhost` for development
+3. Copy the **Site Key** and **Secret Key**
+
+**Configure Environment Variables:**
+
+```bash
+# Add to .env.local (frontend - public key)
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key-here
+
+# Add to Convex environment (backend - secret key)
+pnpm convex env set RECAPTCHA_SECRET_KEY your-secret-key-here
+pnpm convex env set RECAPTCHA_SECRET_KEY your-secret-key-here --prod
+
+# Optional: Adjust score threshold (default: 0.5)
+pnpm convex env set RECAPTCHA_SCORE_THRESHOLD 0.5
+```
+
+**Score Threshold Guide:**
+- `0.3` - Lenient: More legitimate users pass, some bots may slip through
+- `0.5` - Balanced (recommended): Good balance between security and UX
+- `0.7` - Strict: Blocks more bots, may reject some legitimate users
+
+Higher scores = more restrictive. Adjust based on your observed bot traffic.
+
 ### 6. Required API Keys
 
 You'll need to set up the following services:

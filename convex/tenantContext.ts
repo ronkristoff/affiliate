@@ -134,6 +134,7 @@ export function tenantQuery<Args extends Record<string, any>, ReturnType>(
 /**
  * Create a tenant-scoped mutation that automatically injects the tenant ID.
  * The mutation will fail if the user is not authenticated.
+ * Also checks write access - blocks writes for cancelled subscriptions after billing period ends.
  * Use validateTenantOwnership() within the handler to verify document ownership
  * 
  * Note: For better type safety, use this as a template and create your own
@@ -149,7 +150,52 @@ export function tenantMutation<Args extends Record<string, any>, ReturnType>(
     returns: returnsValidator,
     handler: async (ctx, args) => {
       const tenantId = await requireTenantId(ctx);
+      // Check write access - blocks writes for cancelled subscriptions after billing period ends
+      await requireWriteAccess(ctx);
       return handler(ctx, args as Args, tenantId);
     },
   });
+}
+
+/**
+ * Check if write operations are allowed for the current tenant.
+ * Write operations are blocked when:
+ * 1. Subscription is cancelled AND billing period has ended
+ * 
+ * @param ctx - The Convex context
+ * @returns Object with canWrite flag and reason if blocked
+ */
+export async function checkWriteAccess(
+  ctx: QueryCtx | MutationCtx
+): Promise<{ canWrite: boolean; reason?: string }> {
+  const tenant = await getTenant(ctx);
+  
+  if (!tenant) {
+    return { canWrite: false, reason: "Tenant not found" };
+  }
+
+  const now = Date.now();
+  const subscriptionStatus = tenant.subscriptionStatus;
+  const billingEndDate = tenant.billingEndDate;
+
+  // If subscription is cancelled and billing period has ended, block writes
+  if (subscriptionStatus === "cancelled" && billingEndDate && now >= billingEndDate) {
+    return { 
+      canWrite: false, 
+      reason: "Write operations are blocked because your subscription was cancelled and the billing period has ended" 
+    };
+  }
+
+  return { canWrite: true };
+}
+
+/**
+ * Require that write operations are allowed for the current tenant.
+ * Throws an error if writes are blocked.
+ */
+export async function requireWriteAccess(ctx: QueryCtx | MutationCtx): Promise<void> {
+  const { canWrite, reason } = await checkWriteAccess(ctx);
+  if (!canWrite) {
+    throw new Error(reason || "Write operations are not allowed");
+  }
 }

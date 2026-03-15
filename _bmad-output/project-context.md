@@ -95,6 +95,37 @@ When implementing, AI agents MUST load relevant skills:
 | **Frontend Design** | UI components |
 | **Convex Realtime** | Real-time features |
 
+### Design Context
+
+**Users:**
+- **SaaS Owner ("Alex")** — Running a subscription SaaS business; needs to launch, manage, and track affiliate programs with minimal friction; values accuracy and automation
+- **Affiliate ("Jamie")** — Content creators, freelancers, digital marketers; non-technical; needs clear, accessible dashboards; values trust and transparency
+- **Platform Admin** — Internal operations team; needs efficient tenant management tools
+- Target market: Philippine and Southeast Asian digital entrepreneurs, GHL agency owners, SaaS resellers
+
+**Brand Personality:**
+- **Modern Professional** — Clean, trustworthy, data-driven
+- Confidence-inspiring without being stiff
+- FinTech-grade precision (commission accuracy is critical)
+- Community-rooted in PH/SEA market — authentic, not corporate
+
+**Aesthetic Direction:**
+- Light mode primary with dark mode available
+- Clean, command-center dashboard aesthetic
+- Data visualization focus (metrics, charts, tables)
+- Professional but not boring — modern tooling feel
+- Brand primary: `#10409a`, Secondary: `#1659d6`
+- Typography: Poppins (body), Passion One (display headings)
+- Border radius: 12px (0.75rem) default
+- Status colors: success (green), warning (amber), danger (red), info (blue)
+
+**Design Principles:**
+1. **Trust through precision** — Financial accuracy is paramount; UI must convey reliability
+2. **Progressive disclosure** — Show complexity only when needed; keep onboarding friction low
+3. **White-label trust** — Affiliate portal reflects the SaaS Owner's brand, not salig-affiliate's
+4. **Mobile-first for affiliates** — They may check commissions on mobile; dashboard must be responsive
+5. **Clear status communication** — Commission states, payout status, fraud flags must be instantly understandable
+
 ---
 
 ## Usage Guidelines

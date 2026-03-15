@@ -1,0 +1,267 @@
+"use client";
+
+import { useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, ArrowUp, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface PlanComparisonProps {
+  currentPlan: "starter" | "growth" | "scale";
+  targetPlan: "growth" | "scale";
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+const PLAN_FEATURES = {
+  starter: {
+    affiliates: 100,
+    campaigns: 3,
+    teamMembers: 5,
+    analytics: "basic",
+    customDomain: false,
+    prioritySupport: false,
+  },
+  growth: {
+    affiliates: 5000,
+    campaigns: 10,
+    teamMembers: 20,
+    analytics: "advanced",
+    customDomain: true,
+    prioritySupport: false,
+  },
+  scale: {
+    affiliates: "Unlimited",
+    campaigns: "Unlimited",
+    teamMembers: "Unlimited",
+    analytics: "enterprise",
+    customDomain: true,
+    prioritySupport: true,
+  },
+};
+
+const FEATURE_LABELS = {
+  affiliates: "Affiliates",
+  campaigns: "Campaigns",
+  teamMembers: "Team Members",
+  analytics: "Analytics",
+  customDomain: "Custom Domain",
+  prioritySupport: "Priority Support",
+};
+
+type FeatureKey = keyof typeof PLAN_FEATURES.starter;
+
+export function PlanComparison({
+  currentPlan,
+  targetPlan,
+  onConfirm,
+  onCancel,
+}: PlanComparisonProps) {
+  const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
+
+  const { currentTier, targetTier, proratedAmount } = useMemo(() => {
+    if (!allTiers) {
+      return { currentTier: null, targetTier: null, proratedAmount: 0 };
+    }
+
+    const current = allTiers.find((t) => t.tier === currentPlan);
+    const target = allTiers.find((t) => t.tier === targetPlan);
+
+    // Simple proration calculation (30-day cycle assumed)
+    const priceDiff = (target?.price || 0) - (current?.price || 0);
+    const dailyRate = priceDiff / 30;
+    const estimatedProrated = Math.ceil(dailyRate * 15); // Assume mid-cycle for display
+
+    return {
+      currentTier: current,
+      targetTier: target,
+      proratedAmount: estimatedProrated,
+    };
+  }, [allTiers, currentPlan, targetPlan]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const renderFeatureValue = (
+    feature: FeatureKey,
+    plan: "starter" | "growth" | "scale"
+  ) => {
+    const value = PLAN_FEATURES[plan][feature];
+
+    if (typeof value === "boolean") {
+      return value ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <X className="h-4 w-4 text-gray-300" />
+      );
+    }
+
+    return <span className="font-medium">{value}</span>;
+  };
+
+  const isUpgrade = (feature: FeatureKey) => {
+    const current = PLAN_FEATURES[currentPlan][feature];
+    const target = PLAN_FEATURES[targetPlan][feature];
+
+    if (typeof current === "boolean" && typeof target === "boolean") {
+      return target && !current;
+    }
+
+    if (typeof current === "string" && typeof target === "string") {
+      const tiers = ["basic", "advanced", "enterprise"];
+      return tiers.indexOf(target) > tiers.indexOf(current);
+    }
+
+    if (typeof current === "number" && typeof target === "number") {
+      return target > current;
+    }
+
+    return target === "Unlimited" && current !== "Unlimited";
+  };
+
+  const features: FeatureKey[] = [
+    "affiliates",
+    "campaigns",
+    "teamMembers",
+    "analytics",
+    "customDomain",
+    "prioritySupport",
+  ];
+
+  if (!currentTier || !targetTier) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-muted-foreground">Loading plan details...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold">Upgrade Your Plan</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Compare plans and confirm your upgrade
+        </p>
+      </div>
+
+      {/* Plan Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Current Plan */}
+        <Card className="border-2 border-gray-200">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg capitalize">{currentPlan}</CardTitle>
+              <Badge variant="secondary">Current</Badge>
+            </div>
+            <p className="text-2xl font-bold">
+              {formatPrice(currentTier.price)}
+              <span className="text-sm font-normal text-muted-foreground">/mo</span>
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ul className="space-y-2">
+              {features.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-muted-foreground">
+                    {FEATURE_LABELS[feature]}
+                  </span>
+                  {renderFeatureValue(feature, currentPlan)}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Target Plan */}
+        <Card className="border-2 border-primary relative">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg capitalize">{targetPlan}</CardTitle>
+              <Badge className="bg-primary">Selected</Badge>
+            </div>
+            <p className="text-2xl font-bold">
+              {formatPrice(targetTier.price)}
+              <span className="text-sm font-normal text-muted-foreground">/mo</span>
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ul className="space-y-2">
+              {features.map((feature) => (
+                <li
+                  key={feature}
+                  className={cn(
+                    "flex items-center justify-between text-sm",
+                    isUpgrade(feature) && "text-green-600 font-medium"
+                  )}
+                >
+                  <span className="text-muted-foreground">
+                    {FEATURE_LABELS[feature]}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {renderFeatureValue(feature, targetPlan)}
+                    {isUpgrade(feature) && (
+                      <ArrowUp className="h-3 w-3 text-green-600" />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upgrade Arrow */}
+      <div className="flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground bg-muted px-4 py-2 rounded-full">
+          <span className="capitalize">{currentPlan}</span>
+          <ArrowRight className="h-4 w-4" />
+          <span className="capitalize font-medium text-foreground">{targetPlan}</span>
+        </div>
+      </div>
+
+      {/* Prorated Billing Info */}
+      <div className="bg-muted rounded-lg p-4 space-y-2">
+        <h4 className="font-medium">Prorated Billing</h4>
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Price difference</span>
+            <span>{formatPrice(targetTier.price - currentTier.price)}/mo</span>
+          </div>
+          <div className="flex justify-between font-medium">
+            <span>Prorated charge today</span>
+            <span className="text-primary">
+              ~{formatPrice(proratedAmount)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground pt-2">
+            Your next billing cycle will be {formatPrice(targetTier.price)}/month.
+            Exact prorated amount will be calculated at checkout.
+          </p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={onConfirm}>
+          Continue to Checkout
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}

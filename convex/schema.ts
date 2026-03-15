@@ -7,24 +7,60 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     plan: v.string(),
+    status: v.string(),
+    subscriptionStatus: v.optional(v.string()),
+    subscriptionId: v.optional(v.string()),
+    billingStartDate: v.optional(v.number()),
+    billingEndDate: v.optional(v.number()),
+    cancellationDate: v.optional(v.number()),
+    deletionScheduledDate: v.optional(v.number()),
     trialEndsAt: v.optional(v.number()),
+    trackingPublicKey: v.optional(v.string()),
+    trackingVerifiedAt: v.optional(v.number()),
     saligPayCredentials: v.optional(v.object({
       clientId: v.string(),
       clientSecret: v.string(),
+      mode: v.optional(v.string()),
+      connectedAt: v.optional(v.number()),
+      mockMerchantId: v.optional(v.string()),
+      realMerchantId: v.optional(v.string()),
+      expiresAt: v.optional(v.number()),
+      mockAccessToken: v.optional(v.string()),
+      mockRefreshToken: v.optional(v.string()),
     })),
     branding: v.optional(v.object({
       logoUrl: v.optional(v.string()),
       primaryColor: v.optional(v.string()),
       portalName: v.optional(v.string()),
     })),
-    status: v.string(),
-  }).index("by_slug", ["slug"]),
+  }).index("by_slug", ["slug"])
+    .index("by_tracking_key", ["trackingPublicKey"]),
+
+  // Billing history table
+  billingHistory: defineTable({
+    tenantId: v.id("tenants"),
+    event: v.string(),
+    plan: v.optional(v.string()),
+    amount: v.optional(v.number()),
+    timestamp: v.number(),
+    transactionId: v.optional(v.string()),
+    actorId: v.optional(v.id("users")),
+    newPlan: v.optional(v.string()),
+    previousPlan: v.optional(v.string()),
+    proratedAmount: v.optional(v.number()),
+    mockTransaction: v.optional(v.boolean()),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_time", ["tenantId", "timestamp"]),
 
   users: defineTable({
     tenantId: v.id("tenants"),
     email: v.string(),
     name: v.optional(v.string()),
     role: v.string(),
+    status: v.optional(v.string()),
+    removedAt: v.optional(v.number()),
+    removedBy: v.optional(v.string()),
+    emailVerified: v.optional(v.boolean()),
     permissionOverrides: v.optional(v.object({
       canManageAffiliates: v.boolean(),
       canManageCampaigns: v.boolean(),
@@ -71,6 +107,8 @@ export default defineSchema({
     commissionValue: v.number(),
     recurringCommission: v.boolean(),
     recurringRate: v.optional(v.number()),
+    cookieDuration: v.optional(v.number()),
+    autoApproveCommissions: v.optional(v.boolean()),
     approvalThreshold: v.optional(v.number()),
     status: v.string(),
   }).index("by_tenant", ["tenantId"])
@@ -82,21 +120,35 @@ export default defineSchema({
     name: v.string(),
     uniqueCode: v.string(),
     status: v.string(),
+    note: v.optional(v.string()),
     passwordHash: v.optional(v.string()),
     payoutMethod: v.optional(v.object({
       type: v.string(),
       details: v.string(),
     })),
+    // Self-referral detection fields (Story 5.6)
+    lastLoginIp: v.optional(v.string()),
+    lastDeviceFingerprint: v.optional(v.string()),
+    payoutMethodLastDigits: v.optional(v.string()),
+    payoutMethodProcessorId: v.optional(v.string()),
+    // Fraud signals with review tracking (Story 5.7)
     fraudSignals: v.optional(v.array(v.object({
       type: v.string(),
       severity: v.string(),
       timestamp: v.number(),
       details: v.optional(v.string()),
+      reviewedAt: v.optional(v.number()),
+      reviewedBy: v.optional(v.string()),
+      reviewNote: v.optional(v.string()),
     }))),
-    commissionOverride: v.optional(v.object({
+    commissionOverrides: v.optional(v.array(v.object({
       campaignId: v.id("campaigns"),
       rate: v.number(),
-    })),
+      status: v.optional(v.union(
+        v.literal("active"),
+        v.literal("paused"),
+      )),
+    }))),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
     .index("by_tenant_and_code", ["tenantId", "uniqueCode"])
@@ -140,13 +192,30 @@ export default defineSchema({
     .index("by_affiliate", ["affiliateId"])
     .index("by_dedupe_key", ["dedupeKey"]),
 
+  // Tracking pings table for tracking pixel verification
+  trackingPings: defineTable({
+    tenantId: v.id("tenants"),
+    trackingKey: v.string(),
+    timestamp: v.number(),
+    domain: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tracking_key", ["trackingKey"])
+    .index("by_tenant_and_time", ["tenantId", "timestamp"]),
+
   conversions: defineTable({
     tenantId: v.id("tenants"),
     affiliateId: v.id("affiliates"),
-    referralLinkId: v.id("referralLinks"),
-    clickId: v.id("clicks"),
+    referralLinkId: v.optional(v.id("referralLinks")),
+    clickId: v.optional(v.id("clicks")),
     customerEmail: v.optional(v.string()),
     amount: v.number(),
+    status: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    deviceFingerprint: v.optional(v.string()),
+    paymentMethodLastDigits: v.optional(v.string()),
+    paymentMethodProcessorId: v.optional(v.string()),
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
@@ -163,6 +232,8 @@ export default defineSchema({
     conversionId: v.optional(v.id("conversions")),
     amount: v.number(),
     status: v.string(),
+    isSelfReferral: v.optional(v.boolean()),
+    fraudIndicators: v.optional(v.array(v.string())),
     eventMetadata: v.optional(v.object({
       source: v.string(),
       transactionId: v.optional(v.string()),
@@ -204,6 +275,7 @@ export default defineSchema({
     action: v.string(),
     entityType: v.string(),
     entityId: v.string(),
+    targetId: v.optional(v.string()),
     actorId: v.optional(v.string()),
     actorType: v.string(),
     previousValue: v.optional(v.any()),

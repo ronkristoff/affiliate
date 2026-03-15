@@ -29,24 +29,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body
-        className={`${poppins.variable} ${passionOne.variable} min-h-[calc(100vh-2rem)] flex flex-col gap-4 antialiased font-sans`}
+        className={`${poppins.variable} ${passionOne.variable} min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-body)] antialiased`}
+        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
       >
          <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="light"
+            enableSystem={false}
             disableTransitionOnChange
           >
             <ConvexClientProvider>
-            <main className=" px-2 md:px-4 grow flex flex-col">
-            
-              {children}
-            </main>
-            <Footer />
+              <main className="flex-1 flex flex-col">
+                {children}
+              </main>
+              <Footer />
             </ConvexClientProvider>
-            
           </ThemeProvider>
       </body>
     </html>

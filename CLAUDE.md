@@ -259,3 +259,55 @@ pnpm convex env set BETTER_AUTH_SECRET your-prod-secret --prod
 - **Turbopack is default** - no `--turbo` flag needed in dev/build commands
 - **Proxy pattern** - `src/proxy.ts` replaces `middleware.ts` (deprecated convention)
 - **React 19** - Using React 19.2.0 with async server components
+
+---
+
+## Design Context
+
+### Users
+
+**Primary Users:**
+- **SaaS Owner ("Alex")** — Running a subscription SaaS business; needs to launch, manage, and track affiliate programs with minimal friction; values accuracy and automation
+- **Affiliate ("Jamie")** — Content creators, freelancers, digital marketers; non-technical; needs clear, accessible dashboards; values trust and transparency
+- **Platform Admin** — Internal operations team; needs efficient tenant management tools
+
+**User Context:**
+- Target market: Philippine and Southeast Asian digital entrepreneurs, GHL agency owners, SaaS resellers
+- Users range from technical (can install JS snippets) to non-technical (need guided setup)
+- Mobile-responsive affiliate portal required (affiliates may check on-the-go)
+
+### Brand Personality
+
+**Modern Professional** — Clean, trustworthy, data-driven
+- Confidence-inspiring without being stiff
+- FinTech-grade precision (commission accuracy is critical)
+- Community-rooted in PH/SEA market — authentic, not corporate
+
+### Aesthetic Direction
+
+**Visual Tone:**
+- Light mode primary with dark mode available
+- Clean, command-center dashboard aesthetic
+- Data visualization focus (metrics, charts, tables)
+- Professional but not boring — modern tooling feel
+
+**Design System Established:**
+- Brand primary: `#10409a` (trustworthy blue)
+- Secondary: `#1659d6`
+- Typography: Poppins (body), Passion One (display headings)
+- Spacing: 8px base scale
+- Border radius: 12px (0.75rem) default
+- Status colors: success (green), warning (amber), danger (red), info (blue)
+- Full CSS variables and design tokens in `src/app/globals.css`
+
+**References:**
+- No specific references — flexible, go with what fits the product
+- Avoid: cluttered interfaces, outdated SaaS aesthetics, overly playful tones
+
+### Design Principles
+
+1. **Trust through precision** — Financial accuracy is paramount; UI must convey reliability
+2. **Progressive disclosure** — Show complexity only when needed; keep onboarding friction low
+3. **White-label trust** — Affiliate portal reflects the SaaS Owner's brand, not salig-affiliate's
+4. **Mobile-first for affiliates** — They may check commissions on mobile; dashboard must be responsive
+5. **Clear status communication** — Commission states, payout status, fraud flags must be instantly understandable
