@@ -209,10 +209,10 @@ export function AttributionVerifier() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentConversions.map((conv: Doc<"conversions">) => (
+                {recentConversions.map((conv: any) => (
                   <TableRow key={conv._id}>
                     <TableCell className="text-sm">
-                      {conv.conversionTime ? format(conv.conversionTime, "MMM d, h:mm a") : "N/A"}
+                      {conv._creationTime ? format(conv._creationTime, "MMM d, h:mm a") : "N/A"}
                     </TableCell>
                     <TableCell className="font-medium">
                       {new Intl.NumberFormat("en-PH", {

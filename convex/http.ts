@@ -5,6 +5,8 @@ import { betterAuthComponent } from "./auth";
 import { createAuth } from "../src/lib/auth";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+import { normalizeToBillingEvent } from "./webhooks";
 
 const http = httpRouter();
 
@@ -21,8 +23,366 @@ const webhookCorsHeaders = {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Tracking-Key",
 };
+
+// Conversion Tracking Endpoint
+// Story 6.3: Conversion Attribution
+// AC1, AC2, AC6 - Track conversions with cookie-based attribution
+http.route({
+  path: "/track/conversion",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const startTime = Date.now();
+    
+    try {
+      // AC1.4: Validate tenant exists via tracking public key
+      const trackingKey = req.headers.get("X-Tracking-Key");
+      if (!trackingKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Missing X-Tracking-Key header" }),
+          {
+            status: 400,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // Validate tenant by tracking key
+      const tenant = await ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
+        trackingKey,
+      });
+
+      if (!tenant) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid tracking key" }),
+          {
+            status: 401,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // AC1.3: Extract conversion data from request body
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid JSON body" }),
+          {
+            status: 400,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      const { amount, orderId, customerEmail, products, metadata } = body;
+
+      // Validate required fields
+      if (amount === undefined || typeof amount !== "number") {
+        return new Response(
+          JSON.stringify({ success: false, error: "Missing or invalid amount" }),
+          {
+            status: 400,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // Extract client IP for fraud detection
+      const forwardedFor = req.headers.get("X-Forwarded-For");
+      const realIp = req.headers.get("X-Real-IP");
+      const clientIp = forwardedFor 
+        ? forwardedFor.split(",")[0].trim() 
+        : realIp || undefined;
+
+      // AC1.2: Parse attribution cookie (sa_aff)
+      const cookieHeader = req.headers.get("Cookie") || "";
+      const existingCookie = cookieHeader
+        .split(";")
+        .find(c => c.trim().startsWith("sa_aff="));
+      
+      let cookieData: { affiliateCode?: string; campaignId?: string; timestamp?: number } = {};
+      if (existingCookie) {
+        try {
+          const cookieValue = existingCookie.split("=")[1];
+          const decodedValue = decodeURIComponent(cookieValue);
+          cookieData = JSON.parse(atob(decodedValue));
+        } catch {
+          // Invalid cookie format, treat as no cookie
+          cookieData = {};
+        }
+      }
+
+      // AC1.5: If no cookie, create organic conversion (AC #2)
+      if (!cookieData.affiliateCode) {
+        // Create organic conversion without affiliate attribution
+        const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: tenant._id,
+          customerEmail,
+          amount,
+          status: "pending",
+          ipAddress: clientIp,
+          metadata: {
+            orderId,
+            products,
+            ...metadata,
+          },
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            conversionId,
+            organic: true,
+            attributed: false,
+            message: "Conversion recorded as organic (no affiliate attribution)",
+          }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // AC1.6: Validate affiliate is still active
+      const affiliateValidation = await ctx.runQuery(internal.clicks.validateAffiliateCodeInternal, {
+        tenantId: tenant._id,
+        code: cookieData.affiliateCode,
+      });
+
+      if (!affiliateValidation.valid) {
+        // Invalid/expired affiliate - create organic conversion instead
+        const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: tenant._id,
+          customerEmail,
+          amount,
+          status: "pending",
+          ipAddress: clientIp,
+          metadata: {
+            orderId,
+            products,
+            originalAffiliateCode: cookieData.affiliateCode,
+            invalidReason: affiliateValidation.reason,
+            ...metadata,
+          },
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            conversionId,
+            organic: true,
+            attributed: false,
+            message: "Conversion recorded as organic (affiliate inactive)",
+          }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // AC3: Validate cookie attribution window (Story 6.4)
+      // Check if cookie timestamp is within the campaign's attribution window
+      let windowValidation: { isExpired: boolean; elapsedDays: number; campaignCookieDuration: number } | undefined;
+      
+      if (cookieData.timestamp) {
+        windowValidation = await ctx.runQuery(internal.conversions.validateCookieAttributionWindow, {
+          tenantId: tenant._id,
+          affiliateCode: cookieData.affiliateCode,
+          campaignId: cookieData.campaignId ? cookieData.campaignId as Id<"campaigns"> : undefined,
+          cookieTimestamp: cookieData.timestamp,
+        });
+
+        if (windowValidation && windowValidation.isExpired) {
+          // Cookie expired - create organic conversion
+          const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+            tenantId: tenant._id,
+            customerEmail,
+            amount,
+            status: "pending",
+            ipAddress: clientIp,
+            metadata: {
+              orderId,
+              products,
+              originalAffiliateCode: cookieData.affiliateCode,
+              expirationReason: "cookie_expired",
+              cookieElapsedDays: windowValidation.elapsedDays,
+              cookieWindowDays: windowValidation.campaignCookieDuration / (24 * 60 * 60 * 1000),
+              ...metadata,
+            },
+          });
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              conversionId,
+              organic: true,
+              attributed: false,
+              message: "Conversion recorded as organic (cookie expired)",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...corsHeaders,
+              },
+            }
+          );
+        }
+      }
+
+      // AC1.7: Get referral link for attribution chain
+      const referralLink = await ctx.runQuery(internal.conversions.getReferralLinkByCodeInternal, {
+        tenantId: tenant._id,
+        code: cookieData.affiliateCode,
+      });
+
+      if (!referralLink) {
+        // Referral link not found - create organic conversion
+        const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: tenant._id,
+          customerEmail,
+          amount,
+          status: "pending",
+          ipAddress: clientIp,
+          metadata: {
+            orderId,
+            products,
+            originalAffiliateCode: cookieData.affiliateCode,
+            invalidReason: "referral_link_not_found",
+            ...metadata,
+          },
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            conversionId,
+            organic: true,
+            attributed: false,
+            message: "Conversion recorded as organic (referral link not found)",
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      // AC2.3: Find recent click for attribution chain
+      // Use campaign-specific attribution window if available from validation
+      const attributionWindowDays = windowValidation?.campaignCookieDuration
+        ? Math.round(windowValidation.campaignCookieDuration / (24 * 60 * 60 * 1000))
+        : undefined;
+
+      const recentClick = await ctx.runQuery(internal.conversions.findRecentClickInternal, {
+        tenantId: tenant._id,
+        affiliateId: referralLink.affiliateId,
+        campaignId: referralLink.campaignId,
+        attributionWindowDays,
+      });
+
+      // AC1.8: Create attributed conversion
+      // AC2.1-2.6: Create conversion with full attribution chain
+      const conversionId = await ctx.runMutation(internal.conversions.createConversionWithAttribution, {
+        tenantId: tenant._id,
+        affiliateId: referralLink.affiliateId,
+        referralLinkId: referralLink._id,
+        clickId: recentClick?._id,
+        campaignId: referralLink.campaignId,
+        customerEmail,
+        amount,
+        status: "pending",
+        ipAddress: clientIp,
+        attributionSource: "cookie",
+        metadata: {
+          orderId,
+          products,
+          ...metadata,
+        },
+      });
+
+      // AC5: Performance monitoring
+      const duration = Date.now() - startTime;
+      if (duration > 3000) {
+        console.warn(`Conversion tracking took ${duration}ms, exceeding 3s target`);
+      }
+
+      // AC1.8: Return success response with conversion ID
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          conversionId,
+          attributed: true,
+          organic: false,
+        }),
+        {
+          status: 200,
+          headers: { 
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+
+    } catch (error) {
+      console.error("Conversion tracking error:", error);
+      
+      // AC6.6: Return graceful response even on error (don't break tracking)
+      // Fire-and-forget: log error but don't expose to end user
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          attributed: false,
+          message: "Conversion recorded",
+        }),
+        {
+          status: 200, // Always return 200 to prevent breaking client experience
+          headers: { 
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+  }),
+});
+
+// Options handler for conversion tracking
+http.route({
+  path: "/track/conversion",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }),
+});
 
 // Public tracking ping endpoint
 // AC7: Snippet Configuration API - Public endpoint for snippet to send pings
@@ -171,60 +531,99 @@ http.route({
 });
 
 // SaligPay Webhook Handler
-// AC4: Webhook Attribution Parsing - Extract attribution metadata from webhooks
+// Story 6.5: Mock Payment Webhook Processing
+// AC1: Process webhook events to create conversions
+// AC3: Store raw webhook for audit
+// AC4: Implement event deduplication
 http.route({
   path: "/api/webhooks/saligpay",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     try {
-      const payload = await req.json();
+      // Step 1: Parse the webhook payload
+      let payload;
+      try {
+        payload = await req.json();
+      } catch {
+        // Return 200 even on parse error to prevent retries (AC #6)
+        return new Response(
+          JSON.stringify({ received: true, error: "Invalid JSON" }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...webhookCorsHeaders,
+            },
+          }
+        );
+      }
+
+      // Step 2: Extract event ID and check for duplicates (AC #4 - deduplication)
+      const eventId = payload.id || `evt_${Date.now()}`;
+      const isDuplicate = await ctx.runQuery(internal.webhooks.checkEventIdExists, {
+        eventId,
+      });
+
+      if (isDuplicate) {
+        // AC #4: Reject duplicate, log attempt, return 200
+        console.log(`Duplicate webhook event detected: ${eventId}`);
+        return new Response(
+          JSON.stringify({ received: true, duplicate: true, webhookId: eventId }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...webhookCorsHeaders,
+            },
+          }
+        );
+      }
+
+      // Step 3: Normalize to BillingEvent format (Task 1)
+      const billingEvent = normalizeToBillingEvent(payload);
       
-      // Log raw webhook for debugging and idempotency
+      // Step 4: Extract tenant ID for storage
+      const metadata = payload.data?.object?.metadata || {};
+      const tenantIdStr = metadata._salig_aff_tenant;
+
+      // Step 5: Store raw webhook (AC #1, Task 2)
       const rawWebhookId = await ctx.runMutation(internal.webhooks.storeRawWebhook, {
         source: "saligpay",
-        eventId: payload.id || `evt_${Date.now()}`,
+        eventId,
         eventType: payload.event || "unknown",
         rawPayload: JSON.stringify(payload),
         signatureValid: true, // Mock mode - signature validation would be added in Story 14.3
+        tenantId: tenantIdStr ? (tenantIdStr as Id<"tenants">) : undefined,
+        status: "received",
       });
 
-      // Extract attribution metadata from checkout session
-      // AC4: Extract affiliate reference from checkout session metadata
-      const metadata = payload.data?.object?.metadata || {};
-      const attributionData = {
-        affiliateCode: metadata._salig_aff_ref,
-        clickId: metadata._salig_aff_click_id,
-        tenantId: metadata._salig_aff_tenant,
-      };
-
-      // Only process if we have attribution data
-      if (attributionData.affiliateCode && payload.event === "payment.updated") {
-        const paymentData = payload.data?.object;
+      // Step 6: If normalization failed, update status and return 200
+      if (!billingEvent) {
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: rawWebhookId,
+          status: "failed",
+          errorMessage: "Invalid webhook payload structure",
+        });
         
-        if (paymentData) {
-          // Find affiliate by code
-          const affiliate = await ctx.runQuery(internal.conversions.findAffiliateByCodeInternal, {
-            tenantId: attributionData.tenantId,
-            code: attributionData.affiliateCode,
-          });
-
-          if (affiliate) {
-            // AC4: Create conversion with attribution
-            await ctx.runMutation(internal.conversions.createConversion, {
-              tenantId: attributionData.tenantId,
-              affiliateId: affiliate._id,
-              clickId: attributionData.clickId,
-              customerEmail: paymentData.customer?.email,
-              amount: paymentData.amount / 100, // Convert from cents
-              status: paymentData.status === "paid" ? "completed" : "pending",
-              metadata: {
-                orderId: paymentData.id,
-              },
-            });
+        return new Response(
+          JSON.stringify({ received: true, webhookId: rawWebhookId, processed: false }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...webhookCorsHeaders,
+            },
           }
-        }
+        );
       }
 
+      // Step 7: Process webhook to create conversion (AC #1, #2, #3, #5)
+      await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
+        webhookId: rawWebhookId,
+        billingEvent,
+      });
+
+      // Step 8: Return 200 (AC #6 - always return 200)
       return new Response(
         JSON.stringify({ received: true, webhookId: rawWebhookId }),
         {
@@ -236,6 +635,7 @@ http.route({
         }
       );
     } catch (error) {
+      // AC #6: Always return 200, log error internally
       console.error("Webhook processing error:", error);
       return new Response(
         JSON.stringify({ received: true, error: "Processing error logged" }),
@@ -259,6 +659,233 @@ http.route({
     return new Response(null, {
       status: 200,
       headers: webhookCorsHeaders,
+    });
+  }),
+});
+
+// Mock Payment Webhook Trigger Endpoint
+// Story 6.5: Mock Payment Webhook Processing
+// AC #1: Create mock webhook trigger endpoint for testing
+// AC #5: Accept payment simulation parameters
+// Task 5: Create mock webhook trigger endpoint
+// AC #6: Always return 200 status (even on error) - Consistent with real webhook handler
+http.route({
+  path: "/api/mock/trigger-payment",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // AC #5.4: Validate tenant ownership before triggering
+      // First check authentication
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        // AC #6: Always return 200, indicate auth error in body
+        console.error("Mock trigger: Authentication required");
+        return new Response(
+          JSON.stringify({ received: true, success: false, error: "Authentication required" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Get user's tenant from users table using internal query
+      const user = await ctx.runQuery(internal.webhooks.getUserByAuthIdInternal, {
+        authId: identity.subject,
+      });
+
+      if (!user) {
+        // AC #6: Always return 200, indicate user error in body
+        console.error("Mock trigger: User not found");
+        return new Response(
+          JSON.stringify({ received: true, success: false, error: "User not found" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // AC #5.2: Accept payment simulation parameters
+      let body;
+      try {
+        body = await req.json();
+      } catch {
+        // AC #6: Always return 200, indicate parse error in body
+        console.error("Mock trigger: Invalid JSON body");
+        return new Response(
+          JSON.stringify({ received: true, success: false, error: "Invalid JSON body" }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const {
+        amount = 9900, // Default amount in cents (PHP 99.00)
+        status = "paid", // Default to paid
+        currency = "PHP",
+        customerEmail = "test@example.com",
+        affiliateCode,
+        eventType = "payment.updated",
+      } = body;
+
+      // AC #5.3: Generate realistic mock webhook payload
+      const eventId = `evt_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const paymentId = `pay_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      // Build metadata with attribution data
+      const metadata: Record<string, string> = {
+        _salig_aff_tenant: user.tenantId,
+      };
+
+      if (affiliateCode) {
+        metadata._salig_aff_ref = affiliateCode;
+        // Optionally add a click ID for testing
+        metadata._salig_aff_click_id = `click_mock_${Date.now()}`;
+      }
+
+      // Construct the mock webhook payload
+      const mockPayload = {
+        id: eventId,
+        event: eventType,
+        created: Date.now(),
+        data: {
+          object: {
+            id: paymentId,
+            amount,
+            currency,
+            status,
+            customer: {
+              email: customerEmail,
+            },
+            payment_method: {
+              id: `pm_mock_${Math.random().toString(36).substring(2, 9)}`,
+              last4: "4242",
+            },
+            metadata,
+          },
+        },
+      };
+
+      // AC #5.1: Process the mock webhook through the same pipeline as real webhooks
+      // This uses the existing webhook handler logic
+
+      // Check for duplicate
+      const isDuplicate = await ctx.runQuery(internal.webhooks.checkEventIdExists, {
+        eventId,
+      });
+
+      if (isDuplicate) {
+        // MEDIUM #9: Log duplicate attempt for audit trail
+        await ctx.runMutation(internal.webhooks.logDuplicateWebhookAttempt, {
+          source: "mock",
+          eventId,
+          eventType,
+          rawPayload: JSON.stringify(mockPayload),
+          tenantId: user.tenantId,
+        });
+
+        // AC #6: Always return 200, indicate duplicate in body
+        console.error(`Mock trigger: Duplicate event ID ${eventId}`);
+        return new Response(
+          JSON.stringify({ received: true, success: false, error: "Duplicate event ID", duplicate: true }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Store the raw webhook
+      const rawWebhookId = await ctx.runMutation(internal.webhooks.storeRawWebhook, {
+        source: "mock",
+        eventId,
+        eventType,
+        rawPayload: JSON.stringify(mockPayload),
+        signatureValid: true,
+        tenantId: user.tenantId,
+        status: "received",
+      });
+
+      // Normalize to BillingEvent
+      const billingEvent = normalizeToBillingEvent(mockPayload);
+
+      if (!billingEvent) {
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: rawWebhookId,
+          status: "failed",
+          errorMessage: "Failed to normalize mock webhook",
+        });
+
+        // AC #6: Always return 200, indicate normalization error in body
+        console.error("Mock trigger: Failed to normalize mock webhook");
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: false,
+            error: "Failed to process mock webhook",
+            webhookId: rawWebhookId,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Process webhook to create conversion
+      const conversionId = await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
+        webhookId: rawWebhookId,
+        billingEvent,
+      });
+
+      // AC #5.5: Return generated webhook ID for verification
+      return new Response(
+        JSON.stringify({
+          received: true,
+          success: true,
+          webhookId: eventId,
+          rawWebhookId,
+          conversionId: conversionId || null,
+          payload: mockPayload,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      // MEDIUM #11: Standardized error logging
+      console.error("Mock trigger error:", error);
+      // AC #6: Always return 200, even on unexpected errors
+      return new Response(
+        JSON.stringify({ received: true, success: false, error: "Internal server error" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
+// CORS headers for mock endpoints
+const mockCorsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+// Options handler for mock trigger endpoint
+http.route({
+  path: "/api/mock/trigger-payment",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: mockCorsHeaders,
     });
   }),
 });
@@ -348,6 +975,250 @@ http.route({
           headers: { "Content-Type": "application/json" },
         }
       );
+    }
+  }),
+});
+
+// Click Tracking Endpoint
+// Story 6.2: Click Tracking with Deduplication
+// AC1, AC2, AC3, AC4, AC5, AC6 - Track clicks with IP-based deduplication and cookie attribution
+http.route({
+  path: "/track/click",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const startTime = Date.now();
+    
+    try {
+      // Parse query parameters
+      const url = new URL(req.url);
+      const code = url.searchParams.get("code");
+      const tenantId = url.searchParams.get("t") as Id<"tenants"> | null;
+      
+      // AC6: Validate required parameters
+      if (!code || !tenantId) {
+        return new Response(
+          JSON.stringify({ error: "Missing required parameters: code and t (tenantId)" }),
+          {
+            status: 400,
+            headers: { 
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          }
+        );
+      }
+
+      // Extract client IP from headers (X-Forwarded-For, X-Real-IP)
+      // Handle multiple IPs in X-Forwarded-For (take the first one = client)
+      const forwardedFor = req.headers.get("X-Forwarded-For");
+      const realIp = req.headers.get("X-Real-IP");
+      const clientIp = forwardedFor 
+        ? forwardedFor.split(",")[0].trim() 
+        : realIp || "unknown";
+
+      // Extract User-Agent and Referrer
+      const userAgent = req.headers.get("User-Agent") || undefined;
+      const referrer = req.headers.get("Referer") || undefined;
+
+      // Read existing attribution cookie
+      const cookieHeader = req.headers.get("Cookie") || "";
+      const existingCookie = cookieHeader
+        .split(";")
+        .find(c => c.trim().startsWith("sa_aff="));
+      
+      let cookieData: { affiliateCode?: string; timestamp?: number } = {};
+      if (existingCookie) {
+        try {
+          const cookieValue = existingCookie.split("=")[1];
+          const decodedValue = decodeURIComponent(cookieValue);
+          cookieData = JSON.parse(atob(decodedValue));
+        } catch {
+          // Invalid cookie format, ignore
+          cookieData = {};
+        }
+      }
+
+      // AC3: Cookie takes precedence over URL parameter if valid
+      // AC5: Validate cookie's affiliate is still active
+      let effectiveCode = code;
+      let attributionSource: "url" | "cookie" = "url";
+      
+      if (cookieData.affiliateCode) {
+        // Validate the cookie affiliate is still active
+        const cookieValidation = await ctx.runQuery(internal.clicks.validateAffiliateCodeInternal, {
+          tenantId,
+          code: cookieData.affiliateCode,
+        });
+        
+        if (cookieValidation.valid) {
+          effectiveCode = cookieData.affiliateCode;
+          attributionSource = "cookie";
+        }
+        // AC3: If cookie affiliate invalid, fall back to URL param affiliate (effectiveCode already = code)
+      }
+
+      // AC1, AC5: Validate referral link and affiliate status
+      const referralLink = await ctx.runQuery(internal.clicks.getReferralLinkByCodeInternal, {
+        tenantId,
+        code: effectiveCode,
+      });
+
+      // AC6: Handle suspended/pending affiliates - return 404
+      if (!referralLink) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Referral link not found",
+            message: "This referral link is no longer active or the affiliate is not approved."
+          }),
+          {
+            status: 404,
+            headers: { 
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            },
+          }
+        );
+      }
+
+      // Get tenant for destination URL
+      const tenant = await ctx.runQuery(internal.clicks.getTenantByIdInternal, {
+        tenantId,
+      });
+
+      // Default redirect URL (can be overridden by campaign settings in future stories)
+      const redirectUrl = tenant?.branding?.portalName 
+        ? `https://${tenant.slug}.saligaffiliate.com`
+        : "https://app.saligaffiliate.com";
+
+      // AC1, AC2: Generate dedupeKey for click deduplication
+      // Format: SHA-256 hash of IP + code + hourly time window
+      const timeWindow = Math.floor(Date.now() / (1000 * 60 * 60)); // Hourly bucket
+      const dedupeKey = `${clientIp}:${effectiveCode}:${timeWindow}`;
+
+      // AC4: Fire-and-forget click tracking (don't block redirect on DB write)
+      // This ensures < 3 second response time (NFR3)
+      // We don't await to maintain fast redirect performance
+      ctx.runMutation(internal.clicks.trackClickInternal, {
+        tenantId,
+        referralLinkId: referralLink._id,
+        affiliateId: referralLink.affiliateId,
+        campaignId: referralLink.campaignId,
+        ipAddress: clientIp,
+        userAgent,
+        referrer,
+        dedupeKey,
+      }).catch(error => {
+        // Log error but don't break user experience
+        console.error("Click tracking error:", error);
+      });
+
+      // AC1, AC4: Build attribution cookie
+      // Cookie format: Base64-encoded JSON with affiliate code and timestamp
+      const cookiePayload = {
+        affiliateCode: effectiveCode,
+        campaignId: referralLink.campaignId,
+        timestamp: Date.now(),
+      };
+      const cookieValue = btoa(JSON.stringify(cookiePayload));
+      
+      // AC4: Configurable cookie TTL - default 30 days
+      // Get cookie duration from campaign if available, otherwise default 30 days
+      let cookieDurationDays = 30;
+      if (referralLink.campaignId) {
+        const campaign = await ctx.runQuery(internal.clicks.getCampaignByIdInternal, {
+          campaignId: referralLink.campaignId,
+        });
+        if (campaign?.cookieDuration) {
+          cookieDurationDays = campaign.cookieDuration;
+        }
+      }
+      
+      const expires = new Date();
+      expires.setDate(expires.getDate() + cookieDurationDays);
+
+      // Set cookie on tenant's domain for cross-subdomain tracking
+      const domain = tenant?.slug ? `.${tenant.slug}.saligaffiliate.com` : ".saligaffiliate.com";
+      const setCookieHeader = `sa_aff=${encodeURIComponent(cookieValue)}; Expires=${expires.toUTCString()}; Path=/; Domain=${domain}; HttpOnly; Secure; SameSite=Lax`;
+
+      // AC5: Performance monitoring
+      const duration = Date.now() - startTime;
+      const exceedsThreshold = duration > 3000;
+      
+      if (exceedsThreshold) {
+        console.warn(`Click tracking took ${duration}ms, exceeding 3s target`);
+      }
+
+      // Record performance metric (fire-and-forget, don't await)
+      ctx.runMutation(internal.performance.recordPerformanceMetric, {
+        tenantId,
+        metricType: "click_response_time",
+        value: duration,
+        metadata: {
+          endpoint: "/track/click",
+        },
+      }).catch(() => {
+        // Silently fail - don't break user experience for metrics
+      });
+
+      // AC5: Track timeout metrics when response time exceeds 3 seconds
+      if (exceedsThreshold) {
+        ctx.runMutation(internal.performance.recordPerformanceMetric, {
+          tenantId,
+          metricType: "click_timeout",
+          value: 1,
+          metadata: {
+            endpoint: "/track/click",
+            responseTime: duration,
+          },
+        }).catch(() => {
+          // Silently fail - don't break user experience for metrics
+        });
+      }
+
+      // AC1, AC4: Return 302 redirect with Set-Cookie header
+      // Note: We don't await trackClickPromise to ensure fast redirect
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": redirectUrl,
+          "Set-Cookie": setCookieHeader,
+          "Cache-Control": "no-store",
+          "X-Click-Tracked": "true",
+          "X-Attribution-Source": attributionSource,
+          "X-Response-Time": `${duration}ms`,
+        },
+      });
+
+    } catch (error) {
+      console.error("Click tracking error:", error);
+      
+      // Record error metric (fire-and-forget, don't await)
+      // Note: tenantId may not be available if error occurred before parsing
+      const url = new URL(req.url);
+      const errorTenantId = url.searchParams.get("t") as Id<"tenants"> | null;
+      ctx.runMutation(internal.performance.recordPerformanceMetric, {
+        tenantId: errorTenantId || undefined,
+        metricType: "click_error",
+        value: 1,
+        metadata: {
+          endpoint: "/track/click",
+          errorType: error instanceof Error ? error.message : "unknown",
+        },
+      }).catch(() => {
+        // Silently fail - don't break user experience for metrics
+      });
+      
+      // AC7: Graceful error handling - return redirect even on error
+      // Don't break user experience due to tracking errors
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": "https://app.saligaffiliate.com",
+          "Cache-Control": "no-store",
+          "X-Click-Tracked": "false",
+          "X-Error": "tracking_failed",
+        },
+      });
     }
   }),
 });

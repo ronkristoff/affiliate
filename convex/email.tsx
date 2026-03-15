@@ -26,8 +26,11 @@ export const resend: Resend = new Resend(components.resend, {
   testMode: false,
 });
 
-// Configurable email domain - should be set in Convex environment
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "boboddy.business";
+// Configurable email domain - must be set in Convex environment
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN;
+if (!EMAIL_DOMAIN) {
+  throw new Error("EMAIL_DOMAIN environment variable is required. Set it in Convex environment settings.");
+}
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
 
 const getFromAddress = (prefix: string) => `${FROM_NAME} <${prefix}@${EMAIL_DOMAIN}>`;

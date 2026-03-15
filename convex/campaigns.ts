@@ -162,9 +162,12 @@ export const listCampaigns = query({
       description: v.optional(v.string()),
       commissionType: v.string(),
       commissionValue: v.number(),
+      commissionRate: v.number(), // Alias for frontend compatibility
       cookieDuration: v.optional(v.number()),
       recurringCommission: v.boolean(),
+      recurringCommissions: v.boolean(), // Alias for frontend compatibility
       recurringRate: v.optional(v.number()),
+      recurringRateType: v.optional(v.string()),
       autoApproveCommissions: v.optional(v.boolean()),
       approvalThreshold: v.optional(v.number()),
       status: v.string(),
@@ -201,7 +204,11 @@ export const listCampaigns = query({
       // Combine and sort by creation time (descending)
       return [...activeCampaigns, ...pausedCampaigns].sort(
         (a, b) => b._creationTime - a._creationTime
-      );
+      ).map(c => ({
+        ...c,
+        commissionRate: c.commissionValue,
+        recurringCommissions: c.recurringCommission,
+      }));
     }
 
     // If including archived, fetch all campaigns for the tenant
@@ -211,7 +218,11 @@ export const listCampaigns = query({
       .order("desc")
       .collect();
 
-    return campaigns;
+    return campaigns.map(c => ({
+      ...c,
+      commissionRate: c.commissionValue,
+      recurringCommissions: c.recurringCommission,
+    }));
   },
 });
 
@@ -258,7 +269,11 @@ export const getCampaign = query({
       throw new Error("Campaign not found or access denied");
     }
 
-    return campaign;
+    return {
+      ...campaign,
+      commissionRate: campaign.commissionValue,
+      recurringCommissions: campaign.recurringCommission,
+    };
   },
 });
 

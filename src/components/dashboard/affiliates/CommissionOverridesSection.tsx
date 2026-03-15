@@ -224,17 +224,17 @@ export function CommissionOverridesSection({
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {getRateDisplay(
-                        override.commissionType,
+                        override.commissionType as "percentage" | "flatFee",
                         override.defaultRate
                       )}
                     </TableCell>
                     <TableCell className="font-semibold text-primary">
                       {getRateDisplay(
-                        override.commissionType,
+                        override.commissionType as "percentage" | "flatFee",
                         override.overrideRate
                       )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(override.status)}</TableCell>
+                    <TableCell>{getStatusBadge(override.status as "active" | "paused")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

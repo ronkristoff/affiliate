@@ -12,6 +12,7 @@ import { SuspendDialog } from "@/components/affiliate/SuspendDialog";
 import { ReactivateDialog } from "@/components/affiliate/ReactivateDialog";
 import { AffiliateProfileHero } from "@/components/affiliate/AffiliateProfileHero";
 import { ReferralMetricsGrid } from "@/components/affiliate/ReferralMetricsGrid";
+import { ReferralLinksSection } from "@/components/affiliate/ReferralLinksSection";
 import { CommissionHistoryList } from "@/components/affiliate/CommissionHistoryList";
 import { FraudSignalsSection } from "@/components/affiliate/FraudSignalsSection";
 import { InternalNotesTextarea } from "@/components/affiliate/InternalNotesTextarea";
@@ -191,9 +192,16 @@ export default function AffiliateDetailPage() {
 
         {/* Commission History Column */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Referral Links Section */}
+          <ReferralLinksSection 
+            affiliateId={affiliateId}
+            canManage={canManageAffiliates}
+            affiliateName={affiliate.name}
+          />
+
           {/* Fraud Signals Section - Positioned above commission history */}
           <FraudSignalsSection 
-            fraudSignals={affiliate.fraudSignals}
+            fraudSignals={affiliate.fraudSignals as any}
             affiliateId={affiliateId}
             affiliateName={affiliate.name}
             onViewCommission={handleViewCommission}

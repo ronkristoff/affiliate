@@ -259,6 +259,7 @@ export const createAffiliateAccountInternal = internalMutation({
       uniqueCode: args.uniqueCode,
       status: "pending",
       passwordHash: args.passwordHash,
+      promotionChannel: args.promotionChannel,
     });
 
     // Create audit log

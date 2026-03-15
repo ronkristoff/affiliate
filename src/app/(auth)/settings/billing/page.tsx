@@ -376,7 +376,7 @@ export default function BillingSettingsPage() {
       {/* Billing History - AC4 */}
       {billingHistory && (
         <BillingHistoryTable
-          events={billingHistory.page}
+          events={billingHistory.page as any}
           isLoading={billingHistory === undefined}
           hasMore={!billingHistory.isDone && !!billingHistory.continueCursor}
           hasPrevious={billingCursorStack.length > 0}

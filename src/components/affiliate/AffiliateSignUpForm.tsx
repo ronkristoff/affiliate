@@ -169,6 +169,7 @@ export function AffiliateSignUpForm({
         </div>
         
         <div className="text-center text-xs text-muted-foreground">
+          {/* TODO: Add contactEmail to tenant branding schema and display here */}
           <p>Questions? Contact the merchant directly.</p>
         </div>
       </div>
@@ -301,32 +302,24 @@ export function AffiliateSignUpForm({
           )}
         </Button>
 
-        {/* Trust Signals - Mock Data for MVP (TODO: Replace with real data from tenant analytics) */}
+        {/* Trust Signals - Sample data for demonstration purposes only */}
         <div className="pt-4 border-t space-y-3">
-          <p className="text-xs text-muted-foreground text-center">
-            Join {PROMOTION_CHANNELS.length + 127}+ affiliates earning with us
+          <p className="text-xs text-muted-foreground text-center italic">
+            *Sample data for demonstration
           </p>
           <div className="flex justify-center items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              {/* TODO: Replace with actual active affiliate count from tenant stats */}
-              <span>500+ Active</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              {/* TODO: Replace with actual total payouts from tenant billing data */}
-              <span>$2.5M+ Paid</span>
+              <span>Join our growing affiliate community</span>
             </div>
           </div>
         </div>
 
-        {/* Terms and Privacy */}
+        {/* Terms and Privacy - TODO: Implement actual Terms and Privacy pages */}
         <div className="text-xs text-muted-foreground text-center">
           <p>
-            By applying, you agree to our{" "}
-            <a href="#" className="underline hover:text-foreground">Terms of Service</a>
-            {" "}and{" "}
-            <a href="#" className="underline hover:text-foreground">Privacy Policy</a>
+            By applying, you agree to receive communications about your affiliate application.
+            {/* TODO: Add links to actual Terms of Service and Privacy Policy pages when implemented */}
           </p>
         </div>
       </form>

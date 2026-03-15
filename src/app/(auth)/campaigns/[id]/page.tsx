@@ -82,12 +82,12 @@ export default function CampaignDetailPage() {
     if (campaign) {
       setName(campaign.name);
       setDescription(campaign.description || "");
-      setCommissionType(campaign.commissionType);
+      setCommissionType(campaign.commissionType as "percentage" | "flatFee");
       setCommissionRate(String(campaign.commissionRate));
       setCookieDuration(String(campaign.cookieDuration || 30));
       setRecurringCommissions(campaign.recurringCommissions || false);
       setRecurringRate(campaign.recurringRate ? String(campaign.recurringRate) : "");
-      setRecurringRateType(campaign.recurringRateType || "same");
+      setRecurringRateType((campaign.recurringRateType || "same") as "same" | "reduced" | "custom");
       setAutoApproveCommissions(campaign.autoApproveCommissions ?? true);
       setApprovalThreshold(campaign.approvalThreshold ? String(campaign.approvalThreshold) : "");
     }
@@ -679,7 +679,7 @@ export default function CampaignDetailPage() {
                     <p className="text-sm text-muted-foreground">Recurring Rate</p>
                     <p className="font-medium">
                       {getRecurringRateDescription(
-                        campaign.recurringRateType ?? "same",
+                        (campaign.recurringRateType ?? "same") as "same" | "reduced" | "custom",
                         campaign.recurringRate,
                         campaign.commissionRate
                       )}

@@ -54,6 +54,8 @@ export const getAffiliate = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
@@ -114,6 +116,8 @@ export const getAffiliateByEmail = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
@@ -168,6 +172,7 @@ export const getAffiliateByCode = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -197,6 +202,8 @@ export const getAffiliatesByTenant = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
@@ -236,11 +243,12 @@ export const listAffiliatesByStatus = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
       })),
-      promotionChannel: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -518,6 +526,7 @@ export const authenticateAffiliate = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -1925,6 +1934,8 @@ export const getAffiliateWithOverrides = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
@@ -2077,6 +2088,7 @@ export const getAffiliateInternal = internalQuery({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      vanitySlug: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -2092,6 +2104,7 @@ export const getAffiliateInternal = internalQuery({
       name: affiliate.name,
       uniqueCode: affiliate.uniqueCode,
       status: affiliate.status,
+      vanitySlug: affiliate.vanitySlug,
     };
   },
 });

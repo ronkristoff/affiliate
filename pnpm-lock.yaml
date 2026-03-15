@@ -141,6 +141,9 @@ importers:
       babel-plugin-react-compiler:
         specifier: ^1.0.0
         version: 1.0.0
+      convex-test:
+        specifier: ^0.0.41
+        version: 0.0.41(convex@1.32.0(react@19.2.3))
       eslint:
         specifier: ^9.38.0
         version: 9.39.4(jiti@2.6.1)
@@ -2619,6 +2622,11 @@ packages:
         optional: true
       zod:
         optional: true
+
+  convex-test@0.0.41:
+    resolution: {integrity: sha512-GPHeYFOi70n7UtW0eCEQFVhzl/+m8PvbWkDCbKpHLybI1MrScf4sVpGeM0cC2qmtxiduxa2nLPbehPalhh9oyQ==}
+    peerDependencies:
+      convex: ^1.16.4
 
   convex@1.32.0:
     resolution: {integrity: sha512-5FlajdLpW75pdLS+/CgGH5H6yeRuA+ru50AKJEYbJpmyILUS+7fdTvsdTaQ7ZFXMv0gE8mX4S+S3AtJ94k0mfw==}
@@ -6737,6 +6745,10 @@ snapshots:
       react: 19.2.3
       typescript: 5.9.3
       zod: 4.3.6
+
+  convex-test@0.0.41(convex@1.32.0(react@19.2.3)):
+    dependencies:
+      convex: 1.32.0(react@19.2.3)
 
   convex@1.32.0(react@19.2.3):
     dependencies:

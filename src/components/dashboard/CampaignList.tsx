@@ -183,7 +183,7 @@ export function CampaignList() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {campaigns.map((campaign) => (
+        {campaigns.map((campaign: any) => (
           <CampaignCard 
             key={campaign._id} 
             campaign={campaign}

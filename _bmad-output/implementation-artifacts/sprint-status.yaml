@@ -120,13 +120,13 @@ development_status:
   # 6 stories | FRs: FR16-FR18, FR20, FR87 | NFRs: NFR3, NFR10
   # Screens: 17-onboarding-snippet.html
   # ========================================
-  epic-6: backlog
-  6-1-referral-link-generation: backlog
-  6-2-click-tracking-with-deduplication: backlog
-  6-3-conversion-attribution: backlog
-  6-4-cookie-based-attribution-window: backlog
-  6-5-mock-payment-webhook-processing: backlog
-  6-6-click-tracking-performance: backlog
+  epic-6: in-progress
+  6-1-referral-link-generation: done
+  6-2-click-tracking-with-deduplication: done
+  6-3-conversion-attribution: done
+  6-4-cookie-based-attribution-window: done
+  6-5-mock-payment-webhook-processing: done
+  6-6-click-tracking-performance: done
   epic-6-retrospective: optional
 
   # ========================================

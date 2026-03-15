@@ -107,6 +107,7 @@ export default defineSchema({
     commissionValue: v.number(),
     recurringCommission: v.boolean(),
     recurringRate: v.optional(v.number()),
+    recurringRateType: v.optional(v.string()),
     cookieDuration: v.optional(v.number()),
     autoApproveCommissions: v.optional(v.boolean()),
     approvalThreshold: v.optional(v.number()),
@@ -120,6 +121,8 @@ export default defineSchema({
     name: v.string(),
     uniqueCode: v.string(),
     status: v.string(),
+    vanitySlug: v.optional(v.string()),
+    promotionChannel: v.optional(v.string()),
     note: v.optional(v.string()),
     passwordHash: v.optional(v.string()),
     payoutMethod: v.optional(v.object({
@@ -176,13 +179,15 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
     .index("by_code", ["code"])
-    .index("by_vanity_slug", ["vanitySlug"]),
+    .index("by_vanity_slug", ["vanitySlug"])
+    .index("by_tenant_and_campaign", ["tenantId", "campaignId"]),
 
   // Task 4: Tracking Tables
   clicks: defineTable({
     tenantId: v.id("tenants"),
     referralLinkId: v.id("referralLinks"),
     affiliateId: v.id("affiliates"),
+    campaignId: v.optional(v.id("campaigns")),
     ipAddress: v.string(),
     userAgent: v.optional(v.string()),
     referrer: v.optional(v.string()),
@@ -209,6 +214,7 @@ export default defineSchema({
     affiliateId: v.id("affiliates"),
     referralLinkId: v.optional(v.id("referralLinks")),
     clickId: v.optional(v.id("clicks")),
+    campaignId: v.optional(v.id("campaigns")),
     customerEmail: v.optional(v.string()),
     amount: v.number(),
     status: v.optional(v.string()),
@@ -216,13 +222,21 @@ export default defineSchema({
     deviceFingerprint: v.optional(v.string()),
     paymentMethodLastDigits: v.optional(v.string()),
     paymentMethodProcessorId: v.optional(v.string()),
+    // Attribution tracking (Story 6.3)
+    attributionSource: v.optional(v.union(
+      v.literal("cookie"),
+      v.literal("webhook"),
+      v.literal("organic")
+    )),
+    isSelfReferral: v.optional(v.boolean()),
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
     })),
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
-    .index("by_click", ["clickId"]),
+    .index("by_click", ["clickId"])
+    .index("by_campaign", ["campaignId"]),
 
   // Task 5: Commission & Payout Tables
   commissions: defineTable({
@@ -329,4 +343,31 @@ export default defineSchema({
     lockedUntil: v.optional(v.number()),
   }).index("by_email", ["email"])
     .index("by_email_and_locked", ["email", "lockedUntil"]),
+
+  // Performance metrics table (Story 6.6)
+  performanceMetrics: defineTable({
+    tenantId: v.optional(v.id("tenants")),
+    metricType: v.string(), // "click_response_time", "conversion_response_time", "error_rate", etc.
+    value: v.number(), // Response time in ms or count
+    timestamp: v.number(),
+    metadata: v.optional(v.object({
+      endpoint: v.optional(v.string()),
+      statusCode: v.optional(v.number()),
+      errorType: v.optional(v.string()),
+      responseTime: v.optional(v.number()),
+    })),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_type", ["metricType"])
+    .index("by_type_and_time", ["metricType", "timestamp"]),
+
+  // Performance alerting configuration (Story 6.6)
+  performanceAlertConfig: defineTable({
+    tenantId: v.optional(v.id("tenants")),
+    alertType: v.string(), // "error_rate", "response_time_p99", "timeout_rate"
+    threshold: v.number(), // Threshold value (e.g., 0.01 for 1%)
+    enabled: v.boolean(),
+    severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_alert_type", ["alertType"])
+    .index("by_tenant_and_alert_type", ["tenantId", "alertType"]),
 });
