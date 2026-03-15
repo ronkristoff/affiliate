@@ -1,0 +1,154 @@
+import React from "react";
+import {
+  Body,
+  Button,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Preview,
+  Section,
+  Text,
+} from "@react-email/components";
+
+interface CancellationConfirmationEmailProps {
+  previousPlan: string;
+  accessEndDate: number;
+  deletionDate: number;
+}
+
+export default function CancellationConfirmationEmail({
+  previousPlan,
+  accessEndDate,
+  deletionDate,
+}: CancellationConfirmationEmailProps) {
+  const accessDate = new Date(accessEndDate).toLocaleDateString();
+  const deleteDate = new Date(deletionDate).toLocaleDateString();
+
+  return (
+    <Html>
+      <Head />
+      <Preview>Your Subscription Has Been Cancelled</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Heading style={h1}>Subscription Cancelled</Heading>
+
+          <Text style={text}>
+            Your subscription has been successfully cancelled.
+          </Text>
+
+          <Section style={alertBox}>
+            <Heading style={alertTitle}>Important Dates</Heading>
+            <ul style={list}>
+              <li style={listItem}>
+                <strong>Previous Plan:</strong> {previousPlan.toUpperCase()}
+              </li>
+              <li style={listItem}>
+                <strong>Access Ends:</strong> {accessDate}
+              </li>
+              <li style={listItem}>
+                <strong>Data Deleted:</strong> {deleteDate} (30 days after access ends)
+              </li>
+            </ul>
+          </Section>
+
+          <Text style={text}>
+            <strong>What happens next:</strong>
+          </Text>
+          <ul style={bulletList}>
+            <li>You can access your data (read-only) until {accessDate}</li>
+            <li>You cannot create or modify new data</li>
+            <li>Billing has stopped - no further charges</li>
+            <li>Your data will be permanently deleted on {deleteDate}</li>
+            <li>You will receive a reminder email 7 days before deletion</li>
+          </ul>
+
+          <Text style={text}>
+            Need help or want to reactivate? Contact our support team.
+          </Text>
+
+          <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`}>
+            View Settings
+          </Button>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+const main = {
+  backgroundColor: "#f6f9fc",
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif',
+};
+
+const container = {
+  backgroundColor: "#ffffff",
+  margin: "0 auto",
+  padding: "20px 0 48px",
+  marginBottom: "64px",
+};
+
+const h1 = {
+  color: "#1f2937",
+  fontSize: "24px",
+  fontWeight: "bold",
+  margin: "40px 0",
+  padding: "0 20px",
+  textAlign: "center" as const,
+};
+
+const text = {
+  color: "#525f7f",
+  fontSize: "16px",
+  lineHeight: "24px",
+  padding: "0 20px",
+};
+
+const alertBox = {
+  backgroundColor: "#fef2f2",
+  padding: "16px",
+  borderRadius: "8px",
+  margin: "20px",
+};
+
+const alertTitle = {
+  color: "#dc2626",
+  fontSize: "18px",
+  fontWeight: "bold",
+  marginBottom: "12px",
+};
+
+const list = {
+  padding: 0,
+  margin: 0,
+};
+
+const listItem = {
+  fontSize: "16px",
+  lineHeight: "1.6",
+  marginBottom: "8px",
+  listStyle: "none",
+};
+
+const bulletList = {
+  color: "#525f7f",
+  fontSize: "16px",
+  lineHeight: "24px",
+  padding: "0 20px",
+  marginBottom: "20px",
+};
+
+const button = {
+  backgroundColor: "#10409a",
+  borderRadius: "8px",
+  color: "#ffffff",
+  fontSize: "16px",
+  fontWeight: "bold",
+  textDecoration: "none",
+  textAlign: "center" as const,
+  display: "block",
+  width: "200px",
+  padding: "12px 0",
+  margin: "20px auto",
+};
