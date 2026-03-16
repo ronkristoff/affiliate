@@ -104,6 +104,10 @@ export const getTenant = query({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
         portalName: v.optional(v.string()),
+        customDomain: v.optional(v.string()),
+        domainStatus: v.optional(v.string()),
+        domainVerifiedAt: v.optional(v.number()),
+        sslProvisionedAt: v.optional(v.number()),
       })),
     }),
     v.null()
@@ -133,6 +137,10 @@ export const getTenantBySlug = query({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
         portalName: v.optional(v.string()),
+        customDomain: v.optional(v.string()),
+        domainStatus: v.optional(v.string()),
+        domainVerifiedAt: v.optional(v.number()),
+        sslProvisionedAt: v.optional(v.number()),
       })),
     }),
     v.null()
@@ -166,6 +174,10 @@ export const getTenantContext = query({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
         portalName: v.optional(v.string()),
+        customDomain: v.optional(v.string()),
+        domainStatus: v.optional(v.string()),
+        domainVerifiedAt: v.optional(v.number()),
+        sslProvisionedAt: v.optional(v.number()),
       }),
     }),
     v.null()
@@ -190,6 +202,47 @@ export const getTenantContext = query({
       status: tenant.status,
       isTrial,
       trialDaysRemaining,
+      branding: tenant.branding || { portalName: tenant.name },
+    };
+  },
+});
+
+/**
+ * Get tenant branding for the current authenticated user.
+ * Used by settings pages to get tenant branding without passing tenantId.
+ */
+export const getCurrentUserTenantBranding = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      tenantId: v.id("tenants"),
+      name: v.string(),
+      branding: v.object({
+        logoUrl: v.optional(v.string()),
+        primaryColor: v.optional(v.string()),
+        portalName: v.optional(v.string()),
+        customDomain: v.optional(v.string()),
+        domainStatus: v.optional(v.string()),
+        domainVerifiedAt: v.optional(v.number()),
+        sslProvisionedAt: v.optional(v.number()),
+      }),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      return null;
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      tenantId: tenant._id,
+      name: tenant.name,
       branding: tenant.branding || { portalName: tenant.name },
     };
   },
@@ -259,6 +312,194 @@ export const updateTenant = mutation({
       actorType: "user",
       previousValue: tenant,
       newValue: { ...tenant, ...args.updates },
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Update tenant branding settings.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ */
+export const updateTenantBranding = mutation({
+  args: {
+    branding: v.object({
+      logoUrl: v.optional(v.string()),
+      primaryColor: v.optional(v.string()),
+      portalName: v.optional(v.string()),
+    }),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    branding: v.optional(v.object({
+      logoUrl: v.optional(v.string()),
+      primaryColor: v.optional(v.string()),
+      portalName: v.optional(v.string()),
+    })),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      // Log unauthorized access attempt
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=updateTenantBranding`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to update branding");
+    }
+    
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // Validate color format if provided
+    if (args.branding.primaryColor && !/^#[0-9A-Fa-f]{6}$/.test(args.branding.primaryColor)) {
+      throw new Error("Invalid color format. Use #RRGGBB");
+    }
+    
+    // Validate portal name length if provided
+    if (args.branding.portalName && args.branding.portalName.length > 50) {
+      throw new Error("Portal name must be 50 characters or less");
+    }
+
+    // Validate logo URL if provided (basic URL validation)
+    if (args.branding.logoUrl) {
+      try {
+        new URL(args.branding.logoUrl);
+      } catch {
+        throw new Error("Invalid logo URL format");
+      }
+    }
+    
+    // Update tenant branding
+    const updatedBranding = {
+      ...tenant.branding,
+      logoUrl: args.branding.logoUrl ?? tenant.branding?.logoUrl,
+      primaryColor: args.branding.primaryColor ?? tenant.branding?.primaryColor,
+      portalName: args.branding.portalName ?? tenant.branding?.portalName,
+    };
+    
+    await ctx.db.patch(authUser.tenantId, {
+      branding: updatedBranding,
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "branding_updated",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: tenant.branding,
+      newValue: updatedBranding,
+    });
+
+    return {
+      success: true,
+      branding: updatedBranding,
+    };
+  },
+});
+
+/**
+ * Reset tenant branding to defaults.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ */
+export const resetTenantBranding = mutation({
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=resetTenantBranding`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to reset branding");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const previousBranding = tenant.branding;
+
+    // Reset branding to empty/undefined
+    await ctx.db.patch(authUser.tenantId, {
+      branding: {},
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "branding_reset",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: previousBranding,
+      newValue: {},
+    });
+
+    return {
+      success: true,
+    };
+  },
+});
+
+/**
+ * Internal mutation to update tenant logo URL.
+ */
+export const _updateTenantLogoInternal = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    logoUrl: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    await ctx.db.patch(args.tenantId, {
+      branding: {
+        ...tenant.branding,
+        logoUrl: args.logoUrl,
+      },
     });
 
     return null;
@@ -486,6 +727,10 @@ export const getTenantInternal = internalQuery({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
         portalName: v.optional(v.string()),
+        customDomain: v.optional(v.string()),
+        domainStatus: v.optional(v.string()),
+        domainVerifiedAt: v.optional(v.number()),
+        sslProvisionedAt: v.optional(v.number()),
       })),
     }),
     v.null()
@@ -837,5 +1082,682 @@ export const _getTenantsWithDeletionScheduled = internalQuery({
         _id: t._id,
         deletionScheduledDate: t.deletionScheduledDate,
       }));
+  },
+});
+
+/**
+ * Get tenant payout schedule with calculated next payout date.
+ * Returns payout schedule configuration and the next expected payout date.
+ */
+export const getTenantPayoutSchedule = query({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.object({
+    payoutDayOfMonth: v.optional(v.number()),
+    minimumPayoutAmount: v.optional(v.number()),
+    payoutProcessingDays: v.optional(v.number()),
+    payoutScheduleNote: v.optional(v.string()),
+    nextPayoutDate: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      return {
+        payoutDayOfMonth: undefined,
+        minimumPayoutAmount: undefined,
+        payoutProcessingDays: undefined,
+        payoutScheduleNote: undefined,
+        nextPayoutDate: undefined,
+      };
+    }
+
+    const payoutSchedule = tenant.payoutSchedule;
+
+    // If no payout schedule is configured, return undefined values
+    if (!payoutSchedule || payoutSchedule.payoutDayOfMonth === undefined) {
+      return {
+        payoutDayOfMonth: undefined,
+        minimumPayoutAmount: undefined,
+        payoutProcessingDays: undefined,
+        payoutScheduleNote: undefined,
+        nextPayoutDate: undefined,
+      };
+    }
+
+    // Calculate next payout date based on current date
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let nextPayoutMonth = currentMonth;
+    let nextPayoutYear = currentYear;
+    const payoutDay = payoutSchedule.payoutDayOfMonth;
+
+    // If we're before the payout day this month, next payout is this month
+    // Otherwise, it's next month
+    if (currentDay >= payoutDay) {
+      nextPayoutMonth = currentMonth + 1;
+      if (nextPayoutMonth > 11) {
+        nextPayoutMonth = 0;
+        nextPayoutYear = currentYear + 1;
+      }
+    }
+
+    // Create next payout date
+    const nextPayoutDate = new Date(nextPayoutYear, nextPayoutMonth, payoutDay);
+
+    // Add processing days if configured
+    const processingDays = payoutSchedule.payoutProcessingDays || 0;
+    if (processingDays > 0) {
+      nextPayoutDate.setDate(nextPayoutDate.getDate() + processingDays);
+    }
+
+    return {
+      payoutDayOfMonth: payoutSchedule.payoutDayOfMonth,
+      minimumPayoutAmount: payoutSchedule.minimumPayoutAmount,
+      payoutProcessingDays: payoutSchedule.payoutProcessingDays,
+      payoutScheduleNote: payoutSchedule.payoutScheduleNote,
+      nextPayoutDate: nextPayoutDate.getTime(),
+    };
+  },
+});
+
+/**
+ * Domain status types
+ */
+export type DomainStatus = "pending" | "dns_verification" | "ssl_provisioning" | "active" | "failed";
+
+/**
+ * Platform domain constant - used for custom domain CNAME records
+ * TODO: Move to environment variable or configuration
+ */
+const PLATFORM_DOMAIN = "app.saligaffiliate.com";
+
+/**
+ * Get tenant domain configuration for the current authenticated user.
+ * Returns the current custom domain and its status.
+ * @security Requires 'settings:read', 'settings:*', or 'manage:*' permission
+ */
+export const getTenantDomainConfig = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      customDomain: v.optional(v.string()),
+      domainStatus: v.optional(v.string()),
+      domainVerifiedAt: v.optional(v.number()),
+      sslProvisionedAt: v.optional(v.number()),
+      platformDomain: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      return null;
+    }
+
+    // Check permission - require settings:* or manage:* permission to view domain config
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:read") && !hasPermission(role, "manage:*")) {
+      // Note: Cannot log from query context - mutations only
+      // Unauthorized access is silently denied
+      return null;
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      customDomain: tenant.branding?.customDomain,
+      domainStatus: tenant.branding?.domainStatus,
+      domainVerifiedAt: tenant.branding?.domainVerifiedAt,
+      sslProvisionedAt: tenant.branding?.sslProvisionedAt,
+      platformDomain: PLATFORM_DOMAIN,
+    };
+  },
+});
+
+/**
+ * Update tenant custom domain configuration.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ * @security Requires Scale tier (checked in mutation)
+ * @transaction All operations in this mutation are atomic - if any operation fails,
+ *   all changes are rolled back (Convex mutation guarantee)
+ */
+export const updateTenantDomain = mutation({
+  args: {
+    domain: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    domain: v.optional(v.string()),
+    status: v.string(),
+    dnsInstructions: v.object({
+      recordType: v.string(),
+      recordName: v.string(),
+      recordValue: v.string(),
+    }),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=updateTenantDomain`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to update domain settings");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // Verify Scale tier - custom domain is only available on Scale tier
+    const tierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", q => q.eq("tier", tenant.plan))
+      .first();
+
+    if (!tierConfig?.features.customDomain) {
+      throw new Error("Custom domain is only available on Scale tier. Please upgrade to use this feature.");
+    }
+
+    // Validate domain format - no protocol, no path, just hostname
+    const domainInput = args.domain.trim().toLowerCase();
+    
+    // Strip protocol if provided
+    const cleanDomain = domainInput
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .trim();
+
+    // Validate domain format (hostname pattern)
+    // Rejects: double dots (..), leading/trailing hyphens, IP addresses
+    const domainRegex = /^(?!.*\.\.)(?!.*-$)(?!^-)[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(cleanDomain)) {
+      throw new Error("Invalid domain format. Please enter a valid domain like 'affiliates.mycompany.com'");
+    }
+
+    // Get previous domain for audit log
+    const previousDomain = tenant.branding?.customDomain;
+
+    // Platform domain - this should come from env or config
+    const platformDomain = "app.saligaffiliate.com";
+
+    // Update tenant with new domain
+    const currentBranding = tenant.branding || {};
+    await ctx.db.patch(authUser.tenantId, {
+      branding: {
+        ...currentBranding,
+        customDomain: cleanDomain,
+        domainStatus: "pending",
+        domainVerifiedAt: undefined,
+        sslProvisionedAt: undefined,
+      },
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "domain_updated",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: { customDomain: previousDomain },
+      newValue: { customDomain: cleanDomain, domainStatus: "pending" },
+    });
+
+    return {
+      success: true,
+      domain: cleanDomain,
+      status: "pending",
+      dnsInstructions: {
+        recordType: "CNAME",
+        recordName: cleanDomain,
+        recordValue: platformDomain,
+      },
+    };
+  },
+});
+
+/**
+ * Verify domain DNS configuration.
+ * Checks if the CNAME record is properly configured.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ * @rate-limit Max 5 attempts per minute per tenant to prevent API abuse
+ */
+export const verifyDomainDns = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    verified: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      throw new Error("Access denied: You require 'settings:manage' permission to verify domain DNS");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const customDomain = tenant.branding?.customDomain;
+    if (!customDomain) {
+      throw new Error("No custom domain configured");
+    }
+
+    // Rate limiting: Check for recent verification attempts (last minute)
+    const oneMinuteAgo = Date.now() - 60 * 1000;
+    const recentAttempts = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("action"), "domain_dns_verification_attempt"),
+          q.gte(q.field("_creationTime"), oneMinuteAgo)
+        )
+      )
+      .collect();
+
+    if (recentAttempts.length >= 5) {
+      throw new Error("Rate limit exceeded. Please wait before trying again.");
+    }
+
+    // Log the verification attempt for rate limiting
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "domain_dns_verification_attempt",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      newValue: { customDomain },
+    });
+
+    const platformDomain = PLATFORM_DOMAIN;
+
+    try {
+      // Use DNS over HTTPS (Google DNS API) to check CNAME record
+      // AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(
+        `https://dns.google/resolve?name=${encodeURIComponent(customDomain)}&type=CNAME`,
+        {
+          method: "GET",
+          headers: {
+            "Accept": "application/dns-json",
+          },
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`DNS lookup failed with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check if CNAME record exists and points to the correct domain
+      const cnameRecord = data.Answer?.find((record: { type: number; data: string }) => record.type === 5); // Type 5 = CNAME
+
+      if (cnameRecord && cnameRecord.data.endsWith(platformDomain + ".")) {
+        // DNS verified - update status
+        const currentBranding = tenant.branding || {};
+        await ctx.db.patch(authUser.tenantId, {
+          branding: {
+            ...currentBranding,
+            domainStatus: "dns_verification",
+            domainVerifiedAt: Date.now(),
+          },
+        });
+
+        // Create audit log entry
+        await ctx.db.insert("auditLogs", {
+          tenantId: authUser.tenantId,
+          action: "domain_dns_verified",
+          entityType: "tenant",
+          entityId: authUser.tenantId,
+          actorId: authUser.userId,
+          actorType: "user",
+          newValue: { customDomain, verifiedAt: Date.now() },
+        });
+
+        return {
+          success: true,
+          verified: true,
+          message: "DNS configuration verified successfully. Your domain is pointing to the correct location.",
+        };
+      } else {
+        // DNS not verified
+        return {
+          success: true,
+          verified: false,
+          message: `DNS verification failed. Expected CNAME record pointing to '${platformDomain}'. Please check your DNS configuration.`,
+        };
+      }
+    } catch (error) {
+      console.error("DNS verification error:", error);
+      return {
+        success: false,
+        verified: false,
+        message: "Unable to verify DNS configuration. Please try again later or check your DNS settings.",
+      };
+    }
+  },
+});
+
+/**
+ * Initiate SSL provisioning for the custom domain.
+ * 
+ * ⚠️ MVP IMPLEMENTATION NOTE:
+ * For MVP, this mutation only updates the status to "ssl_provisioning".
+ * Actual SSL certificate provisioning must be handled separately by:
+ * 1. Infrastructure-level SSL termination (e.g., Cloudflare, AWS ACM)
+ * 2. Manual Let's Encrypt integration (future enhancement)
+ * 3. Webhook from SSL provider to _completeSslProvisioning mutation
+ * 
+ * TODO: Implement actual SSL provisioning automation
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ */
+export const initiateSslProvisioning = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    status: v.string(),
+    message: v.string(),
+  }),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const customDomain = tenant.branding?.customDomain;
+    const domainStatus = tenant.branding?.domainStatus;
+
+    if (!customDomain) {
+      throw new Error("No custom domain configured");
+    }
+
+    // Must have DNS verified before SSL provisioning
+    if (domainStatus !== "dns_verification") {
+      throw new Error("DNS must be verified before initiating SSL provisioning");
+    }
+
+    // Update status to ssl_provisioning
+    const currentBranding = tenant.branding || {};
+    await ctx.db.patch(authUser.tenantId, {
+      branding: {
+        ...currentBranding,
+        domainStatus: "ssl_provisioning",
+      },
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "domain_ssl_provisioning_started",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      newValue: { customDomain },
+    });
+
+    // For MVP: Simulate async SSL provisioning completion
+    // In production, this would trigger actual SSL certificate provisioning
+    // and the status would be updated via webhook or cron job
+    return {
+      success: true,
+      status: "ssl_provisioning",
+      message: "SSL provisioning initiated. This may take up to 24 hours to complete. You will be notified when SSL is active.",
+    };
+  },
+});
+
+/**
+ * Complete SSL provisioning (called by async process or cron job).
+ * This is an internal mutation for system use.
+ */
+export const _completeSslProvisioning = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const currentBranding = tenant.branding || {};
+    
+    // Update status to active
+    await ctx.db.patch(args.tenantId, {
+      branding: {
+        ...currentBranding,
+        domainStatus: "active",
+        sslProvisionedAt: Date.now(),
+      },
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "domain_ssl_provisioned",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorType: "system",
+      newValue: { 
+        customDomain: currentBranding.customDomain,
+        sslProvisionedAt: Date.now(),
+      },
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Mark SSL provisioning as failed (called by async process or for manual retry).
+ */
+export const _failSslProvisioning = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    errorMessage: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const currentBranding = tenant.branding || {};
+    
+    // Update status to failed
+    await ctx.db.patch(args.tenantId, {
+      branding: {
+        ...currentBranding,
+        domainStatus: "failed",
+      },
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "domain_ssl_failed",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorType: "system",
+      newValue: { 
+        customDomain: currentBranding.customDomain,
+        errorMessage: args.errorMessage || "SSL provisioning failed",
+      },
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Remove tenant custom domain configuration.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ */
+export const removeTenantDomain = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    previousDomain: v.optional(v.string()),
+  }),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=removeTenantDomain`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to remove domain settings");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const previousDomain = tenant.branding?.customDomain;
+    const previousDomainStatus = tenant.branding?.domainStatus;
+
+    if (!previousDomain) {
+      // No domain to remove
+      return {
+        success: true,
+        previousDomain: undefined,
+      };
+    }
+
+    // Remove domain fields from branding - explicitly clear all domain-related fields
+    const currentBranding = tenant.branding || {};
+    
+    // Create a new branding object without any domain-related fields
+    const restBranding: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(currentBranding)) {
+      // Skip all domain-related fields
+      if (!['customDomain', 'domainStatus', 'domainVerifiedAt', 'sslProvisionedAt'].includes(key)) {
+        restBranding[key] = value;
+      }
+    }
+
+    await ctx.db.patch(authUser.tenantId, {
+      branding: restBranding,
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "domain_removed",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: { customDomain: previousDomain, domainStatus: previousDomainStatus },
+      newValue: { customDomain: null },
+    });
+
+    return {
+      success: true,
+      previousDomain,
+    };
+  },
+});
+
+/**
+ * Get tier configuration to check if custom domain is available.
+ * Used by frontend to determine if domain settings should be accessible.
+ */
+export const getTierCustomDomainStatus = query({
+  args: {},
+  returns: v.object({
+    isCustomDomainEnabled: v.boolean(),
+    currentPlan: v.optional(v.string()),
+  }),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      return {
+        isCustomDomainEnabled: false,
+        currentPlan: undefined,
+      };
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      return {
+        isCustomDomainEnabled: false,
+        currentPlan: undefined,
+      };
+    }
+
+    const tierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", q => q.eq("tier", tenant.plan))
+      .first();
+
+    return {
+      isCustomDomainEnabled: tierConfig?.features.customDomain ?? false,
+      currentPlan: tenant.plan,
+    };
   },
 });

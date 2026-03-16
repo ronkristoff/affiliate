@@ -12,6 +12,8 @@ import type * as affiliateAuth from "../affiliateAuth.js";
 import type * as affiliates from "../affiliates.js";
 import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
+import type * as brandAssets from "../brandAssets.js";
+import type * as branding from "../branding.js";
 import type * as campaigns from "../campaigns.js";
 import type * as clicks from "../clicks.js";
 import type * as commissionEngine from "../commissionEngine.js";
@@ -70,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   affiliates: typeof affiliates;
   audit: typeof audit;
   auth: typeof auth;
+  brandAssets: typeof brandAssets;
+  branding: typeof branding;
   campaigns: typeof campaigns;
   clicks: typeof clicks;
   commissionEngine: typeof commissionEngine;

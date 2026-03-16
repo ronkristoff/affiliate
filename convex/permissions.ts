@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -265,5 +265,26 @@ export const canView = query({
       hasPermission(role, "view:*") ||
       hasPermission(role, `${args.resource}:*`)
     );
+  },
+});
+
+/**
+ * Internal query to check if a user has a specific permission.
+ * Used by actions that need permission checking.
+ */
+export const _checkPermissionInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    permission: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return false;
+    }
+
+    const role = user.role as Role;
+    return hasPermission(role, args.permission) || hasPermission(role, "manage:*");
   },
 });

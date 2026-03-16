@@ -526,10 +526,32 @@ export const getEffectiveRate = query({
  * Includes self-referral fraud detection fields (Story 5.6).
  * @security Requires authentication. Validates tenant ownership.
  */
+// Period calculation helpers
+function getPeriodRange(period: string): { start: number; end: number } | null {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+  const endOfLastMonth = startOfMonth - 1;
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).getTime();
+
+  switch (period) {
+    case "this_month":
+      return { start: startOfMonth, end: now.getTime() };
+    case "last_month":
+      return { start: startOfLastMonth, end: endOfLastMonth };
+    case "last_3_months":
+      return { start: threeMonthsAgo, end: now.getTime() };
+    default:
+      return null; // All time
+  }
+}
+
 export const getAffiliateCommissions = query({
   args: {
     affiliateId: v.id("affiliates"),
     limit: v.optional(v.number()),
+    period: v.optional(v.string()), // "all" | "this_month" | "last_month" | "last_3_months"
+    status: v.optional(v.string()), // "all" | "confirmed" | "pending" | "reversed" | "paid"
   },
   returns: v.array(
     v.object({
@@ -543,6 +565,7 @@ export const getAffiliateCommissions = query({
       campaignName: v.string(),
       customerEmail: v.optional(v.string()),
       createdAt: v.number(),
+      referralCode: v.string(), // For sharing (AC10)
       // Self-referral fraud detection fields (Story 5.6)
       isSelfReferral: v.optional(v.boolean()),
       fraudIndicators: v.optional(v.array(v.string())),
@@ -556,22 +579,55 @@ export const getAffiliateCommissions = query({
 
     const tenantId = user.tenantId;
 
-    // Verify affiliate belongs to tenant
+    // Verify affiliate belongs to tenant and get referral code
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate || affiliate.tenantId !== tenantId) {
       return [];
     }
+    const referralCode = affiliate?.uniqueCode || "";
+
+    // Calculate period range if specified
+    const periodRange = args.period ? getPeriodRange(args.period) : null;
 
     // Query commissions for this affiliate
-    const commissions = await ctx.db
+    let query = ctx.db
       .query("commissions")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .order("desc")
-      .take(args.limit ?? 10);
+      .order("desc");
 
-    // Populate campaign names
+    // Collect all commissions (we need to filter after querying since Convex doesn't support date range filtering in index queries)
+    const allCommissions = await query.take(args.limit ?? 50);
+
+    // Filter by period and status
+    let filteredCommissions = allCommissions;
+    
+    // Filter by period
+    if (periodRange) {
+      filteredCommissions = filteredCommissions.filter(commission => {
+        const commissionTime = commission._creationTime;
+        return commissionTime >= periodRange.start && commissionTime <= periodRange.end;
+      });
+    }
+    
+    // Filter by status
+    if (args.status && args.status !== "all") {
+      filteredCommissions = filteredCommissions.filter(commission => {
+        // Map status filter to actual commission status values
+        const statusMap: Record<string, string[]> = {
+          "confirmed": ["confirmed"],
+          "pending": ["pending"],
+          "reversed": ["reversed"],
+          "paid": ["paid"],
+        };
+        const allowedStatuses = statusMap[args.status!];
+        return allowedStatuses.includes(commission.status);
+      });
+    }
+
+    // Populate campaign names and affiliate data
     const commissionsWithCampaigns = [];
-    for (const commission of commissions) {
+    
+    for (const commission of filteredCommissions) {
       const campaign = await ctx.db.get(commission.campaignId);
       
       // Get customer email from conversion if available
@@ -592,6 +648,7 @@ export const getAffiliateCommissions = query({
         campaignName: campaign?.name || "Unknown Campaign",
         customerEmail,
         createdAt: commission._creationTime,
+        referralCode, // Include for sharing (AC10)
         // Self-referral fraud detection fields
         isSelfReferral: commission.isSelfReferral,
         fraudIndicators: commission.fraudIndicators,

@@ -7,6 +7,12 @@ import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
 
 /**
+ * Platform domain constant - used for fallback URL generation
+ * TODO: Import from shared configuration
+ */
+const PLATFORM_DOMAIN = "app.saligaffiliate.com";
+
+/**
  * Generate a unique referral code for a referral link.
  * Format: 8-character alphanumeric code (excludes confusing characters).
  */
@@ -397,7 +403,10 @@ export const generateReferralLink = mutation({
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    const domain = tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : "app.saligaffiliate.com";
+    // Priority: custom domain (if active) > tenant slug > default platform domain
+    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
+      ? tenant.branding.customDomain
+      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
     const affiliateName = affiliate.name;
 
     // Build URLs
@@ -464,7 +473,10 @@ export const getReferralLinks = query({
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    const domain = tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : "app.saligaffiliate.com";
+    // Priority: custom domain (if active) > tenant slug > default platform domain
+    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
+      ? tenant.branding.customDomain
+      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
 
     // Build base query
     let baseQuery = ctx.db
@@ -631,7 +643,10 @@ export const getAffiliatePortalLinks = query({
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    const domain = tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : "app.saligaffiliate.com";
+    // Priority: custom domain (if active) > tenant slug > default platform domain
+    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
+      ? tenant.branding.customDomain
+      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
     const affiliateName = affiliate.name;
 
     // Query referral links for this affiliate
@@ -707,6 +722,87 @@ export const getAffiliatePortalLinks = query({
     }));
 
     return enrichedLinks;
+  },
+});
+
+/**
+ * Get daily click statistics for the last 7 days for an affiliate.
+ * Returns an array of 7 days with click counts, ending with today.
+ * @security Requires authentication. Validates tenant ownership.
+ */
+export const getAffiliateDailyClicks = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+  },
+  returns: v.array(v.object({
+    date: v.string(), // ISO date string YYYY-MM-DD
+    dayName: v.string(), // Mon, Tue, etc.
+    clicks: v.number(),
+    isToday: v.boolean(),
+  })),
+  handler: async (ctx, args) => {
+    const tenantId = await requireTenantId(ctx);
+
+    // Verify affiliate belongs to tenant
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || affiliate.tenantId !== tenantId) {
+      throw new Error("Affiliate not found or access denied");
+    }
+
+    // Get all referral links for this affiliate
+    const links = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .collect();
+
+    const linkIds = links.map(link => link._id);
+
+    // Calculate date range (last 7 days including today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // 6 days ago + today = 7 days
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Initialize result array with 0 clicks for each day
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sevenDaysAgo);
+      date.setDate(date.getDate() + i);
+      const dateString = date.toISOString().split('T')[0];
+      result.push({
+        date: dateString,
+        dayName: dayNames[date.getDay()],
+        clicks: 0,
+        isToday: i === 6, // Last day is today
+      });
+    }
+
+    // Query all clicks for these links in the last 7 days
+    const startTime = sevenDaysAgo.getTime();
+    const endTime = today.getTime() + 24 * 60 * 60 * 1000; // End of today
+
+    for (const linkId of linkIds) {
+      const clicks = await ctx.db
+        .query("clicks")
+        .withIndex("by_referral_link", (q) => q.eq("referralLinkId", linkId))
+        .collect();
+
+      // Count clicks per day
+      for (const click of clicks) {
+        const clickDate = new Date(click._creationTime);
+        if (clickDate.getTime() >= startTime && clickDate.getTime() < endTime) {
+          const dateString = clickDate.toISOString().split('T')[0];
+          const dayEntry = result.find(r => r.date === dateString);
+          if (dayEntry) {
+            dayEntry.clicks++;
+          }
+        }
+      }
+    }
+
+    return result;
   },
 });
 
@@ -854,5 +950,103 @@ export const getReferralLinkByVanitySlug = query({
     }
 
     return referralLink;
+  },
+});
+
+/**
+ * Update affiliate's vanity slug.
+ * @param affiliateId - The affiliate ID
+ * @param vanitySlug - New vanity slug (3-50 chars, alphanumeric/hyphens/underscores)
+ * @returns success status and new vanity URL
+ */
+export const updateVanitySlug = mutation({
+  args: {
+    affiliateId: v.id("affiliates"),
+    vanitySlug: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    vanityUrl: v.string(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Verify affiliate belongs to tenant
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || affiliate.tenantId !== authUser.tenantId) {
+      throw new Error("Affiliate not found or access denied");
+    }
+
+    // Validate slug format (3-50 chars, alphanumeric/hyphens/underscores)
+    const slugRegex = /^[a-zA-Z0-9_-]{3,50}$/;
+    if (!slugRegex.test(args.vanitySlug)) {
+      return {
+        success: false,
+        vanityUrl: "",
+        message: "Invalid slug format. Must be 3-50 characters, alphanumeric, hyphens, or underscores.",
+      };
+    }
+
+    // Check if slug is already taken by another affiliate
+    const existingLink = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_vanity_slug", (q) => q.eq("vanitySlug", args.vanitySlug))
+      .first();
+
+    if (existingLink && existingLink.affiliateId !== args.affiliateId) {
+      return {
+        success: false,
+        vanityUrl: "",
+        message: "This vanity slug is already taken by another affiliate.",
+      };
+    }
+
+    // Get tenant domain for URL building
+    const tenant = await ctx.db.get(authUser.tenantId);
+    // Priority: custom domain (if active) > tenant slug > default platform domain
+    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
+      ? tenant.branding.customDomain
+      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
+
+    // Update affiliate's vanitySlug field
+    await ctx.db.patch(args.affiliateId, {
+      vanitySlug: args.vanitySlug,
+    });
+
+    // Update all referral links for this affiliate
+    const affiliateLinks = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .collect();
+
+    for (const link of affiliateLinks) {
+      await ctx.db.patch(link._id, {
+        vanitySlug: args.vanitySlug,
+      });
+    }
+
+    const vanityUrl = buildVanityUrl(domain, args.vanitySlug);
+
+    // Log the vanity slug update in audit trail
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "vanity_slug_updated",
+      entityType: "referralLink",
+      entityId: args.affiliateId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: { vanitySlug: affiliate.vanitySlug || null },
+      newValue: { vanitySlug: args.vanitySlug, vanityUrl },
+    });
+
+    return {
+      success: true,
+      vanityUrl: vanityUrl,
+      message: "Vanity slug updated successfully!",
+    };
   },
 });

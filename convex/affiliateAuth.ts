@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { sendAffiliateWelcomeEmail, sendNewAffiliateNotificationEmail } from "./email";
+import { getAuthenticatedUser } from "./tenantContext";
 
 /**
  * Affiliate Session Management
@@ -620,6 +621,11 @@ export const getCurrentAffiliate = query({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      payoutMethod: v.optional(v.object({
+        type: v.string(),
+        details: v.string(),
+      })),
+      payoutMethodLastDigits: v.optional(v.string()),
       tenant: v.object({
         _id: v.id("tenants"),
         name: v.string(),
@@ -651,6 +657,8 @@ export const getCurrentAffiliate = query({
       name: affiliate.name,
       uniqueCode: affiliate.uniqueCode,
       status: affiliate.status,
+      payoutMethod: affiliate.payoutMethod,
+      payoutMethodLastDigits: affiliate.payoutMethodLastDigits,
       tenant: {
         _id: tenant._id,
         name: tenant.name,
@@ -849,5 +857,449 @@ export const requestAffiliatePasswordReset = mutation({
     // For MVP, we'll just return success
 
     return { success: true, message: "If an account exists, you will receive a password reset email." };
+  },
+});
+
+/**
+ * Get affiliate portal dashboard statistics (AC: #1, #2, #3)
+ * Returns key metrics with period-over-period comparison
+ */
+export const getAffiliatePortalDashboardStats = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+  },
+  returns: v.object({
+    // All-time totals
+    totalClicks: v.number(),
+    totalConversions: v.number(),
+    conversionRate: v.number(),
+    totalEarnings: v.number(),
+    confirmedEarnings: v.number(),
+    pendingEarnings: v.number(),
+    
+    // This month
+    thisMonthClicks: v.number(),
+    thisMonthConversions: v.number(),
+    thisMonthEarnings: v.number(),
+    
+    // Last month (for comparison)
+    lastMonthClicks: v.number(),
+    lastMonthEarnings: v.number(),
+    
+    // Computed deltas
+    clickChangePercent: v.number(),
+    earningsChangePercent: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Validate affiliate belongs to session tenant
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) {
+      throw new Error("Affiliate not found");
+    }
+
+    // Calculate date ranges for this month and last month
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const thisMonthEnd = now.getTime();
+    
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999).getTime();
+
+    // PERFORMANCE NOTE: These queries load all historical data for the affiliate.
+    // For affiliates with years of data, this could be inefficient.
+    // TODO: Consider adding a date-filtered index (by_affiliate_and_date) to the schema
+    // or implement incremental statistics updates via scheduled jobs.
+    
+    // Query clicks using async iteration to reduce memory pressure
+    let totalClicks = 0;
+    let thisMonthClicks = 0;
+    let lastMonthClicks = 0;
+    
+    const clicksQuery = ctx.db
+      .query("clicks")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+    
+    for await (const click of clicksQuery) {
+      totalClicks++;
+      if (click._creationTime >= thisMonthStart && click._creationTime <= thisMonthEnd) {
+        thisMonthClicks++;
+      } else if (click._creationTime >= lastMonthStart && click._creationTime <= lastMonthEnd) {
+        lastMonthClicks++;
+      }
+    }
+
+    // Query conversions using async iteration
+    let totalConversions = 0;
+    let thisMonthConversions = 0;
+    
+    const conversionsQuery = ctx.db
+      .query("conversions")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+    
+    for await (const conversion of conversionsQuery) {
+      totalConversions++;
+      if (conversion._creationTime >= thisMonthStart && conversion._creationTime <= thisMonthEnd) {
+        thisMonthConversions++;
+      }
+    }
+
+    // Query commissions using async iteration
+    let totalCommissions = 0;
+    let confirmedCommissions = 0;
+    let pendingCommissions = 0;
+    let thisMonthEarnings = 0;
+    let lastMonthEarnings = 0;
+    
+    const commissionsQuery = ctx.db
+      .query("commissions")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+    
+    for await (const commission of commissionsQuery) {
+      totalCommissions += commission.amount;
+      
+      if (commission.status === "confirmed") {
+        confirmedCommissions += commission.amount;
+      } else if (commission.status === "pending") {
+        pendingCommissions += commission.amount;
+      }
+      
+      if (commission._creationTime >= thisMonthStart && commission._creationTime <= thisMonthEnd) {
+        thisMonthEarnings += commission.amount;
+      } else if (commission._creationTime >= lastMonthStart && commission._creationTime <= lastMonthEnd) {
+        lastMonthEarnings += commission.amount;
+      }
+    }
+
+    // Calculate conversion rate (avoid division by zero)
+    const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+
+    // Calculate change percentages with safe division
+    const clickChangePercent = lastMonthClicks > 0 
+      ? ((thisMonthClicks - lastMonthClicks) / lastMonthClicks) * 100 
+      : 0;
+    
+    const earningsChangePercent = lastMonthEarnings > 0 
+      ? ((thisMonthEarnings - lastMonthEarnings) / lastMonthEarnings) * 100 
+      : 0;
+
+    return {
+      // All-time totals
+      totalClicks,
+      totalConversions,
+      conversionRate: Math.round(conversionRate * 100) / 100,
+      totalEarnings: totalCommissions,
+      confirmedEarnings: confirmedCommissions,
+      pendingEarnings: pendingCommissions,
+      
+      // This month
+      thisMonthClicks,
+      thisMonthConversions,
+      thisMonthEarnings,
+      
+      // Last month
+      lastMonthClicks,
+      lastMonthEarnings,
+      
+      // Deltas
+      clickChangePercent: Math.round(clickChangePercent * 100) / 100,
+      earningsChangePercent: Math.round(earningsChangePercent * 100) / 100,
+    };
+  },
+});
+
+/**
+ * Get affiliate recent activity feed (AC: #4)
+ * Returns combined feed of commissions and click batches
+ */
+export const getAffiliateRecentActivity = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(v.object({
+    _id: v.string(),
+    type: v.union(
+      v.literal("commission_confirmed"),
+      v.literal("commission_pending"),
+      v.literal("clicks")
+    ),
+    title: v.string(),
+    description: v.string(),
+    amount: v.optional(v.number()),
+    status: v.optional(v.string()),
+    timestamp: v.number(),
+    iconType: v.union(v.literal("green"), v.literal("amber"), v.literal("blue")),
+  })),
+  handler: async (ctx, args) => {
+    const resultLimit = args.limit || 10;
+    
+    // Get recent commissions (limit 5)
+    const recentCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .order("desc")
+      .take(5);
+
+    // Get recent clicks grouped by day (limit 5)
+    const recentClicks = await ctx.db
+      .query("clicks")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .order("desc")
+      .take(10);
+
+    // Convert commissions to activity items
+    const commissionActivities = recentCommissions.map((commission) => {
+      const type = commission.status === "confirmed" 
+        ? "commission_confirmed" 
+        : "commission_pending";
+      
+      const iconType = commission.status === "confirmed" ? "green" : "amber";
+      
+      return {
+        _id: `commission-${commission._id}`,
+        type: type as "commission_confirmed" | "commission_pending",
+        title: type === "commission_confirmed" ? "Commission Confirmed" : "Commission Pending",
+        description: `From conversion #${commission.conversionId ? commission.conversionId.slice(-6) : "unknown"}`,
+        amount: commission.amount,
+        status: commission.status,
+        timestamp: commission._creationTime,
+        iconType: iconType as "green" | "amber",
+      };
+    });
+
+    // Convert clicks to activity items (group by day)
+    const clickActivities: Array<{
+      _id: string;
+      type: "clicks";
+      title: string;
+      description: string;
+      timestamp: number;
+      iconType: "blue";
+    }> = [];
+    
+    const recentClicksGrouped = recentClicks.reduce((groups, click) => {
+      const clickDate = new Date(click._creationTime);
+      clickDate.setHours(0, 0, 0, 0);
+      const dateKey = clickDate.toISOString().split('T')[0];
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(click);
+      return groups;
+    }, {} as Record<string, typeof recentClicks>);
+
+    // Create activity items for each day with clicks
+    Object.entries(recentClicksGrouped).slice(0, 5).forEach(([dateStr, clicks]) => {
+      const date = new Date(dateStr);
+      const clickCount = clicks.length;
+      const timestamp = date.getTime();
+      
+      clickActivities.push({
+        _id: `clicks-${dateStr}`,
+        type: "clicks",
+        title: "Clicks Recorded",
+        description: `${clickCount} click${clickCount !== 1 ? 's' : ''} on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        timestamp,
+        iconType: "blue",
+      });
+    });
+
+    // Merge and sort by timestamp descending
+    const allActivities = [...commissionActivities, ...clickActivities];
+    allActivities.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Limit the results
+    return allActivities.slice(0, resultLimit).map(activity => ({
+      ...activity,
+      // Ensure type is correctly typed
+      type: activity.type as "commission_confirmed" | "commission_pending" | "clicks",
+      // Ensure iconType is correctly typed
+      iconType: activity.iconType as "green" | "amber" | "blue",
+    }));
+  },
+});
+
+/**
+ * Get earnings summary for an affiliate.
+ * Returns total earnings, paid out, pending balance, commission rate, and counts.
+ * Note: This is called from the affiliate portal - affiliateId is validated via session on the client.
+ */
+export const getAffiliateEarningsSummary = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+  },
+  returns: v.object({
+    totalEarnings: v.number(),
+    paidOut: v.number(),
+    pendingBalance: v.number(),
+    confirmedBalance: v.number(),
+    confirmedCount: v.number(),
+    pendingCount: v.number(),
+    paidOutCount: v.number(),
+    totalCount: v.number(),
+    commissionRate: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Verify affiliate exists
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) {
+      return {
+        totalEarnings: 0,
+        paidOut: 0,
+        pendingBalance: 0,
+        confirmedBalance: 0,
+        confirmedCount: 0,
+        pendingCount: 0,
+        paidOutCount: 0,
+        totalCount: 0,
+        commissionRate: 0,
+      };
+    }
+
+    // Query all commissions for this affiliate
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .collect();
+
+    // Calculate totals by status
+    let totalEarnings = 0;
+    let paidOut = 0;
+    let paidOutCount = 0;
+    let pendingBalance = 0;
+    let confirmedBalance = 0;
+    let confirmedCount = 0;
+    let pendingCount = 0;
+    let totalCount = 0;
+
+    for (const commission of commissions) {
+      totalEarnings += commission.amount;
+      totalCount += 1;
+
+      if (commission.status === "confirmed") {
+        confirmedCount += 1;
+        confirmedBalance += commission.amount;
+      } else if (commission.status === "pending") {
+        pendingCount += 1;
+        pendingBalance += commission.amount;
+      } else if (commission.status === "paid") {
+        paidOut += commission.amount;
+        paidOutCount += 1;
+      }
+    }
+
+    // Calculate commission rate
+    // Use affiliate's commissionOverrides if available, otherwise calculate from campaigns they've earned from
+    let commissionRate = 0;
+    
+    if (affiliate.commissionOverrides && affiliate.commissionOverrides.length > 0) {
+      // Calculate average from commission overrides
+      const activeOverrides = affiliate.commissionOverrides.filter(o => o.status === "active");
+      if (activeOverrides.length > 0) {
+        const totalRate = activeOverrides.reduce((sum, o) => sum + o.rate, 0);
+        commissionRate = Math.round((totalRate / activeOverrides.length) * 100) / 100;
+      }
+    } else {
+      // Calculate average from campaigns they've earned commissions from
+      const campaignIds = new Set(commissions.map(c => c.campaignId.toString()));
+      let totalCampaignRate = 0;
+      let campaignCount = 0;
+      
+      for (const campaignIdStr of campaignIds) {
+        const campaign = await ctx.db.get(campaignIdStr as Id<"campaigns">);
+        if (campaign && campaign.commissionValue) {
+          totalCampaignRate += campaign.commissionValue;
+          campaignCount++;
+        }
+      }
+      
+      if (campaignCount > 0) {
+        commissionRate = Math.round((totalCampaignRate / campaignCount) * 100) / 100;
+      }
+    }
+
+    return {
+      totalEarnings,
+      paidOut,
+      pendingBalance,
+      confirmedBalance,
+      confirmedCount,
+      pendingCount,
+      paidOutCount,
+      totalCount,
+      commissionRate,
+    };
+  },
+});
+
+/**
+ * Get payout history for an affiliate.
+ * Returns recent payouts with batch info and payment details.
+ * Note: This is called from the affiliate portal - affiliateId is validated via session on the client.
+ */
+export const getAffiliatePayoutHistory = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("payouts"),
+      amount: v.number(),
+      status: v.string(),
+      paidAt: v.optional(v.number()),
+      paymentReference: v.optional(v.string()),
+      batch: v.optional(
+        v.object({
+          _id: v.id("payoutBatches"),
+          generatedAt: v.number(),
+          status: v.string(),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Verify affiliate exists
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) {
+      return [];
+    }
+
+    // Query payouts for this affiliate, ordered by paidAt descending
+    const payouts = await ctx.db
+      .query("payouts")
+      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .order("desc")
+      .take(args.limit || 10);
+
+    // Get batch information for each payout
+    const payoutsWithBatches = await Promise.all(
+      payouts.map(async (payout) => {
+        let batchInfo = undefined;
+        
+        if (payout.batchId) {
+          const batch = await ctx.db.get(payout.batchId);
+          if (batch) {
+            batchInfo = {
+              _id: batch._id,
+              generatedAt: batch.generatedAt,
+              status: batch.status,
+            };
+          }
+        }
+
+        return {
+          _id: payout._id,
+          amount: payout.amount,
+          status: payout.status,
+          paidAt: payout.paidAt,
+          paymentReference: payout.paymentReference,
+          batch: batchInfo,
+        };
+      })
+    );
+
+    return payoutsWithBatches;
   },
 });

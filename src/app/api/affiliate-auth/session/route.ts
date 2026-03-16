@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ session: null });
     }
 
-    // Return session data (without the token)
+    // Fetch affiliate details including payout method
+    const affiliate = await convexServer.query(api.affiliateAuth.getCurrentAffiliate, {
+      affiliateId: session.affiliateId,
+    });
+
+    // Return session data (without the token) with payout method
     return NextResponse.json({
       session: {
         affiliateId: session.affiliateId,
@@ -28,6 +33,8 @@ export async function GET(request: NextRequest) {
         name: session.name,
         uniqueCode: session.uniqueCode,
         status: session.status,
+        payoutMethod: affiliate?.payoutMethod,
+        payoutMethodLastDigits: affiliate?.payoutMethodLastDigits,
       },
     });
   } catch (error) {

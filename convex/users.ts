@@ -903,3 +903,41 @@ export const getOwnerByTenantInternal = internalQuery({
     };
   },
 });
+
+/**
+ * Internal query to get user by Better Auth ID.
+ * Used by actions that need to authenticate via auth identity.
+ */
+export const _getUserByAuthIdInternal = internalQuery({
+  args: {
+    authId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("users"),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+      tenantId: v.id("tenants"),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
+      .first();
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      tenantId: user.tenantId,
+    };
+  },
+});

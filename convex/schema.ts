@@ -17,6 +17,12 @@ export default defineSchema({
     trialEndsAt: v.optional(v.number()),
     trackingPublicKey: v.optional(v.string()),
     trackingVerifiedAt: v.optional(v.number()),
+    payoutSchedule: v.optional(v.object({
+      payoutDayOfMonth: v.optional(v.number()),
+      minimumPayoutAmount: v.optional(v.number()),
+      payoutProcessingDays: v.optional(v.number()),
+      payoutScheduleNote: v.optional(v.string()),
+    })),
     saligPayCredentials: v.optional(v.object({
       clientId: v.string(),
       clientSecret: v.string(),
@@ -32,9 +38,52 @@ export default defineSchema({
       logoUrl: v.optional(v.string()),
       primaryColor: v.optional(v.string()),
       portalName: v.optional(v.string()),
+      assetGuidelines: v.optional(v.string()),
+      // Custom domain fields (Story 8.8)
+      customDomain: v.optional(v.string()),
+      domainStatus: v.optional(v.union(
+        v.literal("pending"),
+        v.literal("dns_verification"),
+        v.literal("ssl_provisioning"),
+        v.literal("active"),
+        v.literal("failed")
+      )),
+      domainVerifiedAt: v.optional(v.number()),
+      sslProvisionedAt: v.optional(v.number()),
     })),
   }).index("by_slug", ["slug"])
     .index("by_tracking_key", ["trackingPublicKey"]),
+
+  // Brand Asset Library table (Story 8.6)
+  // Stores marketing assets uploaded by SaaS Owner for affiliates to access
+  brandAssets: defineTable({
+    tenantId: v.id("tenants"),
+    type: v.union(
+      v.literal("logo"),
+      v.literal("banner"),
+      v.literal("product-image"),
+      v.literal("copy-text"),
+    ),
+    title: v.string(),
+    description: v.optional(v.string()),
+    // For file-based assets (images)
+    fileUrl: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    format: v.optional(v.string()),
+    dimensions: v.optional(v.object({
+      width: v.number(),
+      height: v.number(),
+    })),
+    // For text assets
+    textContent: v.optional(v.string()),
+    // Common fields
+    category: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
+    isActive: v.boolean(),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_type", ["tenantId", "type"])
+    .index("by_tenant_and_active", ["tenantId", "isActive"])
+    .index("by_tenant_and_category", ["tenantId", "category"]),
 
   // Billing history table
   billingHistory: defineTable({

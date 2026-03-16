@@ -624,3 +624,52 @@ describe("Integration Scenarios", () => {
     expect(isVanitySlugUnique(existingSlugs, slug)).toBe(false);
   });
 });
+
+// ============================================================================
+// Tests for updateVanitySlug mutation
+// ============================================================================
+
+describe("updateVanitySlug mutation", () => {
+  it("should validate slug format (3-50 chars)", () => {
+    // Valid slugs
+    expect(isValidVanitySlug("abc")).toBe(true);
+    expect(isValidVanitySlug("my-slug")).toBe(true);
+    expect(isValidVanitySlug("my_slug")).toBe(true);
+    expect(isValidVanitySlug("abc123")).toBe(true);
+    expect(isValidVanitySlug("a".repeat(50))).toBe(true);
+    
+    // Invalid slugs
+    expect(isValidVanitySlug("ab")).toBe(false); // Too short
+    expect(isValidVanitySlug("a".repeat(51))).toBe(false); // Too long
+    expect(isValidVanitySlug("my slug")).toBe(false); // Contains space
+    expect(isValidVanitySlug("my@slug")).toBe(false); // Contains special char
+    expect(isValidVanitySlug("my.slug")).toBe(false); // Contains dot
+  });
+
+  it("should check for duplicate vanity slugs", () => {
+    const existingSlugs = ["john-special", "mary-offer", "test-promo"];
+    
+    // Should allow unique slugs
+    expect(isVanitySlugUnique(existingSlugs, "new-slug")).toBe(true);
+    expect(isVanitySlugUnique(existingSlugs, "another-slug")).toBe(true);
+    
+    // Should reject duplicate slugs
+    expect(isVanitySlugUnique(existingSlugs, "john-special")).toBe(false);
+    expect(isVanitySlugUnique(existingSlugs, "mary-offer")).toBe(false);
+  });
+
+  it("should generate correct vanity URL", () => {
+    const domain = "tenant.saligaffiliate.com";
+    const slug = "my-offer";
+    
+    const vanityUrl = buildVanityUrl(domain, slug);
+    expect(vanityUrl).toBe("https://tenant.saligaffiliate.com/ref/my-offer");
+  });
+
+  it("should handle empty or invalid input gracefully", () => {
+    expect(isValidVanitySlug("")).toBe(false);
+    expect(isValidVanitySlug(" ")).toBe(false);
+    expect(isValidVanitySlug("-")).toBe(false);
+    expect(isValidVanitySlug("_")).toBe(false);
+  });
+});
