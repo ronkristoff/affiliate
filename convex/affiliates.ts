@@ -2108,3 +2108,53 @@ export const getAffiliateInternal = internalQuery({
     };
   },
 });
+
+/**
+ * Internal mutation to add a fraud signal to an affiliate.
+ * Used for chargeback fraud detection (Story 7.4).
+ */
+export const addFraudSignalInternal = internalMutation({
+  args: {
+    affiliateId: v.id("affiliates"),
+    type: v.string(),
+    severity: v.string(),
+    details: v.optional(v.string()),
+    commissionId: v.optional(v.id("commissions")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) {
+      throw new Error(`Affiliate ${args.affiliateId} not found`);
+    }
+    
+    // Check if a similar fraud signal already exists for this commission
+    const existingSignals = affiliate.fraudSignals || [];
+    const duplicateSignal = existingSignals.find(
+      (signal: any) => 
+        signal.type === args.type && 
+        signal.commissionId === args.commissionId &&
+        signal.severity === args.severity
+    );
+    
+    if (duplicateSignal) {
+      // Don't add duplicate fraud signal
+      return null;
+    }
+    
+    // Add the new fraud signal
+    const newSignal = {
+      type: args.type,
+      severity: args.severity,
+      timestamp: Date.now(),
+      details: args.details,
+      commissionId: args.commissionId,
+    };
+    
+    await ctx.db.patch(args.affiliateId, {
+      fraudSignals: [...existingSignals, newSignal],
+    });
+    
+    return null;
+  },
+});

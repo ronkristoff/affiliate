@@ -143,6 +143,7 @@ export default defineSchema({
       reviewedAt: v.optional(v.number()),
       reviewedBy: v.optional(v.string()),
       reviewNote: v.optional(v.string()),
+      commissionId: v.optional(v.id("commissions")),  // Link to related commission (Story 7.4)
     }))),
     commissionOverrides: v.optional(v.array(v.object({
       campaignId: v.id("campaigns"),
@@ -232,6 +233,11 @@ export default defineSchema({
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
+      subscriptionId: v.optional(v.string()),
+      planId: v.optional(v.string()),
+      subscriptionStatus: v.optional(v.string()),
+      previousPlanId: v.optional(v.string()),
+      previousAmount: v.optional(v.number()),
     })),
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
@@ -252,13 +258,16 @@ export default defineSchema({
       source: v.string(),
       transactionId: v.optional(v.string()),
       timestamp: v.number(),
+      subscriptionId: v.optional(v.string()),
     })),
     reversalReason: v.optional(v.string()),
+    transactionId: v.optional(v.string()),  // Payment/transaction ID from SaligPay for efficient lookup
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
     .index("by_campaign", ["campaignId"])
     .index("by_conversion", ["conversionId"])
-    .index("by_tenant_and_status", ["tenantId", "status"]),
+    .index("by_tenant_and_status", ["tenantId", "status"])
+    .index("by_tenant_and_transaction", ["tenantId", "transactionId"]),
 
   payouts: defineTable({
     tenantId: v.id("tenants"),
@@ -294,21 +303,23 @@ export default defineSchema({
     actorType: v.string(),
     previousValue: v.optional(v.any()),
     newValue: v.optional(v.any()),
-    metadata: v.optional(v.object({
-      ipAddress: v.optional(v.string()),
-      userAgent: v.optional(v.string()),
-      // Security audit fields
-      attemptedTenantId: v.optional(v.id("tenants")),
-      securityEvent: v.optional(v.boolean()),
-      crossTenantAttempt: v.optional(v.boolean()),
-      additionalInfo: v.optional(v.string()),
-    })),
+    // Flexible metadata for various audit event types
+    // Can include amount, campaignId, reason, transactionId, etc.
+    metadata: v.optional(v.any()),
+    // Reference to affiliate for commission-related audits
+    affiliateId: v.optional(v.id("affiliates")),
   }).index("by_tenant", ["tenantId"])
     .index("by_entity", ["entityType", "entityId"])
     .index("by_actor", ["actorId"])
     // Index for security events by action type
-    .index("by_action", ["action"]),
+    .index("by_action", ["action"])
+    .index("by_affiliate", ["affiliateId"]),
 
+  // Raw webhooks table for storing incoming webhook events
+  // Story 7.5: Event Deduplication
+  // The by_event_id index provides uniqueness enforcement for eventId
+  // Deduplication is performed atomically via ensureEventNotProcessed mutation
+  // which attempts insert and catches unique constraint violations
   rawWebhooks: defineTable({
     tenantId: v.optional(v.id("tenants")),
     source: v.string(),
@@ -321,7 +332,8 @@ export default defineSchema({
     errorMessage: v.optional(v.string()),
   }).index("by_tenant", ["tenantId"])
     .index("by_event_id", ["eventId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_tenant_and_status", ["tenantId", "status"]),
 
   emails: defineTable({
     tenantId: v.id("tenants"),

@@ -5,11 +5,28 @@
  * other security-relevant events.
  * 
  * @see Story 1.5: Multi-Tenant Data Isolation (AC3)
+ * @see Story 7.8: Commission Audit Log (FR29)
  */
 
-import { internalMutation } from "./_generated/server";
+/**
+ * IMMUTABILITY GUARANTEE
+ * =====================
+ * This module provides append-only audit logging.
+ * 
+ * - No mutations exist to update audit log entries
+ * - No mutations exist to delete audit log entries
+ * - All functions only INSERT new records
+ * 
+ * If modification is absolutely required (legal compliance),
+ * it must be done through a separate admin migration with
+ * full documentation of the exception.
+ */
+
+import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
+import { getAuthenticatedUser } from "./tenantContext";
 
 // =============================================================================
 // SECURITY EVENT TYPES
@@ -152,5 +169,215 @@ export const logUnauthorizedAccess = internalMutation({
     });
     
     return null;
+  },
+});
+
+/**
+ * Internal mutation to log a generic audit event.
+ * Used by commission engine for subscription lifecycle event logging.
+ */
+export const logAuditEventInternal = internalMutation({
+  args: {
+    tenantId: v.optional(v.id("tenants")),
+    action: v.string(),
+    entityType: v.string(),
+    entityId: v.string(),
+    actorId: v.optional(v.id("users")),
+    actorType: v.string(),
+    previousValue: v.optional(v.any()),
+    newValue: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: args.action,
+      entityType: args.entityType,
+      entityId: args.entityId,
+      actorId: args.actorId,
+      actorType: args.actorType,
+      previousValue: args.previousValue,
+      newValue: args.newValue,
+      metadata: args.metadata,
+    });
+    return null;
+  },
+});
+
+// =============================================================================
+// COMMISSION AUDIT LOGGING (Story 7.8)
+// =============================================================================
+
+/**
+ * Commission audit action types
+ * Export for use by other modules
+ */
+export const COMMISSION_AUDIT_ACTIONS = {
+  CREATED: "COMMISSION_CREATED",
+  APPROVED: "COMMISSION_APPROVED",
+  DECLINED: "COMMISSION_DECLINED",
+  REVERSED: "COMMISSION_REVERSED",
+  STATUS_CHANGE: "COMMISSION_STATUS_CHANGE",
+} as const;
+
+export type CommissionAuditAction = typeof COMMISSION_AUDIT_ACTIONS[keyof typeof COMMISSION_AUDIT_ACTIONS];
+
+/**
+ * Internal mutation to log a commission-related audit event.
+ * Centralized function for all commission lifecycle events.
+ * 
+ * Story 7.8 - Commission Audit Log (AC1, AC2)
+ * 
+ * @param tenantId - The tenant ID
+ * @param action - The commission action type
+ * @param commissionId - The commission ID
+ * @param affiliateId - The affiliate ID (required for commission audit)
+ * @param actorId - The user/system that performed the action
+ * @param actorType - "user", "system", or "webhook"
+ * @param previousValue - Previous state (for status changes)
+ * @param newValue - New state
+ * @param metadata - Additional context (amount, reason, etc.)
+ */
+export const logCommissionAuditEvent = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    action: v.string(),
+    commissionId: v.id("commissions"),
+    affiliateId: v.id("affiliates"), // Made required per AC1
+    actorId: v.optional(v.string()),
+    actorType: v.string(),
+    previousValue: v.optional(v.any()),
+    newValue: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: args.action,
+      entityType: "commission",
+      entityId: args.commissionId,
+      actorId: args.actorId,
+      actorType: args.actorType,
+      previousValue: args.previousValue,
+      newValue: args.newValue,
+      metadata: args.metadata,
+      affiliateId: args.affiliateId,
+    });
+    return null;
+  },
+});
+
+// =============================================================================
+// AUDIT LOG QUERY FUNCTIONS (Story 7.8)
+// =============================================================================
+
+/**
+ * Get audit log entries for a specific commission.
+ * Only returns entries for the authenticated user's tenant.
+ * 
+ * Story 7.8 - Commission Audit Log (AC4, AC5)
+ */
+export const getCommissionAuditLog = query({
+  args: {
+    commissionId: v.id("commissions"),
+  },
+  returns: v.array(v.object({
+    _id: v.id("auditLogs"),
+    _creationTime: v.number(),
+    action: v.string(),
+    actorId: v.optional(v.string()),
+    actorType: v.string(),
+    previousValue: v.optional(v.any()),
+    newValue: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    affiliateId: v.optional(v.id("affiliates")),
+  })),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return [];
+    }
+    
+    // Verify commission belongs to user's tenant
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission || commission.tenantId !== user.tenantId) {
+      return []; // Return empty for cross-tenant access
+    }
+    
+    const logs = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_entity", (q) => 
+        q.eq("entityType", "commission").eq("entityId", args.commissionId)
+      )
+      .order("asc") // Chronological order
+      .collect();
+    
+    // Filter by tenant (additional safety)
+    return logs.filter(log => log.tenantId === user.tenantId);
+  },
+});
+
+/**
+ * List audit logs for commissions with pagination and filtering.
+ * Story 7.8 - Commission Audit Log (AC4, AC5)
+ */
+export const listCommissionAuditLogs = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    affiliateId: v.optional(v.id("affiliates")),
+    action: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("auditLogs"),
+      _creationTime: v.number(),
+      action: v.string(),
+      entityId: v.string(),
+      actorId: v.optional(v.string()),
+      actorType: v.string(),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
+      metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
+    }
+    
+    let query = ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .filter((q) => q.eq(q.field("entityType"), "commission"));
+    
+    // Apply optional filters
+    if (args.affiliateId) {
+      query = query.filter((q) => q.eq(q.field("affiliateId"), args.affiliateId!));
+    }
+    if (args.action) {
+      query = query.filter((q) => q.eq(q.field("action"), args.action));
+    }
+    if (args.startDate !== undefined) {
+      query = query.filter((q) => q.gte(q.field("_creationTime"), args.startDate!));
+    }
+    if (args.endDate !== undefined) {
+      query = query.filter((q) => q.lte(q.field("_creationTime"), args.endDate!));
+    }
+    
+    const results = await query.order("desc").paginate(args.paginationOpts);
+    
+    return results;
   },
 });

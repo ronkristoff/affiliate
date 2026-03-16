@@ -540,17 +540,39 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     try {
-      // Step 1: Parse the webhook payload
+      // Story 7.6: Raw Event Storage - Data Loss Prevention
+      // Read raw body text first to ensure we can store it even if JSON parsing fails
+      // This fixes AC8: No Data Loss Guarantee
+      const rawBodyText = await req.text();
       let payload;
       try {
-        payload = await req.json();
+        // Try to parse JSON from the raw text
+        payload = JSON.parse(rawBodyText);
       } catch {
+        // AC8: Even if JSON parsing fails, we have the raw body text
+        // Store it as a failed webhook for debugging
+        const eventId = `evt_parse_error_${Date.now()}`;
+        try {
+          await ctx.runMutation(internal.webhooks.storeRawWebhook, {
+            source: "saligpay",
+            eventId,
+            eventType: "unknown",
+            rawPayload: rawBodyText,
+            signatureValid: false,
+            status: "failed",
+            errorMessage: "Invalid JSON payload",
+          });
+        } catch (storeError) {
+          // Even storage failed - log error but return 200
+          console.error("Failed to store malformed webhook:", storeError);
+        }
+
         // Return 200 even on parse error to prevent retries (AC #6)
         return new Response(
-          JSON.stringify({ received: true, error: "Invalid JSON" }),
+          JSON.stringify({ received: true, error: "Invalid JSON", webhookId: eventId }),
           {
             status: 200,
-            headers: { 
+            headers: {
               "Content-Type": "application/json",
               ...webhookCorsHeaders,
             },
@@ -558,46 +580,45 @@ http.route({
         );
       }
 
-      // Step 2: Extract event ID and check for duplicates (AC #4 - deduplication)
+      // Step 2: Extract event ID and tenant ID first
       const eventId = payload.id || `evt_${Date.now()}`;
-      const isDuplicate = await ctx.runQuery(internal.webhooks.checkEventIdExists, {
-        eventId,
-      });
-
-      if (isDuplicate) {
-        // AC #4: Reject duplicate, log attempt, return 200
-        console.log(`Duplicate webhook event detected: ${eventId}`);
-        return new Response(
-          JSON.stringify({ received: true, duplicate: true, webhookId: eventId }),
-          {
-            status: 200,
-            headers: { 
-              "Content-Type": "application/json",
-              ...webhookCorsHeaders,
-            },
-          }
-        );
-      }
-
-      // Step 3: Normalize to BillingEvent format (Task 1)
-      const billingEvent = normalizeToBillingEvent(payload);
-      
-      // Step 4: Extract tenant ID for storage
       const metadata = payload.data?.object?.metadata || {};
       const tenantIdStr = metadata._salig_aff_tenant;
-
-      // Step 5: Store raw webhook (AC #1, Task 2)
-      const rawWebhookId = await ctx.runMutation(internal.webhooks.storeRawWebhook, {
+      
+      // Step 3: Perform ATOMIC deduplication (Story 7.5)
+      // This replaces the previous check-then-store pattern which had race condition vulnerability
+      // Use atomic deduplication mutation - checks and stores in single transaction
+      const dedupResult = await ctx.runMutation(internal.webhooks.ensureEventNotProcessed, {
         source: "saligpay",
         eventId,
         eventType: payload.event || "unknown",
-        rawPayload: JSON.stringify(payload),
+        rawPayload: rawBodyText, // Story 7.6: Use raw body text we read earlier
         signatureValid: true, // Mock mode - signature validation would be added in Story 14.3
         tenantId: tenantIdStr ? (tenantIdStr as Id<"tenants">) : undefined,
-        status: "received",
       });
 
-      // Step 6: If normalization failed, update status and return 200
+      if (dedupResult.isDuplicate) {
+        // AC #5: Reject duplicate gracefully - return 200 with duplicate flag
+        console.log(`Duplicate webhook event detected: ${eventId}`);
+        return new Response(
+          JSON.stringify({ received: true, duplicate: true, webhookId: dedupResult.existingWebhookId }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...webhookCorsHeaders,
+            },
+          }
+        );
+      }
+
+      // Use the webhookId returned from the atomic mutation
+      const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
+
+      // Step 4: Normalize to BillingEvent format
+      const billingEvent = normalizeToBillingEvent(payload);
+
+      // Step 5: If normalization failed, update status and return 200
       if (!billingEvent) {
         await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
           webhookId: rawWebhookId,
@@ -617,11 +638,44 @@ http.route({
         );
       }
 
-      // Step 7: Process webhook to create conversion (AC #1, #2, #3, #5)
-      await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
-        webhookId: rawWebhookId,
-        billingEvent,
-      });
+      // Step 7: Process webhook to create conversion and commission (Story 7.1 & 7.2)
+      // Route events to appropriate processors
+      if (billingEvent.eventType === "payment.updated") {
+        await ctx.runAction(internal.commissionEngine.processPaymentUpdatedToCommission, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else if (billingEvent.eventType === "subscription.created") {
+        await ctx.runAction(internal.commissionEngine.processSubscriptionCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else if (billingEvent.eventType === "subscription.updated") {
+        await ctx.runAction(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else if (billingEvent.eventType === "subscription.cancelled") {
+        await ctx.runAction(internal.commissionEngine.processSubscriptionCancelledEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else if (billingEvent.eventType === "refund.created") {
+        await ctx.runAction(internal.commissionEngine.processRefundCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else if (billingEvent.eventType === "chargeback.created") {
+        await ctx.runAction(internal.commissionEngine.processChargebackCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      } else {
+        await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+      }
 
       // Step 8: Return 200 (AC #6 - always return 200)
       return new Response(
@@ -729,11 +783,15 @@ http.route({
         customerEmail = "test@example.com",
         affiliateCode,
         eventType = "payment.updated",
+        subscriptionId,
+        subscriptionStatus = "active",
+        planId,
       } = body;
 
       // AC #5.3: Generate realistic mock webhook payload
       const eventId = `evt_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const paymentId = `pay_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const subId = subscriptionId || `sub_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
       // Build metadata with attribution data
       const metadata: Record<string, string> = {
@@ -746,8 +804,9 @@ http.route({
         metadata._salig_aff_click_id = `click_mock_${Date.now()}`;
       }
 
-      // Construct the mock webhook payload
-      const mockPayload = {
+      // Build mock payload - use any type for flexibility with subscription events
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockPayload: any = {
         id: eventId,
         event: eventType,
         created: Date.now(),
@@ -769,28 +828,33 @@ http.route({
         },
       };
 
+      // Add subscription data for subscription events
+      if (eventType.startsWith("subscription.")) {
+        mockPayload.data.object.subscription = {
+          id: subId,
+          status: subscriptionStatus,
+          plan_id: planId || "plan_basic",
+        };
+      }
+
       // AC #5.1: Process the mock webhook through the same pipeline as real webhooks
       // This uses the existing webhook handler logic
 
-      // Check for duplicate
-      const isDuplicate = await ctx.runQuery(internal.webhooks.checkEventIdExists, {
+      // Use atomic deduplication mutation (Story 7.5) - replaces check-then-store pattern
+      const dedupResult = await ctx.runMutation(internal.webhooks.ensureEventNotProcessed, {
+        source: "mock",
         eventId,
+        eventType,
+        rawPayload: JSON.stringify(mockPayload),
+        signatureValid: true,
+        tenantId: user.tenantId,
       });
 
-      if (isDuplicate) {
-        // MEDIUM #9: Log duplicate attempt for audit trail
-        await ctx.runMutation(internal.webhooks.logDuplicateWebhookAttempt, {
-          source: "mock",
-          eventId,
-          eventType,
-          rawPayload: JSON.stringify(mockPayload),
-          tenantId: user.tenantId,
-        });
-
+      if (dedupResult.isDuplicate) {
         // AC #6: Always return 200, indicate duplicate in body
         console.error(`Mock trigger: Duplicate event ID ${eventId}`);
         return new Response(
-          JSON.stringify({ received: true, success: false, error: "Duplicate event ID", duplicate: true }),
+          JSON.stringify({ received: true, success: false, error: "Duplicate event ID", duplicate: true, webhookId: dedupResult.existingWebhookId }),
           {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -798,16 +862,8 @@ http.route({
         );
       }
 
-      // Store the raw webhook
-      const rawWebhookId = await ctx.runMutation(internal.webhooks.storeRawWebhook, {
-        source: "mock",
-        eventId,
-        eventType,
-        rawPayload: JSON.stringify(mockPayload),
-        signatureValid: true,
-        tenantId: user.tenantId,
-        status: "received",
-      });
+      // Use the webhookId returned from the atomic mutation
+      const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
 
       // Normalize to BillingEvent
       const billingEvent = normalizeToBillingEvent(mockPayload);
@@ -835,27 +891,171 @@ http.route({
         );
       }
 
-      // Process webhook to create conversion
-      const conversionId = await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
-        webhookId: rawWebhookId,
-        billingEvent,
-      });
+      // Story 7.1 & 7.2: For payment.updated and subscription events, create commission after conversion
+      // For other event types, just create conversion (existing behavior)
+      if (billingEvent.eventType === "payment.updated") {
+        const result = await ctx.runAction(internal.commissionEngine.processPaymentUpdatedToCommission, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
 
-      // AC #5.5: Return generated webhook ID for verification
-      return new Response(
-        JSON.stringify({
-          received: true,
-          success: true,
-          webhookId: eventId,
-          rawWebhookId,
-          conversionId: conversionId || null,
-          payload: mockPayload,
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+        // AC #5.5: Return generated webhook ID for verification
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            conversionId: result.conversionId,
+            commissionId: result.commissionId,
+            organic: result.organic,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else if (billingEvent.eventType === "subscription.created") {
+        // Story 7.2: Handle subscription.created events
+        const result = await ctx.runAction(internal.commissionEngine.processSubscriptionCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            conversionId: result.conversionId,
+            commissionId: result.commissionId,
+            organic: result.organic,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else if (billingEvent.eventType === "subscription.updated") {
+        // Story 7.2: Handle subscription.updated events (renewals, upgrades, downgrades)
+        const result = await ctx.runAction(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            conversionId: result.conversionId,
+            commissionId: result.commissionId,
+            organic: result.organic,
+            adjustmentType: result.adjustmentType,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else if (billingEvent.eventType === "subscription.cancelled") {
+        // Story 7.2: Handle subscription.cancelled events
+        const result = await ctx.runAction(internal.commissionEngine.processSubscriptionCancelledEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            conversionId: result.conversionId,
+            commissionId: result.commissionId,
+            organic: result.organic,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else if (billingEvent.eventType === "refund.created") {
+        // Story 7.4: Handle refund.created events for commission reversal
+        const result = await ctx.runAction(internal.commissionEngine.processRefundCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            commissionId: result.commissionId,
+            processed: result.processed,
+            reversed: result.reversed,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else if (billingEvent.eventType === "chargeback.created") {
+        // Story 7.4: Handle chargeback.created events for commission reversal with fraud signal
+        const result = await ctx.runAction(internal.commissionEngine.processChargebackCreatedEvent, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            commissionId: result.commissionId,
+            processed: result.processed,
+            reversed: result.reversed,
+            fraudSignalAdded: result.fraudSignalAdded,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else {
+        // For non-payment/subscription events, use existing conversion-only flow
+        const conversionId = await ctx.runMutation(internal.webhooks.processWebhookToConversion, {
+          webhookId: rawWebhookId,
+          billingEvent,
+        });
+
+        // AC #5.5: Return generated webhook ID for verification
+        return new Response(
+          JSON.stringify({
+            received: true,
+            success: true,
+            webhookId: eventId,
+            rawWebhookId,
+            conversionId: conversionId || null,
+            payload: mockPayload,
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
     } catch (error) {
       // MEDIUM #11: Standardized error logging
       console.error("Mock trigger error:", error);

@@ -7,7 +7,8 @@ This file provides guidance for AI agents working in this codebase.
 - **Stack**: Next.js 16 (App Router), Convex (backend/database), Better Auth (authentication), Tailwind CSS v4, TypeScript
 - **Package Manager**: pnpm
 - **Route Groups**: `(auth)` for protected routes, `(unauth)` for public auth routes
-- **No tests currently exist** in this project
+- **Testing**: Vitest is configured; test files use `.test.ts` suffix
+- **No production tests exist** in this project (placeholder tests only)
 
 ## Build & Development Commands
 

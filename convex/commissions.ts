@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
 import { internal } from "./_generated/api";
+import { paginationOptsValidator } from "convex/server";
 
 /**
  * Commission Management Functions
@@ -166,6 +167,7 @@ export const createCommissionFromConversionInternal = internalMutation({
       source: v.string(),
       transactionId: v.optional(v.string()),
       timestamp: v.number(),
+      subscriptionId: v.optional(v.string()),
     })),
   },
   returns: v.union(v.id("commissions"), v.null()),
@@ -275,6 +277,26 @@ export const createCommissionFromConversionInternal = internalMutation({
       isSelfReferral: isSelfReferral || undefined,
       fraudIndicators: matchedIndicators.length > 0 ? matchedIndicators : undefined,
       eventMetadata: args.eventMetadata,
+    });
+
+    // Story 7.8: Log COMMISSION_CREATED audit event
+    await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+      tenantId: args.tenantId,
+      action: "COMMISSION_CREATED",
+      commissionId: commissionId,
+      affiliateId: args.affiliateId,
+      actorId: undefined, // System-generated
+      actorType: "system",
+      newValue: {
+        status: commissionStatus,
+        amount: commissionAmount,
+      },
+      metadata: {
+        amount: commissionAmount,
+        campaignId: args.campaignId,
+        transactionId: args.eventMetadata?.transactionId,
+        source: args.eventMetadata?.source,
+      },
     });
 
     // If self-referral detected, add fraud signal and audit log AFTER commission creation
@@ -611,6 +633,482 @@ export const getCommissionInternal = internalQuery({
       campaignId: commission.campaignId,
       amount: commission.amount,
       status: commission.status,
+    };
+  },
+});
+
+/**
+ * Internal query to get all commissions for a conversion.
+ * Used by subscription event processing to find pending commissions for adjustment.
+ */
+export const getCommissionsByConversionInternal = internalQuery({
+  args: {
+    conversionId: v.id("conversions"),
+  },
+  returns: v.array(v.object({
+    _id: v.id("commissions"),
+    amount: v.number(),
+    status: v.string(),
+  })),
+  handler: async (ctx, args) => {
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_conversion", (q) => q.eq("conversionId", args.conversionId))
+      .collect();
+    
+    return commissions.map(c => ({
+      _id: c._id,
+      amount: c.amount,
+      status: c.status,
+    }));
+  },
+});
+
+/**
+ * Internal mutation to adjust a commission amount.
+ * Used for subscription upgrade/downgrade adjustments.
+ */
+export const adjustCommissionAmountInternal = internalMutation({
+  args: {
+    commissionId: v.id("commissions"),
+    newAmount: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.commissionId, {
+      amount: args.newAmount,
+    });
+    return null;
+  },
+});
+
+/**
+ * Internal query to find a commission by transaction ID.
+ * Used for commission reversal when refund/chargeback events are received.
+ * Story 7.4 - Commission Reversal (AC3)
+ */
+export const findCommissionByTransactionIdInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+    transactionId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("commissions"),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      campaignId: v.id("campaigns"),
+      conversionId: v.optional(v.id("conversions")),
+      amount: v.number(),
+      status: v.string(),
+      reversalReason: v.optional(v.string()),
+      eventMetadata: v.optional(v.object({
+        source: v.string(),
+        transactionId: v.optional(v.string()),
+        timestamp: v.number(),
+        subscriptionId: v.optional(v.string()),
+      })),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Query commissions by transactionId using the new index
+    const commission = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_transaction", (q) => 
+        q.eq("tenantId", args.tenantId).eq("transactionId", args.transactionId)
+      )
+      .first();
+    
+    if (!commission) {
+      return null;
+    }
+    
+    return {
+      _id: commission._id,
+      tenantId: commission.tenantId,
+      affiliateId: commission.affiliateId,
+      campaignId: commission.campaignId,
+      conversionId: commission.conversionId,
+      amount: commission.amount,
+      status: commission.status,
+      reversalReason: commission.reversalReason,
+      eventMetadata: commission.eventMetadata,
+    };
+  },
+});
+
+/**
+ * Internal mutation to reverse a commission.
+ * Story 7.4 - Commission Reversal (AC1, AC2)
+ */
+export const reverseCommissionInternal = internalMutation({
+  args: {
+    commissionId: v.id("commissions"),
+    reversalReason: v.union(v.literal("refund"), v.literal("chargeback")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      throw new Error(`Commission ${args.commissionId} not found`);
+    }
+    
+    const previousStatus = commission.status;
+    
+    // Update commission status to "reversed" and set reversalReason
+    await ctx.db.patch(args.commissionId, {
+      status: "reversed",
+      reversalReason: args.reversalReason,
+    });
+    
+    // Story 7.8: Log COMMISSION_REVERSED audit event
+    await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+      tenantId: commission.tenantId,
+      action: "COMMISSION_REVERSED",
+      commissionId: args.commissionId,
+      affiliateId: commission.affiliateId,
+      actorId: undefined, // System-generated
+      actorType: "system",
+      previousValue: { status: previousStatus },
+      newValue: { status: "reversed" },
+      metadata: {
+        amount: commission.amount,
+        campaignId: commission.campaignId,
+        reason: args.reversalReason,
+      },
+    });
+    
+    return null;
+  },
+});
+
+// =============================================================================
+// STORY 7.7: MANUAL COMMISSION APPROVAL
+// =============================================================================
+
+/**
+ * Approve a pending commission.
+ * Story 7.7 - Manual Commission Approval (AC1)
+ * 
+ * Validates that:
+ * - Commission exists and belongs to current tenant
+ * - Commission status is "pending"
+ * - User has permission to approve
+ * 
+ * Then updates status to "approved" and logs the action.
+ */
+export const approveCommission = mutation({
+  args: {
+    commissionId: v.id("commissions"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    commissionId: v.id("commissions"),
+    newStatus: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    // 1. Get authenticated user with tenant
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    
+    // 2. Get commission and validate existence
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      throw new Error("Commission not found");
+    }
+    
+    // 3. Validate tenant isolation (AC3)
+    if (commission.tenantId !== user.tenantId) {
+      // Log unauthorized access attempt
+      await ctx.runMutation(internal.audit.logUnauthorizedAccess, {
+        action: "cross_tenant_commission_approval",
+        currentTenantId: user.tenantId,
+        attemptedTenantId: commission.tenantId,
+        resourceType: "commission",
+        resourceId: args.commissionId,
+      });
+      throw new Error("Unauthorized: Commission does not belong to your tenant");
+    }
+    
+    // 4. Validate status is "pending" (AC4)
+    if (commission.status !== "pending") {
+      throw new Error(`Cannot approve commission with status "${commission.status}". Only pending commissions can be approved.`);
+    }
+    
+    // 5. Update status atomically
+    const previousStatus = commission.status;
+    await ctx.db.patch(args.commissionId, {
+      status: "approved",
+    });
+    
+    // 6. Log audit trail (Story 7.8 - Task 3)
+    await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+      tenantId: user.tenantId,
+      action: "COMMISSION_APPROVED",
+      commissionId: args.commissionId,
+      affiliateId: commission.affiliateId,
+      actorId: user.userId,
+      actorType: "user",
+      previousValue: { status: previousStatus },
+      newValue: { status: "approved" },
+      metadata: {
+        amount: commission.amount,
+        campaignId: commission.campaignId,
+      },
+    });
+    
+    return {
+      success: true,
+      commissionId: args.commissionId,
+      newStatus: "approved",
+    };
+  },
+});
+
+/**
+ * Decline a pending commission with a reason.
+ * Story 7.7 - Manual Commission Approval (AC2)
+ * 
+ * Validates that:
+ * - Commission exists and belongs to current tenant
+ * - Commission status is "pending"
+ * - User provides a decline reason
+ * 
+ * Then updates status to "declined", stores reason, and logs the action.
+ * Note: Decline reason is NOT exposed to affiliates (per AC2).
+ */
+export const declineCommission = mutation({
+  args: {
+    commissionId: v.id("commissions"),
+    reason: v.string(), // Required - must provide reason
+  },
+  returns: v.object({
+    success: v.boolean(),
+    commissionId: v.id("commissions"),
+    newStatus: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    // 1. Get authenticated user with tenant
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    
+    // Validate reason is not empty
+    if (!args.reason || args.reason.trim().length === 0) {
+      throw new Error("Decline reason is required");
+    }
+    
+    // 2. Get commission and validate existence
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      throw new Error("Commission not found");
+    }
+    
+    // 3. Validate tenant isolation (AC3)
+    if (commission.tenantId !== user.tenantId) {
+      // Log unauthorized access attempt
+      await ctx.runMutation(internal.audit.logUnauthorizedAccess, {
+        action: "cross_tenant_commission_decline",
+        currentTenantId: user.tenantId,
+        attemptedTenantId: commission.tenantId,
+        resourceType: "commission",
+        resourceId: args.commissionId,
+      });
+      throw new Error("Unauthorized: Commission does not belong to your tenant");
+    }
+    
+    // 4. Validate status is "pending" (AC4)
+    if (commission.status !== "pending") {
+      throw new Error(`Cannot decline commission with status "${commission.status}". Only pending commissions can be declined.`);
+    }
+    
+    // 5. Update status and store decline reason (reusing reversalReason field)
+    const previousStatus = commission.status;
+    await ctx.db.patch(args.commissionId, {
+      status: "declined",
+      reversalReason: args.reason, // Store decline reason (internal only)
+    });
+    
+    // 6. Log audit trail with reason (Story 7.8 - Task 3)
+    // Note: Decline reason is stored internally but NOT exposed to affiliates (AC2)
+    await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+      tenantId: user.tenantId,
+      action: "COMMISSION_DECLINED",
+      commissionId: args.commissionId,
+      affiliateId: commission.affiliateId,
+      actorId: user.userId,
+      actorType: "user",
+      previousValue: { status: previousStatus },
+      newValue: { status: "declined" },
+      metadata: {
+        amount: commission.amount,
+        campaignId: commission.campaignId,
+        reason: args.reason,
+      },
+    });
+    
+    return {
+      success: true,
+      commissionId: args.commissionId,
+      newStatus: "declined",
+    };
+  },
+});
+
+/**
+ * List pending commissions for review.
+ * Story 7.7 - Manual Commission Approval (AC5)
+ * 
+ * Returns paginated list of commissions with "pending" status.
+ * Each entry includes affiliate info, commission amount, and fraud indicators.
+ */
+export const listPendingCommissions = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      amount: v.number(),
+      status: v.string(),
+      affiliateId: v.id("affiliates"),
+      affiliateName: v.string(),
+      affiliateEmail: v.string(),
+      campaignId: v.id("campaigns"),
+      campaignName: v.string(),
+      isSelfReferral: v.optional(v.boolean()),
+      fraudIndicators: v.optional(v.array(v.string())),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    // Get authenticated user with tenant
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    
+    // Query pending commissions for this tenant
+    const results = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_status", (q) => 
+        q.eq("tenantId", user.tenantId).eq("status", "pending")
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+    
+    // Enrich with affiliate and campaign info
+    const enrichedPage = await Promise.all(
+      results.page.map(async (commission) => {
+        const affiliate = await ctx.db.get(commission.affiliateId);
+        const campaign = await ctx.db.get(commission.campaignId);
+        return {
+          _id: commission._id,
+          _creationTime: commission._creationTime,
+          amount: commission.amount,
+          status: commission.status,
+          affiliateId: commission.affiliateId,
+          affiliateName: affiliate?.name ?? "Unknown",
+          affiliateEmail: affiliate?.email ?? "Unknown",
+          campaignId: commission.campaignId,
+          campaignName: campaign?.name ?? "Unknown",
+          isSelfReferral: commission.isSelfReferral,
+          fraudIndicators: commission.fraudIndicators,
+        };
+      })
+    );
+    
+    return {
+      page: enrichedPage,
+      isDone: results.isDone,
+      continueCursor: results.continueCursor,
+    };
+  },
+});
+
+/**
+ * Get commission details for review.
+ * Story 7.7 - Manual Commission Approval (AC5)
+ * 
+ * Returns full commission details including fraud indicators for review.
+ * Used by the review detail view.
+ */
+export const getCommissionForReview = query({
+  args: {
+    commissionId: v.id("commissions"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      affiliateName: v.string(),
+      affiliateEmail: v.string(),
+      campaignId: v.id("campaigns"),
+      campaignName: v.string(),
+      amount: v.number(),
+      status: v.string(),
+      isSelfReferral: v.optional(v.boolean()),
+      fraudIndicators: v.optional(v.array(v.string())),
+      conversionId: v.optional(v.id("conversions")),
+      eventMetadata: v.optional(v.object({
+        source: v.string(),
+        transactionId: v.optional(v.string()),
+        timestamp: v.number(),
+        subscriptionId: v.optional(v.string()),
+      })),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Get authenticated user with tenant
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    
+    // Get commission
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      return null;
+    }
+    
+    // Validate tenant isolation (AC3)
+    if (commission.tenantId !== user.tenantId) {
+      throw new Error("Commission not found or access denied");
+    }
+    
+    // Only return pending commissions for review (AC4)
+    if (commission.status !== "pending") {
+      throw new Error(`Commission is not pending review. Current status: ${commission.status}`);
+    }
+    
+    // Get affiliate and campaign info
+    const affiliate = await ctx.db.get(commission.affiliateId);
+    const campaign = await ctx.db.get(commission.campaignId);
+    
+    return {
+      _id: commission._id,
+      _creationTime: commission._creationTime,
+      tenantId: commission.tenantId,
+      affiliateId: commission.affiliateId,
+      affiliateName: affiliate?.name ?? "Unknown",
+      affiliateEmail: affiliate?.email ?? "Unknown",
+      campaignId: commission.campaignId,
+      campaignName: campaign?.name ?? "Unknown",
+      amount: commission.amount,
+      status: commission.status,
+      isSelfReferral: commission.isSelfReferral,
+      fraudIndicators: commission.fraudIndicators,
+      conversionId: commission.conversionId,
+      eventMetadata: commission.eventMetadata,
     };
   },
 });

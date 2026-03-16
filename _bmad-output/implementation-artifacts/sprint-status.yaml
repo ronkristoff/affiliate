@@ -134,15 +134,15 @@ development_status:
   # 8 stories | FRs: FR22-FR29 | NFRs: NFR4, NFR24-25, NFR28
   # Screens: 03-owner-commissions.html
   # ========================================
-  epic-7: backlog
-  7-1-payment-updated-event-processing: backlog
-  7-2-subscription-lifecycle-event-processing: backlog
-  7-3-failed-pending-payment-rejection: backlog
-  7-4-commission-reversal: backlog
-  7-5-event-deduplication: backlog
-  7-6-raw-event-storage: backlog
-  7-7-manual-commission-approval: backlog
-  7-8-commission-audit-log: backlog
+  epic-7: in-progress
+  7-1-payment-updated-event-processing: done
+  7-2-subscription-lifecycle-event-processing: done
+  7-3-failed-pending-payment-rejection: done
+  7-4-commission-reversal: done
+  7-5-event-deduplication: done
+  7-6-raw-event-storage: done
+  7-7-manual-commission-approval: done
+  7-8-commission-audit-log: done
   epic-7-retrospective: optional
 
   # ========================================

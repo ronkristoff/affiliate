@@ -623,3 +623,42 @@ export const canCampaignEarnCommissions = internalQuery({
     return { canEarn: true, status: "active" };
   },
 });
+
+/**
+ * Internal query to get campaign by ID.
+ * Used by commission engine to check recurringCommission settings.
+ */
+export const getCampaignByIdInternal = internalQuery({
+  args: {
+    campaignId: v.id("campaigns"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("campaigns"),
+      recurringCommission: v.boolean(),
+      recurringRate: v.optional(v.number()),
+      recurringRateType: v.optional(v.string()),
+      commissionType: v.string(),
+      commissionValue: v.number(),
+      status: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    
+    if (!campaign) {
+      return null;
+    }
+
+    return {
+      _id: campaign._id,
+      recurringCommission: campaign.recurringCommission,
+      recurringRate: campaign.recurringRate,
+      recurringRateType: campaign.recurringRateType,
+      commissionType: campaign.commissionType,
+      commissionValue: campaign.commissionValue,
+      status: campaign.status,
+    };
+  },
+});

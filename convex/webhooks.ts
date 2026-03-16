@@ -219,6 +219,72 @@ export const storeRawWebhook = internalMutation({
 });
 
 /**
+ * Atomic deduplication mutation for webhooks (Story 7.5)
+ * Attempts to insert a webhook and returns whether it was a duplicate
+ * Uses unique constraint on eventId to detect duplicates atomically
+ */
+export const ensureEventNotProcessed = internalMutation({
+  args: {
+    source: v.string(),
+    eventId: v.string(),
+    eventType: v.string(),
+    rawPayload: v.string(),
+    signatureValid: v.boolean(),
+    tenantId: v.optional(v.id("tenants")),
+  },
+  returns: v.object({
+    isDuplicate: v.boolean(),
+    webhookId: v.optional(v.id("rawWebhooks")),
+    existingWebhookId: v.optional(v.id("rawWebhooks")),
+  }),
+  handler: async (ctx, args) => {
+    // First, check if a webhook with this eventId already exists
+    const existingWebhook = await ctx.db
+      .query("rawWebhooks")
+      .withIndex("by_event_id", (q) => q.eq("eventId", args.eventId))
+      .first();
+
+    if (existingWebhook) {
+      // Duplicate detected
+      return {
+        isDuplicate: true,
+        existingWebhookId: existingWebhook._id,
+      };
+    }
+
+    // Not a duplicate - insert the webhook
+    try {
+      const webhookId = await ctx.db.insert("rawWebhooks", {
+        source: args.source,
+        eventId: args.eventId,
+        eventType: args.eventType,
+        rawPayload: args.rawPayload,
+        signatureValid: args.signatureValid,
+        tenantId: args.tenantId,
+        status: "received",
+      });
+
+      return {
+        isDuplicate: false,
+        webhookId,
+      };
+    } catch (error) {
+      // If insert fails due to unique constraint, it means another concurrent
+      // request inserted it between our check and insert
+      const concurrentWebhook = await ctx.db
+        .query("rawWebhooks")
+        .withIndex("by_event_id", (q) => q.eq("eventId", args.eventId))
+        .first();
+
+      return {
+        isDuplicate: true,
+        existingWebhookId: concurrentWebhook?._id,
+      };
+    }
+  },
+});
+
+/**
  * Update webhook processing status
  */
 export const updateWebhookStatus = internalMutation({

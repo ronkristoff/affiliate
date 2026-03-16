@@ -14,6 +14,7 @@ import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as campaigns from "../campaigns.js";
 import type * as clicks from "../clicks.js";
+import type * as commissionEngine from "../commissionEngine.js";
 import type * as commissions from "../commissions.js";
 import type * as conversions from "../conversions.js";
 import type * as crons from "../crons.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   campaigns: typeof campaigns;
   clicks: typeof clicks;
+  commissionEngine: typeof commissionEngine;
   commissions: typeof commissions;
   conversions: typeof conversions;
   crons: typeof crons;

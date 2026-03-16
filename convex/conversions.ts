@@ -238,6 +238,11 @@ export const createConversionWithAttribution = internalMutation({
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
+      subscriptionId: v.optional(v.string()),
+      planId: v.optional(v.string()),
+      subscriptionStatus: v.optional(v.string()),
+      previousPlanId: v.optional(v.string()),
+      previousAmount: v.optional(v.number()),
     })),
   },
   returns: v.id("conversions"),
@@ -325,6 +330,9 @@ export const createOrganicConversion = internalMutation({
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
+      subscriptionId: v.optional(v.string()),
+      planId: v.optional(v.string()),
+      subscriptionStatus: v.optional(v.string()),
     })),
   },
   returns: v.id("conversions"),
@@ -991,5 +999,81 @@ export const getConversionStatsByTenant = query({
       topAffiliates,
       topCampaigns,
     };
+  },
+});
+
+/**
+ * Internal: Find conversion by subscription ID
+ * Used by subscription lifecycle event processing to detect upgrades/downgrades
+ */
+export const findConversionBySubscriptionIdInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+    subscriptionId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("conversions"),
+      amount: v.number(),
+      metadata: v.optional(v.object({
+        orderId: v.optional(v.string()),
+        products: v.optional(v.array(v.string())),
+        subscriptionId: v.optional(v.string()),
+        planId: v.optional(v.string()),
+        subscriptionStatus: v.optional(v.string()),
+        previousPlanId: v.optional(v.string()),
+        previousAmount: v.optional(v.number()),
+      })),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Query conversions by tenant and filter for matching subscriptionId in metadata
+    const conversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .collect();
+    
+    // Find conversion with matching subscriptionId
+    for (const conversion of conversions) {
+      if (conversion.metadata?.subscriptionId === args.subscriptionId) {
+        return {
+          _id: conversion._id,
+          amount: conversion.amount,
+          metadata: conversion.metadata,
+        };
+      }
+    }
+    
+    return null;
+  },
+});
+
+/**
+ * Internal: Update conversion subscription status
+ * Used by subscription.cancelled event processing
+ */
+export const updateConversionSubscriptionStatusInternal = internalMutation({
+  args: {
+    conversionId: v.id("conversions"),
+    subscriptionStatus: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const conversion = await ctx.db.get(args.conversionId);
+    
+    if (!conversion) {
+      return null;
+    }
+    
+    // Update the subscription status in metadata
+    await ctx.db.patch(args.conversionId, {
+      metadata: {
+        ...conversion.metadata,
+        subscriptionStatus: args.subscriptionStatus,
+      },
+    });
+    
+    return null;
   },
 });
