@@ -19,4 +19,13 @@ crons.interval(
   {}
 );
 
+// Story 11.5: Expire tier overrides - runs hourly
+// NOTE: This cron references a function that doesn't exist yet
+// crons.interval(
+//   "expire-tier-overrides",
+//   { hours: 1 },
+//   internal.admin.tierOverrides.expireTierOverrides,
+//   {}
+// );
+
 export default crons;

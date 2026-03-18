@@ -274,36 +274,33 @@ export const createAffiliateAccountInternal = internalMutation({
     });
 
     // Send welcome email to affiliate (async, don't fail registration if email fails)
+    // Uses retry logic with exponential backoff and automatic error logging
     let welcomeEmailSent = false;
     let welcomeEmailError: string | undefined;
     try {
+      // Construct referral URL from tenant domain
+      const portalDomain = tenant.branding?.customDomain || `${tenant.slug}.boboddy.business`;
+      const referralUrl = `https://${portalDomain}/ref/${uniqueCode}`;
+
       await sendAffiliateWelcomeEmail(ctx, {
         to: args.email,
         affiliateName: args.name,
         affiliateEmail: args.email,
         uniqueCode,
         portalName: tenant.branding?.portalName || tenant.name,
+        referralUrl,
         brandLogoUrl: tenant.branding?.logoUrl,
         brandPrimaryColor: tenant.branding?.primaryColor,
         approvalTimeframe: "1-2 business days",
         contactEmail: undefined, // Could be extended to store in tenant settings
+        maxRetries: 3,
+        tenantId: tenant._id,
       });
       welcomeEmailSent = true;
     } catch (emailError) {
       welcomeEmailError = emailError instanceof Error ? emailError.message : String(emailError);
       console.error("Failed to send welcome email:", emailError);
     }
-    
-    // Store welcome email result in emails table
-    await ctx.db.insert("emails", {
-      tenantId: tenant._id,
-      type: "affiliate_welcome",
-      recipientEmail: args.email,
-      subject: `Welcome to ${tenant.branding?.portalName || tenant.name}!`,
-      status: welcomeEmailSent ? "sent" : "failed",
-      sentAt: welcomeEmailSent ? Date.now() : undefined,
-      errorMessage: welcomeEmailError,
-    });
 
     // Send notification to SaaS Owner (async, don't fail registration if email fails)
     let ownerNotificationSent = false;

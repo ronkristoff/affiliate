@@ -8,18 +8,25 @@
  * @module
  */
 
+import type * as admin__helpers from "../admin/_helpers.js";
+import type * as admin_impersonation from "../admin/impersonation.js";
+import type * as admin_tenants from "../admin/tenants.js";
+import type * as admin_tier_configs from "../admin/tier_configs.js";
+import type * as admin_tier_overrides from "../admin/tier_overrides.js";
 import type * as affiliateAuth from "../affiliateAuth.js";
 import type * as affiliates from "../affiliates.js";
 import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as brandAssets from "../brandAssets.js";
 import type * as branding from "../branding.js";
+import type * as broadcasts from "../broadcasts.js";
 import type * as campaigns from "../campaigns.js";
 import type * as clicks from "../clicks.js";
 import type * as commissionEngine from "../commissionEngine.js";
 import type * as commissions from "../commissions.js";
 import type * as conversions from "../conversions.js";
 import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as email from "../email.js";
 import type * as emails from "../emails.js";
 import type * as emails_AffiliateApprovalEmail from "../emails/AffiliateApprovalEmail.js";
@@ -27,11 +34,15 @@ import type * as emails_AffiliateReactivationEmail from "../emails/AffiliateReac
 import type * as emails_AffiliateRejectionEmail from "../emails/AffiliateRejectionEmail.js";
 import type * as emails_AffiliateSuspensionEmail from "../emails/AffiliateSuspensionEmail.js";
 import type * as emails_AffiliateWelcomeEmail from "../emails/AffiliateWelcomeEmail.js";
+import type * as emails_BroadcastEmail from "../emails/BroadcastEmail.js";
 import type * as emails_CancellationConfirmationEmail from "../emails/CancellationConfirmationEmail.js";
+import type * as emails_CommissionConfirmedEmail from "../emails/CommissionConfirmedEmail.js";
 import type * as emails_DeletionReminderEmail from "../emails/DeletionReminderEmail.js";
 import type * as emails_DowngradeConfirmationEmail from "../emails/DowngradeConfirmationEmail.js";
 import type * as emails_FraudAlertEmail from "../emails/FraudAlertEmail.js";
 import type * as emails_NewAffiliateNotificationEmail from "../emails/NewAffiliateNotificationEmail.js";
+import type * as emails_NewReferralAlertEmail from "../emails/NewReferralAlertEmail.js";
+import type * as emails_PayoutSentEmail from "../emails/PayoutSentEmail.js";
 import type * as emails_TeamAcceptedNotification from "../emails/TeamAcceptedNotification.js";
 import type * as emails_TeamInvitation from "../emails/TeamInvitation.js";
 import type * as emails_TeamRemovalNotification from "../emails/TeamRemovalNotification.js";
@@ -50,9 +61,11 @@ import type * as performance from "../performance.js";
 import type * as permissions from "../permissions.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as referralLinks from "../referralLinks.js";
+import type * as reports from "../reports.js";
 import type * as sessions from "../sessions.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as teamInvitations from "../teamInvitations.js";
+import type * as templates from "../templates.js";
 import type * as tenantContext from "../tenantContext.js";
 import type * as tenants from "../tenants.js";
 import type * as tierConfig from "../tierConfig.js";
@@ -68,18 +81,25 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/_helpers": typeof admin__helpers;
+  "admin/impersonation": typeof admin_impersonation;
+  "admin/tenants": typeof admin_tenants;
+  "admin/tier_configs": typeof admin_tier_configs;
+  "admin/tier_overrides": typeof admin_tier_overrides;
   affiliateAuth: typeof affiliateAuth;
   affiliates: typeof affiliates;
   audit: typeof audit;
   auth: typeof auth;
   brandAssets: typeof brandAssets;
   branding: typeof branding;
+  broadcasts: typeof broadcasts;
   campaigns: typeof campaigns;
   clicks: typeof clicks;
   commissionEngine: typeof commissionEngine;
   commissions: typeof commissions;
   conversions: typeof conversions;
   crons: typeof crons;
+  dashboard: typeof dashboard;
   email: typeof email;
   emails: typeof emails;
   "emails/AffiliateApprovalEmail": typeof emails_AffiliateApprovalEmail;
@@ -87,11 +107,15 @@ declare const fullApi: ApiFromModules<{
   "emails/AffiliateRejectionEmail": typeof emails_AffiliateRejectionEmail;
   "emails/AffiliateSuspensionEmail": typeof emails_AffiliateSuspensionEmail;
   "emails/AffiliateWelcomeEmail": typeof emails_AffiliateWelcomeEmail;
+  "emails/BroadcastEmail": typeof emails_BroadcastEmail;
   "emails/CancellationConfirmationEmail": typeof emails_CancellationConfirmationEmail;
+  "emails/CommissionConfirmedEmail": typeof emails_CommissionConfirmedEmail;
   "emails/DeletionReminderEmail": typeof emails_DeletionReminderEmail;
   "emails/DowngradeConfirmationEmail": typeof emails_DowngradeConfirmationEmail;
   "emails/FraudAlertEmail": typeof emails_FraudAlertEmail;
   "emails/NewAffiliateNotificationEmail": typeof emails_NewAffiliateNotificationEmail;
+  "emails/NewReferralAlertEmail": typeof emails_NewReferralAlertEmail;
+  "emails/PayoutSentEmail": typeof emails_PayoutSentEmail;
   "emails/TeamAcceptedNotification": typeof emails_TeamAcceptedNotification;
   "emails/TeamInvitation": typeof emails_TeamInvitation;
   "emails/TeamRemovalNotification": typeof emails_TeamRemovalNotification;
@@ -110,9 +134,11 @@ declare const fullApi: ApiFromModules<{
   permissions: typeof permissions;
   rateLimit: typeof rateLimit;
   referralLinks: typeof referralLinks;
+  reports: typeof reports;
   sessions: typeof sessions;
   subscriptions: typeof subscriptions;
   teamInvitations: typeof teamInvitations;
+  templates: typeof templates;
   tenantContext: typeof tenantContext;
   tenants: typeof tenants;
   tierConfig: typeof tierConfig;

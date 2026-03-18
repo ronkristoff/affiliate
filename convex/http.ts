@@ -530,6 +530,109 @@ http.route({
   }),
 });
 
+// Resend Webhook Handler
+// Story 10.6: Broadcast Email Log
+// AC6: Receive Resend delivery webhooks and update email records
+http.route({
+  path: "/webhooks/resend",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // Step 1: Read raw body for signature verification
+      const rawBody = await req.text();
+
+      // Step 2: Verify webhook signature
+      const signature = req.headers.get("x-resend-signature") || "";
+      const resendWebhookSecret = process.env.RESEND_WEBHOOK_SECRET || "";
+
+      if (resendWebhookSecret) {
+        // In production, verify HMAC signature
+        // Note: Node.js crypto is available in httpAction
+        const crypto = await import("crypto");
+        const expectedSignature = crypto
+          .createHmac("sha256", resendWebhookSecret)
+          .update(rawBody)
+          .digest("hex");
+        const expectedSigHeader = `hmac_sha256=${expectedSignature}`;
+
+        if (signature !== expectedSigHeader) {
+          console.error("Resend webhook signature verification failed");
+          return new Response("Invalid signature", { status: 401 });
+        }
+      } else {
+        // No secret configured - log warning but allow in development
+        console.warn("RESEND_WEBHOOK_SECRET not configured - skipping signature verification");
+      }
+
+      // Step 3: Parse event payload
+      let event;
+      try {
+        event = JSON.parse(rawBody);
+      } catch {
+        console.error("Failed to parse Resend webhook payload");
+        return new Response("Invalid JSON", { status: 400 });
+      }
+
+      const eventType = event.type || "";
+      const emailId = event.data?.email_id || "";
+
+      if (!emailId) {
+        console.error("Resend webhook missing email_id");
+        return new Response("Missing email_id", { status: 400 });
+      }
+
+      // Step 4: Map Resend event types to internal event types
+      const eventMap: Record<string, "delivered" | "opened" | "clicked" | "bounced" | "complained"> = {
+        "email.delivered": "delivered",
+        "email.opened": "opened",
+        "email.clicked": "clicked",
+        "email.bounced": "bounced",
+        "email.complained": "complained",
+      };
+
+      const internalEventType = eventMap[eventType];
+      if (!internalEventType) {
+        // Unknown event type - acknowledge but don't process
+        console.log(`Unknown Resend event type: ${eventType}`);
+        return new Response("OK", { status: 200 });
+      }
+
+      // Step 5: Extract timestamp and reason
+      const timestamp = event.data?.created_at
+        ? new Date(event.data.created_at).getTime()
+        : Date.now();
+
+      const reason = event.data?.reason || event.data?.description || undefined;
+
+      // Step 6: Update email record and broadcast aggregates
+      await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        resendMessageId: emailId,
+        eventType: internalEventType,
+        timestamp,
+        reason,
+      });
+
+      return new Response("OK", { status: 200 });
+    } catch (error) {
+      console.error("Resend webhook processing error:", error);
+      // Always return 200 to prevent Resend from retrying
+      return new Response("OK", { status: 200 });
+    }
+  }),
+});
+
+// Options handler for Resend webhook CORS preflight
+http.route({
+  path: "/webhooks/resend",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: webhookCorsHeaders,
+    });
+  }),
+});
+
 // SaligPay Webhook Handler
 // Story 6.5: Mock Payment Webhook Processing
 // AC1: Process webhook events to create conversions

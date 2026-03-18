@@ -56,3 +56,50 @@ export function getRecurringRateDescription(
   // custom
   return `Custom (${recurringRate || 0}%)`;
 }
+
+// ============================================
+// CSV Export Utilities
+// ============================================
+
+/**
+ * Download a CSV file from base64 encoded data
+ * Used by report export functionality across the application
+ * 
+ * @param base64Data - Base64 encoded CSV content
+ * @param filename - Name of the file to download (without extension)
+ */
+export function downloadCsv(base64Data: string, filename: string): void {
+  // Decode base64 to string
+  const csvContent = atob(base64Data);
+  
+  // Create blob from CSV content
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  
+  // Create object URL
+  const url = URL.createObjectURL(blob);
+  
+  // Create download link
+  const link = document.createElement("a");
+  const date = new Date().toISOString().split("T")[0];
+  link.href = url;
+  link.download = `${filename}-${date}.csv`;
+  
+  // Trigger download
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Clean up
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Decode base64 CSV content without triggering download
+ * Useful when you need to preview CSV content or process it further
+ * 
+ * @param base64Data - Base64 encoded CSV content
+ * @returns Decoded CSV string
+ */
+export function decodeCsvContent(base64Data: string): string {
+  return atob(base64Data);
+}

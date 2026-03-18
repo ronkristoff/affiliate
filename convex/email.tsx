@@ -12,13 +12,13 @@ import AffiliateApprovalEmail from "./emails/AffiliateApprovalEmail";
 import AffiliateRejectionEmail from "./emails/AffiliateRejectionEmail";
 import AffiliateSuspensionEmail from "./emails/AffiliateSuspensionEmail";
 import AffiliateReactivationEmail from "./emails/AffiliateReactivationEmail";
+import { type MutationCtx, action, internalAction, internalMutation } from "./_generated/server";
+import { v } from "convex/values";
+import { Resend } from "@convex-dev/resend";
+import { components } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
 import ResetPasswordEmail from "./emails/resetPassword";
-import { components } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
-import { type MutationCtx, action } from "./_generated/server";
-import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
@@ -227,6 +227,7 @@ export const sendDeletionReminder = async (
 
 /**
  * Send welcome email to new affiliate after registration.
+ * Uses retry logic with exponential backoff and comprehensive error logging.
  */
 export const sendAffiliateWelcomeEmail = async (
   ctx: MutationCtx,
@@ -236,40 +237,194 @@ export const sendAffiliateWelcomeEmail = async (
     affiliateEmail,
     uniqueCode,
     portalName,
+    referralUrl,
     brandLogoUrl,
     brandPrimaryColor,
     approvalTimeframe,
     contactEmail,
+    maxRetries,
+    tenantId,
   }: {
     to: string;
     affiliateName: string;
     affiliateEmail: string;
     uniqueCode: string;
     portalName: string;
+    referralUrl: string;
     brandLogoUrl?: string;
     brandPrimaryColor?: string;
     approvalTimeframe?: string;
     contactEmail?: string;
+    maxRetries?: number;
+    tenantId?: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
-    from: getFromAddress("onboarding"),
-    to,
-    subject: `Welcome to ${portalName}! Your application is pending approval`,
-    html: await render(
-      <AffiliateWelcomeEmail
-        affiliateName={affiliateName}
-        affiliateEmail={affiliateEmail}
-        uniqueCode={uniqueCode}
-        portalName={portalName}
-        brandLogoUrl={brandLogoUrl}
-        brandPrimaryColor={brandPrimaryColor}
-        approvalTimeframe={approvalTimeframe}
-        contactEmail={contactEmail}
-      />
-    ),
-  });
+  const subject = `Welcome to ${portalName}! Your application is pending approval`;
+  const maxAttempts = maxRetries || 3;
+  const baseDelay = 1000; // 1 second base delay
+
+  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+    try {
+      // Send the email via Resend
+      await resend.sendEmail(ctx, {
+        from: getFromAddress("onboarding"),
+        to,
+        subject,
+        html: await render(
+          <AffiliateWelcomeEmail
+            affiliateName={affiliateName}
+            affiliateEmail={affiliateEmail}
+            uniqueCode={uniqueCode}
+            portalName={portalName}
+            referralUrl={referralUrl}
+            brandLogoUrl={brandLogoUrl}
+            brandPrimaryColor={brandPrimaryColor}
+            approvalTimeframe={approvalTimeframe}
+            contactEmail={contactEmail}
+          />
+        ),
+      });
+
+      // Log successful email
+      if (tenantId) {
+        await ctx.db.insert("emails", {
+          tenantId,
+          type: "affiliate_welcome",
+          recipientEmail: to,
+          subject,
+          status: "sent",
+          sentAt: Date.now(),
+        });
+      }
+
+      return; // Success, exit function
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Log failed attempt
+      if (tenantId) {
+        await ctx.db.insert("emails", {
+          tenantId,
+          type: "affiliate_welcome",
+          recipientEmail: to,
+          subject,
+          status: "failed",
+          errorMessage,
+        });
+      }
+
+      // If this was the last attempt, throw the error
+      if (attempt === maxAttempts) {
+        throw new Error(`Failed to send welcome email after ${maxAttempts + 1} attempts: ${errorMessage}`);
+      }
+
+      // Calculate exponential backoff delay
+      const delay = baseDelay * Math.pow(2, attempt);
+
+      // Wait for the delay
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 };
+
+/**
+ * Action: Send welcome email with retry logic.
+ * Uses exponential backoff for retry attempts.
+ */
+export const sendAffiliateWelcomeEmailWithRetry = internalAction({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    to: v.string(),
+    affiliateName: v.string(),
+    affiliateEmail: v.string(),
+    uniqueCode: v.string(),
+    portalName: v.string(),
+    referralUrl: v.string(),
+    brandLogoUrl: v.optional(v.string()),
+    brandPrimaryColor: v.optional(v.string()),
+    approvalTimeframe: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    maxRetries: v.optional(v.number()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    errorMessage: v.optional(v.string()),
+    retryCount: v.number(),
+  }),
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    errorMessage?: string;
+    retryCount: number;
+  }> => {
+    const maxRetries = args.maxRetries || 3;
+    let retryCount = 0;
+    const baseDelay = 1000; // 1 second base delay
+
+    const subject = `Welcome to ${args.portalName}! Your application is pending approval`;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Send the email via Resend
+        await resend.sendEmail(ctx as unknown as MutationCtx, {
+          from: getFromAddress("onboarding"),
+          to: args.to,
+          subject,
+          html: await render(
+            <AffiliateWelcomeEmail
+              affiliateName={args.affiliateName}
+              affiliateEmail={args.affiliateEmail}
+              uniqueCode={args.uniqueCode}
+              portalName={args.portalName}
+              referralUrl={args.referralUrl}
+              brandLogoUrl={args.brandLogoUrl}
+              brandPrimaryColor={args.brandPrimaryColor}
+              approvalTimeframe={args.approvalTimeframe}
+              contactEmail={args.contactEmail}
+            />
+          ),
+        });
+
+        // Log successful email
+        await ctx.runMutation(internal.emails.trackEmailSent, {
+          tenantId: args.tenantId,
+          type: "affiliate_welcome",
+          recipientEmail: args.to,
+          subject,
+          status: "sent",
+        });
+
+        return { success: true, retryCount: attempt };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        retryCount = attempt;
+
+        // Log failed attempt
+        await ctx.runMutation(internal.emails.trackEmailSent, {
+          tenantId: args.tenantId,
+          type: "affiliate_welcome",
+          recipientEmail: args.to,
+          subject,
+          status: "failed",
+          errorMessage,
+        });
+
+        // If this was the last attempt, return failure
+        if (attempt === maxRetries) {
+          return { success: false, errorMessage, retryCount };
+        }
+
+        // Calculate exponential backoff delay
+        const delay = baseDelay * Math.pow(2, attempt);
+
+        // Wait for the delay (in a real implementation, you'd use a scheduler)
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    return { success: false, errorMessage: "Max retries exceeded", retryCount };
+  },
+});
 
 /**
  * Send notification to SaaS Owner when a new affiliate registers.
@@ -576,3 +731,5 @@ export const sendReactivationEmail = action({
     }
   },
 });
+
+

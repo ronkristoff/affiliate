@@ -52,7 +52,9 @@ export default defineSchema({
       sslProvisionedAt: v.optional(v.number()),
     })),
   }).index("by_slug", ["slug"])
-    .index("by_tracking_key", ["trackingPublicKey"]),
+    .index("by_tracking_key", ["trackingPublicKey"])
+    .index("by_status", ["status"])
+    .index("by_plan", ["plan"]),
 
   // Brand Asset Library table (Story 8.6)
   // Stores marketing assets uploaded by SaaS Owner for affiliates to access
@@ -392,9 +394,66 @@ export default defineSchema({
     status: v.string(),
     sentAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
+    // Email tracking fields (Story 10.6)
+    broadcastId: v.optional(v.id("broadcastEmails")), // Link to broadcast for recipient queries
+    affiliateId: v.optional(v.id("affiliates")), // Link to affiliate for name resolution
+    resendMessageId: v.optional(v.string()), // Resend message ID for webhook matching
+    deliveryStatus: v.optional(v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("delivered"),
+      v.literal("opened"),
+      v.literal("clicked"),
+      v.literal("bounced"),
+      v.literal("complained")
+    )),
+    deliveredAt: v.optional(v.number()),
+    openedAt: v.optional(v.number()),
+    clickedAt: v.optional(v.number()),
+    bounceReason: v.optional(v.string()),
+    complaintReason: v.optional(v.string()),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"])
-    .index("by_recipient", ["recipientEmail"]),
+    .index("by_recipient", ["recipientEmail"])
+    .index("by_broadcast", ["broadcastId"]) // Recipient list queries (Story 10.6)
+    .index("by_resend_message_id", ["resendMessageId"]), // Webhook matching (Story 10.6)
+
+  // Broadcast emails table (Story 10.5)
+  // Tracks broadcast email campaigns sent by SaaS Owners to all active affiliates
+  broadcastEmails: defineTable({
+    tenantId: v.id("tenants"),
+    subject: v.string(),
+    body: v.string(), // HTML or markdown content
+    recipientCount: v.number(), // Total intended recipients
+    sentCount: v.number(), // Successfully sent
+    failedCount: v.number(), // Failed after retries
+    status: v.union(
+      v.literal("pending"),
+      v.literal("sending"),
+      v.literal("sent"),
+      v.literal("partial"),
+      v.literal("failed")
+    ),
+    createdBy: v.id("users"), // SaaS Owner who sent it
+    sentAt: v.optional(v.number()),
+    // Aggregate tracking fields (Story 10.6)
+    openedCount: v.optional(v.number()),
+    clickedCount: v.optional(v.number()),
+    bounceCount: v.optional(v.number()),
+    complaintCount: v.optional(v.number()),
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_sent_at", ["tenantId", "sentAt"]),
+
+  // Email template customization table (Story 10.7)
+  // Stores custom subject/body per tenant per template type for affiliate-facing emails
+  emailTemplates: defineTable({
+    tenantId: v.id("tenants"),
+    templateType: v.string(), // "commission_confirmed", "payout_sent", "affiliate_welcome", etc.
+    customSubject: v.string(),
+    customBody: v.string(), // HTML content
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_tenant_and_type", ["tenantId", "templateType"]),
 
   // Rate limiting for failed login attempts
   loginAttempts: defineTable({
@@ -421,6 +480,31 @@ export default defineSchema({
     .index("by_type", ["metricType"])
     .index("by_type_and_time", ["metricType", "timestamp"]),
 
+  // Admin notes table (Story 11.2)
+  // Platform Admin notes about tenants for internal visibility
+  adminNotes: defineTable({
+    tenantId: v.id("tenants"),
+    authorId: v.id("users"),
+    content: v.string(),
+  }).index("by_tenant", ["tenantId"]),
+
+  // Impersonation sessions table (Story 11.3)
+  // Platform Admin impersonation sessions with full audit trail
+  impersonationSessions: defineTable({
+    adminId: v.id("users"),
+    targetTenantId: v.id("tenants"),
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+    mutationsPerformed: v.array(v.object({
+      action: v.string(),
+      timestamp: v.number(),
+      details: v.optional(v.string()),
+    })),
+    ipAddress: v.optional(v.string()),
+  }).index("by_admin", ["adminId"])
+    .index("by_tenant", ["targetTenantId"])
+    .index("active_by_admin", ["adminId", "endedAt"]),
+
   // Performance alerting configuration (Story 6.6)
   performanceAlertConfig: defineTable({
     tenantId: v.optional(v.id("tenants")),
@@ -431,4 +515,24 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_alert_type", ["alertType"])
     .index("by_tenant_and_alert_type", ["tenantId", "alertType"]),
+
+  // Tier overrides table (Story 11.5)
+  // Platform Admin overrides for tenant tier limits (enterprise exceptions)
+  tierOverrides: defineTable({
+    tenantId: v.id("tenants"),
+    adminId: v.id("users"), // Admin who created the override
+    overrides: v.object({
+      maxAffiliates: v.optional(v.number()),
+      maxCampaigns: v.optional(v.number()),
+      maxTeamMembers: v.optional(v.number()),
+      maxPayoutsPerMonth: v.optional(v.number()),
+    }),
+    reason: v.string(), // Required explanation for audit compliance
+    expiresAt: v.optional(v.number()), // Optional expiration timestamp (ms)
+    createdAt: v.number(), // Creation timestamp (ms)
+    removedAt: v.optional(v.number()), // When override was removed/expired (ms)
+    removedBy: v.optional(v.id("users")), // Admin who removed it
+    removalReason: v.optional(v.string()), // "expired", "manual_removal"
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_active", ["tenantId", "removedAt"]),
 });

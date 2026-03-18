@@ -11,6 +11,8 @@ import {
   Megaphone,
   Settings,
   BarChart3,
+  FileBarChart,
+  Mail,
 } from "lucide-react";
 
 interface NavItem {
@@ -44,9 +46,19 @@ export function SidebarNav() {
       icon: <Megaphone className="h-4 w-4" />,
     },
     {
+      href: "/reports",
+      label: "Reports",
+      icon: <FileBarChart className="h-4 w-4" />,
+    },
+    {
       href: "/analytics",
       label: "Analytics",
       icon: <BarChart3 className="h-4 w-4" />,
+    },
+    {
+      href: "/emails",
+      label: "Emails",
+      icon: <Mail className="h-4 w-4" />,
     },
     {
       href: "/settings",

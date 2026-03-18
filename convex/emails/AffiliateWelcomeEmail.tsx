@@ -7,6 +7,7 @@ interface AffiliateWelcomeEmailProps {
   affiliateEmail: string;
   uniqueCode: string;
   portalName: string;
+  referralUrl: string;
   brandLogoUrl?: string;
   brandPrimaryColor?: string;
   approvalTimeframe?: string;
@@ -18,6 +19,7 @@ export default function AffiliateWelcomeEmail({
   affiliateEmail,
   uniqueCode,
   portalName,
+  referralUrl,
   brandLogoUrl,
   brandPrimaryColor = "#10409a",
   approvalTimeframe = "1-2 business days",
@@ -56,18 +58,21 @@ export default function AffiliateWelcomeEmail({
         <strong>Your Affiliate Details:</strong>
       </Text>
       
-      <div style={{ 
-        ...styles.code, 
+      <div style={{
+        ...styles.code,
         backgroundColor: `${primaryColor}10`,
         borderColor: primaryColor,
       }}>
         <Text style={{ ...styles.text, margin: "8px 0", fontWeight: 600 }}>
           Referral Code: <span style={{ fontSize: "18px" }}>{uniqueCode}</span>
         </Text>
+        <Text style={{ ...styles.text, margin: "8px 0", fontSize: "14px" }}>
+          Your referral link: <Link href={referralUrl}>{referralUrl}</Link>
+        </Text>
       </div>
 
       <Text style={{ ...styles.text, fontSize: "12px", color: "#666" }}>
-        Save this code! You&apos;ll need it to track your referrals once approved.
+        Save this code and link! You&apos;ll need them to track your referrals once approved.
       </Text>
 
       <Hr style={{ margin: "24px 0" }} />

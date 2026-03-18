@@ -10,6 +10,7 @@ import {
   CreditCard,
   Palette,
   Globe,
+  Mail,
 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -26,6 +27,8 @@ const settingsLinks = [
   { href: "/settings/tracking", label: "Tracking Code", icon: Code },
   // Story 3.1 - Billing
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
+  // Story 10.7 - Email Templates
+  { href: "/settings/email-templates", label: "Email Templates", icon: Mail },
   // Story 8.8 - Custom Domain (Scale tier only)
   // Added dynamically based on tier
   // TODO: Enable when implemented - Future stories

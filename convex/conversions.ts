@@ -311,6 +311,70 @@ export const createConversionWithAttribution = internalMutation({
       },
     });
 
+    // Send new referral alert email to SaaS Owner (if not self-referral)
+    if (!isSelfReferral) {
+      // Get owner email for notification
+      const ownerUser = await ctx.runQuery(internal.users.getOwnerByTenantInternal, {
+        tenantId: args.tenantId,
+      });
+      
+      // Get affiliate and campaign details
+      const affiliate = await ctx.db.get(args.affiliateId);
+      const campaign = args.campaignId ? await ctx.db.get(args.campaignId) : null;
+      const tenant = await ctx.db.get(args.tenantId);
+      
+      // Calculate commission amount based on campaign structure
+      let commissionAmount = 0;
+      if (campaign) {
+        if (campaign.commissionType === "percentage") {
+          commissionAmount = args.amount * (campaign.commissionValue / 100);
+        } else {
+          commissionAmount = campaign.commissionValue; // flat_fee
+        }
+      }
+      
+      // Schedule email (non-blocking) if owner found
+      if (ownerUser && affiliate && tenant) {
+        const portalName = tenant.branding?.portalName || tenant.name || "Your Portal";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.boboddy.business";
+        
+        ctx.scheduler.runAfter(0, internal.emails.sendNewReferralAlertEmail, {
+          tenantId: args.tenantId,
+          conversionId,
+          affiliateId: args.affiliateId,
+          ownerEmail: ownerUser.email,
+          ownerName: ownerUser.name,
+          affiliateName: affiliate.name,
+          affiliateEmail: affiliate.email,
+          conversionAmount: args.amount,
+          commissionAmount,
+          customerEmail: args.customerEmail,
+          campaignName: campaign?.name,
+          portalName,
+          brandLogoUrl: tenant.branding?.logoUrl,
+          brandPrimaryColor: tenant.branding?.primaryColor,
+          conversionTimestamp: Date.now(),
+          dashboardAffiliateUrl: `${appUrl}/affiliates/${args.affiliateId}`,
+          dashboardConversionUrl: `${appUrl}/conversions/${conversionId}`,
+        }).catch(async (err) => {
+          // Log to audit trail but don't fail the conversion if email fails
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          await ctx.db.insert("auditLogs", {
+            tenantId: args.tenantId,
+            action: "email_scheduling_failed",
+            entityType: "conversion",
+            entityId: conversionId,
+            actorType: "system",
+            newValue: {
+              emailType: "new_referral_alert",
+              error: errorMessage,
+              recipientEmail: ownerUser.email,
+            },
+          });
+        });
+      }
+    }
+
     return conversionId;
   },
 });

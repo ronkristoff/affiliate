@@ -39,6 +39,9 @@ const affiliatePublicRoutes = [
   "/portal/forgot-password",
 ];
 
+// Platform admin routes (require owner session + admin role)
+const adminRoutes = ["/admin"];
+
 // Affiliate portal protected routes
 const affiliateProtectedRoutes = [
   "/portal/home",
@@ -82,6 +85,9 @@ export default async function proxy(request: NextRequest) {
   const isOwnerAuthenticated = !!ownerSessionCookie;
   const isAffiliateAuthenticated = !!affiliateSessionCookie;
 
+  // Check if route is admin (platform admin)
+  const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+
   // Check if route is public (SaaS Owner)
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   const isMarketingRoute = marketingRoutes.includes(pathname);
@@ -90,6 +96,16 @@ export default async function proxy(request: NextRequest) {
   const isAffiliatePublicRoute = affiliatePublicRoutes.some(route => pathname === route || pathname.startsWith(route));
   const isAffiliateProtectedRoute = affiliateProtectedRoutes.some(route => pathname.startsWith(route));
   const isAffiliatePath = isAffiliateRoute(pathname);
+
+  // Handle admin routes — require owner authentication; role verified at Convex layer
+  if (isAdminRoute) {
+    if (!isOwnerAuthenticated) {
+      const signInUrl = new URL("/sign-in", request.url);
+      signInUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(signInUrl);
+    }
+    return NextResponse.next();
+  }
 
   // Handle affiliate routes
   if (isAffiliatePath) {

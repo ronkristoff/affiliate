@@ -44,14 +44,14 @@ development_status:
   # EPIC 1: Foundation & Infrastructure
   # 7 stories | FRs: FR69, FR70 | NFRs: NFR7-21, NFR28-33
   # ========================================
-  epic-1: in-progress
+  epic-1: done
   1-1-convex-schema-foundation: done
   1-2-config-driven-integration-layer: done
   1-3-saas-owner-authentication: done
   1-4-affiliate-portal-authentication: done
   1-5-multi-tenant-data-isolation: done
   1-6-rbac-permission-system: done
-  1-7-tier-configuration-service: in-progress
+  1-7-tier-configuration-service: done
   epic-1-retrospective: optional
 
   # ========================================
@@ -90,7 +90,7 @@ development_status:
   # 7 stories | FRs: FR10-FR15
   # Screens: 05-owner-campaigns.html, 16-onboarding-campaign.html, 07-owner-settings.html
   # ========================================
-  epic-4: in-progress
+  epic-4: done
   4-1-campaign-creation: done
   4-2-percentage-commission-configuration: done
   4-3-flat-fee-commission-configuration: done
@@ -105,7 +105,7 @@ development_status:
   # 7 stories | FRs: FR30-FR36
   # Screens: 02-owner-affiliates.html
   # ========================================
-  epic-5: in-progress
+  epic-5: done
   5-1-affiliate-registration-on-portal: done
   5-2-recaptcha-protection-on-registration: done
   5-3-affiliate-application-review: done
@@ -120,7 +120,7 @@ development_status:
   # 6 stories | FRs: FR16-FR18, FR20, FR87 | NFRs: NFR3, NFR10
   # Screens: 17-onboarding-snippet.html
   # ========================================
-  epic-6: in-progress
+  epic-6: done
   6-1-referral-link-generation: done
   6-2-click-tracking-with-deduplication: done
   6-3-conversion-attribution: done
@@ -134,7 +134,7 @@ development_status:
   # 8 stories | FRs: FR22-FR29 | NFRs: NFR4, NFR24-25, NFR28
   # Screens: 03-owner-commissions.html
   # ========================================
-  epic-7: in-progress
+  epic-7: done
   7-1-payment-updated-event-processing: done
   7-2-subscription-lifecycle-event-processing: done
   7-3-failed-pending-payment-rejection: done
@@ -150,7 +150,7 @@ development_status:
   # 8 stories | FRs: FR37-FR44 | NFRs: NFR1, NFR34
   # Screens: 08-portal-login.html, 09-portal-home.html, 10-portal-earnings.html, 11-portal-links.html, 12-portal-account.html
   # ========================================
-  epic-8: in-progress
+  epic-8: done
   8-1-affiliate-portal-login: done
   8-2-referral-link-management: done
   8-3-real-time-statistics-dashboard: done
@@ -166,12 +166,12 @@ development_status:
   # 5 stories | FRs: FR58-FR62 | NFRs: NFR2, NFR5-6
   # Screens: 01-owner-dashboard.html, 06-owner-reports.html
   # ========================================
-  epic-9: backlog
-  9-1-dashboard-overview: backlog
-  9-2-campaign-performance-metrics: backlog
-  9-3-affiliate-performance-metrics: backlog
-  9-4-date-range-filtering: backlog
-  9-5-csv-export: backlog
+  epic-9: done
+  9-1-dashboard-overview: done
+  9-2-campaign-performance-metrics: done
+  9-3-affiliate-performance-metrics: done
+  9-4-date-range-filtering: done
+  9-5-csv-export: done
   epic-9-retrospective: optional
 
   # ========================================
@@ -179,28 +179,28 @@ development_status:
   # 7 stories | FRs: FR51-FR57 | NFRs: NFR27, NFR31
   # Screens: None (backend + email templates)
   # ========================================
-  epic-10: backlog
-  10-1-welcome-email: backlog
-  10-2-commission-confirmed-email: backlog
-  10-3-payout-sent-email: backlog
-  10-4-new-referral-alert-email: backlog
-  10-5-broadcast-email: backlog
-  10-6-broadcast-email-log: backlog
-  10-7-email-template-customization: backlog
+  epic-10: done
+  10-1-welcome-email: done
+  10-2-commission-confirmed-email: done
+  10-3-payout-sent-email: done
+  10-4-new-referral-alert-email: done
+  10-5-broadcast-email: done
+  10-6-broadcast-email-log: done
+  10-7-email-template-customization: done
   epic-10-retrospective: optional
 
-  # ========================================
-  # EPIC 11: Platform Administration
-  # 6 stories | FRs: FR63-FR68 | NFRs: NFR12-16
-  # Screens: 13-admin-tenants.html, 14-admin-tenant-detail.html
-  # ========================================
-  epic-11: backlog
-  11-1-tenant-search: backlog
-  11-2-tenant-account-details: backlog
-  11-3-tenant-impersonation: backlog
-  11-4-plan-limit-usage-view: backlog
-  11-5-tier-limit-override: backlog
-  11-6-tier-configuration-management: backlog
+  # ======================================== 
+  # EPIC 11: Platform Administration  
+  # 6 stories | FRs: FR63-FR68 | NFRs: NFR12-16  
+  # Screens: 13-admin-tenants.html, 14-admin-tenant-detail.html 
+  # ======================================== 
+  epic-11: done
+  11-1-tenant-search: done
+  11-2-tenant-account-details: done
+  11-3-tenant-impersonation: done
+  11-4-plan-limit-usage-view: done
+  11-5-tier-limit-override: done
+  11-6-tier-configuration-management: done
   epic-11-retrospective: optional
 
   # ========================================
@@ -208,8 +208,8 @@ development_status:
   # 8 stories | FRs: FR75-FR82 | NFRs: NFR1, NFR35
   # Screens: 20-marketing-landing.html, 18-auth-login.html, 19-auth-signup.html
   # ========================================
-  epic-12: backlog
-  12-1-marketing-landing-page: backlog
+  epic-12: in-progress
+  12-1-marketing-landing-page: done
   12-2-pricing-section: backlog
   12-3-features-section: backlog
   12-4-social-proof-section: backlog

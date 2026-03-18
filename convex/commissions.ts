@@ -916,6 +916,80 @@ export const approveCommission = mutation({
         campaignId: commission.campaignId,
       },
     });
+
+    // 7. Send commission confirmed email (Story 10.2)
+    // Track approval timestamp for 5-minute SLA monitoring
+    const approvalTimestamp = Date.now();
+    
+    // Fetch affiliate and tenant data for email
+    const affiliate = await ctx.db.get(commission.affiliateId);
+    if (affiliate) {
+      const tenant = await ctx.db.get(commission.tenantId);
+      const campaign = await ctx.db.get(commission.campaignId);
+      
+      // Get conversion data for accurate timestamp and plan type
+      let conversionDate = approvalTimestamp;
+      let customerPlanType: string | undefined;
+      
+      if (commission.conversionId) {
+        const conversion = await ctx.db.get(commission.conversionId);
+        if (conversion) {
+          // Use conversion's own timestamp from the actual event
+          conversionDate = conversion._creationTime;
+          
+          // Determine customer plan type from conversion metadata
+          if (conversion.metadata?.planId) {
+            customerPlanType = conversion.metadata.planId;
+          } else if (conversion.metadata?.subscriptionId) {
+            customerPlanType = "Subscription";
+          } else if (conversion.metadata?.products && conversion.metadata.products.length > 0) {
+            customerPlanType = conversion.metadata.products[0];
+          }
+        }
+      }
+      
+      // Build portal earnings URL if available
+      const portalEarningsUrl = tenant?.branding?.customDomain
+        ? `https://${tenant.branding.customDomain}/earnings`
+        : undefined;
+      
+      // Schedule email sending (non-blocking)
+      // AC1: Email must be sent within 5 minutes - logged for monitoring
+      try {
+        await ctx.scheduler.runAfter(0, internal.emails.sendCommissionConfirmedEmail, {
+          tenantId: commission.tenantId,
+          commissionId: commission._id,
+          affiliateId: commission.affiliateId,
+          affiliateEmail: affiliate.email,
+          affiliateName: affiliate.name,
+          commissionAmount: commission.amount,
+          campaignName: campaign?.name || "Campaign",
+          conversionDate,
+          portalName: tenant?.branding?.portalName || tenant?.name || "Portal",
+          brandLogoUrl: tenant?.branding?.logoUrl,
+          brandPrimaryColor: tenant?.branding?.primaryColor,
+          portalEarningsUrl,
+          transactionId: commission.transactionId,
+          customerPlanType,
+          approvalTimestamp, // Pass for SLA monitoring
+        });
+      } catch (schedulerError) {
+        // Log scheduler failure but don't fail the approval
+        // Email will need to be retried manually or by a background job
+        await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+          tenantId: user.tenantId,
+          action: "EMAIL_SCHEDULE_FAILED",
+          commissionId: args.commissionId,
+          affiliateId: commission.affiliateId,
+          actorId: user.userId,
+          actorType: "user",
+          metadata: {
+            error: schedulerError instanceof Error ? schedulerError.message : String(schedulerError),
+            emailType: "commission_confirmed",
+          },
+        });
+      }
+    }
     
     return {
       success: true,

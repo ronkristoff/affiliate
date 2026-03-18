@@ -1,151 +1,174 @@
-"use cache";
+"use client";
 
-import { Suspense } from "react";
-import Link from "next/link";
-import { AppContainer } from "@/components/server";
-import { DashboardClient } from "./client";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card } from "@/components/ui/card";
+import {
+  MetricCard,
+  RecentCommissionsTable,
+  TopAffiliatesTable,
+  QuickActionsPanel,
+  ActivityFeed,
+  PlanUsageWidget,
+  AlertBanner,
+  DateRangeSelector,
+} from "./components";
+import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 
-// Stat Card Component - Reusable card for displaying metrics (cached)
-const StatCard = ({
-  label,
-  value,
-  description,
-}: {
-  label: string;
-  value: string | number;
-  description?: string;
-}) => {
-  return (
-    <div className="border rounded-lg p-6">
-      <div className="text-sm text-muted-foreground mb-1">{label}</div>
-      <div className="text-2xl font-semibold mb-1">{value}</div>
-      {description && (
-        <div className="text-xs text-muted-foreground">{description}</div>
-      )}
-    </div>
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+export default function DashboardPage() {
+  // Use shared date range hook for global consistency
+  const { dateRange } = useDateRange();
+  const queryDateRange = getQueryDateRange(dateRange);
+
+  // Get current user to determine tenant and role
+  const user = useQuery(api.auth.getCurrentUser);
+  const tenantId = user?.tenantId;
+  
+  // RBAC: Determine if user can perform write actions (owner or manager)
+  // Viewers cannot see Pay All buttons or sensitive data
+  const userRole = user?.role;
+  const canManage = userRole === "owner" || userRole === "manager";
+
+  // Fetch all dashboard data
+  const stats = useQuery(
+    api.dashboard.getOwnerDashboardStats,
+    tenantId ? { tenantId, dateRange: queryDateRange } : "skip"
   );
-};
 
-// Quick Actions Component - Common actions users might take (cached)
-const QuickActions = () => {
-  const actions = [
-    {
-      label: "Documentation",
-      href: "/documentation",
-      description: "Learn how to use this template",
-    },
-    {
-      label: "API Reference",
-      href: "/api-reference",
-      description: "Explore available functions",
-    },
-  ];
+  const activities = useQuery(
+    api.dashboard.getRecentActivity,
+    tenantId ? { tenantId, dateRange: queryDateRange, limit: 20 } : "skip"
+  );
+
+  const topAffiliates = useQuery(
+    api.dashboard.getTopAffiliates,
+    tenantId ? { tenantId, dateRange: queryDateRange, limit: 10 } : "skip"
+  );
+
+  const recentCommissions = useQuery(
+    api.dashboard.getRecentCommissions,
+    tenantId ? { tenantId, dateRange: queryDateRange, limit: 10 } : "skip"
+  );
+
+  const planUsage = useQuery(
+    api.dashboard.getPlanUsage,
+    tenantId ? { tenantId } : "skip"
+  );
+
+  const setupStatus = useQuery(
+    api.dashboard.getSetupStatus,
+    tenantId ? { tenantId } : "skip"
+  );
+
+  const isLoading = !stats || !activities || !topAffiliates || !recentCommissions;
 
   return (
-    <div className="border rounded-lg p-6">
-      <h2 className="text-lg font-medium mb-4">Quick Actions</h2>
-      <div className="space-y-3">
-        {actions.map((action) => (
-          <Link
-            key={action.label}
-            href={action.href}
-            className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-          >
-            <div className="font-medium text-sm">{action.label}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {action.description}
-            </div>
-          </Link>
-        ))}
+    <div className="space-y-6">
+      {/* Header with Date Range Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your affiliate program</p>
+          {/* Date range indicator */}
+          {dateRange && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Showing data for: <span className="font-medium text-foreground">{dateRange.label}</span>
+            </p>
+          )}
+        </div>
+        <DateRangeSelector />
       </div>
-    </div>
-  );
-};
 
-// Recent Activity Component - Shows recent user activity placeholder (cached)
-const RecentActivity = () => {
-  const activities = [
-    { action: "Account created", time: "Just now" },
-    { action: "Logged in", time: "Just now" },
-  ];
+      {/* Alert Banners for Setup Tasks */}
+      <AlertBanner setupStatus={setupStatus} />
 
-  return (
-    <div className="border rounded-lg p-6">
-      <h2 className="text-lg font-medium mb-4">Recent Activity</h2>
-      <div className="space-y-4">
-        {activities.map((activity, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between text-sm"
-          >
-            <span>{activity.action}</span>
-            <span className="text-muted-foreground text-xs">
-              {activity.time}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Cached static content
-const DashboardStaticContent = () => {
-  return (
-    <>
-      {/* Stats Grid - Replace with your own metrics */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Total Users" value="1" description="Active accounts" />
-        <StatCard label="Projects" value="0" description="Active projects" />
-        <StatCard
-          label="Status"
-          value="Active"
-          description="All systems operational"
+      {/* Metric Cards Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="MRR Influenced"
+          value={stats ? formatCurrency(stats.mrrInfluenced) : "—"}
+          subtext="From affiliate referrals"
+          delta={stats ? { value: stats.mrrChangePercent, isPositive: stats.mrrChangePercent >= 0 } : undefined}
+          variant="blue"
+          isLoading={!stats}
+        />
+        <MetricCard
+          label="Active Affiliates"
+          value={stats?.activeAffiliatesCount ?? 0}
+          subtext="Approved & promoting"
+          variant="green"
+          isLoading={!stats}
+        />
+        <MetricCard
+          label="Pending Commissions"
+          value={stats ? formatCurrency(stats.pendingCommissionsValue) : "—"}
+          subtext={`${stats?.pendingCommissionsCount ?? 0} awaiting approval`}
+          variant="yellow"
+          isLoading={!stats}
+        />
+        <MetricCard
+          label="Total Paid Out"
+          value={stats ? formatCurrency(stats.totalPaidOut) : "—"}
+          subtext="Lifetime payouts"
+          variant="gray"
+          isLoading={!stats}
         />
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <QuickActions />
-        <RecentActivity />
-      </div>
+      {/* Main Content Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left Column - Tables */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="p-5">
+            <RecentCommissionsTable
+              commissions={recentCommissions ?? []}
+              isLoading={!recentCommissions}
+              pendingCount={stats?.pendingCommissionsCount}
+              showPayAllButton={canManage}
+            />
+          </Card>
 
-      {/* Getting Started Section (Remove this after setup) */}
-      <div className="border rounded-lg p-6 bg-muted/30">
-        <h2 className="text-lg font-medium mb-3">Getting Started</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          This is a boilerplate dashboard. Customize it by:
-        </p>
-        <ul className="text-sm space-y-2 list-disc list-inside text-muted-foreground">
-          <li>Replacing StatCard values with your own Convex queries</li>
-          <li>Adding your own components and sections</li>
-          <li>Creating new pages in the /dashboard directory</li>
-          <li>Customizing the layout to fit your needs</li>
-        </ul>
-        <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-          Edit this file:{" "}
-          <code className="bg-muted px-1.5 py-0.5 rounded">
-            src/app/(auth)/dashboard/page.tsx
-          </code>
+          <Card className="p-5">
+            <TopAffiliatesTable
+              affiliates={topAffiliates ?? []}
+              isLoading={!topAffiliates}
+            />
+          </Card>
+        </div>
+
+        {/* Right Column - Widgets */}
+        <div className="space-y-6">
+          <Card className="p-5">
+            <QuickActionsPanel
+              pendingCount={stats?.pendingCommissionsCount}
+              showPayAll={canManage}
+            />
+          </Card>
+
+          <Card className="p-5">
+            <ActivityFeed
+              activities={activities ?? []}
+              isLoading={!activities}
+            />
+          </Card>
+
+          <Card className="p-5">
+            <PlanUsageWidget
+              usage={planUsage}
+              isLoading={!planUsage}
+            />
+          </Card>
         </div>
       </div>
-    </>
-  );
-};
-
-// Main Page Export - Server Component with cached content
-export default async function DashboardPage() {
-  "use cache";
-  return (
-    <AppContainer>
-      <Suspense
-        fallback={<div className="animate-pulse h-16 bg-muted rounded-lg" />}
-      >
-        <DashboardClient>
-          <DashboardStaticContent />
-        </DashboardClient>
-      </Suspense>
-    </AppContainer>
+    </div>
   );
 }
