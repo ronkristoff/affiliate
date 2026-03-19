@@ -105,7 +105,7 @@ export function OverrideLimitsModal({
   const [isLoading, setIsLoading] = useState(false);
 
   const createOverride = useMutation(
-    api.admin.tierOverrides.createTierOverride
+    api.admin.tier_overrides.createTierOverride
   );
 
   const validateForm = (): FormErrors => {

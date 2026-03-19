@@ -6,6 +6,7 @@ import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
+import { betterAuthComponent } from "../auth";
 
 // =============================================================================
 // Shared Helpers
@@ -17,7 +18,6 @@ import type { QueryCtx, MutationCtx } from "../_generated/server";
  * Reuses the same pattern as requireAdmin in tenants.ts.
  */
 async function requireAdmin(ctx: QueryCtx) {
-  const { betterAuthComponent } = await import("../auth");
   let betterAuthUser;
   try {
     betterAuthUser = await betterAuthComponent.getAuthUser(ctx);

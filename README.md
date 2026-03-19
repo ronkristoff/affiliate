@@ -246,6 +246,136 @@ The `pnpm dev` command will:
 4. **Dashboard**: Access your protected dashboard at `/dashboard`
 5. **Settings**: Configure 2FA and other settings at `/settings`
 
+## 🧪 Test Data & Credentials
+
+The project includes a test data seeding system for development and testing purposes.
+
+### 📊 Generated Test Data
+
+| Entity | Count |
+|--------|-------|
+| Tenants | 3 |
+| Affiliates | 7 |
+| Campaigns | 6 |
+| Referral Links | 6 |
+| Clicks | ~135 |
+| Conversions | ~17 |
+| Commissions | ~17 |
+| Payout Batches | 4 |
+| Payouts | 4 |
+
+### 🔐 Common Test Password
+**All test users use the same password:** `TestPass123!`
+
+---
+
+### 🚨 Important: Creating Login Accounts
+
+The test data seeder creates all the infrastructure (tenants, affiliates, campaigns, etc.) but **does not create working login credentials** for SaaS Owners due to Better Auth's internal initialization requirements.
+
+#### To Test SaaS Owner Login:
+
+**Option 1: Use the Sign-Up API (Recommended)**
+
+Run these commands to create working test accounts:
+
+```bash
+# Create Alex Chen (TechFlow Owner)
+curl -X POST http://localhost:3000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alex@techflow.test","password":"TestPass123!","name":"Alex Chen"}'
+
+# Create Maria Santos (TechFlow Admin)
+curl -X POST http://localhost:3000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"maria@techflow.test","password":"TestPass123!","name":"Maria Santos"}'
+```
+
+Then sign in at `http://localhost:3000/sign-in` with:
+- **Email:** `alex@techflow.test`
+- **Password:** `TestPass123!`
+
+**Option 2: Use the Sign-Up Page**
+Navigate to `http://localhost:3000/sign-up` and create an account manually.
+
+---
+
+### 🏢 TechFlow SaaS (Starter Plan)
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Owner | `alex@techflow.test` | `TestPass123!` | Alex Chen |
+| Admin | `maria@techflow.test` | `TestPass123!` | Maria Santos |
+| Member | `john@techflow.test` | `TestPass123!` | John Dela Cruz |
+
+**Affiliates (Login Works with Seeded Data):**
+| Name | Email | Password | Status | Portal URL |
+|------|-------|----------|--------|------------|
+| Jamie Wilson | `jamie@email.com` | `TestPass123!` | Active | `/techflow-saas/affiliate/login` |
+| Sarah Miller | `sarah@email.com` | `TestPass123!` | Active | `/techflow-saas/affiliate/login` |
+| Mike Johnson | `mike@email.com` | `TestPass123!` | Pending | `/techflow-saas/affiliate/login` |
+| Lisa Brown | `lisa@email.com` | `TestPass123!` | Active | `/techflow-saas/affiliate/login` |
+
+---
+
+### 🏢 GHL Agency Pro (Scale Plan)
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Owner | `owner@ghlagency.test` | `TestPass123!` | Patricia Lim |
+| Admin | `ops@ghlagency.test` | `TestPass123!` | Roberto Diaz |
+
+**Affiliates (Login Works with Seeded Data):**
+| Name | Email | Password | Status | Portal URL |
+|------|-------|----------|--------|------------|
+| Mark Thompson | `mark.t@digitalgen.test` | `TestPass123!` | Active | `/ghl-agency-pro/affiliate/login` |
+| Jennifer Kim | `jen.k@smartsol.test` | `TestPass123!` | Active | `/ghl-agency-pro/affiliate/login` |
+
+---
+
+### 🏢 Digital Marketing Hub (Starter Plan)
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Owner | `admin@digimark.test` | `TestPass123!` | David Wong |
+
+**Affiliates (Login Works with Seeded Data):**
+| Name | Email | Password | Status | Portal URL |
+|------|-------|----------|--------|------------|
+| Tom Richards | `tom.hanks@influencer.test` | `TestPass123!` | Active | `/digital-marketing-hub/affiliate/login` |
+
+---
+
+### 🔄 Re-seeding Test Data
+
+To reset and reseed test data:
+
+```bash
+# 1. Clear all existing data
+npx convex run testData:clearAllTestData
+
+# 2. Re-seed all test data (tenants, affiliates, campaigns, etc.)
+npx convex run testData:seedAllTestData
+
+# 3. Create login accounts via API (for SaaS Owner testing)
+curl -X POST http://localhost:3000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alex@techflow.test","password":"TestPass123!","name":"Alex Chen"}'
+
+# 4. View current test credentials
+npx convex run testData:getTestCredentials
+```
+
+### 📁 Test Data Functions
+
+The following functions are available in `convex/testData.ts`:
+
+| Function | Description |
+|----------|-------------|
+| `seedAllTestData` | Seeds all test data (tenants, affiliates, campaigns, clicks, conversions, commissions, payouts) |
+| `clearAllTestData` | Clears all data from the database (use with caution!) |
+| `getTestCredentials` | Returns credentials for all existing test users |
+
 ## 📁 Project Structure
 
 ```

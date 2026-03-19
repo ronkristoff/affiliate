@@ -313,12 +313,14 @@ export default defineSchema({
     })),
     reversalReason: v.optional(v.string()),
     transactionId: v.optional(v.string()),  // Payment/transaction ID from SaligPay for efficient lookup
+    batchId: v.optional(v.id("payoutBatches")),  // Link to payout batch when commission is paid
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
     .index("by_campaign", ["campaignId"])
     .index("by_conversion", ["conversionId"])
     .index("by_tenant_and_status", ["tenantId", "status"])
-    .index("by_tenant_and_transaction", ["tenantId", "transactionId"]),
+    .index("by_tenant_and_transaction", ["tenantId", "transactionId"])
+    .index("by_batch", ["batchId"]),
 
   payouts: defineTable({
     tenantId: v.id("tenants"),

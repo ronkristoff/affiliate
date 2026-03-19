@@ -1,0 +1,1414 @@
+/**
+ * Test Data Generator
+ * 
+ * This module provides functions to seed the database with realistic test data
+ * for development and testing purposes. All functions are internal mutations
+ * that should only be called in development/test environments.
+ * 
+ * Usage:
+ * 1. Run: npx convex run testData:seedAllTestData --json
+ * 2. Check the output for all generated credentials
+ * 
+ * Password for all test users: "TestPass123!"
+ */
+
+import { internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
+
+/**
+ * Test data configuration
+ */
+interface TestTenant {
+  name: string;
+  slug: string;
+  plan: string;
+  users: Array<{
+    email: string;
+    name: string;
+    role: string;
+  }>;
+  affiliates: Array<{
+    email: string;
+    name: string;
+    status: string;
+    promotionChannel?: string;
+  }>;
+  campaigns: Array<{
+    name: string;
+    description: string;
+    commissionType: string;
+    commissionValue: number;
+    recurring: boolean;
+    status: string;
+  }>;
+}
+
+const TEST_TENANTS: TestTenant[] = [
+  {
+    name: "TechFlow SaaS",
+    slug: "techflow",
+    plan: "starter",
+    users: [
+      { email: "alex@techflow.test", name: "Alex Chen", role: "owner" },
+      { email: "maria@techflow.test", name: "Maria Santos", role: "admin" },
+      { email: "john@techflow.test", name: "John Dela Cruz", role: "member" },
+    ],
+    affiliates: [
+      { email: "jamie@email.com", name: "Jamie Wilson", status: "active", promotionChannel: "YouTube" },
+      { email: "sarah@email.com", name: "Sarah Miller", status: "active", promotionChannel: "Blog" },
+      { email: "mike@email.com", name: "Mike Johnson", status: "pending", promotionChannel: "Social Media" },
+      { email: "lisa@email.com", name: "Lisa Brown", status: "active", promotionChannel: "Email Marketing" },
+    ],
+    campaigns: [
+      { name: "Starter Plan Referral", description: "Refer users to our Starter plan", commissionType: "percentage", commissionValue: 20, recurring: true, status: "active" },
+      { name: "Pro Plan Launch", description: "Promote our Pro plan launch", commissionType: "percentage", commissionValue: 30, recurring: true, status: "active" },
+      { name: "Enterprise Deal", description: "Enterprise tier referrals", commissionType: "fixed", commissionValue: 100, recurring: false, status: "active" },
+    ],
+  },
+  {
+    name: "GHL Agency Pro",
+    slug: "ghlagency",
+    plan: "scale",
+    users: [
+      { email: "owner@ghlagency.test", name: "Patricia Lim", role: "owner" },
+      { email: "ops@ghlagency.test", name: "Roberto Diaz", role: "admin" },
+    ],
+    affiliates: [
+      { email: "mark.t@digitalgen.test", name: "Mark Thompson", status: "active", promotionChannel: "YouTube" },
+      { email: "jen.k@smartsol.test", name: "Jennifer Kim", status: "active", promotionChannel: "Facebook Group" },
+    ],
+    campaigns: [
+      { name: "Agency Starter", description: "Refer new agencies", commissionType: "percentage", commissionValue: 15, recurring: true, status: "active" },
+      { name: "Enterprise Agency", description: "Enterprise agency referrals", commissionType: "fixed", commissionValue: 200, recurring: false, status: "active" },
+    ],
+  },
+  {
+    name: "Digital Marketing Hub",
+    slug: "digi",
+    plan: "starter",
+    users: [
+      { email: "admin@digimark.test", name: "David Wong", role: "owner" },
+    ],
+    affiliates: [
+      { email: "tom.hanks@influencer.test", name: "Tom Richards", status: "active", promotionChannel: "Instagram" },
+    ],
+    campaigns: [
+      { name: "Monthly Subscription", description: "Monthly plan referrals", commissionType: "percentage", commissionValue: 25, recurring: true, status: "active" },
+    ],
+  },
+];
+
+// Platform Admin tenant (special - manages all tenants)
+const PLATFORM_ADMIN = {
+  name: "Salig Affiliate Platform",
+  slug: "salig-platform",
+  users: [
+    { email: "admin@saligaffiliate.com", name: "Platform Admin", role: "admin" },
+  ],
+};
+
+/**
+ * Pre-computed password hash for "TestPass123!" using Better Auth's scrypt.
+ * Generated with: hashPassword('TestPass123!')
+ * Format: salt:hash (hex encoded)
+ */
+const TEST_PASSWORD_HASH = "b1fb84d0f1c6feb781d661faecc3eeb6:4840a3170ce388473977f0fef10160e603fc9d95a74f55b2bfbf7626d0879e545a1fe515d12b36f0230bce85f6d4f6de3cf8f98f9a1daca3deeefd06e76a2000";
+
+/**
+ * Returns the pre-computed password hash.
+ * Note: This only works for the test password "TestPass123!"
+ */
+function getTestPasswordHash(): string {
+  return TEST_PASSWORD_HASH;
+}
+
+/**
+ * Create a Better Auth user with password.
+ * This creates entries in the better-auth managed tables.
+ */
+async function createBetterAuthUser(
+  ctx: any,
+  email: string,
+  name: string,
+  password: string
+): Promise<string> {
+  const now = Date.now();
+  
+  // Create user in Better Auth's user table
+  const userId = await (ctx.db as any).insert("user", {
+    name,
+    email,
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Create password account in Better Auth's account table
+  // Using pre-computed hash for "TestPass123!"
+  await (ctx.db as any).insert("account", {
+    accountId: `password-${email}`,
+    providerId: "credential",
+    userId: userId,
+    password: getTestPasswordHash(),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return userId;
+}
+
+/**
+ * Generate a unique referral code for an affiliate.
+ */
+function generateReferralCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const array = new Uint8Array(8);
+  crypto.getRandomValues(array);
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(array[i] % chars.length);
+  }
+  return code;
+}
+
+/**
+ * Generate a unique slug from a company name.
+ */
+function generateUniqueSlug(companyName: string, existingSlugs: Set<string>): string {
+  const baseSlug = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (existingSlugs.has(slug)) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  existingSlugs.add(slug);
+  return slug;
+}
+
+/**
+ * Generate random date within a range.
+ */
+function randomDate(start: Date, end: Date): number {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).getTime();
+}
+
+/**
+ * Result type for seeding operations
+ */
+interface SeedResult {
+  success: boolean;
+  credentials: {
+    tenants: Array<{
+      name: string;
+      slug: string;
+      plan: string;
+      users: Array<{
+        email: string;
+        password: string;
+        role: string;
+        name: string;
+      }>;
+    }>;
+    platformAdmin: {
+      email: string;
+      password: string;
+      role: string;
+      name: string;
+    };
+    affiliates: Array<{
+      tenantSlug: string;
+      email: string;
+      password: string;
+      name: string;
+      status: string;
+      referralCode: string;
+    }>;
+  };
+  stats: {
+    tenantsCreated: number;
+    usersCreated: number;
+    affiliatesCreated: number;
+    campaignsCreated: number;
+    referralLinksCreated: number;
+    clicksCreated: number;
+    conversionsCreated: number;
+    commissionsCreated: number;
+    payoutBatchesCreated: number;
+    payoutsCreated: number;
+    brandAssetsCreated: number;
+    billingHistoryCreated: number;
+    auditLogsCreated: number;
+  };
+  errors: string[];
+}
+
+/**
+ * Clear all existing test data.
+ * WARNING: This will delete all data from the database!
+ */
+export const clearAllTestData = internalMutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    deleted: v.object({
+      tenants: v.number(),
+      users: v.number(),
+      affiliates: v.number(),
+      campaigns: v.number(),
+      commissions: v.number(),
+      conversions: v.number(),
+      clicks: v.number(),
+      payouts: v.number(),
+      payoutBatches: v.number(),
+      referralLinks: v.number(),
+      auditLogs: v.number(),
+      brandAssets: v.number(),
+      billingHistory: v.number(),
+      emails: v.number(),
+      affiliateSessions: v.number(),
+      authUsers: v.number(),
+      authAccounts: v.number(),
+    }),
+  }),
+  handler: async (ctx) => {
+    const deleted = {
+      tenants: 0,
+      users: 0,
+      affiliates: 0,
+      campaigns: 0,
+      commissions: 0,
+      conversions: 0,
+      clicks: 0,
+      payouts: 0,
+      payoutBatches: 0,
+      referralLinks: 0,
+      auditLogs: 0,
+      brandAssets: 0,
+      billingHistory: 0,
+      emails: 0,
+      affiliateSessions: 0,
+      authUsers: 0,
+      authAccounts: 0,
+    };
+
+    // Delete in order respecting foreign key dependencies
+    // Start with tables that have no dependencies
+    
+    // Delete Better Auth accounts first (referenced by users)
+    // Using type assertion for Better Auth tables
+    const accounts = await (ctx.db as any).query("account").collect();
+    for (const account of accounts) {
+      await (ctx.db as any).delete(account._id);
+      deleted.authAccounts++;
+    }
+
+    // Delete Better Auth users
+    const authUsers = await (ctx.db as any).query("user").collect();
+    for (const user of authUsers) {
+      await (ctx.db as any).delete(user._id);
+      deleted.authUsers++;
+    }
+
+    // Delete affiliate sessions
+    const sessions = await ctx.db.query("affiliateSessions").collect();
+    for (const session of sessions) {
+      await ctx.db.delete(session._id);
+      deleted.affiliateSessions++;
+    }
+
+    // Delete audit logs
+    const auditLogs = await ctx.db.query("auditLogs").collect();
+    for (const log of auditLogs) {
+      await ctx.db.delete(log._id);
+      deleted.auditLogs++;
+    }
+
+    // Delete emails
+    const emails = await ctx.db.query("emails").collect();
+    for (const email of emails) {
+      await ctx.db.delete(email._id);
+      deleted.emails++;
+    }
+
+    // Delete billing history
+    const billingHistory = await ctx.db.query("billingHistory").collect();
+    for (const bill of billingHistory) {
+      await ctx.db.delete(bill._id);
+      deleted.billingHistory++;
+    }
+
+    // Delete brand assets
+    const brandAssets = await ctx.db.query("brandAssets").collect();
+    for (const asset of brandAssets) {
+      await ctx.db.delete(asset._id);
+      deleted.brandAssets++;
+    }
+
+    // Delete clicks
+    const clicks = await ctx.db.query("clicks").collect();
+    for (const click of clicks) {
+      await ctx.db.delete(click._id);
+      deleted.clicks++;
+    }
+
+    // Delete conversions
+    const conversions = await ctx.db.query("conversions").collect();
+    for (const conversion of conversions) {
+      await ctx.db.delete(conversion._id);
+      deleted.conversions++;
+    }
+
+    // Delete commissions
+    const commissions = await ctx.db.query("commissions").collect();
+    for (const commission of commissions) {
+      await ctx.db.delete(commission._id);
+      deleted.commissions++;
+    }
+
+    // Delete payouts
+    const payouts = await ctx.db.query("payouts").collect();
+    for (const payout of payouts) {
+      await ctx.db.delete(payout._id);
+      deleted.payouts++;
+    }
+
+    // Delete payout batches
+    const payoutBatches = await ctx.db.query("payoutBatches").collect();
+    for (const batch of payoutBatches) {
+      await ctx.db.delete(batch._id);
+      deleted.payoutBatches++;
+    }
+
+    // Delete referral links
+    const referralLinks = await ctx.db.query("referralLinks").collect();
+    for (const link of referralLinks) {
+      await ctx.db.delete(link._id);
+      deleted.referralLinks++;
+    }
+
+    // Delete affiliates
+    const affiliates = await ctx.db.query("affiliates").collect();
+    for (const affiliate of affiliates) {
+      await ctx.db.delete(affiliate._id);
+      deleted.affiliates++;
+    }
+
+    // Delete campaigns
+    const campaigns = await ctx.db.query("campaigns").collect();
+    for (const campaign of campaigns) {
+      await ctx.db.delete(campaign._id);
+      deleted.campaigns++;
+    }
+
+    // Delete team invitations
+    const invitations = await ctx.db.query("teamInvitations").collect();
+    for (const invitation of invitations) {
+      await ctx.db.delete(invitation._id);
+    }
+
+    // Delete users
+    const users = await ctx.db.query("users").collect();
+    for (const user of users) {
+      await ctx.db.delete(user._id);
+      deleted.users++;
+    }
+
+    // Delete tenants (last - everything else should be deleted first)
+    const tenants = await ctx.db.query("tenants").collect();
+    for (const tenant of tenants) {
+      await ctx.db.delete(tenant._id);
+      deleted.tenants++;
+    }
+
+    return {
+      success: true,
+      deleted,
+    };
+  },
+});
+
+/**
+ * Create a single test tenant with users.
+ * Returns the tenant ID and created user IDs.
+ */
+export const createTestTenantWithUsers = internalMutation({
+  args: {
+    name: v.string(),
+    slug: v.string(),
+    plan: v.string(),
+    users: v.array(v.object({
+      email: v.string(),
+      name: v.string(),
+      role: v.string(),
+    })),
+    passwordHash: v.string(),
+  },
+  returns: v.object({
+    tenantId: v.id("tenants"),
+    userIds: v.array(v.id("users")),
+  }),
+  handler: async (ctx, args) => {
+    // Check if tenant already exists
+    const existingTenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (existingTenant) {
+      throw new Error(`Tenant with slug "${args.slug}" already exists`);
+    }
+
+    // Create tenant
+    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
+    const tenantId = await ctx.db.insert("tenants", {
+      name: args.name,
+      slug: args.slug,
+      plan: args.plan,
+      trialEndsAt,
+      status: "active",
+      branding: {
+        portalName: args.name,
+        primaryColor: "#10409a",
+      },
+    });
+
+    // Create audit log for tenant creation
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: "tenant_created",
+      entityType: "tenant",
+      entityId: tenantId,
+      actorType: "system",
+      newValue: { name: args.name, slug: args.slug, plan: args.plan },
+    });
+
+    // Create users
+    const userIds: Id<"users">[] = [];
+    for (const user of args.users) {
+      const userId = await ctx.db.insert("users", {
+        tenantId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        emailVerified: true,
+      });
+      userIds.push(userId);
+
+      // Create audit log for user creation
+      await ctx.db.insert("auditLogs", {
+        tenantId,
+        action: "user_created",
+        entityType: "user",
+        entityId: userId,
+        actorType: "system",
+        newValue: { email: user.email, name: user.name, role: user.role },
+      });
+    }
+
+    return { tenantId, userIds };
+  },
+});
+
+/**
+ * Create a test affiliate with password hash.
+ */
+export const createTestAffiliate = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    email: v.string(),
+    name: v.string(),
+    status: v.string(),
+    promotionChannel: v.optional(v.string()),
+    passwordHash: v.string(),
+    uniqueCode: v.string(),
+  },
+  returns: v.id("affiliates"),
+  handler: async (ctx, args) => {
+    // Check if affiliate already exists
+    const existingAffiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant_and_email", (q) =>
+        q.eq("tenantId", args.tenantId).eq("email", args.email)
+      )
+      .first();
+
+    if (existingAffiliate) {
+      throw new Error(`Affiliate with email "${args.email}" already exists in this tenant`);
+    }
+
+    const affiliateId = await ctx.db.insert("affiliates", {
+      tenantId: args.tenantId,
+      email: args.email,
+      name: args.name,
+      uniqueCode: args.uniqueCode,
+      status: args.status,
+      passwordHash: args.passwordHash,
+      promotionChannel: args.promotionChannel,
+    });
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "affiliate_created",
+      entityType: "affiliate",
+      entityId: affiliateId,
+      actorType: "system",
+      newValue: { email: args.email, name: args.name, uniqueCode: args.uniqueCode, status: args.status },
+    });
+
+    return affiliateId;
+  },
+});
+
+/**
+ * Create a test campaign.
+ */
+export const createTestCampaign = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    commissionType: v.string(),
+    commissionValue: v.number(),
+    recurringCommission: v.boolean(),
+    recurringRate: v.optional(v.number()),
+    recurringRateType: v.optional(v.string()),
+    status: v.string(),
+  },
+  returns: v.id("campaigns"),
+  handler: async (ctx, args) => {
+    const campaignId = await ctx.db.insert("campaigns", {
+      tenantId: args.tenantId,
+      name: args.name,
+      description: args.description,
+      commissionType: args.commissionType,
+      commissionValue: args.commissionValue,
+      recurringCommission: args.recurringCommission,
+      recurringRate: args.recurringRate,
+      recurringRateType: args.recurringRateType,
+      cookieDuration: 30,
+      autoApproveCommissions: false,
+      status: args.status,
+    });
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "campaign_created",
+      entityType: "campaign",
+      entityId: campaignId,
+      actorType: "system",
+      newValue: { name: args.name, commissionType: args.commissionType, commissionValue: args.commissionValue },
+    });
+
+    return campaignId;
+  },
+});
+
+/**
+ * Create a referral link for an affiliate.
+ */
+export const createTestReferralLink = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    campaignId: v.optional(v.id("campaigns")),
+    code: v.string(),
+    vanitySlug: v.optional(v.string()),
+  },
+  returns: v.id("referralLinks"),
+  handler: async (ctx, args) => {
+    const referralLinkId = await ctx.db.insert("referralLinks", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      campaignId: args.campaignId,
+      code: args.code,
+      vanitySlug: args.vanitySlug,
+    });
+
+    return referralLinkId;
+  },
+});
+
+/**
+ * Create a click record.
+ */
+export const createTestClick = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    referralLinkId: v.id("referralLinks"),
+    affiliateId: v.id("affiliates"),
+    campaignId: v.optional(v.id("campaigns")),
+    ipAddress: v.string(),
+    userAgent: v.optional(v.string()),
+    referrer: v.optional(v.string()),
+    timestamp: v.number(),
+  },
+  returns: v.id("clicks"),
+  handler: async (ctx, args) => {
+    const dedupeKey = `${args.referralLinkId}-${args.ipAddress}-${args.timestamp}`;
+    
+    const clickId = await ctx.db.insert("clicks", {
+      tenantId: args.tenantId,
+      referralLinkId: args.referralLinkId,
+      affiliateId: args.affiliateId,
+      campaignId: args.campaignId,
+      ipAddress: args.ipAddress,
+      userAgent: args.userAgent,
+      referrer: args.referrer,
+      dedupeKey,
+    });
+
+    return clickId;
+  },
+});
+
+/**
+ * Create a conversion record.
+ */
+export const createTestConversion = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    referralLinkId: v.optional(v.id("referralLinks")),
+    clickId: v.optional(v.id("clicks")),
+    campaignId: v.optional(v.id("campaigns")),
+    customerEmail: v.optional(v.string()),
+    amount: v.number(),
+    status: v.string(),
+    ipAddress: v.optional(v.string()),
+    timestamp: v.number(),
+    attributionSource: v.optional(v.string()),
+    isSelfReferral: v.optional(v.boolean()),
+  },
+  returns: v.id("conversions"),
+  handler: async (ctx, args) => {
+    const conversionId = await ctx.db.insert("conversions", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      referralLinkId: args.referralLinkId,
+      clickId: args.clickId,
+      campaignId: args.campaignId,
+      customerEmail: args.customerEmail,
+      amount: args.amount,
+      status: args.status,
+      ipAddress: args.ipAddress,
+      attributionSource: args.attributionSource as "cookie" | "webhook" | "organic" | undefined,
+      isSelfReferral: args.isSelfReferral,
+      metadata: {
+        orderId: `ORD-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        planId: args.campaignId ? "default-plan" : undefined,
+      },
+    });
+
+    return conversionId;
+  },
+});
+
+/**
+ * Create a commission record.
+ */
+export const createTestCommission = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    campaignId: v.id("campaigns"),
+    conversionId: v.optional(v.id("conversions")),
+    amount: v.number(),
+    status: v.string(),
+    isSelfReferral: v.optional(v.boolean()),
+    fraudIndicators: v.optional(v.array(v.string())),
+    transactionId: v.optional(v.string()),
+    timestamp: v.number(),
+  },
+  returns: v.id("commissions"),
+  handler: async (ctx, args) => {
+    const commissionId = await ctx.db.insert("commissions", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      campaignId: args.campaignId,
+      conversionId: args.conversionId,
+      amount: args.amount,
+      status: args.status,
+      isSelfReferral: args.isSelfReferral,
+      fraudIndicators: args.fraudIndicators,
+      transactionId: args.transactionId,
+      eventMetadata: {
+        source: "test_data",
+        timestamp: args.timestamp,
+      },
+    });
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "commission_created",
+      entityType: "commission",
+      entityId: commissionId,
+      actorType: "system",
+      newValue: { affiliateId: args.affiliateId, amount: args.amount, status: args.status },
+    });
+
+    return commissionId;
+  },
+});
+
+/**
+ * Create a payout batch.
+ */
+export const createTestPayoutBatch = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    totalAmount: v.number(),
+    affiliateCount: v.number(),
+    status: v.string(),
+    generatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  },
+  returns: v.id("payoutBatches"),
+  handler: async (ctx, args) => {
+    const batchId = await ctx.db.insert("payoutBatches", {
+      tenantId: args.tenantId,
+      totalAmount: args.totalAmount,
+      affiliateCount: args.affiliateCount,
+      status: args.status,
+      generatedAt: args.generatedAt,
+      completedAt: args.completedAt,
+    });
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "payout_batch_created",
+      entityType: "payoutBatch",
+      entityId: batchId,
+      actorType: "system",
+      newValue: { totalAmount: args.totalAmount, affiliateCount: args.affiliateCount, status: args.status },
+    });
+
+    return batchId;
+  },
+});
+
+/**
+ * Create a payout record.
+ */
+export const createTestPayout = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    batchId: v.id("payoutBatches"),
+    amount: v.number(),
+    status: v.string(),
+    paymentReference: v.optional(v.string()),
+    paidAt: v.optional(v.number()),
+  },
+  returns: v.id("payouts"),
+  handler: async (ctx, args) => {
+    const payoutId = await ctx.db.insert("payouts", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      batchId: args.batchId,
+      amount: args.amount,
+      status: args.status,
+      paymentReference: args.paymentReference,
+      paidAt: args.paidAt,
+    });
+
+    return payoutId;
+  },
+});
+
+/**
+ * Create a brand asset.
+ */
+export const createTestBrandAsset = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    type: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    textContent: v.optional(v.string()),
+    category: v.optional(v.string()),
+    isActive: v.boolean(),
+  },
+  returns: v.id("brandAssets"),
+  handler: async (ctx, args) => {
+    const assetId = await ctx.db.insert("brandAssets", {
+      tenantId: args.tenantId,
+      type: args.type as "logo" | "banner" | "product-image" | "copy-text",
+      title: args.title,
+      description: args.description,
+      textContent: args.textContent,
+      category: args.category,
+      isActive: args.isActive,
+      sortOrder: 0,
+    });
+
+    return assetId;
+  },
+});
+
+/**
+ * Create billing history entry.
+ */
+export const createTestBillingHistory = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    event: v.string(),
+    plan: v.optional(v.string()),
+    amount: v.optional(v.number()),
+    timestamp: v.number(),
+    transactionId: v.optional(v.string()),
+    mockTransaction: v.optional(v.boolean()),
+  },
+  returns: v.id("billingHistory"),
+  handler: async (ctx, args) => {
+    const historyId = await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: args.event,
+      plan: args.plan,
+      amount: args.amount,
+      timestamp: args.timestamp,
+      transactionId: args.transactionId,
+      mockTransaction: args.mockTransaction,
+    });
+
+    return historyId;
+  },
+});
+
+/**
+ * Seed all test data.
+ * This is the main function to call to populate the database with test data.
+ */
+export const seedAllTestData = internalMutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    credentials: v.object({
+      tenants: v.array(v.object({
+        name: v.string(),
+        slug: v.string(),
+        plan: v.string(),
+        users: v.array(v.object({
+          email: v.string(),
+          password: v.string(),
+          role: v.string(),
+          name: v.string(),
+        })),
+      })),
+      platformAdmin: v.object({
+        email: v.string(),
+        password: v.string(),
+        role: v.string(),
+        name: v.string(),
+      }),
+      affiliates: v.array(v.object({
+        tenantSlug: v.string(),
+        email: v.string(),
+        password: v.string(),
+        name: v.string(),
+        status: v.string(),
+        referralCode: v.string(),
+      })),
+    }),
+    stats: v.object({
+      tenantsCreated: v.number(),
+      usersCreated: v.number(),
+      affiliatesCreated: v.number(),
+      campaignsCreated: v.number(),
+      referralLinksCreated: v.number(),
+      clicksCreated: v.number(),
+      conversionsCreated: v.number(),
+      commissionsCreated: v.number(),
+      payoutBatchesCreated: v.number(),
+      payoutsCreated: v.number(),
+      brandAssetsCreated: v.number(),
+      billingHistoryCreated: v.number(),
+      auditLogsCreated: v.number(),
+    }),
+    errors: v.array(v.string()),
+  }),
+  handler: async (ctx) => {
+    const TEST_PASSWORD = "TestPass123!";
+    const passwordHash = getTestPasswordHash();
+    const credentials = {
+      tenants: [] as Array<{
+        name: string;
+        slug: string;
+        plan: string;
+        users: Array<{
+          email: string;
+          password: string;
+          role: string;
+          name: string;
+        }>;
+      }>,
+      platformAdmin: {
+        email: PLATFORM_ADMIN.users[0].email,
+        password: TEST_PASSWORD,
+        role: PLATFORM_ADMIN.users[0].role,
+        name: PLATFORM_ADMIN.users[0].name,
+      },
+      affiliates: [] as Array<{
+        tenantSlug: string;
+        email: string;
+        password: string;
+        name: string;
+        status: string;
+        referralCode: string;
+      }>,
+    };
+
+    const stats = {
+      tenantsCreated: 0,
+      usersCreated: 0,
+      affiliatesCreated: 0,
+      campaignsCreated: 0,
+      referralLinksCreated: 0,
+      clicksCreated: 0,
+      conversionsCreated: 0,
+      commissionsCreated: 0,
+      payoutBatchesCreated: 0,
+      payoutsCreated: 0,
+      brandAssetsCreated: 0,
+      billingHistoryCreated: 0,
+      auditLogsCreated: 0,
+    };
+
+    const errors: string[] = [];
+
+    // Collect all slugs to avoid conflicts
+    const existingSlugs = new Set<string>();
+    const existingTenants = await ctx.db.query("tenants").collect();
+    for (const tenant of existingTenants) {
+      existingSlugs.add(tenant.slug);
+    }
+
+    // Create tenants and their data
+    for (const tenantConfig of TEST_TENANTS) {
+      try {
+        // Generate unique slug
+        const slug = generateUniqueSlug(tenantConfig.name, existingSlugs);
+
+        // Create tenant
+        const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
+        const tenantId = await ctx.db.insert("tenants", {
+          name: tenantConfig.name,
+          slug,
+          plan: tenantConfig.plan,
+          trialEndsAt,
+          status: "active",
+          branding: {
+            portalName: tenantConfig.name,
+            primaryColor: "#10409a",
+          },
+        });
+        stats.tenantsCreated++;
+
+        // Create tenant users
+        const tenantUsers: Array<{ email: string; name: string; role: string }> = [];
+        for (const user of tenantConfig.users) {
+          // Create Better Auth user first (this is required for login to work)
+          const authUserId = await createBetterAuthUser(ctx, user.email, user.name, TEST_PASSWORD);
+          
+          // Create user in app's users table
+          const userId = await ctx.db.insert("users", {
+            tenantId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            emailVerified: true,
+            authId: authUserId, // Link to Better Auth user
+          });
+          stats.usersCreated++;
+          tenantUsers.push(user);
+
+          await ctx.db.insert("auditLogs", {
+            tenantId,
+            action: "user_created",
+            entityType: "user",
+            entityId: userId,
+            actorType: "system",
+            newValue: { email: user.email, name: user.name, role: user.role },
+          });
+          stats.auditLogsCreated++;
+        }
+
+        credentials.tenants.push({
+          name: tenantConfig.name,
+          slug,
+          plan: tenantConfig.plan,
+          users: tenantUsers.map(u => ({
+            email: u.email,
+            password: TEST_PASSWORD,
+            role: u.role,
+            name: u.name,
+          })),
+        });
+
+        // Create billing history
+        const billingEvents = [
+          { event: "subscription_started", plan: tenantConfig.plan, amount: 0, timestamp: trialEndsAt - 14 * 24 * 60 * 60 * 1000 },
+          { event: "trial_started", plan: tenantConfig.plan, amount: 0, timestamp: trialEndsAt - 14 * 24 * 60 * 60 * 1000 },
+        ];
+        
+        for (const billing of billingEvents) {
+          await ctx.db.insert("billingHistory", {
+            tenantId,
+            event: billing.event,
+            plan: billing.plan,
+            amount: billing.amount,
+            timestamp: billing.timestamp,
+            mockTransaction: true,
+          });
+          stats.billingHistoryCreated++;
+        }
+
+        // Create brand assets
+        const brandAssets = [
+          { type: "logo", title: "Primary Logo", description: "Main company logo", textContent: undefined, category: "main" },
+          { type: "copy-text", title: "Welcome Message", description: "Welcome message for affiliates", textContent: "Welcome to our affiliate program! We're excited to have you.", category: "messages" },
+          { type: "copy-text", title: "Email Template", description: "Standard email template", textContent: "Check out our latest product!", category: "templates" },
+        ];
+
+        for (const asset of brandAssets) {
+          await ctx.db.insert("brandAssets", {
+            tenantId,
+            type: asset.type as "logo" | "banner" | "product-image" | "copy-text",
+            title: asset.title,
+            description: asset.description,
+            textContent: asset.textContent,
+            category: asset.category,
+            isActive: true,
+            sortOrder: 0,
+          });
+          stats.brandAssetsCreated++;
+        }
+
+        // Create campaigns
+        const campaignIds: Id<"campaigns">[] = [];
+        for (const campaign of tenantConfig.campaigns) {
+          const campaignId = await ctx.db.insert("campaigns", {
+            tenantId,
+            name: campaign.name,
+            description: campaign.description,
+            commissionType: campaign.commissionType,
+            commissionValue: campaign.commissionValue,
+            recurringCommission: campaign.recurring,
+            recurringRate: campaign.recurring ? campaign.commissionValue : undefined,
+            recurringRateType: campaign.recurring ? campaign.commissionType : undefined,
+            cookieDuration: 30,
+            autoApproveCommissions: false,
+            status: campaign.status,
+          });
+          campaignIds.push(campaignId);
+          stats.campaignsCreated++;
+
+          await ctx.db.insert("auditLogs", {
+            tenantId,
+            action: "campaign_created",
+            entityType: "campaign",
+            entityId: campaignId,
+            actorType: "system",
+            newValue: { name: campaign.name },
+          });
+          stats.auditLogsCreated++;
+        }
+
+        // Create affiliates with referral links
+        for (const affiliate of tenantConfig.affiliates) {
+          const uniqueCode = generateReferralCode();
+          const affiliateId = await ctx.db.insert("affiliates", {
+            tenantId,
+            email: affiliate.email,
+            name: affiliate.name,
+            uniqueCode,
+            status: affiliate.status,
+            passwordHash,
+            promotionChannel: affiliate.promotionChannel,
+          });
+          stats.affiliatesCreated++;
+
+          await ctx.db.insert("auditLogs", {
+            tenantId,
+            action: "affiliate_created",
+            entityType: "affiliate",
+            entityId: affiliateId,
+            actorType: "system",
+            newValue: { email: affiliate.email, name: affiliate.name },
+          });
+          stats.auditLogsCreated++;
+
+          credentials.affiliates.push({
+            tenantSlug: slug,
+            email: affiliate.email,
+            password: TEST_PASSWORD,
+            name: affiliate.name,
+            status: affiliate.status,
+            referralCode: uniqueCode,
+          });
+
+          // Create referral links for active affiliates
+          if (affiliate.status === "active") {
+            // Create a general referral link
+            const referralLinkId = await ctx.db.insert("referralLinks", {
+              tenantId,
+              affiliateId,
+              campaignId: campaignIds[0], // Link to first campaign
+              code: uniqueCode,
+            });
+            stats.referralLinksCreated++;
+
+            // Generate clicks, conversions, and commissions for active affiliates
+            const now = Date.now();
+            const threeMonthsAgo = now - 90 * 24 * 60 * 60 * 1000;
+
+            // Generate 10-50 clicks per affiliate
+            const clickCount = 10 + Math.floor(Math.random() * 40);
+            const clickTimestamps: number[] = [];
+            
+            for (let i = 0; i < clickCount; i++) {
+              const timestamp = randomDate(new Date(threeMonthsAgo), new Date(now));
+              const clickId = await ctx.db.insert("clicks", {
+                tenantId,
+                referralLinkId,
+                affiliateId,
+                campaignId: campaignIds[Math.floor(Math.random() * campaignIds.length)],
+                ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                userAgent: "Mozilla/5.0 (Test Browser)",
+                referrer: "https://google.com",
+                dedupeKey: `${referralLinkId}-click-${timestamp}`,
+              });
+              stats.clicksCreated++;
+              clickTimestamps.push(timestamp);
+            }
+
+            // Generate 1-5 conversions per affiliate (conversion rate ~10%)
+            const conversionCount = 1 + Math.floor(Math.random() * 5);
+            const conversionIds: Id<"conversions">[] = [];
+            
+            for (let i = 0; i < conversionCount; i++) {
+              const timestamp = clickTimestamps[i % clickTimestamps.length] + 1000; // After click
+              const campaign = campaignIds[Math.floor(Math.random() * campaignIds.length)];
+              const campaignData = tenantConfig.campaigns.find((c, idx) => campaignIds[idx] === campaign);
+              const amount = 29 + Math.floor(Math.random() * 200); // $29-$229
+              
+              const conversionId = await ctx.db.insert("conversions", {
+                tenantId,
+                affiliateId,
+                referralLinkId,
+                campaignId: campaign,
+                customerEmail: `customer${i + 1}@example.com`,
+                amount,
+                status: "completed",
+                ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                attributionSource: "cookie",
+                isSelfReferral: false,
+                metadata: {
+                  orderId: `ORD-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                  planId: "default-plan",
+                },
+              });
+              conversionIds.push(conversionId);
+              stats.conversionsCreated++;
+
+              // Calculate commission
+              const commissionValue = campaignData?.commissionType === "percentage"
+                ? (amount * campaignData.commissionValue) / 100
+                : campaignData?.commissionValue || 0;
+
+              // Determine commission status (mix of pending, confirmed, paid)
+              const statuses = ["pending", "pending", "confirmed", "confirmed", "paid"];
+              const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+              const commissionId = await ctx.db.insert("commissions", {
+                tenantId,
+                affiliateId,
+                campaignId: campaign,
+                conversionId,
+                amount: commissionValue,
+                status,
+                isSelfReferral: false,
+                eventMetadata: {
+                  source: "test_data",
+                  timestamp,
+                },
+              });
+              stats.commissionsCreated++;
+
+              await ctx.db.insert("auditLogs", {
+                tenantId,
+                action: "commission_created",
+                entityType: "commission",
+                entityId: commissionId,
+                actorType: "system",
+                newValue: { affiliateId, amount: commissionValue, status },
+              });
+              stats.auditLogsCreated++;
+            }
+
+            // Generate payout batches and payouts for some affiliates
+            if (conversionIds.length > 0) {
+              const paidCommissions = await ctx.db
+                .query("commissions")
+                .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
+                .filter((q) => q.eq(q.field("status"), "paid"))
+                .collect();
+
+              if (paidCommissions.length > 0) {
+                const batchId = await ctx.db.insert("payoutBatches", {
+                  tenantId,
+                  totalAmount: paidCommissions.reduce((sum, c) => sum + c.amount, 0),
+                  affiliateCount: 1,
+                  status: "completed",
+                  generatedAt: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+                  completedAt: now - 14 * 24 * 60 * 60 * 1000,
+                });
+                stats.payoutBatchesCreated++;
+
+                for (const commission of paidCommissions) {
+                  await ctx.db.patch(commission._id, { batchId });
+                  
+                  await ctx.db.insert("payouts", {
+                    tenantId,
+                    affiliateId,
+                    batchId,
+                    amount: commission.amount,
+                    status: "completed",
+                    paymentReference: `PAY-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                    paidAt: now - 14 * 24 * 60 * 60 * 1000,
+                  });
+                  stats.payoutsCreated++;
+                }
+              }
+            }
+          }
+        }
+
+      } catch (error) {
+        errors.push(`Error creating tenant ${tenantConfig.name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      credentials,
+      stats,
+      errors,
+    };
+  },
+});
+
+/**
+ * Get test credentials summary.
+ * Returns the credentials for all test users without regenerating data.
+ */
+export const getTestCredentials = internalQuery({
+  args: {},
+  returns: v.object({
+    tenants: v.array(v.object({
+      name: v.string(),
+      slug: v.string(),
+      plan: v.string(),
+      users: v.array(v.object({
+        email: v.string(),
+        password: v.string(),
+        role: v.string(),
+        name: v.string(),
+      })),
+    })),
+    affiliates: v.array(v.object({
+      tenantSlug: v.string(),
+      tenantName: v.string(),
+      email: v.string(),
+      password: v.string(),
+      name: v.string(),
+      status: v.string(),
+      referralCode: v.string(),
+    })),
+    commonPassword: v.string(),
+  }),
+  handler: async (ctx) => {
+    const TEST_PASSWORD = "TestPass123!";
+    const tenants: Array<{
+      name: string;
+      slug: string;
+      plan: string;
+      users: Array<{
+        email: string;
+        password: string;
+        role: string;
+        name: string;
+      }>;
+    }> = [];
+    const affiliates: Array<{
+      tenantSlug: string;
+      tenantName: string;
+      email: string;
+      password: string;
+      name: string;
+      status: string;
+      referralCode: string;
+    }> = [];
+
+    // Get all tenants
+    const allTenants = await ctx.db.query("tenants").collect();
+
+    for (const tenant of allTenants) {
+      // Get users for this tenant
+      const users = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+        .collect();
+
+      if (users.length > 0) {
+        tenants.push({
+          name: tenant.name,
+          slug: tenant.slug,
+          plan: tenant.plan,
+          users: users.map(u => ({
+            email: u.email,
+            password: TEST_PASSWORD,
+            role: u.role,
+            name: u.name || "Unknown",
+          })),
+        });
+      }
+
+      // Get affiliates for this tenant
+      const tenantAffiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+        .collect();
+
+      for (const affiliate of tenantAffiliates) {
+        affiliates.push({
+          tenantSlug: tenant.slug,
+          tenantName: tenant.name,
+          email: affiliate.email,
+          password: TEST_PASSWORD,
+          name: affiliate.name,
+          status: affiliate.status,
+          referralCode: affiliate.uniqueCode,
+        });
+      }
+    }
+
+    return {
+      tenants,
+      affiliates,
+      commonPassword: TEST_PASSWORD,
+    };
+  },
+});

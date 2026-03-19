@@ -243,8 +243,10 @@ export const getCampaign = query({
       description: v.optional(v.string()),
       commissionType: v.string(),
       commissionValue: v.number(),
+      commissionRate: v.number(), // Alias for frontend compatibility
       cookieDuration: v.optional(v.number()),
       recurringCommission: v.boolean(),
+      recurringCommissions: v.boolean(), // Alias for frontend compatibility
       recurringRate: v.optional(v.number()),
       autoApproveCommissions: v.optional(v.boolean()),
       approvalThreshold: v.optional(v.number()),

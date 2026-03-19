@@ -2,6 +2,7 @@
 // Extracted to avoid duplication across admin modules
 
 import type { QueryCtx } from "../_generated/server";
+import { betterAuthComponent } from "../auth";
 
 /**
  * Verify that the caller is a platform admin.
@@ -11,7 +12,6 @@ import type { QueryCtx } from "../_generated/server";
  * Throws descriptive errors for better debugging and UX.
  */
 export async function requireAdmin(ctx: QueryCtx) {
-  const { betterAuthComponent } = await import("../auth");
   let betterAuthUser;
   try {
     betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
@@ -42,7 +42,6 @@ export async function requireAdmin(ctx: QueryCtx) {
  * @deprecated Use requireAdmin instead for consistent error handling
  */
 export async function requireAdminLegacy(ctx: QueryCtx) {
-  const { betterAuthComponent } = await import("../auth");
   let betterAuthUser;
   try {
     betterAuthUser = await betterAuthComponent.getAuthUser(ctx);

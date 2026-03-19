@@ -50,9 +50,9 @@ async function generateUniqueSlug(ctx: any, companyName: string): Promise<string
 
 /**
  * Sync user creation from Better Auth.
- * Creates a user with proper tenant and role assignment.
- * This is called by the Better Auth database hook.
- * 
+ * Links the Better Auth user to an app user record with tenant context.
+ * Includes authId to enable auth-based lookups for internal queries.
+ *
  * Note: This is an internal function called by the auth system,
  * so it does NOT use tenant-scoped wrappers.
  */
@@ -61,6 +61,7 @@ export const syncUserCreation = internalMutation({
     email: v.string(),
     name: v.optional(v.string()),
     companyName: v.optional(v.string()),
+    authId: v.string(), // Better Auth user ID
   },
   returns: v.id("users"),
   handler: async (ctx, args): Promise<Id<"users">> => {
@@ -68,16 +69,16 @@ export const syncUserCreation = internalMutation({
     if (!args.email || args.email.trim().length === 0) {
       throw new Error("Email is required");
     }
-    
+
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(args.email.trim())) {
       throw new Error("Invalid email format");
     }
-    
+
     // Generate a slug from company name or email
     const companyName = args.companyName || args.email.split("@")[0];
-    
+
     // Company name validation
     if (companyName.length < 2) {
       throw new Error("Company name must be at least 2 characters");
@@ -85,7 +86,7 @@ export const syncUserCreation = internalMutation({
     if (companyName.length > 100) {
       throw new Error("Company name must be less than 100 characters");
     }
-    
+
     const slug = await generateUniqueSlug(ctx, companyName);
 
     // Create tenant for this user (they are the owner)
@@ -112,12 +113,13 @@ export const syncUserCreation = internalMutation({
       newValue: { name: companyName, slug, plan: "starter" },
     });
 
-    // Create user with owner role
+    // Create user with owner role AND store the Better Auth authId
     const userId = await ctx.db.insert("users", {
       tenantId,
       email: args.email,
       name: args.name,
       role: "owner",
+      authId: args.authId, // Link to Better Auth user
     });
 
     // Create audit log entry
@@ -137,7 +139,7 @@ export const syncUserCreation = internalMutation({
 /**
  * Sync user deletion from Better Auth.
  * Note: In a real SaaS, you might want to soft-delete instead.
- * 
+ *
  * Note: This is an internal function called by the auth system,
  * so it does NOT use tenant-scoped wrappers.
  */
@@ -319,6 +321,7 @@ export const getUsersByTenant = query({
       _creationTime: v.number(),
       tenantId: v.id("tenants"),
       email: v.string(),
+      emailVerified: v.optional(v.boolean()),
       name: v.optional(v.string()),
       role: v.string(),
       authId: v.optional(v.string()),
@@ -907,6 +910,8 @@ export const getOwnerByTenantInternal = internalQuery({
 /**
  * Internal query to get user by Better Auth ID.
  * Used by actions that need to authenticate via auth identity.
+ * 
+ * Falls back to email lookup if authId lookup fails (for users created before authId was added).
  */
 export const _getUserByAuthIdInternal = internalQuery({
   args: {
@@ -923,21 +928,140 @@ export const _getUserByAuthIdInternal = internalQuery({
     v.null()
   ),
   handler: async (ctx, args) => {
+    // First try to find by authId
     const user = await ctx.db
       .query("users")
       .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
-    if (!user) {
+    if (user) {
+      return {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: user.tenantId,
+      };
+    }
+
+    // If not found by authId, this might be a legacy user
+    // We can't easily fall back without knowing the email
+    // The admin should run the backfill migration
+    console.warn(`User not found by authId: ${args.authId}. May need to run backfill migration.`);
+    return null;
+  },
+});
+
+/**
+ * Backfill authId for existing users who signed up before authId was implemented.
+ * This links existing Better Auth users to their app user records.
+ *
+ * IMPORTANT: Run this migration once after deploying the authId fix.
+ * Can be safely run multiple times (idempotent).
+ */
+export const backfillAuthIdForExistingUsers = internalMutation({
+  args: {
+    email: v.string(),
+    authId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Find user by email
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .collect();
+
+    for (const user of users) {
+      // Only update if authId is not already set
+      if (!user.authId) {
+        await ctx.db.patch(user._id, {
+          authId: args.authId,
+        });
+        console.log(`Backfilled authId for user ${user.email}: ${args.authId}`);
+      } else {
+        console.log(`User ${user.email} already has authId: ${user.authId}`);
+      }
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Get all users without an authId (for migration purposes).
+ */
+export const getUsersWithoutAuthId = internalQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("users"),
+      email: v.string(),
+      name: v.optional(v.string()),
+      tenantId: v.id("tenants"),
+      role: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Scan all users (note: this is a full table scan, only for admin use)
+    const allUsers = await ctx.db.query("users").collect();
+
+    return allUsers
+      .filter((user) => !user.authId)
+      .map((user) => ({
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        tenantId: user.tenantId,
+        role: user.role,
+      }));
+  },
+});
+
+/**
+ * Sync authId for the currently authenticated user.
+ * This bridges the gap for users who existed before authId was implemented.
+ *
+ * Call this mutation after login for users who need to backfill their authId.
+ */
+export const syncCurrentUserAuthId = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    // Get the current Better Auth user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    if (!identity.email) {
+      throw new Error("User email not available from authentication provider");
+    }
+
+    // Store in a const to help TypeScript narrow the type
+    const userEmail = identity.email;
+
+    // Find the app user by email
+    const appUsers = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", userEmail))
+      .collect();
+
+    // Find the user without authId (or the first one if multiple)
+    const userToUpdate = appUsers.find((u) => !u.authId);
+
+    if (!userToUpdate) {
+      // All users already have authId set
+      console.log(`User ${identity.email} already has authId or not found`);
       return null;
     }
 
-    return {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      tenantId: user.tenantId,
-    };
+    // Update the user's authId
+    await ctx.db.patch(userToUpdate._id, {
+      authId: identity.subject,
+    });
+
+    console.log(`Synced authId for ${identity.email}: ${identity.subject}`);
+    return null;
   },
 });

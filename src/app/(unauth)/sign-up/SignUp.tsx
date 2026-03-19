@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -353,9 +354,9 @@ export default function SignUp() {
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label htmlFor="first-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+                <Label htmlFor="first-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                   First name
-                </label>
+                </Label>
                 <div className="relative">
                   <svg
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
@@ -369,12 +370,12 @@ export default function SignUp() {
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <input
+                  <Input
                     type="text"
                     id="first-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                    className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
                     placeholder="Alex"
                     autoComplete="given-name"
                     required
@@ -382,15 +383,15 @@ export default function SignUp() {
                 </div>
               </div>
               <div>
-                <label htmlFor="last-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+                <Label htmlFor="last-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                   Last name
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   id="last-name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full h-[42px] border border-[#e5e7eb] rounded-lg px-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  className="w-full h-[42px] rounded-lg px-3 text-sm"
                   placeholder="Reyes"
                   autoComplete="family-name"
                   required
@@ -400,9 +401,9 @@ export default function SignUp() {
 
             {/* Company */}
             <div className="mb-4">
-              <label htmlFor="company" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+              <Label htmlFor="company" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                 Company / SaaS name
-              </label>
+              </Label>
               <div className="relative">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
@@ -416,12 +417,12 @@ export default function SignUp() {
                   <rect x="2" y="7" width="20" height="14" rx="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                 </svg>
-                <input
+                <Input
                   type="text"
                   id="company"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
                   placeholder="My SaaS Co."
                   autoComplete="organization"
                   required
@@ -431,9 +432,9 @@ export default function SignUp() {
 
             {/* Email */}
             <div className="mb-4">
-              <label htmlFor="email" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+              <Label htmlFor="email" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                 Work email
-              </label>
+              </Label>
               <div className="relative">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
@@ -447,12 +448,12 @@ export default function SignUp() {
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
-                <input
+                <Input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
                   placeholder="alex@yourcompany.com"
                   autoComplete="email"
                   required
@@ -462,9 +463,9 @@ export default function SignUp() {
 
             {/* Password */}
             <div className="mb-4">
-              <label htmlFor="password" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+              <Label htmlFor="password" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                 Password
-              </label>
+              </Label>
               <div className="relative">
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
@@ -478,12 +479,12 @@ export default function SignUp() {
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                  className="w-full h-[42px] rounded-lg pl-9 pr-10 text-sm"
                   placeholder="Min. 8 characters"
                   autoComplete="new-password"
                   required

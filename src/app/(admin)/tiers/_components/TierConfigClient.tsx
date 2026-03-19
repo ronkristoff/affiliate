@@ -67,7 +67,7 @@ export function TierConfigClient() {
     };
   } | null>(null);
 
-  const tierConfigs = useQuery(api.admin.tierConfigs.getAdminTierConfigs);
+  const tierConfigs = useQuery(api.admin.tier_configs.getAdminTierConfigs);
 
   // Subtask 5.7: Handle loading and error states
   if (tierConfigs === undefined) {

@@ -127,10 +127,12 @@ const createOptions = (ctx: GenericCtx) =>
           after: async (user) => {
             if ("runMutation" in ctx) {
               // Use the new syncUserCreation with tenant creation
+              // Pass authId to link Better Auth user to app user record
               await ctx.runMutation(internal.users.syncUserCreation, {
                 email: user.email,
                 name: user.name || undefined,
                 companyName: (user as any).companyName || undefined,
+                authId: user.id, // Better Auth's unique user identifier
               });
             }
           },

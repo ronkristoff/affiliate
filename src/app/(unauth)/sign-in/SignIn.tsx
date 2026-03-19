@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 export default function SignIn() {
   const router = useRouter();
@@ -135,13 +136,30 @@ export default function SignIn() {
       setError("Please enter your email address first");
       return;
     }
+
+    setLoading(true);
+
     try {
-      await authClient.forgetPassword.emailOtp({
+      const { error } = await authClient.forgetPassword.emailOtp({
         email,
       });
-      alert("Check your email for the reset password link!");
-    } catch {
-      alert("Failed to send reset password link. Please try again.");
+
+      if (error) {
+        toast.error("Failed to send reset link", {
+          description: error.message || "Please try again later.",
+        });
+        return;
+      }
+
+      toast.success("Reset link sent!", {
+        description: "Check your email for the password reset instructions.",
+      });
+    } catch (err) {
+      toast.error("An unexpected error occurred", {
+        description: "Failed to send reset password link. Please try again.",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

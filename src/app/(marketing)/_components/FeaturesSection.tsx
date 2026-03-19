@@ -1,13 +1,11 @@
-"use client";
-
 import Link from "next/link";
-import { 
-  Zap, 
-  RefreshCw, 
-  Palette, 
-  Wallet, 
-  Shield, 
-  BarChart3 
+import {
+  Zap,
+  RefreshCw,
+  Palette,
+  Wallet,
+  Shield,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -65,20 +63,28 @@ export function FeaturesSection() {
 
         {/* Feature Cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <Card 
-              key={index} 
+          {features.map((feature) => (
+            <Card
+              key={feature.title}
               className="group border-[var(--border)] hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              role="article"
+              aria-labelledby={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
               <CardContent className="p-6">
                 <div className="relative">
                   {/* Gradient top border on hover */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg" />
-                  
-                  <div className="w-12 h-12 rounded-xl bg-[var(--brand-light)] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <feature.icon className="w-6 h-6 text-[var(--brand-primary)]" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-lg" />
+
+                  <div className="w-12 h-12 rounded-xl bg-[var(--brand-light)] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <feature.icon
+                      className="w-6 h-6 text-[var(--brand-primary)]"
+                      aria-label={`${feature.title} feature icon`}
+                    />
                   </div>
-                  <h3 className="font-semibold text-lg text-[var(--text-heading)] mb-2">
+                  <h3
+                    id={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="font-semibold text-lg text-[var(--text-heading)] mb-2"
+                  >
                     {feature.title}
                   </h3>
                   <p className="text-sm text-[var(--text-muted)] leading-relaxed">

@@ -13,6 +13,7 @@ import {
   BarChart3,
   FileBarChart,
   Mail,
+  Wallet,
 } from "lucide-react";
 
 interface NavItem {
@@ -59,6 +60,11 @@ export function SidebarNav() {
       href: "/emails",
       label: "Emails",
       icon: <Mail className="h-4 w-4" />,
+    },
+    {
+      href: "/payouts",
+      label: "Payouts",
+      icon: <Wallet className="h-4 w-4" />,
     },
     {
       href: "/settings",

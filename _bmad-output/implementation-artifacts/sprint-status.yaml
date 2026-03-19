@@ -208,15 +208,15 @@ development_status:
   # 8 stories | FRs: FR75-FR82 | NFRs: NFR1, NFR35
   # Screens: 20-marketing-landing.html, 18-auth-login.html, 19-auth-signup.html
   # ========================================
-  epic-12: in-progress
+  epic-12: done
   12-1-marketing-landing-page: done
-  12-2-pricing-section: backlog
-  12-3-features-section: backlog
-  12-4-social-proof-section: backlog
-  12-5-navigation-header: backlog
-  12-6-seo-optimization: backlog
-  12-7-responsive-load-time: backlog
-  12-8-cta-routing-to-signup: backlog
+  12-2-pricing-section: done
+  12-3-features-section: done
+  12-4-social-proof-section: done
+  12-5-navigation-header: done
+  12-6-seo-optimization: done
+  12-7-responsive-load-time: done
+  12-8-cta-routing-to-signup: done
   epic-12-retrospective: optional
 
   # ========================================
@@ -224,13 +224,13 @@ development_status:
   # 6 stories | FRs: FR45-FR50
   # Screens: 04-owner-payouts.html
   # ========================================
-  epic-13: backlog
-  13-1-payout-batch-generation: backlog
-  13-2-payout-batch-csv-download: backlog
-  13-3-mark-payouts-as-paid: backlog
-  13-4-payout-notification-email: backlog
-  13-5-payout-history-view: backlog
-  13-6-payout-audit-log: backlog
+  epic-13: done
+  13-1-payout-batch-generation: done
+  13-2-payout-batch-csv-download: done
+  13-3-mark-payouts-as-paid: done
+  13-4-payout-notification-email: done
+  13-5-payout-history-view: done
+  13-6-payout-audit-log: done
   epic-13-retrospective: optional
 
   # ========================================

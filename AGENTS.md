@@ -168,6 +168,77 @@ export const myInternalMutation = internalMutation({
 // Always specify returns validator
 ```
 
+### ⚠️ Return Validators Must Match Actual Returns
+
+When a handler returns a spread object plus additional computed fields, the return validator MUST include ALL fields. Otherwise you'll get `ReturnsValidationError` at runtime.
+
+**❌ WRONG (causes ReturnsValidationError):**
+```typescript
+export const getCampaign = query({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.object({
+    _id: v.id("campaigns"),
+    name: v.string(),
+    // Missing: commissionRate, recurringCommissions
+  }),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    return {
+      ...campaign,
+      commissionRate: campaign.commissionValue,           // Extra!
+      recurringCommissions: campaign.recurringCommission, // Extra!
+    };
+  },
+});
+```
+
+**✅ CORRECT (validator matches return exactly):**
+```typescript
+export const getCampaign = query({
+  args: { campaignId: v.id("campaigns") },
+  returns: v.object({
+    _id: v.id("campaigns"),
+    name: v.string(),
+    commissionRate: v.number(),        // ✅ Alias included
+    recurringCommissions: v.boolean(), // ✅ Alias included
+  }),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.campaignId);
+    return {
+      ...campaign,
+      commissionRate: campaign.commissionValue,
+      recurringCommissions: campaign.recurringCommission,
+    };
+  },
+});
+```
+
+**Common pattern**: Frontend aliases (e.g., `commissionRate` → `commissionValue`) require the alias to be in the validator.
+
+### ⚠️ Critical: Dynamic Module Imports
+
+**Dynamic imports (`await import()`) are NOT supported in queries/mutations.** They only work in `actions` and `httpAction` (Node.js runtime). Queries/mutations run in V8 which doesn't support dynamic module loading.
+
+**❌ WRONG (will cause runtime error):**
+```typescript
+// In a query or mutation
+async function handler(ctx) {
+  const { betterAuthComponent } = await import("../auth"); // BREAKS!
+}
+```
+
+**✅ CORRECT (use static imports at top):**
+```typescript
+import { betterAuthComponent } from "../auth";
+
+async function handler(ctx) {
+  // Use betterAuthComponent directly
+  const user = await betterAuthComponent.getAuthUser(ctx);
+}
+```
+
+This pattern is critical when sharing auth helpers across admin modules.
+
 ### Authentication
 
 - Use `authClient` from `@/lib/auth-client` for client-side auth
@@ -186,6 +257,48 @@ src/app/
 │   └── sign-up/
 └── api/auth/[...all]/ # Better Auth API endpoints
 ```
+
+### ⚠️ Suspense Boundaries for Client Components
+
+In Next.js 16, client components using hooks that access data (like `useQuery`, `useMutation`) **MUST** be wrapped in `<Suspense>` boundaries. Accessing uncached data outside of Suspense causes "Blocking Route" errors that delay the entire page render.
+
+**Pattern: Suspense Wrapper with Skeleton Fallback**
+```typescript
+"use client";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// 1. Content component (hooks inside)
+function DashboardContent() {
+  const data = useQuery(api.some.query); // ✅ Fine
+  return <div>{/* ... */}</div>;
+}
+
+// 2. Skeleton fallback component
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid gap-4 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 3. Export wrapper with Suspense
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+```
+
+**Why this matters**: Next.js 16 uses streaming SSR. Without Suspense, the framework tries to render synchronously, blocking the entire page until all data is ready.
 
 ### Key Files & Patterns
 

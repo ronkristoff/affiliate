@@ -3,13 +3,13 @@ import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
+import { betterAuthComponent } from "../auth";
 
 /**
  * Verify that the caller is a platform admin.
  * Returns the admin user document or null.
  */
 async function requireAdmin(ctx: QueryCtx) {
-  const { betterAuthComponent } = await import("../auth");
   let betterAuthUser;
   try {
     betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
@@ -1197,7 +1197,6 @@ export const addTenantAdminNote = mutation({
   },
   returns: v.id("adminNotes"),
   handler: async (ctx: MutationCtx, args) => {
-    const { betterAuthComponent } = await import("../auth");
     let betterAuthUser;
     try {
       betterAuthUser = await betterAuthComponent.getAuthUser(ctx);

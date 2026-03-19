@@ -101,7 +101,7 @@ export function OverrideHistoryDrawer({
   onOpenChange,
   tenantId,
 }: OverrideHistoryDrawerProps) {
-  const history = useQuery(api.admin.tierOverrides.getTierOverrideHistory, {
+  const history = useQuery(api.admin.tier_overrides.getTierOverrideHistory, {
     tenantId,
     limit: 50,
   });

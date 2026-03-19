@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useParams } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -72,12 +72,10 @@ export default function BroadcastDetailPage() {
       paginationOpts: { numItems: 20, cursor },
       searchQuery: searchQuery || undefined,
       statusFilter: statusFilter !== "all" ? (statusFilter as DeliveryStatus) : undefined,
-    },
-    // Reset cursor when filters change
-    [searchQuery, statusFilter]
+    }
   );
 
-  const exportData = useMutation(api.broadcasts.exportBroadcastData);
+  const exportData = useAction(api.broadcasts.exportBroadcastData);
 
   const handleExport = useCallback(async () => {
     setExporting(true);

@@ -29,7 +29,7 @@ function formatLimit(value: number): string {
 interface ImpactWarningModalProps {
   tierName: string;
   affectedTenants: number;
-  severity: "warning" | "critical";
+  severity: "none" | "warning" | "critical";
   currentValues: Record<string, number>;
   proposedValues: Record<string, number>;
   breakdownByLimit?: Record<string, { oldValue: number; newValue: number; affectedCount: number }>;

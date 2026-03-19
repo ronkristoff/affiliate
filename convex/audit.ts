@@ -223,6 +223,64 @@ export const COMMISSION_AUDIT_ACTIONS = {
 
 export type CommissionAuditAction = typeof COMMISSION_AUDIT_ACTIONS[keyof typeof COMMISSION_AUDIT_ACTIONS];
 
+// =============================================================================
+// PAYOUT AUDIT LOGGING (Story 13.6)
+// =============================================================================
+
+/**
+ * Payout audit action types
+ * Export for use by other modules
+ */
+export const PAYOUT_AUDIT_ACTIONS = {
+  BATCH_GENERATED: "payout_batch_generated",
+  PAYOUT_MARKED_PAID: "payout_marked_paid",
+  BATCH_MARKED_PAID: "batch_marked_paid",
+} as const;
+
+export type PayoutAuditAction = typeof PAYOUT_AUDIT_ACTIONS[keyof typeof PAYOUT_AUDIT_ACTIONS];
+
+/**
+ * Internal mutation to log a payout-related audit event.
+ * Centralized function for all payout lifecycle events.
+ *
+ * Story 13.6 - Payout Audit Log (FR50)
+ *
+ * @param tenantId - The tenant ID
+ * @param action - The payout action type (from PAYOUT_AUDIT_ACTIONS)
+ * @param entityType - "payouts" or "payoutBatches"
+ * @param entityId - The payout or batch ID
+ * @param actorId - The user who performed the action
+ * @param actorType - "user" or "system"
+ * @param targetId - Related entity ID (e.g., batchId for payout actions, null for batch actions)
+ * @param metadata - Additional context (amounts, counts, references, etc.)
+ */
+export const logPayoutAuditEvent = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    action: v.string(),
+    entityType: v.string(),
+    entityId: v.string(),
+    actorId: v.optional(v.string()),
+    actorType: v.string(),
+    targetId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: args.action,
+      entityType: args.entityType,
+      entityId: args.entityId,
+      actorId: args.actorId,
+      actorType: args.actorType,
+      targetId: args.targetId,
+      metadata: args.metadata,
+    });
+    return null;
+  },
+});
+
 /**
  * Internal mutation to log a commission-related audit event.
  * Centralized function for all commission lifecycle events.
@@ -379,5 +437,99 @@ export const listCommissionAuditLogs = query({
     const results = await query.order("desc").paginate(args.paginationOpts);
     
     return results;
+  },
+});
+
+/**
+ * List audit logs for payout-related events with pagination and filtering.
+ * SaaS Owner-facing query (not admin).
+ * 
+ * Enriches results with actor names by joining with users table.
+ *
+ * Story 13.6 - Payout Audit Log (AC3)
+ */
+export const listPayoutAuditLogs = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    action: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("auditLogs"),
+      _creationTime: v.number(),
+      action: v.string(),
+      entityType: v.string(),
+      entityId: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorType: v.string(),
+      targetId: v.optional(v.string()),
+      metadata: v.optional(v.any()),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
+    }
+
+    // Build query using by_tenant index with post-filter for entityType
+    let queryBuilder = ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("entityType"), "payouts"),
+          q.eq(q.field("entityType"), "payoutBatches")
+        )
+      );
+
+    // Apply optional filters
+    if (args.action) {
+      queryBuilder = queryBuilder.filter((q) => q.eq(q.field("action"), args.action));
+    }
+    if (args.startDate !== undefined) {
+      queryBuilder = queryBuilder.filter((q) => q.gte(q.field("_creationTime"), args.startDate!));
+    }
+    if (args.endDate !== undefined) {
+      queryBuilder = queryBuilder.filter((q) => q.lte(q.field("_creationTime"), args.endDate!));
+    }
+
+    const results = await queryBuilder.order("desc").paginate(args.paginationOpts);
+    
+    // Enrich with actor names
+    const enrichedPage = await Promise.all(
+      results.page.map(async (log) => {
+        let actorName: string | undefined;
+        
+        if (log.actorId && log.actorId.startsWith("users_")) {
+          try {
+            const actorUser = await ctx.db.get(log.actorId as Id<"users">);
+            actorName = actorUser?.name;
+          } catch {
+            // Actor user not found or invalid ID format
+            actorName = undefined;
+          }
+        }
+        
+        return {
+          ...log,
+          actorName,
+        };
+      })
+    );
+    
+    return {
+      ...results,
+      page: enrichedPage,
+    };
   },
 });

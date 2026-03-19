@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { Link } from "next/link";
+import Link from "next/link";
 import { TenantHeader } from "./TenantHeader";
 import { AlertInset } from "./AlertInset";
 import { TenantStatsStrip } from "./TenantStatsStrip";

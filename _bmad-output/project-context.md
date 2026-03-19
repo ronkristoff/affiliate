@@ -1,15 +1,16 @@
 ---
 project_name: "salig-affiliate"
 user_name: "msi"
-date: "2026-03-11"
+date: "2026-03-19"
 sections_completed:
   - "technology_stack"
   - "framework_rules"
   - "authentication_rules"
   - "email_rules"
   - "skills"
+  - "convex_module_import_rules"
 status: "complete"
-rule_count: 18
+rule_count: 19
 optimized_for_llm: true
 ---
 
@@ -58,6 +59,40 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 4. **Database Schema** - Define in `convex/schema.ts` with proper indexes
 
+5. **NO Dynamic Imports in Queries/Mutations** - Dynamic module imports (`await import()`) are **NOT supported** in Convex queries/mutations (V8 runtime). Only `actions` and `httpAction` (Node.js runtime) support dynamic imports.
+   - **WRONG** (will throw "dynamic module import unsupported"):
+     ```typescript
+     async function requireAdmin(ctx) {
+       const { betterAuthComponent } = await import("../auth"); // ❌ BREAKS
+     }
+     ```
+   - **CORRECT** (use static imports at top of file):
+     ```typescript
+     import { betterAuthComponent } from "../auth"; // ✅ Correct
+     
+     async function requireAdmin(ctx) {
+       // use betterAuthComponent directly
+     }
+     ```
+
+6. **Return Validators Must Match Actual Returns** - The return validator MUST include ALL fields returned, including computed/alias fields. Spreading `...campaign` and adding computed fields requires those fields in the validator.
+   - **WRONG** (causes `ReturnsValidationError`):
+     ```typescript
+     returns: v.object({ _id: v.id("campaigns"), name: v.string() /* Missing: commissionRate */ }),
+     handler: async (ctx, args) => {
+       const campaign = await ctx.db.get(args.campaignId);
+       return { ...campaign, commissionRate: campaign.commissionValue }; // Extra field!
+     },
+     ```
+   - **CORRECT** (validator matches actual return):
+     ```typescript
+     returns: v.object({ _id: v.id("campaigns"), name: v.string(), commissionRate: v.number() }),
+     handler: async (ctx, args) => {
+       const campaign = await ctx.db.get(args.campaignId);
+       return { ...campaign, commissionRate: campaign.commissionValue };
+     },
+     ```
+
 ### Next.js Frontend Rules
 
 1. **Server Components** - Default is Server Components; use `"use client"` only when needed
@@ -67,6 +102,36 @@ _This file contains critical rules and patterns that AI agents must follow when 
 3. **Route Groups** - Use `(auth)` and `(unauth)` to organize without affecting URLs
 
 4. **Loading States** - Create `loading.tsx` files for Suspense boundaries
+
+5. **⚠️ Suspense Boundaries for Client Components** - In Next.js 16, client components using hooks (like `useQuery` from Convex) MUST be wrapped in `<Suspense>` boundaries. Accessing uncached data outside of Suspense causes "Blocking Route" errors.
+   - **WRONG** (causes "Blocking Route" error):
+     ```typescript
+     "use client";
+     export default function AuthLayout({ children }) {
+       const user = useQuery(api.auth.getCurrentUser); // ❌ Blocking!
+       return <div>{children}</div>;
+     }
+     ```
+   - **CORRECT** (wrapped in Suspense):
+     ```typescript
+     "use client";
+     import { Suspense } from "react";
+     import { Skeleton } from "@/components/ui/skeleton";
+     
+     function AuthLayoutContent({ children }) {
+       const user = useQuery(api.auth.getCurrentUser); // ✅ Works
+       return <div>{children}</div>;
+     }
+     
+     export default function AuthLayout({ children }) {
+       return (
+         <Suspense fallback={<AuthLayoutSkeleton />}>
+           <AuthLayoutContent>{children}</AuthLayoutContent>
+         </Suspense>
+       );
+     }
+     ```
+   - **Pattern**: Separate the content into a child component, export a wrapper with Suspense, provide a skeleton fallback
 
 ### Authentication Rules
 
@@ -145,4 +210,4 @@ When implementing, AI agents MUST load relevant skills:
 
 ---
 
-_Last Updated: 2026-03-11_
+_Last Updated: 2026-03-19_

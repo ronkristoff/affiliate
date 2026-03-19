@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,7 @@ export default function BroadcastHistoryPage() {
     paginationOpts: { numItems: 20, cursor },
   });
 
-  const exportData = useMutation(api.broadcasts.exportBroadcastData);
+  const exportData = useAction(api.broadcasts.exportBroadcastData);
 
   // Filter and sort broadcasts client-side
   const filteredBroadcasts = (() => {

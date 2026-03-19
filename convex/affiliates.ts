@@ -55,6 +55,7 @@ export const getAffiliate = query({
       uniqueCode: v.string(),
       status: v.string(),
       vanitySlug: v.optional(v.string()),
+      note: v.optional(v.string()),
       promotionChannel: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
@@ -94,7 +95,22 @@ export const getAffiliate = query({
       return null;
     }
 
-    return affiliate;
+    // Only return safe fields, exclude sensitive data like passwordHash
+    return {
+      _id: affiliate._id,
+      _creationTime: affiliate._creationTime,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      vanitySlug: affiliate.vanitySlug,
+      promotionChannel: affiliate.promotionChannel,
+      note: affiliate.note,
+      payoutMethod: affiliate.payoutMethod,
+      fraudSignals: affiliate.fraudSignals,
+      commissionOverrides: affiliate.commissionOverrides,
+    };
   },
 });
 
@@ -241,6 +257,7 @@ export const listAffiliatesByStatus = query({
       tenantId: v.id("tenants"),
       email: v.string(),
       name: v.string(),
+      passwordHash: v.optional(v.string()),
       uniqueCode: v.string(),
       status: v.string(),
       vanitySlug: v.optional(v.string()),
@@ -1569,9 +1586,12 @@ export const getAffiliateAuditLog = query({
     v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
       actorId: v.optional(v.string()),
       actorType: v.string(),
+      entityId: v.string(),
+      entityType: v.string(),
       previousValue: v.optional(v.any()),
       newValue: v.optional(v.any()),
     })
@@ -1606,6 +1626,10 @@ export const getAffiliateAuditLog = query({
  * Returns activity history including status changes, approvals, rejections.
  * @security Requires authentication. Validates tenant ownership.
  */
+/**
+ * Get recent affiliate activity from audit logs.
+ * @security Requires authentication. Results filtered by tenant.
+ */
 export const getRecentAffiliateActivity = query({
   args: {
     limit: v.optional(v.number()),
@@ -1614,6 +1638,7 @@ export const getRecentAffiliateActivity = query({
     v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
@@ -1633,7 +1658,7 @@ export const getRecentAffiliateActivity = query({
     const logs = await ctx.db
       .query("auditLogs")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .filter((q) => 
+      .filter((q) =>
         q.or(
           q.eq(q.field("entityType"), "affiliate"),
           q.eq(q.field("action"), "affiliate_registered")

@@ -44,7 +44,7 @@ export function SaligPayCallout() {
             </div>
 
             <Link href="/sign-up">
-              <Button className="bg-white text-[var(--brand-dark)] hover:bg-white/90 font-semibold px-8">
+              <Button className="bg-white text-[var(--brand-dark)] hover:bg-white/90 font-semibold px-8 min-h-[44px]">
                 Start your free trial
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>

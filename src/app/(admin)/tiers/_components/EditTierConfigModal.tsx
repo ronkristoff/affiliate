@@ -69,7 +69,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [impactWarning, setImpactWarning] = useState<{
     affectedTenants: number;
-    severity: "warning" | "critical";
+    severity: "none" | "warning" | "critical";
     breakdownByLimit: Record<string, { oldValue: number; newValue: number; affectedCount: number }>;
     proposedValues: Record<string, number>;
   } | null>(null);
@@ -81,11 +81,11 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
   } | null>(null);
 
   // Mutations and Queries
-  const updateMutation = useMutation(api.admin.tierConfigs.updateTierConfig);
+  const updateMutation = useMutation(api.admin.tier_configs.updateTierConfig);
 
   // Query impact assessment when args are set
   const impactAssessment = useQuery(
-    api.admin.tierConfigs.assessTierChangeImpact,
+    api.admin.tier_configs.assessTierChangeImpact,
     impactQueryArgs ? {
       tier: impactQueryArgs.tier,
       proposedValues: {

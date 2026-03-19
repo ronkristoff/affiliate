@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 interface PricingTier {
   name: string;
@@ -101,22 +103,15 @@ export function PricingSection() {
 
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={`text-sm font-medium ${!isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]'}`}>
+          <span className={cn("text-sm font-medium", !isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]')}>
             Monthly
           </span>
-          <button
-            onClick={() => setIsAnnual(!isAnnual)}
-            className={`relative w-14 h-7 rounded-full transition-colors ${
-              isAnnual ? 'bg-[var(--brand-primary)]' : 'bg-[var(--border)]'
-            }`}
-          >
-            <span
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                isAnnual ? 'translate-x-8' : 'translate-x-1'
-              }`}
-            />
-          </button>
-          <span className={`text-sm font-medium ${isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]'}`}>
+          <Switch
+            checked={isAnnual}
+            onCheckedChange={setIsAnnual}
+            aria-label="Toggle annual billing"
+          />
+          <span className={cn("text-sm font-medium", isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]')}>
             Annual
           </span>
           {isAnnual && (
@@ -128,12 +123,12 @@ export function PricingSection() {
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {tiers.map((tier, index) => (
-            <Card 
-              key={index}
+          {tiers.map((tier) => (
+            <Card
+              key={tier.name}
               className={`relative ${
-                tier.highlighted 
-                  ? 'border-[var(--brand-primary)] shadow-lg scale-[1.04]' 
+                tier.highlighted
+                  ? 'border-[var(--brand-primary)] shadow-lg scale-[1.04]'
                   : 'border-[var(--border)]'
               }`}
             >
@@ -173,7 +168,7 @@ export function PricingSection() {
                 {/* Features */}
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-2 text-sm">
+                    <li key={`${tier.name}-${featureIndex}`} className="flex items-start gap-2 text-sm">
                       <Check className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" />
                       <span className="text-[var(--text-body)]">{feature}</span>
                     </li>
@@ -183,7 +178,7 @@ export function PricingSection() {
                 {/* CTA */}
                 <Link href="/sign-up" className="block">
                   <Button 
-                    className={`w-full font-semibold ${
+                    className={`w-full font-semibold min-h-[44px] ${
                       tier.highlighted
                         ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white'
                         : 'bg-[var(--bg-page)] hover:bg-[var(--border)] text-[var(--text-heading)]'
@@ -202,9 +197,9 @@ export function PricingSection() {
         <div className="text-center mt-12">
           <p className="text-[var(--text-muted)]">
             Need something custom?{" "}
-            <a href="mailto:hello@saligaffiliate.com" className="text-[var(--brand-primary)] font-medium hover:underline">
+            <Link href="mailto:hello@saligaffiliate.com" className="text-[var(--brand-primary)] font-medium hover:underline">
               Contact us
-            </a>{" "}
+            </Link>{" "}
             for enterprise pricing.
           </p>
           <p className="text-sm text-[var(--text-muted)] mt-2">

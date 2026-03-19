@@ -9,6 +9,8 @@ import React from "react";
 import { components } from "./_generated/api";
 import { Resend } from "@convex-dev/resend";
 import TeamInvitationEmail from "./emails/TeamInvitation";
+import TeamWelcomeEmail from "./emails/TeamWelcome";
+import TeamAcceptedNotificationEmail from "./emails/TeamAcceptedNotification";
 
 // Initialize Resend with the convex component
 const resend = new Resend(components.resend, {
@@ -486,7 +488,6 @@ export const scheduleAcceptanceEmails = internalMutation({
 
     // Send welcome email to new team member
     try {
-      const { default: TeamWelcomeEmail } = await import("./emails/TeamWelcome");
       await resend.sendEmail(ctx, {
         from: "Team Welcome <onboarding@boboddy.business>",
         to: args.email,
@@ -540,8 +541,6 @@ export const scheduleAcceptanceEmails = internalMutation({
         .map((user) => user.email);
 
       if (ownerEmails.length > 0) {
-        const { default: TeamAcceptedNotificationEmail } = await import("./emails/TeamAcceptedNotification");
-        
         for (const ownerEmail of ownerEmails) {
           await resend.sendEmail(ctx, {
             from: "Team Notifications <notifications@boboddy.business>",

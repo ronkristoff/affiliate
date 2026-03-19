@@ -69,7 +69,7 @@ export function RemoveOverrideModal({
   const [isLoading, setIsLoading] = useState(false);
 
   const removeOverride = useMutation(
-    api.admin.tierOverrides.removeTierOverride
+    api.admin.tier_overrides.removeTierOverride
   );
 
   const handleConfirm = async () => {

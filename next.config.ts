@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   reactCompiler: true,
+  poweredByHeader: false, // Remove X-Powered-By header for security and performance
+  compress: true, // Enable gzip compression
   /* config options here */
   images: {
     dangerouslyAllowSVG: true, // This allows SVG usage
@@ -23,17 +25,46 @@ const nextConfig: NextConfig = {
         protocol: "https", // Or 'http' if that's what your URLs use
         hostname: "avatars.githubusercontent.com",
         port: "",
-        pathname: "/**", // Allows any path under this hostname
-      }
-      // You can add other hostnames here if needed
-      // Example:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'another-image-provider.com',
-      //   port: '',
-      //   pathname: '/**',
-      // },
+        pathname: "/**",
+      },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+      {
+        // Cache static assets aggressively
+        source: "/(.*)\\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Cache static JS/CSS bundles
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 
