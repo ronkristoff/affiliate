@@ -227,8 +227,6 @@ export default function DashboardPage() {
               <RecentCommissionsTable
                 commissions={recentCommissions ?? []}
                 isLoading={!recentCommissions}
-                pendingCount={stats?.pendingCommissionsCount}
-                showPayAllButton={canManage}
               />
             </div>
 

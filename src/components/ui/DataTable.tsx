@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type { ReactNode as TableCellValue };
@@ -19,6 +20,9 @@ export interface TableColumn<T> {
   cell: (row: T) => ReactNode;
   /** Optional: make column sortable */
   sortable?: boolean;
+  /** Optional: maps column key to actual data field name for sorting.
+   *  When omitted, `key` is used. Example: key="affiliate" but data has "affiliateName" → sortField="affiliateName" */
+  sortField?: string;
   /** Optional: align content */
   align?: "left" | "center" | "right";
   /** Optional: width in pixels or percentage */
@@ -153,23 +157,38 @@ export function NumberCell({
 export function DateCell({
   value,
   format = "short",
+  size = "default",
 }: {
   value: number | string | Date;
-  format?: "short" | "long" | "relative";
+  format?: "short" | "long" | "relative" | "relative-full";
+  /** Font size: "sm" → text-[11px], "default" → text-[12px] */
+  size?: "sm" | "default";
 }) {
   const date = value instanceof Date ? value : new Date(value);
 
-  if (format === "relative") {
+  const sizeClass = size === "sm" ? "text-[11px]" : "text-[12px]";
+
+  if (format === "relative" || format === "relative-full") {
     const now = Date.now();
     const diff = now - date.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 60) return <span className="text-[#6b7280]">{minutes}m ago</span>;
-    if (hours < 24) return <span className="text-[#6b7280]">{hours}h ago</span>;
-    if (days === 1) return <span className="text-[#6b7280]">1 day ago</span>;
-    if (days < 7) return <span className="text-[#6b7280]">{days} days ago</span>;
+    if (format === "relative-full") {
+      if (minutes < 60) return <span className={cn("text-[#6b7280]", sizeClass)}>{minutes} minutes ago</span>;
+      if (hours < 24) return <span className={cn("text-[#6b7280]", sizeClass)}>{hours} hours ago</span>;
+      if (days === 1) return <span className={cn("text-[#6b7280]", sizeClass)}>1 day ago</span>;
+      if (days < 7) return <span className={cn("text-[#6b7280]", sizeClass)}>{days} days ago</span>;
+      const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
+      return <span className={cn("text-[#6b7280]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
+    }
+
+    // "relative" — abbreviated format
+    if (minutes < 60) return <span className={cn("text-[#6b7280]", sizeClass)}>{minutes}m ago</span>;
+    if (hours < 24) return <span className={cn("text-[#6b7280]", sizeClass)}>{hours}h ago</span>;
+    if (days === 1) return <span className={cn("text-[#6b7280]", sizeClass)}>1 day ago</span>;
+    if (days < 7) return <span className={cn("text-[#6b7280]", sizeClass)}>{days} days ago</span>;
   }
 
   const options: Intl.DateTimeFormatOptions =
@@ -177,7 +196,25 @@ export function DateCell({
       ? { month: "short", day: "numeric", year: "numeric" }
       : { month: "short", day: "numeric", year: "numeric" };
 
-  return <span className="text-[#6b7280]">{date.toLocaleDateString("en-US", options)}</span>;
+  return <span className={cn("text-[#6b7280]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
+}
+
+// ============================================================================
+// Sort Icon Helper
+// ============================================================================
+
+function SortIcon({ columnKey, activeSortBy, activeSortOrder }: {
+  columnKey: string;
+  activeSortBy?: string;
+  activeSortOrder?: "asc" | "desc";
+}) {
+  if (!activeSortBy || activeSortBy !== columnKey) {
+    return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40 shrink-0" />;
+  }
+  if (activeSortOrder === "asc") {
+    return <ArrowUp className="w-3 h-3 ml-1 shrink-0" />;
+  }
+  return <ArrowDown className="w-3 h-3 ml-1 shrink-0" />;
 }
 
 // ============================================================================
@@ -207,6 +244,16 @@ interface DataTableProps<T> {
   className?: string;
   /** Callback when a row is clicked */
   onRowClick?: (row: T) => void;
+  /** Currently sorted column key */
+  sortBy?: string;
+  /** Current sort order */
+  sortOrder?: "asc" | "desc";
+  /** Callback when sort changes. Receives the sortField (or column key if no sortField).
+   *  When provided, DataTable does NOT sort data internally — consumer controls sorting. */
+  onSortChange?: (sortBy: string, sortOrder: "asc" | "desc") => void;
+  /** Optional: callback returning custom CSS classes per row.
+   *  Comes LAST in cn() merge order, so it overrides built-in selection highlight. */
+  rowClassName?: (row: T) => string;
 }
 
 export function DataTable<T>({
@@ -221,6 +268,10 @@ export function DataTable<T>({
   emptyMessage = "No data available",
   className,
   onRowClick,
+  sortBy,
+  sortOrder,
+  onSortChange,
+  rowClassName,
 }: DataTableProps<T>) {
   // Handle select all
   const allSelected =
@@ -250,6 +301,39 @@ export function DataTable<T>({
     onSelectionChange(newSelected);
   };
 
+  // Sort handler
+  const handleSort = (col: TableColumn<T>) => {
+    const field = col.sortField || col.key;
+    if (sortBy === col.key) {
+      // Toggle direction
+      const newOrder = sortOrder === "asc" ? "desc" : "asc";
+      onSortChange?.(field, newOrder);
+    } else {
+      // New column — default to desc
+      onSortChange?.(field, "desc");
+    }
+  };
+
+  // Client-side sort when onSortChange is NOT provided
+  const sortedData = (() => {
+    if (!sortBy || !sortOrder || onSortChange) return data;
+    const sortCol = columns.find((c) => c.key === sortBy);
+    if (!sortCol || !sortCol.sortable) return data;
+    const field = (sortCol.sortField || sortCol.key) as keyof T;
+    const direction = sortOrder === "asc" ? 1 : -1;
+    return [...data].sort((a, b) => {
+      const aVal = a[field];
+      const bVal = b[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return (aVal - bVal) * direction;
+      }
+      return String(aVal).localeCompare(String(bVal)) * direction;
+    });
+  })();
+
   // Loading skeleton
   if (isLoading) {
     return (
@@ -258,7 +342,7 @@ export function DataTable<T>({
           <thead>
             <tr>
               {selectable && (
-                <th className="w-10 px-4 py-2.5 bg-[#fafafa] border-b border-[#e5e7eb]">
+                <th className="w-10 px-4 py-2.5 text-left">
                   <Skeleton className="h-4 w-4" />
                 </th>
               )}
@@ -324,36 +408,56 @@ export function DataTable<T>({
           <thead>
             <tr>
               {selectable && (
-                <th className="w-10 px-4 py-2.5 text-left bg-[#fafafa] border-b border-[#e5e7eb]">
+                <th className="w-10 px-4 py-2.5 text-left">
+                  {/* Checkbox header: no bg/border per AffiliateTable styling reference */}
                   <Checkbox
                     checked={someSelected ? "indeterminate" : allSelected ? true : false}
                     onCheckedChange={handleSelectAll}
                   />
                 </th>
               )}
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={cn(
-                    "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
-                    col.align === "right" && "text-right",
-                    col.align === "center" && "text-center"
-                  )}
-                  style={{ width: col.width }}
-                >
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const isSortable = col.sortable;
+                return (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
+                      col.align === "right" && "text-right",
+                      col.align === "center" && "text-center",
+                      isSortable && "cursor-pointer select-none hover:text-[#10409a] transition-colors"
+                    )}
+                    style={{ width: col.width }}
+                    onClick={isSortable ? () => handleSort(col) : undefined}
+                  >
+                    <div className={cn("flex items-center", col.align === "right" && "justify-end", col.align === "center" && "justify-center", "min-h-[44px]")}>
+                      {typeof col.header === "string" ? (
+                        <span>{col.header}</span>
+                      ) : (
+                        col.header
+                      )}
+                      {isSortable && (
+                        <SortIcon
+                          columnKey={col.key}
+                          activeSortBy={sortBy}
+                          activeSortOrder={sortOrder}
+                        />
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
               {actions.length > 0 && (
                 <th className="w-12 px-4 py-2.5 bg-[#fafafa] border-b border-[#e5e7eb]" />
               )}
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => {
+            {sortedData.map((row) => {
               const rowId = getRowId(row);
               const isSelected = selectedIds.has(rowId);
               const isClickable = !!onRowClick;
+              const customRowClass = rowClassName?.(row);
 
               return (
                 <tr
@@ -361,8 +465,9 @@ export function DataTable<T>({
                   className={cn(
                     "border-b border-[#f3f4f6] transition-colors",
                     isClickable && "cursor-pointer",
-                    isSelected && "bg-[#eff6ff]",
-                    !isSelected && "hover:bg-[#f9fafb]"
+                    isSelected && !customRowClass && "bg-[#eff6ff]",
+                    !isSelected && "hover:bg-[#f9fafb]",
+                    customRowClass
                   )}
                   onClick={() => onRowClick?.(row)}
                 >
@@ -433,83 +538,8 @@ export function DataTable<T>({
 }
 
 // ============================================================================
-// Compact Table Variant (no borders, lighter styling)
-// ============================================================================
-
-interface CompactTableProps<T> {
-  columns: TableColumn<T>[];
-  data: T[];
-  getRowId: (row: T) => string | number;
-  onRowClick?: (row: T) => void;
-  className?: string;
-}
-
-export function CompactTable<T>({
-  columns,
-  data,
-  getRowId,
-  onRowClick,
-  className,
-}: CompactTableProps<T>) {
-  if (data.length === 0) {
-    return (
-      <div className={cn("bg-white rounded-xl p-4", className)}>
-        <p className="text-sm text-[#6b7280] text-center py-4">No data available</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("bg-white rounded-xl overflow-hidden", className)}>
-      <table className="w-full">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={cn(
-                  "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
-                  col.align === "right" && "text-right",
-                  col.align === "center" && "text-center"
-                )}
-              >
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => (
-            <tr
-              key={getRowId(row)}
-              className={cn(
-                "border-b border-[#f3f4f6] last:border-b-0 hover:bg-[#f9fafb] transition-colors",
-                onRowClick && "cursor-pointer"
-              )}
-              onClick={() => onRowClick?.(row)}
-            >
-              {columns.map((col) => (
-                <td
-                  key={col.key}
-                  className={cn(
-                    "px-4 py-3 text-[13px]",
-                    col.align === "right" && "text-right",
-                    col.align === "center" && "text-center"
-                  )}
-                >
-                  {col.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ============================================================================
 // Status Badge Cell Helper
+// Uses shadcn Badge wrapper for visual parity with StatusBadge component
 // ============================================================================
 
 export function StatusBadgeCell({
@@ -560,7 +590,7 @@ export function StatusBadgeCell({
   };
 
   return (
-    <span
+    <Badge
       className={cn(
         "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
         config.bgClass,
@@ -572,6 +602,6 @@ export function StatusBadgeCell({
         style={{ backgroundColor: config.dotColor }}
       />
       {config.label}
-    </span>
+    </Badge>
   );
 }

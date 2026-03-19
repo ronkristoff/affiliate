@@ -4,8 +4,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   DataTable,
   AvatarCell,
@@ -74,26 +72,6 @@ export function AffiliatePerformanceTable({
 
   const isLoading = affiliates === undefined;
 
-  const handleSort = (column: string) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column as typeof sortBy);
-      setSortOrder("desc");
-    }
-  };
-
-  const getSortIcon = (column: string) => {
-    if (sortBy !== column) {
-      return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
-    }
-    return sortOrder === "asc" ? (
-      <ArrowUp className="w-3 h-3 ml-1" />
-    ) : (
-      <ArrowDown className="w-3 h-3 ml-1" />
-    );
-  };
-
   // Sort by commissions descending to identify top performers
   const sortedByCommissions = [...(affiliates || [])].sort(
     (a, b) => b.totalCommissions - a.totalCommissions
@@ -127,14 +105,9 @@ export function AffiliatePerformanceTable({
     },
     {
       key: "affiliate",
-      header: (
-        <button
-          onClick={() => handleSort("name")}
-          className="flex items-center hover:text-[#10409a]"
-        >
-          Affiliate {getSortIcon("name")}
-        </button>
-      ),
+      header: "Affiliate",
+      sortable: true,
+      sortField: "name",
       cell: (row) => (
         <div className="flex items-center gap-2">
           <AvatarCell name={row.name} email={row.email} size="sm" />
@@ -144,56 +117,32 @@ export function AffiliatePerformanceTable({
     },
     {
       key: "clicks",
-      header: (
-        <button
-          onClick={() => handleSort("clicks")}
-          className="flex items-center justify-end hover:text-[#10409a] w-full"
-        >
-          Clicks {getSortIcon("clicks")}
-        </button>
-      ),
+      header: "Clicks",
+      sortable: true,
       align: "right",
       cell: (row) => <NumberCell value={row.clicks} />,
       width: 80,
     },
     {
       key: "conversions",
-      header: (
-        <button
-          onClick={() => handleSort("conversions")}
-          className="flex items-center justify-end hover:text-[#10409a] w-full"
-        >
-          Conversions {getSortIcon("conversions")}
-        </button>
-      ),
+      header: "Conversions",
+      sortable: true,
       align: "right",
       cell: (row) => <NumberCell value={row.conversions} />,
       width: 100,
     },
     {
       key: "conversionRate",
-      header: (
-        <button
-          onClick={() => handleSort("conversionRate")}
-          className="flex items-center justify-end hover:text-[#10409a] w-full"
-        >
-          Conv. Rate {getSortIcon("conversionRate")}
-        </button>
-      ),
+      header: "Conv. Rate",
+      sortable: true,
       align: "right",
       cell: (row) => <NumberCell value={row.conversionRate} format="percent" />,
       width: 90,
     },
     {
       key: "commissions",
-      header: (
-        <button
-          onClick={() => handleSort("commissions")}
-          className="flex items-center justify-end hover:text-[#10409a] w-full"
-        >
-          Commissions {getSortIcon("commissions")}
-        </button>
-      ),
+      header: "Commissions",
+      sortable: true,
       align: "right",
       cell: (row) =>
         canViewSensitiveData ? (
@@ -211,24 +160,18 @@ export function AffiliatePerformanceTable({
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="rounded-lg border bg-white">
-        <div className="p-4">
-          <Skeleton className="h-4 w-full mb-4" />
-          <Skeleton className="h-4 w-full mb-4" />
-          <Skeleton className="h-4 w-full mb-4" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <DataTable
       columns={columns}
       data={affiliates || []}
       getRowId={(row) => row._id}
+      isLoading={isLoading}
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      onSortChange={(field, order) => {
+        setSortBy(field as typeof sortBy);
+        setSortOrder(order);
+      }}
       onRowClick={onAffiliateSelect ? (row) => onAffiliateSelect(row._id) : undefined}
       emptyMessage="No affiliates found for the selected period."
     />

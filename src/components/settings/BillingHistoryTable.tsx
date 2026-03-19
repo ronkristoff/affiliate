@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   DataTable,
@@ -64,12 +64,15 @@ export function BillingHistoryTable({
     {
       key: "date",
       header: "Date",
+      sortable: true,
+      sortField: "timestamp",
       cell: (row) => <DateCell value={row.timestamp} />,
       width: 120,
     },
     {
       key: "event",
       header: "Event",
+      sortable: true,
       cell: (row) => {
         const config = eventColors[row.event] || { bg: "#f3f4f6", text: "#374151" };
         return (
@@ -121,54 +124,39 @@ export function BillingHistoryTable({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : events.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Receipt className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p>No billing history yet</p>
-            <p className="text-sm mt-1">
-              Your subscription changes will appear here
-            </p>
-          </div>
-        ) : (
-          <>
-            <DataTable
-              columns={columns}
-              data={events}
-              getRowId={(row) => row._id}
-              emptyMessage="No billing history yet"
-            />
+        <DataTable
+          columns={columns}
+          data={events}
+          getRowId={(row) => row._id}
+          isLoading={isLoading}
+          emptyMessage="No billing history yet"
+        />
 
-            {/* Pagination */}
-            {(hasPrevious || hasMore) && (
-              <div className="flex items-center justify-between mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onPrevious}
-                  disabled={!hasPrevious || isLoading}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {events.length} events shown
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onNext}
-                  disabled={!hasMore || isLoading}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </>
+        {/* Pagination */}
+        {(hasPrevious || hasMore) && (
+          <div className="flex items-center justify-between mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPrevious}
+              disabled={!hasPrevious || isLoading}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {events.length} events shown
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onNext}
+              disabled={!hasMore || isLoading}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

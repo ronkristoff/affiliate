@@ -27,23 +27,27 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import Link from "next/link";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
 import {
   formatCurrency,
   formatDate,
-  formatDateTime,
   getInitials,
 } from "@/lib/format";
 import {
-  Wallet,
+  DataTable,
+  type TableColumn,
+  type TableAction,
+  DateCell,
+  NumberCell,
+  CurrencyCell,
+} from "@/components/ui/DataTable";
+import {
   Eye,
   Download,
   CheckCircle2,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  History,
 } from "lucide-react";
 import {
   generatePayoutCsv,
@@ -82,65 +86,42 @@ interface Payout {
 }
 
 // =============================================================================
-// Skeleton Components
+// Column Config for Main Batches Table
 // =============================================================================
 
-function TableSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-5 w-48" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-3 w-48" />
-              </div>
-              <Skeleton className="h-4 w-20" />
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// =============================================================================
-// Empty State Component
-// =============================================================================
-
-function EmptyState({ filter }: { filter: string }) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-16">
-        <div className="mb-4 rounded-full bg-muted p-4">
-          <History className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="mb-2 text-lg font-semibold">
-          {filter === "all" 
-            ? "No payout history yet"
-            : `No ${filter} batches found`
-          }
-        </h3>
-        <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-          {filter === "all"
-            ? "Generate your first payout batch from the Payouts page to see it here."
-            : `There are no batches with "${filter}" status at the moment.`
-          }
-        </p>
-        <Link href="/payouts">
-          <Button variant="outline">
-            Go to Payouts
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
-  );
-}
+const batchColumns: TableColumn<Batch>[] = [
+  {
+    key: "batchCode",
+    header: "Batch ID",
+    cell: (row) => (
+      <code className="font-mono text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+        {row.batchCode}
+      </code>
+    ),
+  },
+  {
+    key: "generatedAt",
+    header: "Date",
+    cell: (row) => <DateCell value={row.generatedAt} format="short" />,
+  },
+  {
+    key: "affiliateCount",
+    header: "Affiliates",
+    align: "right",
+    cell: (row) => <NumberCell value={row.affiliateCount} />,
+  },
+  {
+    key: "totalAmount",
+    header: "Total Amount",
+    align: "right",
+    cell: (row) => <CurrencyCell amount={row.totalAmount} />,
+  },
+  {
+    key: "status",
+    header: "Status",
+    cell: (row) => <BatchStatusBadge status={row.status} />,
+  },
+];
 
 // =============================================================================
 // Batch Detail Dialog Component
@@ -490,6 +471,15 @@ export function PayoutHistoryClient() {
     ? batchesResult.isDone 
     : true;
 
+  const batchActions: TableAction<Batch>[] = [
+    {
+      label: "View",
+      variant: "outline",
+      icon: <Eye className="w-3.5 h-3.5" />,
+      onClick: (batch) => setSelectedBatch(batch),
+    },
+  ];
+
   if (hasError) {
     return (
       <Card>
@@ -524,70 +514,28 @@ export function PayoutHistoryClient() {
       </Tabs>
 
       {/* Batches Table */}
-      {isLoading ? (
-        <TableSkeleton />
-      ) : batches.length === 0 ? (
-        <EmptyState filter={statusFilter} />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {statusFilter === "all" 
-                ? "All Batches" 
-                : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Batches`
-              }
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Batch ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Affiliates</TableHead>
-                    <TableHead className="text-right">Total Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batches.map((batch) => (
-                    <TableRow key={batch._id}>
-                      <TableCell>
-                        <code className="font-mono text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {batch.batchCode}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {formatDate(batch.generatedAt)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {batch.affiliateCount}
-                      </TableCell>
-                      <TableCell className="text-right font-bold tabular-nums">
-                        {formatCurrency(batch.totalAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <BatchStatusBadge status={batch.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedBatch(batch)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {statusFilter === "all"
+              ? "All Batches"
+              : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Batches`
+            }
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable<Batch>
+            columns={batchColumns}
+            actions={batchActions}
+            data={batches}
+            getRowId={(row) => row._id}
+            isLoading={isLoading}
+            emptyMessage={
+              statusFilter === "all"
+                ? "No payout history yet"
+                : `No ${statusFilter} batches found`
+            }
+          />
 
             {/* Pagination Controls */}
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
@@ -617,7 +565,6 @@ export function PayoutHistoryClient() {
             </div>
           </CardContent>
         </Card>
-      )}
 
       {/* Batch Detail Dialog */}
       <BatchDetailDialog

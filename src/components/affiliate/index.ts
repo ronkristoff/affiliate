@@ -1,5 +1,3 @@
-export { AffiliateTable } from "./AffiliateTable";
-export type { Affiliate } from "./AffiliateTable";
 export { AffiliateTopbar } from "./AffiliateTopbar";
 export { AffiliateTabs } from "./AffiliateTabs";
 export { AffiliateToolbar } from "./AffiliateToolbar";

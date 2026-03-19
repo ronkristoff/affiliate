@@ -1,6 +1,5 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DataTable,
   AvatarCell,
@@ -44,6 +43,7 @@ export function TopAffiliatesTable({
     {
       key: "clicks",
       header: "Clicks",
+      sortable: true,
       align: "right",
       cell: (row) => <NumberCell value={row.clicks} />,
       width: 80,
@@ -51,6 +51,7 @@ export function TopAffiliatesTable({
     {
       key: "conversions",
       header: "Conversions",
+      sortable: true,
       align: "right",
       cell: (row) => <NumberCell value={row.conversions} />,
       width: 100,
@@ -58,6 +59,7 @@ export function TopAffiliatesTable({
     {
       key: "revenue",
       header: "Revenue",
+      sortable: true,
       align: "right",
       cell: (row) => (
         <div className="flex items-center justify-end gap-1">

@@ -1,6 +1,5 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DataTable,
   AvatarCell,
@@ -25,8 +24,6 @@ interface Commission {
 interface RecentCommissionsTableProps {
   commissions: Commission[];
   isLoading?: boolean;
-  pendingCount?: number;
-  showPayAllButton?: boolean;
 }
 
 export function RecentCommissionsTable({
@@ -48,6 +45,7 @@ export function RecentCommissionsTable({
     {
       key: "amount",
       header: "Commission",
+      sortable: true,
       cell: (row) => <CurrencyCell amount={row.amount} />,
       width: 120,
     },
@@ -60,44 +58,12 @@ export function RecentCommissionsTable({
     {
       key: "date",
       header: "Date",
+      sortable: true,
+      sortField: "createdAt",
       cell: (row) => <DateCell value={row.createdAt} />,
       width: 100,
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="card-body">
-        <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]"
-                  >
-                    <Skeleton className="h-3 w-20" />
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-[#f3f4f6]">
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3">
-                      <Skeleton className="h-4 w-full max-w-[200px]" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="card-body">

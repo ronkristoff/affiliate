@@ -12,11 +12,10 @@ import {
   parseAsString,
   parseAsInteger,
 } from "nuqs";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { AffiliateTopbar } from "@/components/affiliate/AffiliateTopbar";
 import { AffiliateTabs } from "@/components/affiliate/AffiliateTabs";
-import { AffiliateTable, Affiliate } from "@/components/affiliate/AffiliateTable";
 import { AffiliateToolbar } from "@/components/affiliate/AffiliateToolbar";
 import { AffiliateDetailDrawer } from "@/components/affiliate/AffiliateDetailDrawer";
 import { PendingBanner } from "@/components/affiliate/PendingBanner";
@@ -24,7 +23,202 @@ import { BulkActionBar } from "@/components/affiliate/BulkActionBar";
 import { RejectionDialog } from "@/components/affiliate/RejectionDialog";
 import { SuspendDialog } from "@/components/affiliate/SuspendDialog";
 import { ReactivateDialog } from "@/components/affiliate/ReactivateDialog";
+import {
+  DataTable,
+  TableColumn,
+  TableAction,
+  AvatarCell,
+  CurrencyCell,
+  NumberCell,
+  DateCell,
+  StatusBadgeCell,
+} from "@/components/ui/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Eye, PauseCircle, CheckCircle2 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface Affiliate {
+  _id: Id<"affiliates">;
+  _creationTime: number;
+  email: string;
+  name: string;
+  uniqueCode: string;
+  status: string;
+  promotionChannel?: string;
+  campaignName?: string;
+  referralCount?: number;
+  clickCount?: number;
+  totalEarnings?: number;
+  hasFraudSignals?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Column configs
+// ---------------------------------------------------------------------------
+
+function buildPendingColumns(
+  canManage: boolean,
+  onApprove: (id: Id<"affiliates">, name: string) => void,
+  onReject: (affiliate: Affiliate) => void
+): { columns: TableColumn<Affiliate>[]; actions: TableAction<Affiliate>[] } {
+  const columns: TableColumn<Affiliate>[] = [
+    {
+      key: "applicant",
+      header: "Applicant",
+      cell: (row) => (
+        <AvatarCell name={row.name} email={row.email} />
+      ),
+    },
+    {
+      key: "applied",
+      header: "Applied",
+      cell: (row) => (
+        <DateCell value={row._creationTime} format="relative-full" size="sm" />
+      ),
+    },
+    {
+      key: "source",
+      header: "Source",
+      cell: (row) => (
+        <span className="text-[12px] text-[#474747]">
+          {row.promotionChannel || "Direct invite"}
+        </span>
+      ),
+    },
+    {
+      key: "campaign",
+      header: "Campaign",
+      cell: (row) => (
+        <span className="text-[12px] text-[#474747]">
+          {row.campaignName || "Standard Program"}
+        </span>
+      ),
+    },
+  ];
+
+  const actions: TableAction<Affiliate>[] = canManage
+    ? [
+        {
+          label: "Approve",
+          variant: "default",
+          onClick: (row) => onApprove(row._id, row.name),
+        },
+        {
+          label: "Reject",
+          variant: "destructive",
+          onClick: (row) => onReject(row),
+        },
+      ]
+    : [];
+
+  return { columns, actions };
+}
+
+function buildActiveColumns(
+  canManage: boolean,
+  onSuspend: (affiliate: Affiliate) => void,
+  onReactivate: (affiliate: Affiliate) => void,
+  onViewDetails: (affiliate: Affiliate) => void
+): { columns: TableColumn<Affiliate>[]; actions: TableAction<Affiliate>[] } {
+  const columns: TableColumn<Affiliate>[] = [
+    {
+      key: "affiliate",
+      header: "Affiliate",
+      cell: (row) => (
+        <div className="flex items-center gap-2.5">
+          <AvatarCell name={row.name} />
+          {row.hasFraudSignals && (
+            <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e] text-[10px] font-semibold">
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: "#f59e0b" }}
+              />
+              Flagged
+            </span>
+          )}
+        </div>
+      ),
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => <StatusBadgeCell status={row.status} />,
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+    {
+      key: "campaign",
+      header: "Campaign",
+      cell: (row) => (
+        <span className="text-[12px] text-[#474747]">
+          {row.campaignName || "Standard Program"}
+        </span>
+      ),
+    },
+    {
+      key: "referrals",
+      header: "Referrals",
+      cell: (row) => <NumberCell value={row.referralCount || 0} />,
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+    {
+      key: "clicks",
+      header: "Clicks",
+      cell: (row) => <NumberCell value={row.clickCount?.toLocaleString ? row.clickCount : 0} />,
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+    {
+      key: "earnings",
+      header: "Earnings",
+      align: "right",
+      cell: (row) => (
+        <CurrencyCell
+          amount={row.totalEarnings || 0}
+          muted={row.status === "suspended"}
+        />
+      ),
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+    {
+      key: "joined",
+      header: "Joined",
+      cell: (row) => <DateCell value={row._creationTime} format="short" />,
+      // TODO: Enable sortable: true once Convex query supports sorting
+    },
+  ];
+
+  const actions: TableAction<Affiliate>[] = [
+    {
+      label: "View",
+      variant: "outline",
+      icon: <Eye className="w-3.5 h-3.5" />,
+      onClick: (row) => onViewDetails(row),
+    },
+    ...(canManage
+      ? [
+          {
+            label: "Suspend",
+            variant: "outline" as const,
+            icon: <PauseCircle className="w-3.5 h-3.5" />,
+            disabled: (row: Affiliate) => row.status !== "active",
+            onClick: (row: Affiliate) => onSuspend(row),
+          },
+          {
+            label: "Reactivate",
+            variant: "default" as const,
+            icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+            disabled: (row: Affiliate) => row.status !== "suspended",
+            onClick: (row: Affiliate) => onReactivate(row),
+          },
+        ]
+      : []),
+  ];
+
+  return { columns, actions };
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -197,21 +391,6 @@ function AffiliatesContent() {
   const visibleStatusOptions = tab === "all" ? STATUS_OPTIONS : [];
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedAffiliates(new Set(allAffiliates.map((a) => a._id)));
-    } else {
-      setSelectedAffiliates(new Set());
-    }
-  };
-
-  const handleSelectAffiliate = (affiliateId: Id<"affiliates">, checked: boolean) => {
-    const newSelected = new Set(selectedAffiliates);
-    if (checked) newSelected.add(affiliateId);
-    else newSelected.delete(affiliateId);
-    setSelectedAffiliates(newSelected);
-  };
-
   const handleApprove = async (affiliateId: Id<"affiliates">, affiliateName: string) => {
     try {
       await approveAffiliate({ affiliateId });
@@ -301,8 +480,18 @@ function AffiliatesContent() {
 
   const handleClearSelection = () => setSelectedAffiliates(new Set());
 
-  const allSelected = allAffiliates.length > 0 && allAffiliates.every((a) => selectedAffiliates.has(a._id));
-  const someSelected = allAffiliates.some((a) => selectedAffiliates.has(a._id)) && !allSelected;
+  // ── Column configs ─────────────────────────────────────────────────────
+  const pendingCols = buildPendingColumns(
+    canManageAffiliates,
+    handleApprove,
+    (affiliate) => setRejectingAffiliate(affiliate)
+  );
+  const activeCols = buildActiveColumns(
+    canManageAffiliates,
+    (affiliate) => setSuspendingAffiliate(affiliate),
+    (affiliate) => setReactivatingAffiliate(affiliate),
+    handleViewDetails
+  );
 
   // Prepare drawer data
   const drawerAffiliate = detailDrawerAffiliate
@@ -362,21 +551,13 @@ function AffiliatesContent() {
               isLoadingCampaigns={isLoadingCampaigns}
             />
 
-            <AffiliateTable
-              affiliates={filteredAffiliates}
-              activeTab={tab}
-              selectedAffiliates={new Set()}
-              canManage={canManageAffiliates}
-              onSelectAll={() => {}}
-              onSelectAffiliate={() => {}}
-              onApprove={() => {}}
-              onReject={() => {}}
-              onSuspend={(affiliate) => setSuspendingAffiliate(affiliate)}
-              onReactivate={(affiliate) => setReactivatingAffiliate(affiliate)}
-              onViewDetails={handleViewDetails}
-              allSelected={false}
-              someSelected={false}
+            <DataTable<Affiliate>
+              columns={activeCols.columns}
+              actions={activeCols.actions}
+              data={filteredAffiliates}
+              getRowId={(row) => row._id}
               isLoading={isLoading}
+              emptyMessage="No affiliates found"
             />
 
             {/* Pagination */}
@@ -426,21 +607,19 @@ function AffiliatesContent() {
               </div>
             )}
 
-            <AffiliateTable
-              affiliates={allAffiliates}
-              activeTab={tab}
-              selectedAffiliates={selectedAffiliates}
-              canManage={canManageAffiliates}
-              onSelectAll={handleSelectAll}
-              onSelectAffiliate={handleSelectAffiliate}
-              onApprove={handleApprove}
-              onReject={(affiliate) => setRejectingAffiliate(affiliate)}
-              onSuspend={() => {}}
-              onReactivate={() => {}}
-              onViewDetails={() => {}}
-              allSelected={allSelected}
-              someSelected={someSelected}
+            <DataTable<Affiliate>
+              columns={pendingCols.columns}
+              actions={pendingCols.actions}
+              data={allAffiliates}
+              getRowId={(row) => row._id}
+              selectable={true}
+              selectedIds={selectedAffiliates as Set<string | number>}
+              onSelectionChange={(ids) => setSelectedAffiliates(new Set(ids as Set<Id<"affiliates">>))}
               isLoading={isLoading}
+              emptyMessage="No pending affiliates found"
+              rowClassName={(row) =>
+                selectedAffiliates.has(row._id) ? "bg-[#fffbeb]" : ""
+              }
             />
           </>
         )}
@@ -466,21 +645,13 @@ function AffiliatesContent() {
               isLoadingCampaigns={isLoadingCampaigns}
             />
 
-            <AffiliateTable
-              affiliates={filteredAffiliates}
-              activeTab={tab}
-              selectedAffiliates={new Set()}
-              canManage={canManageAffiliates}
-              onSelectAll={() => {}}
-              onSelectAffiliate={() => {}}
-              onApprove={() => {}}
-              onReject={() => {}}
-              onSuspend={(affiliate) => setSuspendingAffiliate(affiliate)}
-              onReactivate={(affiliate) => setReactivatingAffiliate(affiliate)}
-              onViewDetails={handleViewDetails}
-              allSelected={false}
-              someSelected={false}
+            <DataTable<Affiliate>
+              columns={activeCols.columns}
+              actions={activeCols.actions}
+              data={filteredAffiliates}
+              getRowId={(row) => row._id}
               isLoading={isLoading}
+              emptyMessage={`No ${tab} affiliates found`}
             />
 
             {/* Pagination */}
