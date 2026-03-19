@@ -359,6 +359,23 @@
   .alert-banner-danger {
     @apply bg-[var(--danger-bg)] border-b border-[#fca5a5] text-[var(--danger-text)];
   }
+
+  /* Card */
+  .card {
+    @apply bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl overflow-hidden;
+  }
+
+  .card-header {
+    @apply px-5 py-4 border-b border-[var(--border)] flex items-center justify-between;
+  }
+
+  .card-title {
+    @apply text-[14px] font-bold text-[var(--text-heading)];
+  }
+
+  .card-body {
+    @apply p-0;
+  }
 }
 
 @layer utilities {

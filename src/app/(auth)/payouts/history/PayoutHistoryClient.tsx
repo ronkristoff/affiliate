@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -49,12 +49,14 @@ import {
   generatePayoutCsv,
   downloadCsvFromString,
 } from "@/lib/csv-utils";
+import {
+  useQueryState,
+  parseAsStringLiteral,
+} from "nuqs";
 
 // =============================================================================
 // Types
 // =============================================================================
-
-type StatusFilter = "all" | "processing" | "completed";
 
 interface Batch {
   _id: Id<"payoutBatches">;
@@ -111,7 +113,7 @@ function TableSkeleton() {
 // Empty State Component
 // =============================================================================
 
-function EmptyState({ filter }: { filter: StatusFilter }) {
+function EmptyState({ filter }: { filter: string }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center py-16">
@@ -187,13 +189,9 @@ function BatchDetailDialog({
     const csvData = payouts.map((p) => ({
       name: p.name,
       email: p.email,
-      payoutMethod: p.payoutMethod?.type || "Not configured",
-      payoutDetails: p.payoutMethod?.details || "",
+      payoutMethod: p.payoutMethod || null,
       commissionCount: p.commissionCount,
       amount: p.amount,
-      status: p.status,
-      paymentReference: p.paymentReference || "",
-      paidAt: p.paidAt ? formatDate(p.paidAt) : "",
     }));
     
     const csv = generatePayoutCsv(csvData);
@@ -422,7 +420,11 @@ function BatchDetailDialog({
 // =============================================================================
 
 export function PayoutHistoryClient() {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  // URL state via nuqs
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsStringLiteral(["all", "processing", "completed"]).withDefault("all")
+  );
   const [cursor, setCursor] = useState<string | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [isMarkingAllPaid, setIsMarkingAllPaid] = useState(false);
@@ -512,7 +514,7 @@ export function PayoutHistoryClient() {
       {/* Status Filter Tabs */}
       <Tabs
         value={statusFilter}
-        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+        onValueChange={(value) => setStatusFilter(value as "all" | "processing" | "completed")}
       >
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>

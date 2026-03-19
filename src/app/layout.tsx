@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/next-theme/theme-provider";
 import { Footer } from "@/components/footer";
 
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -41,10 +42,12 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ConvexClientProvider>
-              <main className="flex-1 flex flex-col">
-                {children}
-              </main>
-              <Footer />
+              <NuqsAdapter>
+                <main className="flex-1 flex flex-col">
+                  {children}
+                </main>
+                <Footer />
+              </NuqsAdapter>
             </ConvexClientProvider>
           </ThemeProvider>
       </body>

@@ -244,6 +244,7 @@ export const getAffiliatesByTenant = query({
 export const listAffiliatesByStatus = query({
   args: {
     status: v.union(
+      v.literal("all"),
       v.literal("pending"),
       v.literal("active"),
       v.literal("suspended"),
@@ -266,17 +267,264 @@ export const listAffiliatesByStatus = query({
         type: v.string(),
         details: v.string(),
       })),
+      referralCount: v.number(),
+      clickCount: v.number(),
+      totalEarnings: v.number(),
+      fraudSignals: v.optional(v.array(v.object({
+        type: v.string(),
+        details: v.optional(v.string()),
+        severity: v.string(),
+        timestamp: v.number(),
+        reviewedAt: v.optional(v.number()),
+        reviewedBy: v.optional(v.string()),
+        reviewNote: v.optional(v.string()),
+        commissionId: v.optional(v.id("commissions")),
+      }))),
     })
   ),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
 
-    return await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", args.status)
-      )
+    // Fetch all affiliates for the tenant
+    let affiliates;
+    if (args.status === "all") {
+      affiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .collect();
+    } else {
+      affiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", tenantId).eq("status", args.status)
+        )
+        .collect();
+    }
+
+    if (affiliates.length === 0) {
+      return [];
+    }
+
+    // Initialize maps for aggregation
+    const clickCounts = new Map<Id<"affiliates">, number>();
+    const conversionCounts = new Map<Id<"affiliates">, number>();
+    const commissionTotals = new Map<Id<"affiliates">, number>();
+
+    for (const affiliate of affiliates) {
+      clickCounts.set(affiliate._id, 0);
+      conversionCounts.set(affiliate._id, 0);
+      commissionTotals.set(affiliate._id, 0);
+    }
+
+    // Fetch all clicks for the tenant and aggregate by affiliate
+    const allClicks = await ctx.db
+      .query("clicks")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
       .collect();
+
+    for (const click of allClicks) {
+      if (clickCounts.has(click.affiliateId)) {
+        clickCounts.set(click.affiliateId, (clickCounts.get(click.affiliateId) ?? 0) + 1);
+      }
+    }
+
+    // Fetch all conversions for the tenant and aggregate by affiliate
+    const allConversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    for (const conversion of allConversions) {
+      if (conversionCounts.has(conversion.affiliateId)) {
+        conversionCounts.set(conversion.affiliateId, (conversionCounts.get(conversion.affiliateId) ?? 0) + 1);
+      }
+    }
+
+    // Fetch all commissions for the tenant and aggregate by affiliate
+    const allCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    for (const commission of allCommissions) {
+      if (commissionTotals.has(commission.affiliateId)) {
+        commissionTotals.set(commission.affiliateId, (commissionTotals.get(commission.affiliateId) ?? 0) + commission.amount);
+      }
+    }
+
+    // Build results with aggregated stats
+    return affiliates.map(affiliate => ({
+      ...affiliate,
+      referralCount: conversionCounts.get(affiliate._id) ?? 0,
+      clickCount: clickCounts.get(affiliate._id) ?? 0,
+      totalEarnings: commissionTotals.get(affiliate._id) ?? 0,
+    }));
+  },
+});
+
+/**
+ * List affiliates with server-side pagination, campaign filtering, and per-affiliate stats.
+ * Uses per-affiliate by_affiliate index queries (clicks/conversions/commissions) to avoid
+ * Convex's 1MB read limit on tenant-wide stat aggregation.
+ * @security Requires authentication. Results filtered by tenant.
+ */
+export const listAffiliatesFiltered = query({
+  args: {
+    status: v.union(
+      v.literal("all"),
+      v.literal("pending"),
+      v.literal("active"),
+      v.literal("suspended"),
+      v.literal("rejected")
+    ),
+    statuses: v.optional(v.array(v.string())),
+    campaignIds: v.optional(v.array(v.id("campaigns"))),
+    page: v.number(),
+    numItems: v.number(),
+  },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("affiliates"),
+        _creationTime: v.number(),
+        tenantId: v.id("tenants"),
+        email: v.string(),
+        name: v.string(),
+        uniqueCode: v.string(),
+        status: v.string(),
+        vanitySlug: v.optional(v.string()),
+        promotionChannel: v.optional(v.string()),
+        payoutMethod: v.optional(v.object({
+          type: v.string(),
+          details: v.string(),
+        })),
+        referralCount: v.number(),
+        clickCount: v.number(),
+        totalEarnings: v.number(),
+      })
+    ),
+    total: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const tenantId = await requireTenantId(ctx);
+    const { status, campaignIds, page, numItems } = args;
+
+    // Performance guard
+    const MAX_AFFILIATES = 1000;
+
+    // Step 1: If campaign filter, build an allowlist of affiliate IDs via referralLinks
+    let campaignAllowlist: Set<Id<"affiliates">> | null = null;
+    if (campaignIds && campaignIds.length > 0) {
+      // Query all referralLinks for this tenant, filter in-memory for selected campaigns
+      const allReferralLinks = await ctx.db
+        .query("referralLinks")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .collect();
+
+      const campaignSet = new Set(campaignIds.map((id) => id.toString()));
+      campaignAllowlist = new Set<Id<"affiliates">>();
+      for (const link of allReferralLinks) {
+        if (link.campaignId && campaignSet.has(link.campaignId.toString())) {
+          campaignAllowlist.add(link.affiliateId);
+        }
+      }
+    }
+
+    // Step 2: Fetch affiliates matching status filter
+    let affiliates;
+    if (status === "all") {
+      affiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .collect();
+    } else {
+      affiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", tenantId).eq("status", status)
+        )
+        .collect();
+    }
+
+    // Step 3: Apply statuses multi-select filter (e.g. from the "all" tab toolbar)
+    if (args.statuses && args.statuses.length > 0) {
+      const statusSet = new Set(args.statuses.map((s) => s.toLowerCase()));
+      affiliates = affiliates.filter((a) => statusSet.has(a.status.toLowerCase()));
+    }
+
+    // Step 4: Apply campaign allowlist
+    if (campaignAllowlist) {
+      affiliates = affiliates.filter((a) => campaignAllowlist!.has(a._id));
+    }
+
+    // Step 5: Total count and sort desc by _creationTime
+    const total = affiliates.length;
+    if (total > MAX_AFFILIATES) {
+      console.warn(
+        `[listAffiliatesFiltered] Tenant ${tenantId} has ${total} affiliates (max ${MAX_AFFILIATES}). Consider performance optimization.`
+      );
+    }
+
+    // Sort descending (index returns ascending by default)
+    affiliates.sort((a, b) => b._creationTime - a._creationTime);
+
+    // Step 6: Paginate
+    const startIndex = (page - 1) * numItems;
+    const endIndex = startIndex + numItems;
+    const pageAffiliates = affiliates.slice(startIndex, endIndex);
+    const hasMore = endIndex < total;
+
+    if (pageAffiliates.length === 0) {
+      return { page: [], total, hasMore: false };
+    }
+
+    // Step 7: Per-affiliate stat queries (avoids 1MB tenant-wide read limit)
+    const pageWithStats = await Promise.all(
+      pageAffiliates.map(async (affiliate) => {
+        const affiliateId = affiliate._id;
+
+        // Clicks for this affiliate
+        const clicks = await ctx.db
+          .query("clicks")
+          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
+          .collect();
+
+        // Conversions for this affiliate
+        const conversions = await ctx.db
+          .query("conversions")
+          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
+          .collect();
+
+        // Commissions for this affiliate (confirmed + pending only)
+        const commissions = await ctx.db
+          .query("commissions")
+          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
+          .collect();
+
+        const totalEarnings = commissions
+          .filter((c) => c.status === "confirmed" || c.status === "pending")
+          .reduce((sum, c) => sum + c.amount, 0);
+
+        return {
+          _id: affiliate._id,
+          _creationTime: affiliate._creationTime,
+          tenantId: affiliate.tenantId,
+          email: affiliate.email,
+          name: affiliate.name,
+          uniqueCode: affiliate.uniqueCode,
+          status: affiliate.status,
+          vanitySlug: affiliate.vanitySlug,
+          promotionChannel: affiliate.promotionChannel,
+          payoutMethod: affiliate.payoutMethod,
+          referralCount: conversions.length,
+          clickCount: clicks.length,
+          totalEarnings,
+        };
+      })
+    );
+
+    return { page: pageWithStats, total, hasMore };
   },
 });
 
@@ -447,6 +695,91 @@ export const registerAffiliate = mutation({
       affiliateId,
       uniqueCode,
       status: "pending",
+    };
+  },
+});
+
+export const inviteAffiliate = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    promotionChannel: v.optional(v.string()),
+  },
+  returns: v.object({
+    affiliateId: v.id("affiliates"),
+    uniqueCode: v.string(),
+    status: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (authUser.role !== "owner" && authUser.role !== "manager") {
+      throw new Error("Forbidden: Only owners and managers can invite affiliates");
+    }
+
+    const tenantId = authUser.tenantId;
+
+    const existingAffiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant_and_email", (q) =>
+        q.eq("tenantId", tenantId).eq("email", args.email)
+      )
+      .first();
+
+    if (existingAffiliate) {
+      throw new Error("An affiliate with this email already exists in your program");
+    }
+
+    const tierConfig = await ctx.runQuery(api.tierConfig.getMyTierConfig);
+    if (tierConfig) {
+      const currentAffiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .collect();
+
+      if (tierConfig.maxAffiliates !== -1 && currentAffiliates.length >= tierConfig.maxAffiliates) {
+        throw new Error(
+          `Affiliate limit reached (${currentAffiliates.length}/${tierConfig.maxAffiliates}). Please upgrade your plan to add more affiliates.`
+        );
+      }
+    }
+
+    let uniqueCode = await generateUniqueReferralCode(ctx);
+    let attempts = 0;
+    while (!(await isCodeUnique(ctx, tenantId, uniqueCode)) && attempts < 10) {
+      uniqueCode = await generateUniqueReferralCode(ctx);
+      attempts++;
+    }
+
+    if (attempts >= 10) {
+      throw new Error("Failed to generate unique referral code");
+    }
+
+    const affiliateId = await ctx.db.insert("affiliates", {
+      tenantId,
+      email: args.email,
+      name: args.name,
+      uniqueCode,
+      status: "active",
+      promotionChannel: args.promotionChannel,
+    });
+
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: "affiliate_invited",
+      entityType: "affiliate",
+      entityId: affiliateId,
+      actorType: "user",
+      actorId: authUser.userId,
+      newValue: { email: args.email, name: args.name, uniqueCode, status: "active" },
+    });
+
+    return {
+      affiliateId,
+      uniqueCode,
+      status: "active",
     };
   },
 });

@@ -27,6 +27,7 @@ import type * as commissions from "../commissions.js";
 import type * as conversions from "../conversions.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
+import type * as dashboardExport from "../dashboardExport.js";
 import type * as debugAuth from "../debugAuth.js";
 import type * as email from "../email.js";
 import type * as emails from "../emails.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   conversions: typeof conversions;
   crons: typeof crons;
   dashboard: typeof dashboard;
+  dashboardExport: typeof dashboardExport;
   debugAuth: typeof debugAuth;
   email: typeof email;
   emails: typeof emails;

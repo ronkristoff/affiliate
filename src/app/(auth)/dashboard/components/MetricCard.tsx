@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface MetricCardProps {
   label: string;
@@ -11,42 +10,27 @@ interface MetricCardProps {
   delta?: {
     value: number;
     isPositive: boolean;
+    label?: string;
   };
   variant?: "blue" | "green" | "yellow" | "gray";
   isLoading?: boolean;
   prefix?: string;
+  className?: string;
 }
 
 const variantStyles = {
-  blue: {
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-    iconBg: "bg-blue-100",
-    text: "text-blue-900",
-    subtext: "text-blue-600",
-  },
-  green: {
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-    iconBg: "bg-emerald-100",
-    text: "text-emerald-900",
-    subtext: "text-emerald-600",
-  },
-  yellow: {
-    bg: "bg-amber-50",
-    border: "border-amber-100",
-    iconBg: "bg-amber-100",
-    text: "text-amber-900",
-    subtext: "text-amber-600",
-  },
-  gray: {
-    bg: "bg-gray-50",
-    border: "border-gray-100",
-    iconBg: "bg-gray-100",
-    text: "text-gray-900",
-    subtext: "text-gray-600",
-  },
+  blue: "bg-[var(--bg-surface)] border-[var(--border)]",
+  green: "bg-[var(--bg-surface)] border-[var(--border)]",
+  yellow: "bg-[var(--bg-surface)] border-[var(--border)]",
+  gray: "bg-[var(--bg-surface)] border-[var(--border)]",
 };
+
+  const accentColors = {
+    blue: "blue",
+    green: "green",
+    yellow: "yellow",
+    gray: "gray",
+  };
 
 export function MetricCard({
   label,
@@ -56,12 +40,11 @@ export function MetricCard({
   variant = "blue",
   isLoading = false,
   prefix = "",
+  className = "",
 }: MetricCardProps) {
-  const styles = variantStyles[variant];
-
   if (isLoading) {
     return (
-      <div className={cn("rounded-xl border p-5", styles.bg, styles.border)}>
+      <div className={cn("metric-card", variant, "rounded-xl border p-5 relative overflow-hidden", variantStyles[variant], className)}>
         <Skeleton className="h-3 w-24 mb-3" />
         <Skeleton className="h-8 w-32 mb-2" />
         <Skeleton className="h-3 w-20" />
@@ -69,33 +52,34 @@ export function MetricCard({
     );
   }
 
+  // Format delta display text
+  const getDeltaDisplay = () => {
+    if (!delta) return null;
+    if (delta.value === 0) {
+      return <span className="text-[12px] font-semibold text-[var(--text-muted)]">— {delta.label || "no change"}</span>;
+    }
+    const arrow = delta.isPositive ? "▲" : "▼";
+    const colorClass = delta.isPositive ? "text-[var(--success)]" : "text-[var(--danger)]";
+    return (
+      <span className={cn("text-[12px] font-semibold", colorClass)}>
+        {arrow} {delta.value}%{delta.label && ` ${delta.label}`}
+      </span>
+    );
+  };
+
   return (
-    <div className={cn("rounded-xl border p-5", styles.bg, styles.border)}>
-      <p className={cn("text-xs font-semibold uppercase tracking-wide mb-2", styles.subtext)}>
+    <div className={cn("metric-card", variant, "rounded-xl border p-5", variantStyles[variant], className)}>
+      <p className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-2.5">
         {label}
       </p>
-      <div className="flex items-baseline gap-2">
-        <p className={cn("text-2xl font-bold tabular-nums", styles.text)}>
-          {prefix}{value}
-        </p>
-        {delta && (
-          <span
-            className={cn(
-              "inline-flex items-center text-xs font-medium",
-              delta.isPositive ? "text-emerald-600" : "text-red-600"
-            )}
-          >
-            {delta.isPositive ? (
-              <TrendingUp className="w-3 h-3 mr-0.5" />
-            ) : (
-              <TrendingDown className="w-3 h-3 mr-0.5" />
-            )}
-            {Math.abs(delta.value)}%
-          </span>
-        )}
-      </div>
+      <p className="text-[28px] font-bold text-[var(--text-heading)] tabular-nums tracking-tight mb-1.5">
+        {prefix}{value}
+      </p>
+      {delta && (
+        <div className="mb-1">{getDeltaDisplay()}</div>
+      )}
       {subtext && (
-        <p className={cn("text-xs mt-1", styles.subtext)}>
+        <p className="text-[11px] text-[var(--text-muted)]">
           {subtext}
         </p>
       )}

@@ -1,20 +1,14 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Wallet } from "lucide-react";
-import Link from "next/link";
+import {
+  DataTable,
+  AvatarCell,
+  CurrencyCell,
+  DateCell,
+  StatusBadgeCell,
+  type TableColumn,
+} from "@/components/ui/DataTable";
 
 interface Commission {
   _id: string;
@@ -35,138 +29,86 @@ interface RecentCommissionsTableProps {
   showPayAllButton?: boolean;
 }
 
-const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  confirmed: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Confirmed" },
-  pending: { bg: "bg-amber-100", text: "text-amber-700", label: "Pending" },
-  reversed: { bg: "bg-red-100", text: "text-red-700", label: "Reversed" },
-  paid: { bg: "bg-gray-100", text: "text-gray-700", label: "Paid" },
-};
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDate(timestamp: number): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(timestamp));
-}
-
 export function RecentCommissionsTable({
   commissions,
   isLoading = false,
-  pendingCount = 0,
-  showPayAllButton = false,
 }: RecentCommissionsTableProps) {
+  const columns: TableColumn<Commission>[] = [
+    {
+      key: "affiliate",
+      header: "Affiliate",
+      cell: (row) => (
+        <AvatarCell
+          name={row.affiliateName}
+          email={row.campaignName || row.affiliateEmail}
+          size="sm"
+        />
+      ),
+    },
+    {
+      key: "amount",
+      header: "Commission",
+      cell: (row) => <CurrencyCell amount={row.amount} />,
+      width: 120,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => <StatusBadgeCell status={row.status} />,
+      width: 100,
+    },
+    {
+      key: "date",
+      header: "Date",
+      cell: (row) => <DateCell value={row.createdAt} />,
+      width: 100,
+    },
+  ];
+
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
-
-  if (commissions.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p className="text-sm">No commissions yet</p>
-        <p className="text-xs mt-1">Commissions will appear here when affiliates earn them</p>
+      <div className="card-body">
+        <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]"
+                  >
+                    <Skeleton className="h-3 w-20" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-[#f3f4f6]">
+                  {columns.map((col) => (
+                    <td key={col.key} className="px-4 py-3">
+                      <Skeleton className="h-4 w-full max-w-[200px]" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Recent Commissions
-        </h3>
-        {showPayAllButton && pendingCount > 0 && (
-          <Button variant="outline" size="sm" className="h-8 gap-1.5">
-            <Wallet className="w-3.5 h-3.5" />
-            Pay All Pending
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-              {pendingCount}
-            </Badge>
-          </Button>
-        )}
-      </div>
-
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="text-xs font-semibold uppercase">Affiliate</TableHead>
-              <TableHead className="text-xs font-semibold uppercase">Amount</TableHead>
-              <TableHead className="text-xs font-semibold uppercase">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase">Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {commissions.map((commission) => {
-              const status = statusStyles[commission.status] || statusStyles.pending;
-              const initials = commission.affiliateName
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2);
-
-              return (
-                <TableRow key={commission._id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{commission.affiliateName}</p>
-                        <p className="text-xs text-muted-foreground">{commission.affiliateEmail}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium tabular-nums">
-                    {formatCurrency(commission.amount)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={cn("text-xs font-medium", status.bg, status.text)}
-                    >
-                      {status.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(commission.createdAt)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex justify-end">
-        <Link
-          href="/commissions"
-          className="inline-flex items-center text-xs font-medium text-primary hover:underline"
-        >
-          View All
-          <ArrowRight className="w-3.5 h-3.5 ml-1" />
-        </Link>
-      </div>
+    <div className="card-body">
+      <DataTable
+        columns={columns}
+        data={commissions}
+        getRowId={(row) => row._id}
+        isLoading={isLoading}
+        emptyMessage="No commissions yet"
+        className="rounded-none border-0"
+      />
     </div>
   );
 }

@@ -1,16 +1,12 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { UserPlus, Wallet, Megaphone, Download } from "lucide-react";
 import Link from "next/link";
 
 interface QuickAction {
   label: string;
   subtext: string;
   href: string;
-  icon: React.ReactNode;
+  emoji: string;
 }
 
 interface QuickActionsPanelProps {
@@ -25,56 +21,51 @@ export function QuickActionsPanel({
   const actions: QuickAction[] = [
     {
       label: "Invite Affiliate",
-      subtext: "Grow your program",
+      subtext: "Send by email",
       href: "/affiliates/invite",
-      icon: <UserPlus className="w-5 h-5" />,
+      emoji: "📨",
     },
     ...(showPayAll
       ? [
           {
-            label: "Pay All Pending",
+            label: "Pay All",
             subtext: pendingCount > 0 ? `${pendingCount} pending` : "No pending",
             href: "/payouts",
-            icon: <Wallet className="w-5 h-5" />,
+            emoji: "💸",
           },
         ]
       : []),
     {
       label: "New Campaign",
-      subtext: "Create offer",
+      subtext: "Set commissions",
       href: "/campaigns/new",
-      icon: <Megaphone className="w-5 h-5" />,
+      emoji: "🎯",
     },
     {
       label: "Export Report",
-      subtext: "Download CSV",
+      subtext: "CSV download",
       href: "/reports?export=true",
-      icon: <Download className="w-5 h-5" />,
+      emoji: "📊",
     },
   ];
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Quick Actions
-      </h3>
-
-      <div className="grid grid-cols-2 gap-3">
-        {actions.map((action) => (
-          <Link key={action.label} href={action.href}>
-            <Card className="p-4 hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer group">
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  {action.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{action.label}</p>
-                  <p className="text-xs text-muted-foreground">{action.subtext}</p>
-                </div>
+    <div className="card">
+      <div className="card-header">
+        <h3 className="card-title">Quick Actions</h3>
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-3">
+          {actions.map((action) => (
+            <Link key={action.label} href={action.href}>
+              <div className="border border-[var(--border)] rounded-xl p-4 cursor-pointer transition-all hover:border-[var(--brand-secondary)] hover:bg-[#eff6ff] text-center group">
+                <div className="text-[24px] mb-2">{action.emoji}</div>
+                <div className="text-[12px] font-semibold text-[var(--text-heading)] group-hover:text-[var(--brand-primary)] transition-colors">{action.label}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{action.subtext}</div>
               </div>
-            </Card>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

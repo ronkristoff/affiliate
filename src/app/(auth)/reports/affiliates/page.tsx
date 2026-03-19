@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useQuery, useAction } from "convex/react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn, downloadCsv } from "@/lib/utils";
@@ -18,18 +17,35 @@ import {
 } from "./components";
 import { toast } from "sonner";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
+import { useQueryState, parseAsString } from "nuqs";
 
-export default function AffiliatePerformancePage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function AffiliatePerformancePageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <AffiliatePerformancePage />
+    </Suspense>
+  );
+}
+
+function AffiliatePerformancePage() {
+  // URL state via nuqs for campaign filter
+  const [selectedCampaignId, setSelectedCampaignId] = useQueryState(
+    "campaign",
+    parseAsString.withDefault("")
+  );
   
+  const [selectedAffiliateId, setSelectedAffiliateId] = useState<Id<"affiliates"> | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
   // Use shared date range hook for global consistency
   const { dateRange, setDateRange } = useDateRange();
   const queryDateRange = getQueryDateRange(dateRange);
-  
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
-  const [selectedAffiliateId, setSelectedAffiliateId] = useState<Id<"affiliates"> | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
 
   // Get current user for RBAC
   const user = useQuery(api.auth.getCurrentUser, {});
@@ -46,12 +62,6 @@ export default function AffiliatePerformancePage() {
   const canExport = userRole === "owner" || userRole === "manager";
   const isViewer = userRole === "viewer";
 
-  // Initialize from URL params
-  const campaignParam = searchParams.get("campaign");
-  if (campaignParam && !selectedCampaignId) {
-    setSelectedCampaignId(campaignParam);
-  }
-
   // Handle date range change
   const handleDateRangeChange = (range: { start: number; end: number; label: string; isCustom: boolean; preset?: string }) => {
     setDateRange({
@@ -63,18 +73,9 @@ export default function AffiliatePerformancePage() {
     });
   };
 
-  // Handle campaign filter change
+  // Handle campaign filter change — nuqs handles URL sync automatically
   const handleCampaignChange = (campaignId?: string) => {
-    setSelectedCampaignId(campaignId);
-    
-    // Update URL params
-    const params = new URLSearchParams(searchParams.toString());
-    if (campaignId) {
-      params.set("campaign", campaignId);
-    } else {
-      params.delete("campaign");
-    }
-    router.push(`?${params.toString()}`, { scroll: false });
+    setSelectedCampaignId(campaignId || null);
   };
 
   // Handle affiliate selection

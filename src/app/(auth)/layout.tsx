@@ -1,8 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { SidebarNav } from "@/components/shared/SidebarNav";
-import { UserProfile } from "@/components/server";
+import { Sidebar } from "@/components/shared/Sidebar";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -58,29 +57,16 @@ function AuthLayoutContent({
       {/* Impersonation Banner — fixed at top, offsets all content */}
       {isImpersonating && <ImpersonationBanner />}
 
-      {/* Sidebar — hidden during impersonation per AC#9 */}
-      {!isImpersonating && (
-        <aside className="w-64 border-r bg-background px-4 py-6 hidden md:flex md:flex-col">
-          <div className="mb-8">
-            <h1 className="text-xl font-bold">Salig Affiliate</h1>
-          </div>
-          
-          <SidebarNav />
-          
-          <div className="mt-auto pt-6 border-t space-y-3">
-            <UserProfile user={user} />
-            <LogoutButton />
-          </div>
-        </aside>
-      )}
+      {/* Sidebar — uses the dark themed sidebar matching HTML design */}
+      {!isImpersonating && <Sidebar />}
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6">
+      {/* Main Content - offset by sidebar width */}
+      <main className="flex-1 min-h-screen" style={{ marginLeft: 240 }}>
+        <div className="min-h-screen">
           {children}
         </div>
       </main>
-      
+
       <Toaster />
     </div>
   );
@@ -90,15 +76,9 @@ function AuthLayoutSkeleton() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar skeleton */}
-      <aside className="w-64 border-r bg-background px-4 py-6 hidden md:block">
-        <Skeleton className="h-6 w-32 mb-8" />
-        <div className="space-y-3">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      </aside>
+      <div className="w-[240px] bg-[#022232] min-h-screen hidden md:block">
+        <Skeleton className="h-6 w-32 mx-5 my-6" />
+      </div>
 
       {/* Main content skeleton */}
       <main className="flex-1 overflow-auto">

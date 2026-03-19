@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Users, Megaphone } from "lucide-react";
+import { Users, Megaphone } from "lucide-react";
 
 interface PlanUsage {
   planName: string;
@@ -28,18 +28,20 @@ const UNLIMITED = -1;
 export function PlanUsageWidget({ usage, isLoading = false }: PlanUsageWidgetProps) {
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
+      <div className="p-5">
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
       </div>
     );
   }
 
   if (!usage) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p className="text-sm">Plan usage unavailable</p>
+      <div className="text-center py-12 px-5">
+        <p className="text-sm text-muted-foreground">Plan usage unavailable</p>
       </div>
     );
   }
@@ -49,95 +51,58 @@ export function PlanUsageWidget({ usage, isLoading = false }: PlanUsageWidgetPro
     return `${count.toLocaleString()} / ${limit.toLocaleString()}`;
   };
 
-  const getProgressColor = (percent: number, hasWarning: boolean): string => {
-    if (percent >= 95) return "bg-red-500";
-    if (hasWarning || percent >= 80) return "bg-amber-500";
-    return "bg-emerald-500";
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Plan Usage
-        </h3>
-        <Badge variant="secondary" className="text-xs">
+    <div className="card">
+      <div className="card-header">
+        <h3 className="card-title">Plan Usage</h3>
+        <Badge variant="secondary" className="text-[11px] bg-[#dbeafe] text-[#1e40af]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--blue)] mr-1.5" />
           {usage.planName}
         </Badge>
       </div>
-
-      {/* Affiliates Usage */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Affiliates</span>
-          {usage.affiliateWarning && (
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-          )}
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">
-            {formatLimit(usage.affiliateCount, usage.maxAffiliates)}
-          </span>
+      <div className="p-5">
+        {/* Affiliates Usage */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[12px] font-semibold text-[var(--text-body)]">Affiliates</span>
+            </div>
+            <span className="text-[12px] text-muted-foreground">
+              {formatLimit(usage.affiliateCount, usage.maxAffiliates)}
+            </span>
+          </div>
           {usage.maxAffiliates !== UNLIMITED && (
-            <span className={cn(
-              "font-medium",
-              usage.affiliateWarning ? "text-amber-600" : "text-muted-foreground"
-            )}>
-              {usage.affiliateUsagePercent}%
-            </span>
+            <div className="bg-[var(--bg-page)] rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 rounded-full bg-[var(--brand-secondary)]"
+                style={{ width: `${Math.min(usage.affiliateUsagePercent, 100)}%` }}
+              />
+            </div>
           )}
         </div>
-        {usage.maxAffiliates !== UNLIMITED && (
-          <Progress
-            value={Math.min(usage.affiliateUsagePercent, 100)}
-            className="h-2"
-          />
-        )}
-      </div>
 
-      {/* Campaigns Usage */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Megaphone className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Campaigns</span>
-          {usage.campaignWarning && (
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-          )}
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">
-            {formatLimit(usage.campaignCount, usage.maxCampaigns)}
-          </span>
+        {/* Campaigns Usage */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[12px] font-semibold text-[var(--text-body)]">Campaigns</span>
+            </div>
+            <span className="text-[12px] text-muted-foreground">
+              {formatLimit(usage.campaignCount, usage.maxCampaigns)}
+            </span>
+          </div>
           {usage.maxCampaigns !== UNLIMITED && (
-            <span className={cn(
-              "font-medium",
-              usage.campaignWarning ? "text-amber-600" : "text-muted-foreground"
-            )}>
-              {usage.campaignUsagePercent}%
-            </span>
+            <div className="bg-[var(--bg-page)] rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 rounded-full bg-[var(--brand-secondary)]"
+                style={{ width: `${Math.min(usage.campaignUsagePercent, 100)}%` }}
+              />
+            </div>
           )}
         </div>
-        {usage.maxCampaigns !== UNLIMITED && (
-          <Progress
-            value={Math.min(usage.campaignUsagePercent, 100)}
-            className="h-2"
-          />
-        )}
       </div>
-
-      {/* Upgrade Prompt */}
-      {(usage.affiliateWarning || usage.campaignWarning) && (
-        <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
-          <p className="text-xs text-amber-800">
-            Approaching plan limits.{" "}
-            <a href="/settings/billing" className="font-medium underline hover:no-underline">
-              Upgrade plan
-            </a>{" "}
-            for more capacity.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

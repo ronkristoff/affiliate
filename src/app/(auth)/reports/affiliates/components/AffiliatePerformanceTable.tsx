@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpDown, ArrowUp, ArrowDown, Medal } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-
-type SortBy = "clicks" | "conversions" | "conversionRate" | "commissions" | "name";
-type SortOrder = "asc" | "desc";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  DataTable,
+  AvatarCell,
+  NumberCell,
+  CurrencyCell,
+  StatusBadgeCell,
+  type TableColumn,
+} from "@/components/ui/DataTable";
+import {
+  useQueryState,
+  parseAsStringLiteral,
+} from "nuqs";
 
 interface AffiliatePerformance {
   _id: Id<"affiliates">;
@@ -40,17 +39,10 @@ interface AffiliatePerformanceTableProps {
   canViewSensitiveData: boolean;
 }
 
-const statusColors: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700",
-  pending: "bg-amber-100 text-amber-700",
-  suspended: "bg-red-100 text-red-700",
-  rejected: "bg-gray-100 text-gray-700",
-};
-
 const rankColors: Record<number, string> = {
-  0: "bg-yellow-100 text-yellow-700 border-yellow-200", // Gold
-  1: "bg-gray-200 text-gray-700 border-gray-300",      // Silver
-  2: "bg-orange-100 text-orange-700 border-orange-200", // Bronze
+  0: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  1: "bg-gray-200 text-gray-700 border-gray-300",
+  2: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
 export function AffiliatePerformanceTable({
@@ -60,8 +52,14 @@ export function AffiliatePerformanceTable({
   onAffiliateSelect,
   canViewSensitiveData,
 }: AffiliatePerformanceTableProps) {
-  const [sortBy, setSortBy] = useState<SortBy>("name");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [sortBy, setSortBy] = useQueryState(
+    "sortBy",
+    parseAsStringLiteral(["clicks", "conversions", "conversionRate", "commissions", "name"] as const).withDefault("name")
+  );
+  const [sortOrder, setSortOrder] = useQueryState(
+    "order",
+    parseAsStringLiteral(["asc", "desc"] as const).withDefault("asc")
+  );
 
   const affiliates = useQuery(
     api.reports.getAffiliatePerformanceList,
@@ -76,16 +74,16 @@ export function AffiliatePerformanceTable({
 
   const isLoading = affiliates === undefined;
 
-  const handleSort = (column: SortBy) => {
+  const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
-      setSortBy(column);
-      setSortOrder("desc"); // Default to desc for new column
+      setSortBy(column as typeof sortBy);
+      setSortOrder("desc");
     }
   };
 
-  const getSortIcon = (column: SortBy) => {
+  const getSortIcon = (column: string) => {
     if (sortBy !== column) {
       return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
     }
@@ -95,6 +93,123 @@ export function AffiliatePerformanceTable({
       <ArrowDown className="w-3 h-3 ml-1" />
     );
   };
+
+  // Sort by commissions descending to identify top performers
+  const sortedByCommissions = [...(affiliates || [])].sort(
+    (a, b) => b.totalCommissions - a.totalCommissions
+  );
+
+  const columns: TableColumn<AffiliatePerformance>[] = [
+    {
+      key: "rank",
+      header: "Rank",
+      cell: (row) => {
+        const rank = sortedByCommissions.findIndex((a) => a._id === row._id);
+        if (rank < 3) {
+          return (
+            <div
+              className={cn(
+                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
+                rankColors[rank]
+              )}
+            >
+              {rank + 1}
+            </div>
+          );
+        }
+        return (
+          <span className="text-muted-foreground text-sm w-7 inline-block text-center">
+            {rank + 1}
+          </span>
+        );
+      },
+      width: 60,
+    },
+    {
+      key: "affiliate",
+      header: (
+        <button
+          onClick={() => handleSort("name")}
+          className="flex items-center hover:text-[#10409a]"
+        >
+          Affiliate {getSortIcon("name")}
+        </button>
+      ),
+      cell: (row) => (
+        <div className="flex items-center gap-2">
+          <AvatarCell name={row.name} email={row.email} size="sm" />
+          <span className="text-xs text-muted-foreground">({row.uniqueCode})</span>
+        </div>
+      ),
+    },
+    {
+      key: "clicks",
+      header: (
+        <button
+          onClick={() => handleSort("clicks")}
+          className="flex items-center justify-end hover:text-[#10409a] w-full"
+        >
+          Clicks {getSortIcon("clicks")}
+        </button>
+      ),
+      align: "right",
+      cell: (row) => <NumberCell value={row.clicks} />,
+      width: 80,
+    },
+    {
+      key: "conversions",
+      header: (
+        <button
+          onClick={() => handleSort("conversions")}
+          className="flex items-center justify-end hover:text-[#10409a] w-full"
+        >
+          Conversions {getSortIcon("conversions")}
+        </button>
+      ),
+      align: "right",
+      cell: (row) => <NumberCell value={row.conversions} />,
+      width: 100,
+    },
+    {
+      key: "conversionRate",
+      header: (
+        <button
+          onClick={() => handleSort("conversionRate")}
+          className="flex items-center justify-end hover:text-[#10409a] w-full"
+        >
+          Conv. Rate {getSortIcon("conversionRate")}
+        </button>
+      ),
+      align: "right",
+      cell: (row) => <NumberCell value={row.conversionRate} format="percent" />,
+      width: 90,
+    },
+    {
+      key: "commissions",
+      header: (
+        <button
+          onClick={() => handleSort("commissions")}
+          className="flex items-center justify-end hover:text-[#10409a] w-full"
+        >
+          Commissions {getSortIcon("commissions")}
+        </button>
+      ),
+      align: "right",
+      cell: (row) =>
+        canViewSensitiveData ? (
+          <CurrencyCell amount={row.totalCommissions} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+      width: 110,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (row) => <StatusBadgeCell status={row.status} />,
+      width: 100,
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -109,149 +224,13 @@ export function AffiliatePerformanceTable({
     );
   }
 
-  if (affiliates.length === 0) {
-    return (
-      <div className="rounded-lg border bg-white p-8 text-center">
-        <p className="text-muted-foreground">No affiliates found for the selected period.</p>
-      </div>
-    );
-  }
-
-  // Sort by commissions descending to identify top performers
-  const sortedByCommissions = [...affiliates].sort((a, b) => b.totalCommissions - a.totalCommissions);
-  const topPerformerIds = new Set(sortedByCommissions.slice(0, 3).map(a => a._id));
-
   return (
-    <div className="rounded-lg border bg-white overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-50 hover:bg-gray-50">
-            <TableHead className="w-12 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Rank
-            </TableHead>
-            <TableHead 
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer"
-              onClick={() => handleSort("name")}
-            >
-              <div className="flex items-center">
-                Affiliate
-                {getSortIcon("name")}
-              </div>
-            </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Email
-            </TableHead>
-            <TableHead 
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer text-right"
-              onClick={() => handleSort("clicks")}
-            >
-              <div className="flex items-center justify-end">
-                Clicks
-                {getSortIcon("clicks")}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer text-right"
-              onClick={() => handleSort("conversions")}
-            >
-              <div className="flex items-center justify-end">
-                Conversions
-                {getSortIcon("conversions")}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer text-right"
-              onClick={() => handleSort("conversionRate")}
-            >
-              <div className="flex items-center justify-end">
-                Conv. Rate
-                {getSortIcon("conversionRate")}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer text-right"
-              onClick={() => handleSort("commissions")}
-            >
-              <div className="flex items-center justify-end">
-                Commissions
-                {getSortIcon("commissions")}
-              </div>
-            </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Status
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {affiliates.map((affiliate, index) => {
-            const isTopPerformer = topPerformerIds.has(affiliate._id);
-            const rank = sortedByCommissions.findIndex(a => a._id === affiliate._id);
-
-            return (
-              <TableRow
-                key={affiliate._id}
-                className={cn(
-                  "cursor-pointer transition-colors",
-                  onAffiliateSelect ? "hover:bg-gray-50" : "",
-                  isTopPerformer && rank < 3 && "bg-yellow-50/30"
-                )}
-                onClick={() => onAffiliateSelect?.(affiliate._id)}
-              >
-                <TableCell className="py-3">
-                  {rank < 3 ? (
-                    <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border",
-                      rankColors[rank]
-                    )}>
-                      {rank + 1}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm w-7 inline-block text-center">
-                      {rank + 1}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{affiliate.name}</span>
-                    <span className="text-xs text-muted-foreground">({affiliate.uniqueCode})</span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-sm text-gray-600">
-                  {affiliate.email}
-                </TableCell>
-                <TableCell className="py-3 text-right text-sm tabular-nums">
-                  {affiliate.clicks.toLocaleString()}
-                </TableCell>
-                <TableCell className="py-3 text-right text-sm tabular-nums">
-                  {affiliate.conversions.toLocaleString()}
-                </TableCell>
-                <TableCell className="py-3 text-right text-sm tabular-nums">
-                  {affiliate.conversionRate.toFixed(2)}%
-                </TableCell>
-                <TableCell className="py-3 text-right text-sm tabular-nums">
-                  {canViewSensitiveData ? (
-                    <span>₱{affiliate.totalCommissions.toLocaleString("en-PH", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}</span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="py-3">
-                  <Badge 
-                    variant="secondary" 
-                    className={cn("text-xs capitalize", statusColors[affiliate.status] || "bg-gray-100 text-gray-700")}
-                  >
-                    {affiliate.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={affiliates || []}
+      getRowId={(row) => row._id}
+      onRowClick={onAffiliateSelect ? (row) => onAffiliateSelect(row._id) : undefined}
+      emptyMessage="No affiliates found for the selected period."
+    />
   );
 }

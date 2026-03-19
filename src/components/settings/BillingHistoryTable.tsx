@@ -1,17 +1,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import {
+  DataTable,
+  DateCell,
+  CurrencyCell,
+  type TableColumn,
+} from "@/components/ui/DataTable";
 
 interface BillingHistoryEvent {
   _id: Id<"billingHistory">;
@@ -41,20 +39,12 @@ const eventLabels: Record<string, string> = {
   trial_conversion: "Trial Converted",
 };
 
-const eventColors: Record<string, string> = {
-  upgrade: "text-green-600",
-  downgrade: "text-orange-600",
-  cancel: "text-red-600",
-  renew: "text-blue-600",
-  trial_conversion: "text-purple-600",
-};
-
-const eventBgColors: Record<string, string> = {
-  upgrade: "bg-green-50",
-  downgrade: "bg-orange-50",
-  cancel: "bg-red-50",
-  renew: "bg-blue-50",
-  trial_conversion: "bg-purple-50",
+const eventColors: Record<string, { bg: string; text: string }> = {
+  upgrade: { bg: "#d1fae5", text: "#065f46" },
+  downgrade: { bg: "#ffedd5", text: "#9a3412" },
+  cancel: { bg: "#fee2e2", text: "#991b1b" },
+  renew: { bg: "#dbeafe", text: "#1e40af" },
+  trial_conversion: { bg: "#f3e8ff", text: "#6b21a8" },
 };
 
 export function BillingHistoryTable({
@@ -65,26 +55,59 @@ export function BillingHistoryTable({
   onNext,
   onPrevious,
 }: BillingHistoryTableProps) {
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatAmount = (amount?: number, proratedAmount?: number) => {
-    if (amount === undefined) return "-";
-    const mainAmount = `₱${amount.toLocaleString()}`;
-    if (proratedAmount && proratedAmount !== amount) {
-      return `${mainAmount} (prorated: ₱${proratedAmount.toLocaleString()})`;
-    }
-    return mainAmount;
-  };
-
-  const getPlanDisplayName = (plan: string) => {
+  const getPlanDisplayName = (plan?: string) => {
+    if (!plan) return "-";
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   };
+
+  const columns: TableColumn<BillingHistoryEvent>[] = [
+    {
+      key: "date",
+      header: "Date",
+      cell: (row) => <DateCell value={row.timestamp} />,
+      width: 120,
+    },
+    {
+      key: "event",
+      header: "Event",
+      cell: (row) => {
+        const config = eventColors[row.event] || { bg: "#f3f4f6", text: "#374151" };
+        return (
+          <span
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            style={{ backgroundColor: config.bg, color: config.text }}
+          >
+            {eventLabels[row.event] || row.event}
+          </span>
+        );
+      },
+      width: 140,
+    },
+    {
+      key: "plan",
+      header: "Plan",
+      cell: (row) => (
+        <span>
+          {row.previousPlan && (
+            <span className="text-[#6b7280]">
+              {getPlanDisplayName(row.previousPlan)} →{" "}
+            </span>
+          )}
+          <span className="text-[#333]">{getPlanDisplayName(row.newPlan)}</span>
+        </span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      cell: (row) => {
+        if (row.amount === undefined) return <span className="text-[#6b7280]">-</span>;
+        return <CurrencyCell amount={row.amount} />;
+      },
+      width: 150,
+    },
+  ];
 
   return (
     <Card>
@@ -112,49 +135,12 @@ export function BillingHistoryTable({
           </div>
         ) : (
           <>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {events.map((event) => (
-                    <TableRow key={event._id}>
-                      <TableCell className="font-medium">
-                        {formatDate(event.timestamp)}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            eventBgColors[event.event] || "bg-gray-100"
-                          } ${eventColors[event.event] || "text-gray-600"}`}
-                        >
-                          {eventLabels[event.event] || event.event}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {event.previousPlan && (
-                          <span className="text-muted-foreground">
-                            {getPlanDisplayName(event.previousPlan)} →{" "}
-                          </span>
-                        )}
-                        {getPlanDisplayName(event.newPlan)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-medium">
-                          {formatAmount(event.amount, event.proratedAmount)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              columns={columns}
+              data={events}
+              getRowId={(row) => row._id}
+              emptyMessage="No billing history yet"
+            />
 
             {/* Pagination */}
             {(hasPrevious || hasMore) && (

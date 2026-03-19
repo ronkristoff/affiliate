@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  useQueryState,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
   sent: { label: "Sent", variant: "default", icon: <CheckCircle2 className="h-3 w-3" /> },
@@ -42,16 +47,26 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
 
 type SortField = "date" | "subject" | "recipientCount";
 type SortDirection = "asc" | "desc";
-type DateRangeFilter = "all" | "7d" | "30d" | "90d";
 
-export default function BroadcastHistoryPage() {
+function BroadcastHistoryPage() {
   const [cursor, setCursor] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [exportingId, setExportingId] = useState<string | null>(null);
+
+  // URL state via nuqs
+  const [searchQuery, setSearchQuery] = useQueryState(
+    "search",
+    parseAsString.withDefault("")
+  );
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsStringLiteral(["all", "sent", "partial", "failed", "sending"]).withDefault("all")
+  );
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [exportingId, setExportingId] = useState<string | null>(null);
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("all");
+  const [dateRangeFilter, setDateRangeFilter] = useQueryState(
+    "range",
+    parseAsStringLiteral(["all", "7d", "30d", "90d"]).withDefault("all")
+  );
 
   const broadcasts = useQuery(api.broadcasts.listBroadcasts, {
     paginationOpts: { numItems: 20, cursor },
@@ -218,7 +233,7 @@ export default function BroadcastHistoryPage() {
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "sent" | "partial" | "failed" | "sending")}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
@@ -232,7 +247,7 @@ export default function BroadcastHistoryPage() {
             </Select>
 
             {/* Date Range Filter (AC1) */}
-            <Select value={dateRangeFilter} onValueChange={(v) => setDateRangeFilter(v as DateRangeFilter)}>
+            <Select value={dateRangeFilter} onValueChange={(v) => setDateRangeFilter(v as "all" | "7d" | "30d" | "90d")}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="All time" />
               </SelectTrigger>
@@ -475,5 +490,23 @@ export default function BroadcastHistoryPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+      <div className="h-32 animate-pulse rounded-lg bg-muted" />
+      <div className="h-64 animate-pulse rounded-lg bg-muted" />
+    </div>
+  );
+}
+
+export default function BroadcastHistoryPageWrapper() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <BroadcastHistoryPage />
+    </Suspense>
   );
 }

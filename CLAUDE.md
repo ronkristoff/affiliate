@@ -311,3 +311,239 @@ pnpm convex env set BETTER_AUTH_SECRET your-prod-secret --prod
 3. **White-label trust** — Affiliate portal reflects the SaaS Owner's brand, not salig-affiliate's
 4. **Mobile-first for affiliates** — They may check commissions on mobile; dashboard must be responsive
 5. **Clear status communication** — Commission states, payout status, fraud flags must be instantly understandable
+
+---
+
+## Design System Patterns (from _bmad-output/screens/)
+
+### Color Palette (CSS Variables)
+
+```css
+/* Brand Colors */
+--brand-primary: #10409a;   /* Primary buttons, active states */
+--brand-secondary: #1659d6;  /* Hover states, accents */
+--brand-dark: #022232;       /* Sidebar background */
+--brand-light: #eff6ff;     /* Light backgrounds */
+--brand-link: #2b7bb9;       /* Links */
+
+/* Text Colors */
+--text-heading: #333333;      /* Headings */
+--text-body: #474747;         /* Body text */
+--text-muted: #6b7280;       /* Secondary text */
+
+/* Surface Colors */
+--bg-page: #f2f2f2;          /* Page background */
+--bg-surface: #ffffff;         /* Card backgrounds */
+
+/* Status Colors */
+--success: #10b981;          /* Confirmed, active */
+--warning: #f59e0b;          /* Pending, flagged */
+--danger: #ef4444;           /* Reversed, rejected */
+--info: #3b82f6;            /* Processing, info */
+
+/* Borders */
+--border: #e5e7eb;
+```
+
+### Typography
+
+- **Font Family**: Poppins (300, 400, 600, 700, 900 weights)
+- **Body Size**: 14px
+- **Topbar Title**: 17px / 700
+- **Card Titles**: 14px / 700
+- **Metric Label**: 11-12px uppercase
+- **Display Headings**: Passion One (for hero text, branding moments)
+
+### Layout
+
+- **Sidebar**: 240px fixed width
+- **Topbar Height**: 60px
+- **Page Padding**: 28px 32px
+- **Card Border Radius**: 12px (0.75rem)
+- **Button Border Radius**: 8px
+- **Badge/Pill Border Radius**: 99px (rounded-full)
+- **Input Border Radius**: 10px
+
+### Component Patterns
+
+#### Status Badges (Dot Indicator Pattern)
+```css
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Variants */
+.badge-confirmed { background: #d1fae5; color: #065f46; }
+.badge-confirmed .badge-dot { background: var(--success); }
+
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-pending .badge-dot { background: var(--warning); }
+
+.badge-reversed { background: #fee2e2; color: #991b1b; }
+.badge-reversed .badge-dot { background: var(--danger); }
+
+.badge-paid { background: #f3f4f6; color: #374151; }
+.badge-paid .badge-dot { background: var(--text-muted); }
+```
+
+#### Metric Cards
+```css
+.metric-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.metric-card.blue::before { background: var(--brand-secondary); }
+.metric-card.green::before { background: var(--success); }
+.metric-card.yellow::before { background: var(--warning); }
+.metric-card.gray::before { background: var(--text-muted); }
+```
+
+#### Tables
+```css
+th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 13px 16px;
+  font-size: 13px;
+  color: var(--text-body);
+  border-bottom: 1px solid #f3f4f6;
+}
+tr:hover td { background: #f9fafb; }
+```
+
+#### Buttons
+```css
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.btn-primary {
+  background: var(--brand-primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--brand-secondary); }
+.btn-outline {
+  background: transparent;
+  color: var(--text-body);
+  border: 1.5px solid var(--border);
+}
+.btn-outline:hover { background: var(--bg-page); }
+```
+
+#### Sidebar
+```css
+.sidebar {
+  width: 240px;
+  background: var(--brand-dark);
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  color: rgba(255, 255, 255, 0.55);
+  border-left: 3px solid transparent;
+}
+.nav-item.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-left-color: #7dd3fc;
+  font-weight: 600;
+}
+```
+
+#### Portal (White-label)
+```css
+.portal-header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.portal-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--brand);
+  border-radius: 8px;
+}
+```
+
+### Key UI Patterns
+
+1. **Status Badges**: Rounded-full with colored dot indicator + label
+2. **Metric Cards**: White background with 3px colored top accent bar
+3. **Tables**: Header with #fafafa background, hover rows with #f9fafb
+4. **Buttons**: Primary uses `--brand-primary`, outline uses `--border`
+5. **Filter Pills**: Rounded-full with active state using `--brand-light` background
+6. **Cards**: 12px border-radius, subtle shadow, 16-20px padding
+7. **Activity Feed**: List items with icon, text content, and relative timestamp
+8. **Quick Actions**: 2-column grid of action cards with icon + label
+
+### Screen Reference Files
+
+All design patterns extracted from:
+- `01-owner-dashboard.html` - Main dashboard layout
+- `02-owner-affiliates.html` - Affiliates management
+- `03-owner-commissions.html` - Commission tracking
+- `04-owner-payouts.html` - Payout management
+- `05-owner-campaigns.html` - Campaign management
+- `06-owner-reports.html` - Reports and analytics
+- `07-owner-settings.html` - Settings pages
+- `08-portal-login.html` - Affiliate portal login
+- `09-portal-home.html` - Affiliate portal home
+- `10-portal-earnings.html` - Portal earnings
+- `11-portal-links.html` - Portal referral links
+- `12-portal-account.html` - Portal account settings
+- `13-admin-tenants.html` - Admin tenant list
+- `14-admin-tenant-detail.html` - Admin tenant detail
+- `18-auth-login.html` - Auth sign-in
+- `19-auth-signup.html` - Auth sign-up
+- `20-marketing-landing.html` - Marketing landing page

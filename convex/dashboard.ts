@@ -1,7 +1,7 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
+import { api, internal } from "./_generated/api";
 
 /**
  * Dashboard Queries
@@ -744,3 +744,5 @@ export const getSetupStatus = query({
     };
   },
 });
+
+

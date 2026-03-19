@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MousePointerClick, ShoppingCart, TrendingUp, DollarSign } from "lucide-react";
 
 interface AffiliateStats {
@@ -16,6 +17,8 @@ interface ReferralMetricsGridProps {
 }
 
 export function ReferralMetricsGrid({ stats }: ReferralMetricsGridProps) {
+  const isLoading = stats === undefined;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -64,6 +67,31 @@ export function ReferralMetricsGrid({ stats }: ReferralMetricsGridProps) {
     };
     return classes[color] || classes.blue;
   };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((metric) => {
+          const colors = getColorClasses(metric.color);
+          return (
+            <Card key={metric.label}>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className={`h-10 w-10 rounded-full ${colors.bg} flex items-center justify-center animate-pulse`}>
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-7 w-16" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

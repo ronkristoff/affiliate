@@ -952,6 +952,38 @@ export const _getUserByAuthIdInternal = internalQuery({
   },
 });
 
+export const _getUserByEmailInternal = internalQuery({
+  args: {
+    email: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("users"),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+      tenantId: v.id("tenants"),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!user) return null;
+
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      tenantId: user.tenantId,
+    };
+  },
+});
+
 /**
  * Backfill authId for existing users who signed up before authId was implemented.
  * This links existing Better Auth users to their app user records.
