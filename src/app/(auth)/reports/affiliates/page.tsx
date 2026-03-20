@@ -51,7 +51,7 @@ function AffiliatePerformancePage() {
   const user = useQuery(api.auth.getCurrentUser, {});
   
   // Export action
-  const exportCSV = useAction(api.reports.exportAffiliatePerformanceCSV);
+  const exportCSV = useAction(api.reportsExport.exportAffiliatePerformanceCSV);
   
   // Get tenant ID from user
   const tenantId = user?.tenantId;

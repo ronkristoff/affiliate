@@ -38,6 +38,7 @@
     "convex.config": "link:@convex-dev/resend/convex.config",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.542.0",
+    "motion": "^12.38.0",
     "next": "16.1.0",
     "next-themes": "^0.4.6",
     "nuqs": "^2.8.9",

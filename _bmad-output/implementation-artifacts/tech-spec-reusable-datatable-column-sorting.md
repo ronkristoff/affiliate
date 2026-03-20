@@ -2,10 +2,13 @@
 title: "Reusable DataTable with Built-in Column Sorting"
 slug: "reusable-datatable-column-sorting"
 created: "2026-03-19"
-status: "ready-for-dev"
-stepsCompleted: [1, 2, 3, 4]
+status: "complete"
+stepsCompleted: [1, 2, 3, 4, 5]
+completedAt: "2026-03-19"
 tech_stack: ["Next.js 16", "React 19", "TypeScript", "Convex", "nuqs", "Tailwind CSS v4", "Lucide Icons", "Radix UI"]
 files_to_modify: ["src/components/ui/DataTable.tsx", "src/app/(auth)/affiliates/page.tsx", "src/components/affiliate/AffiliateTable.tsx", "src/app/(auth)/reports/affiliates/components/AffiliatePerformanceTable.tsx", "src/app/(auth)/dashboard/components/RecentCommissionsTable.tsx", "src/app/(auth)/dashboard/components/TopAffiliatesTable.tsx", "src/app/(auth)/payouts/history/PayoutHistoryClient.tsx", "src/app/(auth)/emails/history/page.tsx", "src/components/settings/BillingHistoryTable.tsx"]
+files_modified: ["src/components/ui/DataTable.tsx", "src/app/(auth)/affiliates/page.tsx", "src/app/(auth)/reports/affiliates/components/AffiliatePerformanceTable.tsx", "src/app/(auth)/dashboard/components/RecentCommissionsTable.tsx", "src/app/(auth)/dashboard/components/TopAffiliatesTable.tsx", "src/app/(auth)/dashboard/page.tsx", "src/app/(auth)/payouts/history/PayoutHistoryClient.tsx", "src/app/(auth)/emails/history/page.tsx", "src/components/settings/BillingHistoryTable.tsx", "src/components/affiliate/index.ts"]
+files_deleted: ["src/components/affiliate/AffiliateTable.tsx"]
 code_patterns: ["column-config-driven tables", "props-based sort state", "nuqs URL persistence at consumer level", "rowClassName callback for flexible row styling", "client-side sort fallback when no onSortChange"]
 test_patterns: ["no production tests exist in project", "placeholder tests only", "vitest configured"]
 ---
@@ -135,7 +138,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
 
 ### Tasks
 
-- [ ] **Task 1: Enhance `DataTable` with built-in column sorting + cleanup**
+- [x] **Task 1: Enhance `DataTable` with built-in column sorting + cleanup**
   - File: `src/components/ui/DataTable.tsx`
   - Action:
     1. Add new props to `DataTableProps<T>`: `sortBy?: string`, `sortOrder?: "asc" | "desc"`, `onSortChange?: (sortBy: string, sortOrder: "asc" | "desc") => void`, `rowClassName?: (row: T) => string`
@@ -161,7 +164,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
      9. **[F12/F13 fix]** Remove `CompactTable` — it is dead code (zero imports across the entire codebase). Delete ONLY the `CompactTable` component and its `CompactTableProps` interface (approximately lines 439-509). Do NOT delete `StatusBadgeCell` (defined after CompactTable) or the `TableColumn` type (used by both).
   - Notes: This is the foundation task. All subsequent migrations depend on this.
 
-- [ ] **Task 2: Fix minor `DataTable` styling deltas vs `AffiliateTable`**
+- [x] **Task 2: Fix minor `DataTable` styling deltas vs `AffiliateTable`**
   - File: `src/components/ui/DataTable.tsx`
   - Action:
     1. **[F5 fix]** DataTable already matches AffiliateTable styling almost exactly. Only fix these specific deltas:
@@ -169,7 +172,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     2. Visual regression check at `http://localhost:3000/reports/affiliates` (already uses DataTable) — verify no unintended changes.
   - Notes: This is a targeted fix, not a comprehensive restyling. DataTable's core styling is already correct.
 
-- [ ] **Task 3: Migrate `AffiliatePerformanceTable` to use built-in sort**
+- [x] **Task 3: Migrate `AffiliatePerformanceTable` to use built-in sort**
   - File: `src/app/(auth)/reports/affiliates/components/AffiliatePerformanceTable.tsx`
   - Action:
     1. Remove manual `handleSort` function (lines 77-84)
@@ -185,7 +188,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     10. **[F9 fix]** Remove the custom loading skeleton (lines 214-225) that renders a raw `<div>` + `<Skeleton>` before reaching `<DataTable>`. Instead, pass `isLoading` to `<DataTable>` so it uses the standardized built-in skeleton.
   - Notes: This is the simplest Tier 2 migration. The `nuqs` wiring already exists at the right level (consumer).
 
-- [ ] **Task 4: Add sortable flags to `RecentCommissionsTable`**
+- [x] **Task 4: Add sortable flags to `RecentCommissionsTable`**
   - File: `src/app/(auth)/dashboard/components/RecentCommissionsTable.tsx`
   - Action:
     1. Add `sortable: true` to `date` column — also set `sortField: "createdAt"` since the column key is `"date"` but the data field is `createdAt`
@@ -194,7 +197,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     4. **[F14 fix]** Before removing `pendingCount` and `showPayAllButton` props, verify no parent components pass them. Grep the codebase for `<RecentCommissionsTable` call sites. If any pass these props, remove them from the call site first. If none pass them, safely remove from the interface.
   - Notes: No `nuqs` wiring needed here — client-side sort fallback is fine for a dashboard widget showing recent items.
 
-- [ ] **Task 5: Add sortable flags to `TopAffiliatesTable`**
+- [x] **Task 5: Add sortable flags to `TopAffiliatesTable`**
   - File: `src/app/(auth)/dashboard/components/TopAffiliatesTable.tsx`
   - Action:
     1. Add `sortable: true` to `clicks`, `conversions`, `revenue` columns (keys already match data field names — no `sortField` needed)
@@ -202,7 +205,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     3. Keep the `TrendingUp` icon wrapper in the revenue cell renderer as-is
   - Notes: Client-side sort fallback is fine for a dashboard widget.
 
-- [ ] **Task 6: Add sortable flags to `BillingHistoryTable` + standardize loading/empty states**
+- [x] **Task 6: Add sortable flags to `BillingHistoryTable` + standardize loading/empty states**
   - File: `src/components/settings/BillingHistoryTable.tsx`
   - Action:
     1. Add `sortable: true` to `date` column — also set `sortField: "timestamp"` since the column key is `"date"` but the data field is `timestamp`
@@ -211,7 +214,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
      4. **[F11 fix]** Remove custom empty state (`Receipt` icon + description text, lines ~129-135). Pass `emptyMessage` to `<DataTable>` so it uses the standardized empty message. **IMPORTANT:** `Receipt` import must be RETAINED — it is still used in the `CardTitle` icon at line ~116. Do NOT remove the import.
   - Notes: Client-side sort fallback is fine. Pagination is externally driven — no conflict.
 
-- [ ] **Task 7: Migrate `/affiliates` page from `AffiliateTable` to `DataTable`**
+- [x] **Task 7: Migrate `/affiliates` page from `AffiliateTable` to `DataTable`**
   - File: `src/app/(auth)/affiliates/page.tsx`
   - File: `src/components/affiliate/AffiliateTable.tsx` (to be deleted)
   - Action:
@@ -231,7 +234,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     11. Remove `AffiliateTable` import and re-export from `src/components/affiliate/index.ts` if exported there
   - Notes: This is the highest-risk migration. The pending tab has unique selection behavior (bulk approve/reject). AC 19 "pixel-identical" depends on F6 (StatusBadge parity) and F7 (DateCell relative-full format). Verify visually at `http://localhost:3000/affiliates` — ALL tabs.
 
-- [ ] **Task 8: Migrate `PayoutHistoryClient` main table to `DataTable`**
+- [x] **Task 8: Migrate `PayoutHistoryClient` main table to `DataTable`**
   - File: `src/app/(auth)/payouts/history/PayoutHistoryClient.tsx`
   - Action:
     1. Replace the main batches table (shadcn `Table` primitives) with `DataTable` + `TableColumn<PayoutBatch>[]` config
@@ -243,7 +246,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     7. Keep pagination controls (Previous/Next) as-is — they're external to the table
   - Notes: Only the main list table is migrated. The detail dialog's inner table is a separate concern.
 
-- [ ] **Task 9: Migrate email history from CSS grid to `DataTable`**
+- [x] **Task 9: Migrate email history from CSS grid to `DataTable`**
   - File: `src/app/(auth)/emails/history/page.tsx`
   - Action:
      1. **[F8 fix]** Define a proper `Broadcast` TypeScript interface to replace the weak `Record<string, unknown>` typing. Extract from the fields actually used in cell renderers: `id`, `subject`, `sentAt`, `recipientCount`, `sentCount`, `openedCount`, `clickedCount`, `status`, etc. Type the column config as `TableColumn<Broadcast>[]`.
@@ -266,7 +269,7 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
     10. Extract `STATUS_CONFIG`, `getOpenRate()`, `getClickRate()` helpers (keep co-located or move to utils)
   - Notes: This is the most complex migration. F1 and F12 are the biggest UX decisions — keeping the mobile card view and retaining the sort dropdown preserves existing functionality while standardizing the desktop table.
 
-- [ ] **Task 10: Clean up and verify**
+- [x] **Task 10: Clean up and verify**
   - Files: multiple
   - Action:
     1. Verify no imports of deleted `AffiliateTable` remain anywhere in the codebase
@@ -288,49 +291,49 @@ The following styling from `src/components/affiliate/AffiliateTable.tsx` must be
 
 **DataTable Core (Tasks 1-2):**
 
-- [ ] AC 1: Given a `DataTable` with a column where `sortable: true`, when the user clicks the column header, then the data rows reorder by that column in descending order (default for first click)
-- [ ] AC 2: Given the user has sorted a column ascending, when the user clicks the same column header again, then the sort toggles to descending
-- [ ] AC 3: Given the user has sorted by column A descending, when the user clicks column B header, then the data sorts by column B descending (resets to default direction for new column)
-- [ ] AC 4: Given a sortable column header, when no sort is active on that column, then a subtle `ArrowUpDown` icon displays at `opacity-40`
-- [ ] AC 5: Given a column is actively sorted ascending, when rendered, then an `ArrowUp` icon displays at full opacity on that column header
-- [ ] AC 6: Given a column is actively sorted descending, when rendered, then an `ArrowDown` icon displays at full opacity on that column header
-- [ ] AC 7: Given `sortBy="amount"` and `sortOrder="asc"` and `onSortChange` is provided, when the component renders, then the data is NOT internally sorted (consumer controls sorting)
-- [ ] AC 8: Given `sortBy` and `sortOrder` and `onSortChange` are all omitted, when the user clicks a sortable header, then the data sorts client-side using the column values
-- [ ] AC 9: Given `rowClassName` callback returns `"bg-[#fffbeb]"` for selected rows, when those rows render, then the custom background color is applied AND it OVERRIDES the built-in `bg-[#eff6ff]` selection highlight (no class conflict)
-- [ ] AC 10: Given the `DataTable` renders, when visually compared to `AffiliateTable` screenshots, then all styles match exactly (container, header, rows, cells, hover, empty state, loading skeleton)
-- [ ] AC 11: Given a sortable column header on mobile, when measured, then the clickable area is ≥ 44px in height
+- [x] AC 1: Given a `DataTable` with a column where `sortable: true`, when the user clicks the column header, then the data rows reorder by that column in descending order (default for first click)
+- [x] AC 2: Given the user has sorted a column ascending, when the user clicks the same column header again, then the sort toggles to descending
+- [x] AC 3: Given the user has sorted by column A descending, when the user clicks column B header, then the data sorts by column B descending (resets to default direction for new column)
+- [x] AC 4: Given a sortable column header, when no sort is active on that column, then a subtle `ArrowUpDown` icon displays at `opacity-40`
+- [x] AC 5: Given a column is actively sorted ascending, when rendered, then an `ArrowUp` icon displays at full opacity on that column header
+- [x] AC 6: Given a column is actively sorted descending, when rendered, then an `ArrowDown` icon displays at full opacity on that column header
+- [x] AC 7: Given `sortBy="amount"` and `sortOrder="asc"` and `onSortChange` is provided, when the component renders, then the data is NOT internally sorted (consumer controls sorting)
+- [x] AC 8: Given `sortBy` and `sortOrder` and `onSortChange` are all omitted, when the user clicks a sortable header, then the data sorts client-side using the column values
+- [x] AC 9: Given `rowClassName` callback returns `"bg-[#fffbeb]"` for selected rows, when those rows render, then the custom background color is applied AND it OVERRIDES the built-in `bg-[#eff6ff]` selection highlight (no class conflict)
+- [x] AC 10: Given the `DataTable` renders, when visually compared to `AffiliateTable` screenshots, then all styles match exactly (container, header, rows, cells, hover, empty state, loading skeleton)
+- [x] AC 11: Given a sortable column header on mobile, when measured, then the clickable area is ≥ 44px in height
 
 **AffiliatePerformanceTable Migration (Task 3):**
 
-- [ ] AC 12: Given the reports affiliates page, when the user clicks a sortable column header, then sort state updates in the URL (`?sortBy=clicks&order=desc`)
-- [ ] AC 13: Given the reports affiliates page with `?sortBy=commissions&order=asc` in URL, when the page loads, then data is sorted by commissions ascending and the correct sort icon displays
-- [ ] AC 14: Given the reports affiliates page, when the user navigates away and presses back, then sort state is preserved from the URL
+- [x] AC 12: Given the reports affiliates page, when the user clicks a sortable column header, then sort state updates in the URL (`?sortBy=clicks&order=desc`)
+- [x] AC 13: Given the reports affiliates page with `?sortBy=commissions&order=asc` in URL, when the page loads, then data is sorted by commissions ascending and the correct sort icon displays
+- [x] AC 14: Given the reports affiliates page, when the user navigates away and presses back, then sort state is preserved from the URL
 
 **Affiliates Page Migration (Task 7):**
 
-- [ ] AC 15: Given the `/affiliates` pending tab, when rendered, then checkboxes display for row selection, approve/reject action buttons display for manage-able users
-- [ ] AC 16: Given the `/affiliates` pending tab with 3 affiliates selected, when rendered, then selected rows have `bg-[#fffbeb]` background AND NOT `bg-[#eff6ff]` (F7 merge — rowClassName override works correctly)
-- [ ] AC 17: Given the `/affiliates` non-pending tab, sortable columns are NOT yet enabled (F10 fix — pending Convex sort support). The columns have TODO comments marking them for future enablement.
-- [ ] AC 18: Given the `/affiliates` non-pending tab, when an affiliate has `hasFraudSignals: true`, then the "Flagged" badge displays in the affiliate name column
-- [ ] AC 19: Given the `/affiliates` page, when visually compared before and after migration, then the styling is pixel-identical across all tabs EXCEPT the pending tab which gains a "Campaign" column header (intentional bug fix — F5)
-- [ ] AC 20: Given `StatusBadgeCell` after update, when rendered alongside `StatusBadge`, then both produce visually identical badges (F3 fix — shadcn Badge wrapper)
+- [x] AC 15: Given the `/affiliates` pending tab, when rendered, then checkboxes display for row selection, approve/reject action buttons display for manage-able users
+- [x] AC 16: Given the `/affiliates` pending tab with 3 affiliates selected, when rendered, then selected rows have `bg-[#fffbeb]` background AND NOT `bg-[#eff6ff]` (F7 merge — rowClassName override works correctly)
+- [x] AC 17: Given the `/affiliates` non-pending tab, sortable columns are NOT yet enabled (F10 fix — pending Convex sort support). The columns have TODO comments marking them for future enablement.
+- [x] AC 18: Given the `/affiliates` non-pending tab, when an affiliate has `hasFraudSignals: true`, then the "Flagged" badge displays in the affiliate name column
+- [x] AC 19: Given the `/affiliates` page, when visually compared before and after migration, then the styling is pixel-identical across all tabs EXCEPT the pending tab which gains a "Campaign" column header (intentional bug fix — F5)
+- [x] AC 20: Given `StatusBadgeCell` after update, when rendered alongside `StatusBadge`, then both produce visually identical badges (F3 fix — shadcn Badge wrapper)
 
 **Payout History Migration (Task 8):**
 
-- [ ] AC 20: Given the `/payouts/history` page, when rendered, then the batches table displays with columns: Batch ID, Date, Affiliates, Total Amount, Status, Actions
-- [ ] AC 21: Given the `/payouts/history` page, when loading, then the `DataTable` built-in skeleton displays (not the old custom `TableSkeleton`)
-- [ ] AC 22: Given the `/payouts/history` page with no batches, when rendered, then the `DataTable` empty message displays
+- [x] AC 20: Given the `/payouts/history` page, when rendered, then the batches table displays with columns: Batch ID, Date, Affiliates, Total Amount, Status, Actions
+- [x] AC 21: Given the `/payouts/history` page, when loading, then the `DataTable` built-in skeleton displays (not the old custom `TableSkeleton`)
+- [x] AC 22: Given the `/payouts/history` page with no batches, when rendered, then the `DataTable` empty message displays
 
 **Email History Migration (Task 9):**
 
-- [ ] AC 23: Given the `/emails/history` page, when rendered, then broadcast emails display in a `DataTable` with sortable columns (subject, sent date, recipients)
-- [ ] AC 24: Given the `/emails/history` page, when the user clicks the subject cell link, then navigation to the email detail occurs via proper `<Link>` semantics (middle-click, Ctrl+click work correctly)
-- [ ] AC 25: Given the `/emails/history` page, when the user clicks the export button on a row, then the CSV downloads without navigating away
-- [ ] AC 26: Given the `/emails/history` page on mobile viewport (< 768px), when rendered, then the card layout displays (NOT a horizontally scrollable table)
-- [ ] AC 27: Given the `/emails/history` page on desktop (≥ 768px), when rendered, then the `DataTable` displays with the sort dropdown and column headers staying in sync via shared state
-- [ ] AC 28: Given `DateCell` with `format="relative-full"`, when the value is 5 minutes ago, then the output reads "5 minutes ago" (not "5m ago")
-- [ ] AC 29: Given `DateCell` with `size="sm"`, when rendered, then the text is `text-[11px]`. Given `size="default"`, then `text-[12px]`.
-- [ ] AC 30: Given a `DataTable` column with `key="affiliate"` and `sortField="name"`, when `onSortChange` is called, then `"name"` is passed (not `"affiliate"`)
+- [x] AC 23: Given the `/emails/history` page, when rendered, then broadcast emails display in a `DataTable` with sortable columns (subject, sent date, recipients)
+- [x] AC 24: Given the `/emails/history` page, when the user clicks the subject cell link, then navigation to the email detail occurs via proper `<Link>` semantics (middle-click, Ctrl+click work correctly)
+- [x] AC 25: Given the `/emails/history` page, when the user clicks the export button on a row, then the CSV downloads without navigating away
+- [x] AC 26: Given the `/emails/history` page on mobile viewport (< 768px), when rendered, then the card layout displays (NOT a horizontally scrollable table)
+- [x] AC 27: Given the `/emails/history` page on desktop (≥ 768px), when rendered, then the `DataTable` displays with the sort dropdown and column headers staying in sync via shared state
+- [x] AC 28: Given `DateCell` with `format="relative-full"`, when the value is 5 minutes ago, then the output reads "5 minutes ago" (not "5m ago")
+- [x] AC 29: Given `DateCell` with `size="sm"`, when rendered, then the text is `text-[11px]`. Given `size="default"`, then `text-[12px]`.
+- [x] AC 30: Given a `DataTable` column with `key="affiliate"` and `sortField="name"`, when `onSortChange` is called, then `"name"` is passed (not `"affiliate"`)
 
 ## Additional Context
 

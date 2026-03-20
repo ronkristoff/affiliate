@@ -19,6 +19,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar, ChevronDown } from "lucide-react";
+import { DATE_PRESETS, dateToTimestamp, timestampToDateInput } from "@/lib/date-utils";
+import type { DatePreset } from "@/lib/date-utils";
 
 type DateRangeOption = {
   label: string;
@@ -26,60 +28,8 @@ type DateRangeOption = {
   getRange?: () => { start: number; end: number } | null;
 };
 
-const dateRangeOptions: DateRangeOption[] = [
-  {
-    label: "Last 7 days",
-    value: "7d",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 7 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-  {
-    label: "Last 30 days",
-    value: "30d",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 30 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-  {
-    label: "Last 90 days",
-    value: "90d",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 90 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-  {
-    label: "This month",
-    value: "thisMonth",
-    getRange: () => {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      return { start, end: Date.now() };
-    },
-  },
-  {
-    label: "Last month",
-    value: "lastMonth",
-    getRange: () => {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of prev month
-      start.setDate(1); // First day of prev month
-      const end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of prev month
-      return { start: start.getTime(), end: end.getTime() };
-    },
-  },
-  {
-    label: "Custom",
-    value: "custom",
-    getRange: () => null, // Indicates custom range - opens date picker
-  },
-];
+// Use shared DATE_PRESETS as the canonical source, mapped to the local DateRangeOption type
+const dateRangeOptions: DateRangeOption[] = DATE_PRESETS;
 
 interface DateRangeSelectorProps {
   onChange?: (range: { start: number; end: number; label: string; isCustom: boolean; preset?: string }) => void;
@@ -100,25 +50,6 @@ function formatDateRange(start: number, end: number): string {
   };
   
   return `${startDate.toLocaleDateString("en-US", options)} - ${endDate.toLocaleDateString("en-US", options)}`;
-}
-
-/**
- * Converts a date string (YYYY-MM-DD) to timestamp at end of day
- */
-function dateToTimestamp(dateStr: string): number {
-  if (!dateStr) return 0;
-  const date = new Date(dateStr);
-  date.setHours(23, 59, 59, 999);
-  return date.getTime();
-}
-
-/**
- * Converts timestamp to YYYY-MM-DD format for input value
- */
-function timestampToDateInput(timestamp: number): string {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  return date.toISOString().split("T")[0];
 }
 
 /**

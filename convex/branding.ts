@@ -1,7 +1,10 @@
+"use node";
+
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
 
 /**
  * Upload tenant logo to Convex storage.
@@ -18,15 +21,15 @@ export const uploadTenantLogo = action({
   }),
   handler: async (ctx, args): Promise<{ success: boolean; logoUrl?: string }> => {
     // Get authenticated user
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    if (!betterAuthUser) {
       throw new Error("Unauthorized: Authentication required");
     }
 
     // Get user and check permissions
     type UserResult = { _id: Id<"users">; email: string; name?: string; role: string; tenantId: Id<"tenants"> } | null;
-    const user: UserResult = await ctx.runQuery(internal.users._getUserByAuthIdInternal, {
-      authId: identity.subject,
+    const user: UserResult = await ctx.runQuery(internal.users._getUserByEmailInternal, {
+      email: betterAuthUser.email,
     });
 
     if (!user) {

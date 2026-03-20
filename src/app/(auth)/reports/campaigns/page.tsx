@@ -63,7 +63,7 @@ export default function CampaignReportsPage() {
   );
 
   // Export CSV action
-  const exportCSV = useAction(api.reports.exportCampaignPerformanceCSV);
+  const exportCSV = useAction(api.reportsExport.exportCampaignPerformanceCSV);
 
   // Handle date range change
   const handleDateRangeChange = useCallback((range: { start: number; end: number; label: string; isCustom: boolean; preset?: string }) => {

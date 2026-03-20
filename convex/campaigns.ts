@@ -1,6 +1,7 @@
 import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
+import { Id, Doc } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
 import { internal } from "./_generated/api";
 
@@ -9,6 +10,50 @@ import { internal } from "./_generated/api";
  * 
  * Provides CRUD operations for affiliate campaigns with multi-tenant data isolation.
  */
+
+// ── ADR-4: Shared campaign return shape + mapper ──────────────────────────
+// All overview/listing queries return the same aliased shape.
+// Using explicit field mapping (NOT ...spread) to prevent ghost fields (F1 fix).
+
+export const campaignReturnShape = v.object({
+  _id: v.id("campaigns"),
+  _creationTime: v.number(),
+  tenantId: v.id("tenants"),
+  name: v.string(),
+  description: v.optional(v.string()),
+  commissionType: v.string(),
+  commissionRate: v.number(),          // alias for commissionValue
+  cookieDuration: v.optional(v.number()),
+  recurringCommissions: v.boolean(),    // alias for recurringCommission
+  recurringRate: v.optional(v.number()),
+  recurringRateType: v.optional(v.string()),
+  autoApproveCommissions: v.optional(v.boolean()),
+  approvalThreshold: v.optional(v.number()),
+  status: v.string(),
+});
+
+/**
+ * Map a raw campaign DB doc to the shared return shape.
+ * Uses explicit field mapping — NOT spread — to prevent ghost fields.
+ */
+function mapCampaignToReturnShape(c: Doc<"campaigns">) {
+  return {
+    _id: c._id,
+    _creationTime: c._creationTime,
+    tenantId: c.tenantId,
+    name: c.name,
+    description: c.description,
+    commissionType: c.commissionType,
+    commissionRate: c.commissionValue,           // explicit alias
+    cookieDuration: c.cookieDuration,
+    recurringCommissions: c.recurringCommission,  // explicit alias
+    recurringRate: c.recurringRate,
+    recurringRateType: c.recurringRateType,
+    autoApproveCommissions: c.autoApproveCommissions,
+    approvalThreshold: c.approvalThreshold,
+    status: c.status,
+  };
+}
 
 /**
  * Create a new campaign for the tenant.
@@ -234,26 +279,7 @@ export const getCampaign = query({
   args: {
     campaignId: v.id("campaigns"),
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("campaigns"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      name: v.string(),
-      description: v.optional(v.string()),
-      commissionType: v.string(),
-      commissionValue: v.number(),
-      commissionRate: v.number(), // Alias for frontend compatibility
-      cookieDuration: v.optional(v.number()),
-      recurringCommission: v.boolean(),
-      recurringCommissions: v.boolean(), // Alias for frontend compatibility
-      recurringRate: v.optional(v.number()),
-      autoApproveCommissions: v.optional(v.boolean()),
-      approvalThreshold: v.optional(v.number()),
-      status: v.string(),
-    }),
-    v.null()
-  ),
+  returns: v.union(campaignReturnShape, v.null()),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
@@ -271,11 +297,8 @@ export const getCampaign = query({
       throw new Error("Campaign not found or access denied");
     }
 
-    return {
-      ...campaign,
-      commissionRate: campaign.commissionValue,
-      recurringCommissions: campaign.recurringCommission,
-    };
+    // Use shared mapper — NOT spread — to prevent ghost fields (F1 fix)
+    return mapCampaignToReturnShape(campaign);
   },
 });
 
@@ -364,9 +387,9 @@ export const updateCampaign = mutation({
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;
     if (args.commissionType !== undefined) updates.commissionType = args.commissionType;
-    if (args.commissionRate !== undefined) updates.commissionRate = args.commissionRate;
+    if (args.commissionRate !== undefined) updates.commissionValue = args.commissionRate;
     if (args.cookieDuration !== undefined) updates.cookieDuration = args.cookieDuration;
-    if (args.recurringCommissions !== undefined) updates.recurringCommissions = args.recurringCommissions;
+    if (args.recurringCommissions !== undefined) updates.recurringCommission = args.recurringCommissions;
     if (args.recurringRate !== undefined) updates.recurringRate = args.recurringRate;
     if (args.recurringRateType !== undefined) updates.recurringRateType = args.recurringRateType;
     if (args.autoApproveCommissions !== undefined) updates.autoApproveCommissions = args.autoApproveCommissions;
@@ -516,6 +539,7 @@ export const getCampaignStats = query({
     active: v.number(),
     paused: v.number(),
     archived: v.number(),
+    zeroAffiliateCampaignIds: v.array(v.id("campaigns")),
   }),
   handler: async (ctx, _args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -537,7 +561,37 @@ export const getCampaignStats = query({
       archived: campaigns.filter((c) => c.status === "archived").length,
     };
 
-    return stats;
+    // Detect active campaigns with zero affiliates
+    const activeCampaigns = campaigns.filter((c) => c.status === "active");
+    const zeroAffiliateCampaignIds: Id<"campaigns">[] = [];
+
+    if (activeCampaigns.length > 0) {
+      // Fetch all referral links for this tenant
+      const allReferralLinks = await ctx.db
+        .query("referralLinks")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .collect();
+
+      // Build set of campaign IDs that have at least one referral link
+      const campaignsWithAffiliates = new Set<string>();
+      for (const link of allReferralLinks) {
+        if (link.campaignId) {
+          campaignsWithAffiliates.add(link.campaignId as string);
+        }
+      }
+
+      // Active campaigns not in the set have zero affiliates
+      for (const campaign of activeCampaigns) {
+        if (!campaignsWithAffiliates.has(campaign._id as string)) {
+          zeroAffiliateCampaignIds.push(campaign._id);
+        }
+      }
+    }
+
+    return {
+      ...stats,
+      zeroAffiliateCampaignIds,
+    };
   },
 });
 
@@ -627,6 +681,99 @@ export const canCampaignEarnCommissions = internalQuery({
 });
 
 /**
+ * Get per-campaign stats for campaign cards.
+ * Returns affiliates count, conversions count, and paid out amount per campaign.
+ * Efficient for typical SaaS-scale data (fetches by tenant index, groups in memory).
+ */
+export const getCampaignCardStats = query({
+  args: {},
+  returns: v.record(
+    v.string(),
+    v.object({
+      affiliates: v.number(),
+      conversions: v.number(),
+      paidOut: v.number(),
+    })
+  ),
+  handler: async (ctx, _args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+
+    // Fetch all conversions for tenant
+    const allConversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Fetch all commissions for tenant
+    const allCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Fetch all referral links for affiliate counting
+    const allReferralLinks = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Aggregate conversions per campaign
+    const conversionsByCampaign = new Map<string, number>();
+    for (const conv of allConversions) {
+      if (conv.campaignId) {
+        const key = conv.campaignId as string;
+        conversionsByCampaign.set(key, (conversionsByCampaign.get(key) ?? 0) + 1);
+      }
+    }
+
+    // Aggregate paid commissions per campaign (status "confirmed" or "paid")
+    const paidOutByCampaign = new Map<string, number>();
+    for (const comm of allCommissions) {
+      if (comm.status === "confirmed" || comm.status === "paid") {
+        const key = comm.campaignId as string;
+        paidOutByCampaign.set(key, (paidOutByCampaign.get(key) ?? 0) + comm.amount);
+      }
+    }
+
+    // Count unique affiliates per campaign via referral links
+    const affiliatesByCampaign = new Map<string, Set<string>>();
+    for (const link of allReferralLinks) {
+      if (link.campaignId) {
+        const key = link.campaignId as string;
+        if (!affiliatesByCampaign.has(key)) {
+          affiliatesByCampaign.set(key, new Set());
+        }
+        affiliatesByCampaign.get(key)!.add(link.affiliateId as string);
+      }
+    }
+
+    // Build result
+    const result: Record<string, { affiliates: number; conversions: number; paidOut: number }> = {};
+
+    // Get all campaign IDs that appear in any of the data
+    const allCampaignIds = new Set<string>([
+      ...conversionsByCampaign.keys(),
+      ...paidOutByCampaign.keys(),
+      ...affiliatesByCampaign.keys(),
+    ]);
+
+    for (const campaignId of allCampaignIds) {
+      result[campaignId] = {
+        affiliates: affiliatesByCampaign.get(campaignId)?.size ?? 0,
+        conversions: conversionsByCampaign.get(campaignId) ?? 0,
+        paidOut: paidOutByCampaign.get(campaignId) ?? 0,
+      };
+    }
+
+    return result;
+  },
+});
+
+/**
  * Internal query to get campaign by ID.
  * Used by commission engine to check recurringCommission settings.
  */
@@ -661,6 +808,490 @@ export const getCampaignByIdInternal = internalQuery({
       commissionType: campaign.commissionType,
       commissionValue: campaign.commissionValue,
       status: campaign.status,
+    };
+  },
+});
+
+/**
+ * Get affiliates performance data for a specific campaign.
+ * Returns per-affiliate stats: clicks, conversions, revenue, pending/confirmed commissions.
+ * Tenant resolved internally via getAuthenticatedUser(ctx) — no tenantId arg.
+ * Scale guard: max 200 affiliates per campaign.
+ * Stats are filtered to THIS campaign only (not global per affiliate).
+ */
+export const getAffiliatesByCampaign = query({
+  args: {
+    campaignId: v.id("campaigns"),
+  },
+  returns: v.array(
+    v.object({
+      affiliateId: v.id("affiliates"),
+      name: v.string(),
+      email: v.string(),
+      joinedAt: v.number(),
+      clicks: v.number(),
+      conversions: v.number(),
+      totalRevenue: v.number(),
+      pendingCommission: v.number(),
+      confirmedCommission: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+
+    // Verify campaign belongs to this tenant
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign || campaign.tenantId !== tenantId) {
+      throw new Error("Campaign not found or access denied");
+    }
+
+    // Get referral links for this campaign (scale guard: max 200)
+    const referralLinks = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_tenant_and_campaign", (q) =>
+        q.eq("tenantId", tenantId).eq("campaignId", args.campaignId)
+      )
+      .take(200);
+
+    // Collect unique affiliate IDs from referral links
+    const affiliateIds = new Set<string>();
+    for (const link of referralLinks) {
+      affiliateIds.add(link.affiliateId as string);
+    }
+
+    if (affiliateIds.size === 0) {
+      return [];
+    }
+
+    // ── Batch fetch all stats in parallel (fixes N+3 query problem) ──
+    const [allClicks, allConversions, campaignCommissions, affiliateDocs] =
+      await Promise.all([
+        // Clicks — fetch by tenant, filter to this campaign in memory
+        ctx.db
+          .query("clicks")
+          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+          .collect(),
+        // Conversions — fetch by tenant, filter to this campaign in memory
+        ctx.db
+          .query("conversions")
+          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+          .collect(),
+        // Commissions — filter directly by campaign using index
+        ctx.db
+          .query("commissions")
+          .withIndex("by_campaign", (q) =>
+            q.eq("campaignId", args.campaignId)
+          )
+          .collect(),
+        // Fetch all affiliate docs in one batch
+        Promise.all(
+          Array.from(affiliateIds).map((id) =>
+            ctx.db.get(id as Id<"affiliates">)
+          )
+        ),
+      ]);
+
+    // Filter clicks and conversions to THIS campaign only
+    const clicksByAffiliate = new Map<string, number>();
+    for (const click of allClicks) {
+      if (click.campaignId === args.campaignId) {
+        const key = click.affiliateId as string;
+        clicksByAffiliate.set(key, (clicksByAffiliate.get(key) ?? 0) + 1);
+      }
+    }
+
+    const conversionsByAffiliate = new Map<string, number>();
+    const revenueByAffiliate = new Map<string, number>();
+    for (const conv of allConversions) {
+      if (conv.campaignId === args.campaignId) {
+        const key = conv.affiliateId as string;
+        conversionsByAffiliate.set(
+          key,
+          (conversionsByAffiliate.get(key) ?? 0) + 1
+        );
+        revenueByAffiliate.set(
+          key,
+          (revenueByAffiliate.get(key) ?? 0) + conv.amount
+        );
+      }
+    }
+
+    // Aggregate commissions per affiliate (already filtered by campaign index)
+    const pendingByAffiliate = new Map<string, number>();
+    const confirmedByAffiliate = new Map<string, number>();
+    for (const comm of campaignCommissions) {
+      const key = comm.affiliateId as string;
+      if (comm.status === "pending") {
+        pendingByAffiliate.set(
+          key,
+          (pendingByAffiliate.get(key) ?? 0) + comm.amount
+        );
+      } else if (comm.status === "confirmed" || comm.status === "paid") {
+        confirmedByAffiliate.set(
+          key,
+          (confirmedByAffiliate.get(key) ?? 0) + comm.amount
+        );
+      }
+    }
+
+    // Build result from batch-fetched data
+    const result: Array<{
+      affiliateId: Id<"affiliates">;
+      name: string;
+      email: string;
+      joinedAt: number;
+      clicks: number;
+      conversions: number;
+      totalRevenue: number;
+      pendingCommission: number;
+      confirmedCommission: number;
+    }> = [];
+
+    for (const affiliate of affiliateDocs) {
+      if (!affiliate) continue;
+      const key = affiliate._id as string;
+
+      result.push({
+        affiliateId: affiliate._id,
+        name: affiliate.name,
+        email: affiliate.email,
+        joinedAt: affiliate._creationTime,
+        clicks: clicksByAffiliate.get(key) ?? 0,
+        conversions: conversionsByAffiliate.get(key) ?? 0,
+        totalRevenue: revenueByAffiliate.get(key) ?? 0,
+        pendingCommission: pendingByAffiliate.get(key) ?? 0,
+        confirmedCommission: confirmedByAffiliate.get(key) ?? 0,
+      });
+    }
+
+    // Sort by total revenue descending
+    result.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    return result;
+  },
+});
+
+/**
+ * Get campaigns by IDs — batch query for the overview page.
+ * Returns basic campaign info (id + name) for a set of campaign IDs.
+ * Used by ZeroAffiliateList to avoid calling useQuery in a loop.
+ */
+export const getCampaignsByIds = query({
+  args: {
+    campaignIds: v.array(v.id("campaigns")),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("campaigns"),
+      name: v.string(),
+      status: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const results: Array<{ _id: Id<"campaigns">; name: string; status: string }> = [];
+    for (const id of args.campaignIds) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.tenantId === user.tenantId) {
+        results.push({
+          _id: doc._id,
+          name: doc.name,
+          status: doc.status,
+        });
+      }
+    }
+    return results;
+  },
+});
+
+// ── Paginated listing query for /campaigns/all ────────────────────────────
+
+/**
+ * List campaigns with cursor-based pagination and multi-dimension filters.
+ * Hydration strategy: frontend requests numItems=30, we post-filter, display up to 20.
+ * Returns hasMoreFiltered=true if post-filtering removed items AND more pages exist.
+ */
+export const listCampaignsPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    statusFilter: v.optional(v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("archived")
+    )),
+    commissionTypeFilter: v.optional(v.union(
+      v.literal("percentage"),
+      v.literal("flatFee")
+    )),
+    recurringFilter: v.optional(v.boolean()),
+    createdAfter: v.optional(v.number()),
+    createdBefore: v.optional(v.number()),
+    includeArchived: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    page: v.array(campaignReturnShape),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+    hasMoreFiltered: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+    const includeArchived = args.includeArchived ?? false;
+
+    // Choose index based on status filter
+    let queryBuilder;
+    if (args.statusFilter) {
+      queryBuilder = ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", tenantId).eq("status", args.statusFilter!)
+        );
+    } else {
+      queryBuilder = ctx.db
+        .query("campaigns")
+        // by_tenant index auto-includes _creationTime — .order("desc") sorts newest first
+        .withIndex("by_tenant", (q) =>
+          q.eq("tenantId", tenantId)
+        );
+    }
+
+    // Paginate with order desc (newest first)
+    const paginated = await queryBuilder
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    // Post-filter: archived (when no status filter set and not including archived)
+    let filtered = paginated.page;
+    if (!args.statusFilter && !includeArchived) {
+      filtered = filtered.filter((c) => c.status !== "archived");
+    }
+
+    // Post-filter: commission type
+    if (args.commissionTypeFilter) {
+      filtered = filtered.filter(
+        (c) => c.commissionType === args.commissionTypeFilter
+      );
+    }
+
+    // Post-filter: recurring
+    if (args.recurringFilter !== undefined) {
+      filtered = filtered.filter(
+        (c) => c.recurringCommission === args.recurringFilter
+      );
+    }
+
+    // Post-filter: date range (using _creationTime epoch ms)
+    if (args.createdAfter !== undefined) {
+      filtered = filtered.filter((c) => c._creationTime >= args.createdAfter!);
+    }
+    if (args.createdBefore !== undefined) {
+      filtered = filtered.filter((c) => c._creationTime <= args.createdBefore!);
+    }
+
+    // Hydration indicator: if post-filtering removed items AND more pages exist
+    const hasMoreFiltered = filtered.length < paginated.page.length && !paginated.isDone;
+
+    return {
+      page: filtered.map(mapCampaignToReturnShape),
+      isDone: paginated.isDone,
+      continueCursor: paginated.continueCursor,
+      hasMoreFiltered,
+    };
+  },
+});
+
+// ── Overview queries ──────────────────────────────────────────────────────
+
+/**
+ * Get top 5 active campaigns sorted by conversion count.
+ * ADR-3 exception: calls getCampaignCardStats internally (1 internal round-trip).
+ * Fetches up to 50 active campaigns to find actual top converters (F32 fix).
+ */
+export const getTopCampaigns = query({
+  args: {},
+  returns: v.array(campaignReturnShape),
+  handler: async (ctx, _args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+
+    // Fetch up to 50 active campaigns to find actual top converters
+    const activeCampaigns = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "active")
+      )
+      .order("desc")
+      .take(50);
+
+    if (activeCampaigns.length === 0) {
+      return [];
+    }
+
+    // Get card stats internally for sorting (ADR-3 exception)
+    const cardStats = await ctx.runQuery(
+      internal.campaigns.getCampaignCardStatsInternal,
+      { tenantId }
+    );
+
+    // Sort by conversions descending, fallback to creation date
+    const sorted = [...activeCampaigns].sort((a, b) => {
+      const aConversions = cardStats[a._id as string]?.conversions ?? 0;
+      const bConversions = cardStats[b._id as string]?.conversions ?? 0;
+      if (bConversions !== aConversions) {
+        return bConversions - aConversions;
+      }
+      return b._creationTime - a._creationTime;
+    });
+
+    // Return top 5
+    return sorted.slice(0, 5).map(mapCampaignToReturnShape);
+  },
+});
+
+/**
+ * Internal query to get campaign card stats by tenant ID.
+ * Used by getTopCampaigns internally (ADR-3).
+ */
+export const getCampaignCardStatsInternal = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.record(
+    v.string(),
+    v.object({
+      affiliates: v.number(),
+      conversions: v.number(),
+      paidOut: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const tenantId = args.tenantId;
+
+    // Fetch all conversions for tenant
+    const allConversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Fetch all commissions for tenant
+    const allCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Fetch all referral links for affiliate counting
+    const allReferralLinks = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Aggregate conversions per campaign
+    const conversionsByCampaign = new Map<string, number>();
+    for (const conv of allConversions) {
+      if (conv.campaignId) {
+        const key = conv.campaignId as string;
+        conversionsByCampaign.set(key, (conversionsByCampaign.get(key) ?? 0) + 1);
+      }
+    }
+
+    // Aggregate paid commissions per campaign
+    const paidOutByCampaign = new Map<string, number>();
+    for (const comm of allCommissions) {
+      if (comm.status === "confirmed" || comm.status === "paid") {
+        const key = comm.campaignId as string;
+        paidOutByCampaign.set(key, (paidOutByCampaign.get(key) ?? 0) + comm.amount);
+      }
+    }
+
+    // Count unique affiliates per campaign via referral links
+    const affiliatesByCampaign = new Map<string, Set<string>>();
+    for (const link of allReferralLinks) {
+      if (link.campaignId) {
+        const key = link.campaignId as string;
+        if (!affiliatesByCampaign.has(key)) {
+          affiliatesByCampaign.set(key, new Set());
+        }
+        affiliatesByCampaign.get(key)!.add(link.affiliateId as string);
+      }
+    }
+
+    // Build result
+    const result: Record<string, { affiliates: number; conversions: number; paidOut: number }> = {};
+    const allCampaignIds = new Set<string>([
+      ...conversionsByCampaign.keys(),
+      ...paidOutByCampaign.keys(),
+      ...affiliatesByCampaign.keys(),
+    ]);
+
+    for (const campaignId of allCampaignIds) {
+      result[campaignId] = {
+        affiliates: affiliatesByCampaign.get(campaignId)?.size ?? 0,
+        conversions: conversionsByCampaign.get(campaignId) ?? 0,
+        paidOut: paidOutByCampaign.get(campaignId) ?? 0,
+      };
+    }
+
+    return result;
+  },
+});
+
+/**
+ * Get campaigns needing attention for the overview page.
+ * Returns paused campaigns (up to 5) and total count.
+ * Zero-affiliate detection handled entirely on frontend via getCampaignStats (F31/F47).
+ */
+export const getAttentionCampaigns = query({
+  args: {},
+  returns: v.object({
+    pausedCampaigns: v.array(campaignReturnShape),
+    pausedTotal: v.number(),
+  }),
+  handler: async (ctx, _args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+
+    // Fetch paused campaigns — up to 5 for display
+    const pausedCampaigns = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "paused")
+      )
+      .order("desc")
+      .take(5);
+
+    // Count total paused campaigns
+    const allPaused = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "paused")
+      )
+      .collect();
+
+    return {
+      pausedCampaigns: pausedCampaigns.map(mapCampaignToReturnShape),
+      pausedTotal: allPaused.length,
     };
   },
 });

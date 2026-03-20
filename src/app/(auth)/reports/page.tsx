@@ -43,7 +43,7 @@ export default function ReportsIndexPage() {
   );
 
   // Export CSV action
-  const exportCSV = useAction(api.reports.exportProgramReportCSV);
+  const exportCSV = useAction(api.reportsExport.exportProgramReportCSV);
 
   // Handle date range change
   const handleDateRangeChange = useCallback((range: { start: number; end: number; label: string; isCustom: boolean; preset?: string }) => {

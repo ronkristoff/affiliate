@@ -4,8 +4,23 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
+import type { ColumnFilterType, ColumnFilter, FilterOption } from "@/components/ui/table-filters/types";
+import { TextFilter } from "@/components/ui/table-filters/TextFilter";
+import { SelectFilter } from "@/components/ui/table-filters/SelectFilter";
+import { NumberRangeFilter } from "@/components/ui/table-filters/NumberRangeFilter";
+import { DateRangeFilter } from "@/components/ui/table-filters/DateRangeFilter";
+
+// Re-export filter types for consumer convenience
+export type { ColumnFilterType, ColumnFilter, FilterOption } from "@/components/ui/table-filters/types";
 
 export type { ReactNode as TableCellValue };
 
@@ -29,12 +44,23 @@ export interface TableColumn<T> {
   width?: string | number;
   /** Optional: hide on mobile */
   hideOnMobile?: boolean;
+  // ── Column-level filter properties ──────────────────────────────────
+  /** Enable column-level filter */
+  filterable?: boolean;
+  /** Filter control type */
+  filterType?: ColumnFilterType;
+  /** Options for "select" filter type */
+  filterOptions?: FilterOption[];
+  /** Human-readable label for filter chips (defaults to column header) */
+  filterLabel?: string;
+  /** Step increment for "number-range" type (e.g., 0.01 for currency) */
+  filterStep?: number;
 }
 
 export interface TableAction<T> {
   label: string;
   onClick: (row: T) => void;
-  variant?: "default" | "outline" | "destructive";
+  variant?: "default" | "outline" | "destructive" | "success" | "warning" | "info";
   icon?: ReactNode;
   disabled?: (row: T) => boolean;
 }
@@ -124,8 +150,8 @@ export function CurrencyCell({
   return (
     <span
       className={cn(
-        "font-semibold tabular-nums",
-        muted ? "text-[#6b7280]" : "text-[#333]"
+        "text-[12px] tabular-nums",
+        muted ? "text-[#9ca3af]" : "text-[#474747]"
       )}
     >
       {formatted}
@@ -151,7 +177,7 @@ export function NumberCell({
     formatted = value.toLocaleString();
   }
 
-  return <span className="tabular-nums text-[#333]">{formatted}</span>;
+  return <span className="text-[12px] tabular-nums text-[#474747]">{formatted}</span>;
 }
 
 export function DateCell({
@@ -203,18 +229,30 @@ export function DateCell({
 // Sort Icon Helper
 // ============================================================================
 
-function SortIcon({ columnKey, activeSortBy, activeSortOrder }: {
+function SortIcon({ columnKey, sortField, activeSortBy, activeSortOrder, onSort }: {
   columnKey: string;
+  sortField?: string;
   activeSortBy?: string;
   activeSortOrder?: "asc" | "desc";
+  onSort?: () => void;
 }) {
-  if (!activeSortBy || activeSortBy !== columnKey) {
-    return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40 shrink-0" />;
-  }
-  if (activeSortOrder === "asc") {
-    return <ArrowUp className="w-3 h-3 ml-1 shrink-0" />;
-  }
-  return <ArrowDown className="w-3 h-3 ml-1 shrink-0" />;
+  const isActive = !!activeSortBy && (activeSortBy === columnKey || activeSortBy === sortField);
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onSort?.();
+      }}
+      className="inline-flex items-center justify-center ml-1 rounded p-0.5 hover:bg-[#f3f4f6] transition-colors"
+      aria-label={isActive ? `Sort ${activeSortOrder === "asc" ? "ascending" : "descending"}` : "Sort"}
+    >
+      {!isActive && <ArrowUpDown className="w-3.5 h-3.5 text-[#9ca3af]" />}
+      {isActive && activeSortOrder === "asc" && <ArrowUp className="w-3.5 h-3.5 text-[#10409a]" />}
+      {isActive && activeSortOrder === "desc" && <ArrowDown className="w-3.5 h-3.5 text-[#10409a]" />}
+    </button>
+  );
 }
 
 // ============================================================================
@@ -254,6 +292,11 @@ interface DataTableProps<T> {
   /** Optional: callback returning custom CSS classes per row.
    *  Comes LAST in cn() merge order, so it overrides built-in selection highlight. */
   rowClassName?: (row: T) => string;
+  // ── Column-level filter props ───────────────────────────────────────
+  /** Active column filters (owned by consumer) */
+  activeFilters?: ColumnFilter[];
+  /** Callback when a column filter changes. DataTable merges with existing filters and emits the full array. */
+  onFilterChange?: (filters: ColumnFilter[]) => void;
 }
 
 export function DataTable<T>({
@@ -272,6 +315,8 @@ export function DataTable<T>({
   sortOrder,
   onSortChange,
   rowClassName,
+  activeFilters = [],
+  onFilterChange,
 }: DataTableProps<T>) {
   // Handle select all
   const allSelected =
@@ -304,7 +349,10 @@ export function DataTable<T>({
   // Sort handler
   const handleSort = (col: TableColumn<T>) => {
     const field = col.sortField || col.key;
-    if (sortBy === col.key) {
+    // Check if this column is already sorted (match against both key and sortField
+    // since onSortChange may have set sortBy to the field value)
+    const isCurrentlySorted = sortBy === col.key || sortBy === col.sortField;
+    if (isCurrentlySorted) {
       // Toggle direction
       const newOrder = sortOrder === "asc" ? "desc" : "asc";
       onSortChange?.(field, newOrder);
@@ -314,10 +362,31 @@ export function DataTable<T>({
     }
   };
 
+  // Column filter handler — merges a single column filter update with existing filters
+  const handleColumnFilterChange = (updatedFilter: ColumnFilter | null, columnKey: string) => {
+    if (!onFilterChange) return;
+    let next: ColumnFilter[];
+    if (updatedFilter === null) {
+      // Remove this column's filter
+      next = activeFilters.filter((f) => f.columnKey !== columnKey);
+    } else {
+      // Replace filter for same columnKey, preserve others
+      const exists = activeFilters.some((f) => f.columnKey === columnKey);
+      if (exists) {
+        next = activeFilters.map((f) => (f.columnKey === columnKey ? updatedFilter : f));
+      } else {
+        next = [...activeFilters, updatedFilter];
+      }
+    }
+    onFilterChange(next);
+  };
+
   // Client-side sort when onSortChange is NOT provided
   const sortedData = (() => {
     if (!sortBy || !sortOrder || onSortChange) return data;
-    const sortCol = columns.find((c) => c.key === sortBy);
+    const sortCol = columns.find(
+      (c) => c.key === sortBy || c.sortField === sortBy
+    );
     if (!sortCol || !sortCol.sortable) return data;
     const field = (sortCol.sortField || sortCol.key) as keyof T;
     const direction = sortOrder === "asc" ? 1 : -1;
@@ -418,17 +487,43 @@ export function DataTable<T>({
               )}
               {columns.map((col) => {
                 const isSortable = col.sortable;
+                const isFilterable = col.filterable;
+                const isActive = !!isFilterable && activeFilters.some((f) => f.columnKey === col.key);
+                const activeFilter = isFilterable ? activeFilters.find((f) => f.columnKey === col.key) : undefined;
+
+                // Render the appropriate filter component based on filterType
+                const renderFilter = () => {
+                  if (!isFilterable || !col.filterType) return null;
+                  const filterProps = {
+                    columnKey: col.key,
+                    isActive,
+                    activeFilter: activeFilter ?? null,
+                    onFilterChange: (filter: ColumnFilter | null) =>
+                      handleColumnFilterChange(filter, col.key),
+                  };
+                  switch (col.filterType) {
+                    case "text":
+                      return <TextFilter {...filterProps} />;
+                    case "select":
+                      return <SelectFilter {...filterProps} filterOptions={col.filterOptions ?? []} />;
+                    case "number-range":
+                      return <NumberRangeFilter {...filterProps} filterStep={col.filterStep} />;
+                    case "date-range":
+                      return <DateRangeFilter {...filterProps} />;
+                    default:
+                      return null;
+                  }
+                };
+
                 return (
                   <th
                     key={col.key}
                     className={cn(
                       "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
                       col.align === "right" && "text-right",
-                      col.align === "center" && "text-center",
-                      isSortable && "cursor-pointer select-none hover:text-[#10409a] transition-colors"
+                      col.align === "center" && "text-center"
                     )}
                     style={{ width: col.width }}
-                    onClick={isSortable ? () => handleSort(col) : undefined}
                   >
                     <div className={cn("flex items-center", col.align === "right" && "justify-end", col.align === "center" && "justify-center", "min-h-[44px]")}>
                       {typeof col.header === "string" ? (
@@ -439,10 +534,13 @@ export function DataTable<T>({
                       {isSortable && (
                         <SortIcon
                           columnKey={col.key}
+                          sortField={col.sortField}
                           activeSortBy={sortBy}
                           activeSortOrder={sortOrder}
+                          onSort={() => handleSort(col)}
                         />
                       )}
+                      {isFilterable && renderFilter()}
                     </div>
                   </th>
                 );
@@ -498,33 +596,38 @@ export function DataTable<T>({
                   ))}
                   {actions.length > 0 && (
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2">
-                        {actions.map((action, i) => {
-                          const isDisabled = action.disabled?.(row);
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => !isDisabled && action.onClick(row)}
-                              disabled={isDisabled}
-                              className={cn(
-                                "px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors",
-                                action.variant === "destructive" &&
-                                  "text-[#ef4444] border border-[#ef4444] hover:bg-[#fef2f2]",
-                                action.variant === "outline" &&
-                                  "border border-[#e5e7eb] hover:bg-[#f9fafb]",
-                                (!action.variant || action.variant === "default") &&
-                                  "bg-[#10409a] text-white hover:bg-[#1659d6]",
-                                isDisabled && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              {action.icon && (
-                                <span className="mr-1">{action.icon}</span>
-                              )}
-                              {action.label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[#9ca3af] hover:bg-[#f3f4f6] hover:text-[#6b7280] transition-colors"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" sideOffset={4} className="w-40">
+                          {actions.map((action, i) => {
+                            const isDisabled = action.disabled?.(row);
+                            return (
+                              <DropdownMenuItem
+                                key={i}
+                                disabled={isDisabled}
+                                onClick={() => !isDisabled && action.onClick(row)}
+                                className={cn(
+                                  "gap-2 text-[13px] cursor-pointer",
+                                  action.variant === "destructive" && "text-[#ef4444] focus:text-[#ef4444] focus:bg-[#fef2f2]",
+                                  action.variant === "warning" && "text-[#92400e] focus:bg-[#fffbeb]",
+                                  action.variant === "success" && "text-[#065f46] focus:bg-[#ecfdf5]",
+                                  action.variant === "info" && "text-[#1e40af] focus:bg-[#eff6ff]"
+                                )}
+                              >
+                                {action.icon && <span className="shrink-0">{action.icon}</span>}
+                                {action.label}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   )}
                 </tr>

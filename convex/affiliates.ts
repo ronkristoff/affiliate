@@ -381,6 +381,26 @@ export const listAffiliatesFiltered = query({
     campaignIds: v.optional(v.array(v.id("campaigns"))),
     page: v.number(),
     numItems: v.number(),
+    // ── Column-level filter args ──────────────────────────────────────
+    searchQuery: v.optional(v.string()),
+    referralMin: v.optional(v.number()),
+    referralMax: v.optional(v.number()),
+    clickMin: v.optional(v.number()),
+    clickMax: v.optional(v.number()),
+    earningsMin: v.optional(v.number()),
+    earningsMax: v.optional(v.number()),
+    joinedAfter: v.optional(v.number()),
+    joinedBefore: v.optional(v.number()),
+    sortBy: v.optional(v.union(
+      v.literal("name"),
+      v.literal("status"),
+      v.literal("campaignName"),
+      v.literal("referralCount"),
+      v.literal("clickCount"),
+      v.literal("totalEarnings"),
+      v.literal("_creationTime")
+    )),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   returns: v.object({
     page: v.array(
@@ -398,6 +418,7 @@ export const listAffiliatesFiltered = query({
           type: v.string(),
           details: v.string(),
         })),
+        campaignName: v.optional(v.string()),
         referralCount: v.number(),
         clickCount: v.number(),
         totalEarnings: v.number(),
@@ -408,20 +429,22 @@ export const listAffiliatesFiltered = query({
   }),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
-    const { status, campaignIds, page, numItems } = args;
+    const { status, campaignIds, page } = args;
+    // Cap numItems to prevent excessive data dumps
+    const numItems = Math.min(args.numItems, 100);
 
     // Performance guard
     const MAX_AFFILIATES = 1000;
 
-    // Step 1: If campaign filter, build an allowlist of affiliate IDs via referralLinks
+    // Step 1: Fetch all referralLinks for the tenant (used for campaign filter AND campaign name resolution)
+    const allReferralLinks = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .collect();
+
+    // Build campaign allowlist if campaign filter is active
     let campaignAllowlist: Set<Id<"affiliates">> | null = null;
     if (campaignIds && campaignIds.length > 0) {
-      // Query all referralLinks for this tenant, filter in-memory for selected campaigns
-      const allReferralLinks = await ctx.db
-        .query("referralLinks")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
-
       const campaignSet = new Set(campaignIds.map((id) => id.toString()));
       campaignAllowlist = new Set<Id<"affiliates">>();
       for (const link of allReferralLinks) {
@@ -458,71 +481,209 @@ export const listAffiliatesFiltered = query({
       affiliates = affiliates.filter((a) => campaignAllowlist!.has(a._id));
     }
 
-    // Step 5: Total count and sort desc by _creationTime
-    const total = affiliates.length;
-    if (total > MAX_AFFILIATES) {
+    if (affiliates.length > MAX_AFFILIATES) {
       console.warn(
-        `[listAffiliatesFiltered] Tenant ${tenantId} has ${total} affiliates (max ${MAX_AFFILIATES}). Consider performance optimization.`
+        `[listAffiliatesFiltered] Tenant ${tenantId} has ${affiliates.length} affiliates (max ${MAX_AFFILIATES}). Consider performance optimization.`
       );
     }
 
-    // Sort descending (index returns ascending by default)
-    affiliates.sort((a, b) => b._creationTime - a._creationTime);
+    if (affiliates.length === 0) {
+      return { page: [], total: 0, hasMore: false };
+    }
 
-    // Step 6: Paginate
+    // Step 5: Batch-fetch stats for ALL affiliates (3 reads total, not 3N)
+    // Build in-memory maps for O(1) lookup per affiliate
+    const affiliateIds = affiliates.map((a) => a._id);
+
+    if (affiliates.length > 200) {
+      console.warn(
+        `[listAffiliatesFiltered] Computing stats for ${affiliates.length} affiliates. Consider denormalized stat fields for large tenants.`
+      );
+    }
+
+    // Batch-fetch all clicks, conversions, and commissions for the tenant
+    const [allClicks, allConversions, allCommissions] = await Promise.all([
+      ctx.db.query("clicks").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
+      ctx.db.query("conversions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
+      ctx.db.query("commissions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
+    ]);
+
+    // Build stat maps
+    const clickCountMap = new Map<string, number>();
+    const referralCountMap = new Map<string, number>();
+    const earningsMap = new Map<string, number>();
+
+    for (const click of allClicks) {
+      const key = click.affiliateId.toString();
+      clickCountMap.set(key, (clickCountMap.get(key) ?? 0) + 1);
+    }
+    for (const conv of allConversions) {
+      const key = conv.affiliateId.toString();
+      referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
+    }
+    for (const comm of allCommissions) {
+      if (comm.status === "confirmed" || comm.status === "pending") {
+        const key = comm.affiliateId.toString();
+        earningsMap.set(key, (earningsMap.get(key) ?? 0) + comm.amount);
+      }
+    }
+
+    // Merge stats onto affiliate objects
+    const affiliatesWithStats = affiliates.map((affiliate) => {
+      const key = affiliate._id.toString();
+      return {
+        ...affiliate,
+        referralCount: referralCountMap.get(key) ?? 0,
+        clickCount: clickCountMap.get(key) ?? 0,
+        totalEarnings: earningsMap.get(key) ?? 0,
+      };
+    });
+
+    // Step 6: Apply column-level filters (search, numeric ranges, date ranges)
+    let filtered = affiliatesWithStats;
+
+    // Text search: filter on name, email, uniqueCode (case-insensitive)
+    if (args.searchQuery && args.searchQuery.trim()) {
+      const q = args.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.email.toLowerCase().includes(q) ||
+          a.uniqueCode.toLowerCase().includes(q)
+      );
+    }
+
+    // Numeric range filters
+    if (args.referralMin != null) {
+      filtered = filtered.filter((a) => a.referralCount >= args.referralMin!);
+    }
+    if (args.referralMax != null) {
+      filtered = filtered.filter((a) => a.referralCount <= args.referralMax!);
+    }
+    if (args.clickMin != null) {
+      filtered = filtered.filter((a) => a.clickCount >= args.clickMin!);
+    }
+    if (args.clickMax != null) {
+      filtered = filtered.filter((a) => a.clickCount <= args.clickMax!);
+    }
+    if (args.earningsMin != null) {
+      filtered = filtered.filter((a) => a.totalEarnings >= args.earningsMin!);
+    }
+    if (args.earningsMax != null) {
+      filtered = filtered.filter((a) => a.totalEarnings <= args.earningsMax!);
+    }
+
+    // Date range filters (on _creationTime)
+    if (args.joinedAfter != null) {
+      filtered = filtered.filter((a) => a._creationTime >= args.joinedAfter!);
+    }
+    if (args.joinedBefore != null) {
+      filtered = filtered.filter((a) => a._creationTime <= args.joinedBefore!);
+    }
+
+    // Step 7: Total count AFTER all filters
+    const total = filtered.length;
+
+    // Resolve campaign names for sorting (reuse allReferralLinks from Step 1)
+    const campaignNameMap = new Map<string, string>();
+    const uniqueCampaignIds = new Set<string>();
+    for (const link of allReferralLinks) {
+      if (link.campaignId) {
+        uniqueCampaignIds.add(link.campaignId.toString());
+      }
+    }
+    const campaignDocs = await Promise.all(
+      Array.from(uniqueCampaignIds).map((id) => ctx.db.get(id as Id<"campaigns">))
+    );
+    const campaignIdToName = new Map<string, string>();
+    for (const doc of campaignDocs) {
+      if (doc) {
+        campaignIdToName.set(doc._id.toString(), doc.name);
+      }
+    }
+    for (const link of allReferralLinks) {
+      const affKey = link.affiliateId.toString();
+      if (!campaignNameMap.has(affKey) && link.campaignId) {
+        const name = campaignIdToName.get(link.campaignId.toString());
+        if (name) {
+          campaignNameMap.set(affKey, name);
+        }
+      }
+    }
+
+    // Step 8: Dynamic sort (default: desc by _creationTime)
+    const sortByField = args.sortBy ?? "_creationTime";
+    const sortDirection = args.sortOrder === "asc" ? 1 : -1;
+
+    filtered.sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
+
+      switch (sortByField) {
+        case "name":
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case "status":
+          aVal = a.status.toLowerCase();
+          bVal = b.status.toLowerCase();
+          break;
+        case "campaignName":
+          aVal = (campaignNameMap.get(a._id.toString()) ?? "").toLowerCase();
+          bVal = (campaignNameMap.get(b._id.toString()) ?? "").toLowerCase();
+          break;
+        case "referralCount":
+          aVal = a.referralCount;
+          bVal = b.referralCount;
+          break;
+        case "clickCount":
+          aVal = a.clickCount;
+          bVal = b.clickCount;
+          break;
+        case "totalEarnings":
+          aVal = a.totalEarnings;
+          bVal = b.totalEarnings;
+          break;
+        case "_creationTime":
+        default:
+          aVal = a._creationTime;
+          bVal = b._creationTime;
+          break;
+      }
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return aVal.localeCompare(bVal) * sortDirection;
+      }
+      return ((aVal as number) - (bVal as number)) * sortDirection;
+    });
+
+    // Step 9: Paginate
     const startIndex = (page - 1) * numItems;
     const endIndex = startIndex + numItems;
-    const pageAffiliates = affiliates.slice(startIndex, endIndex);
+    const pageAffiliates = filtered.slice(startIndex, endIndex);
     const hasMore = endIndex < total;
 
     if (pageAffiliates.length === 0) {
       return { page: [], total, hasMore: false };
     }
 
-    // Step 7: Per-affiliate stat queries (avoids 1MB tenant-wide read limit)
-    const pageWithStats = await Promise.all(
-      pageAffiliates.map(async (affiliate) => {
-        const affiliateId = affiliate._id;
-
-        // Clicks for this affiliate
-        const clicks = await ctx.db
-          .query("clicks")
-          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
-          .collect();
-
-        // Conversions for this affiliate
-        const conversions = await ctx.db
-          .query("conversions")
-          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
-          .collect();
-
-        // Commissions for this affiliate (confirmed + pending only)
-        const commissions = await ctx.db
-          .query("commissions")
-          .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliateId))
-          .collect();
-
-        const totalEarnings = commissions
-          .filter((c) => c.status === "confirmed" || c.status === "pending")
-          .reduce((sum, c) => sum + c.amount, 0);
-
-        return {
-          _id: affiliate._id,
-          _creationTime: affiliate._creationTime,
-          tenantId: affiliate.tenantId,
-          email: affiliate.email,
-          name: affiliate.name,
-          uniqueCode: affiliate.uniqueCode,
-          status: affiliate.status,
-          vanitySlug: affiliate.vanitySlug,
-          promotionChannel: affiliate.promotionChannel,
-          payoutMethod: affiliate.payoutMethod,
-          referralCount: conversions.length,
-          clickCount: clicks.length,
-          totalEarnings,
-        };
-      })
-    );
+    // Build final response (campaignNameMap already resolved above)
+    const pageWithStats = pageAffiliates.map((affiliate) => ({
+      _id: affiliate._id,
+      _creationTime: affiliate._creationTime,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      vanitySlug: affiliate.vanitySlug,
+      promotionChannel: affiliate.promotionChannel,
+      payoutMethod: affiliate.payoutMethod,
+      campaignName: campaignNameMap.get(affiliate._id.toString()),
+      referralCount: affiliate.referralCount,
+      clickCount: affiliate.clickCount,
+      totalEarnings: affiliate.totalEarnings,
+    }));
 
     return { page: pageWithStats, total, hasMore };
   },

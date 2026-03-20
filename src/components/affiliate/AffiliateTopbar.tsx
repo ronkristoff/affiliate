@@ -1,14 +1,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Download, UserPlus } from "lucide-react";
+import { Download, UserPlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface AffiliateTopbarProps {
   onExport?: () => void;
+  isExporting?: boolean;
 }
 
-export function AffiliateTopbar({ onExport }: AffiliateTopbarProps) {
+export function AffiliateTopbar({ onExport, isExporting }: AffiliateTopbarProps) {
   return (
     <div className="flex items-center justify-between py-5 px-8 border-b border-[#e5e7eb] bg-white sticky top-0 z-40">
       <h1 className="text-[17px] font-bold text-[#333]">Affiliates</h1>
@@ -17,9 +18,14 @@ export function AffiliateTopbar({ onExport }: AffiliateTopbarProps) {
           variant="outline"
           size="sm"
           onClick={onExport}
+          disabled={!onExport || isExporting}
           className="h-8 px-3 text-[13px] font-semibold gap-1.5 border-[#e5e7eb]"
         >
-          <Download className="h-3.5 w-3.5" />
+          {isExporting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
           Export CSV
         </Button>
         <Button

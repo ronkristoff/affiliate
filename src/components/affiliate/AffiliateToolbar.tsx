@@ -1,33 +1,15 @@
 "use client";
 
 import { Search } from "lucide-react";
-import {
-  MultiSelectCombobox,
-  type MultiSelectOption,
-} from "@/components/ui/multi-select";
 
 interface AffiliateToolbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  statusOptions: MultiSelectOption[];
-  selectedStatuses: string[];
-  onStatusesChange: (statuses: string[]) => void;
-  campaignOptions: MultiSelectOption[];
-  selectedCampaigns: string[];
-  onCampaignsChange: (campaigns: string[]) => void;
-  isLoadingCampaigns?: boolean;
 }
 
 export function AffiliateToolbar({
   searchQuery,
   onSearchChange,
-  statusOptions,
-  selectedStatuses,
-  onStatusesChange,
-  campaignOptions,
-  selectedCampaigns,
-  onCampaignsChange,
-  isLoadingCampaigns,
 }: AffiliateToolbarProps) {
   return (
     <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -44,29 +26,6 @@ export function AffiliateToolbar({
           />
         </div>
       </div>
-
-      {/* Status Filter */}
-      {statusOptions.length > 0 && (
-        <MultiSelectCombobox
-          options={statusOptions}
-          selected={selectedStatuses}
-          onSelectedChange={onStatusesChange}
-          placeholder="Status"
-          searchPlaceholder="Search status..."
-          emptyMessage="No status options."
-        />
-      )}
-
-      {/* Campaign Filter */}
-      <MultiSelectCombobox
-        options={campaignOptions}
-        selected={selectedCampaigns}
-        onSelectedChange={onCampaignsChange}
-        placeholder="Campaign"
-        searchPlaceholder="Search campaigns..."
-        emptyMessage="No campaigns found."
-        isLoading={isLoadingCampaigns}
-      />
     </div>
   );
 }

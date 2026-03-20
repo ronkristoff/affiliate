@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -32,9 +32,14 @@ import {
   NumberCell,
   DateCell,
   StatusBadgeCell,
+  type ColumnFilter,
+  type FilterOption,
 } from "@/components/ui/DataTable";
+import { FilterChips } from "@/components/ui/FilterChips";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, PauseCircle, CheckCircle2 } from "lucide-react";
+import { Eye, PauseCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { downloadCsv } from "@/lib/utils";
+import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,7 +67,8 @@ interface Affiliate {
 function buildPendingColumns(
   canManage: boolean,
   onApprove: (id: Id<"affiliates">, name: string) => void,
-  onReject: (affiliate: Affiliate) => void
+  onReject: (affiliate: Affiliate) => void,
+  campaignOptions: FilterOption[]
 ): { columns: TableColumn<Affiliate>[]; actions: TableAction<Affiliate>[] } {
   const columns: TableColumn<Affiliate>[] = [
     {
@@ -75,6 +81,9 @@ function buildPendingColumns(
     {
       key: "applied",
       header: "Applied",
+      filterable: true,
+      filterType: "date-range",
+      filterLabel: "Applied",
       cell: (row) => (
         <DateCell value={row._creationTime} format="relative-full" size="sm" />
       ),
@@ -91,6 +100,10 @@ function buildPendingColumns(
     {
       key: "campaign",
       header: "Campaign",
+      filterable: true,
+      filterType: "select",
+      filterOptions: campaignOptions,
+      filterLabel: "Campaign",
       cell: (row) => (
         <span className="text-[12px] text-[#474747]">
           {row.campaignName || "Standard Program"}
@@ -121,12 +134,15 @@ function buildActiveColumns(
   canManage: boolean,
   onSuspend: (affiliate: Affiliate) => void,
   onReactivate: (affiliate: Affiliate) => void,
-  onViewDetails: (affiliate: Affiliate) => void
+  onViewDetails: (affiliate: Affiliate) => void,
+  campaignOptions: FilterOption[]
 ): { columns: TableColumn<Affiliate>[]; actions: TableAction<Affiliate>[] } {
   const columns: TableColumn<Affiliate>[] = [
     {
       key: "affiliate",
       header: "Affiliate",
+      sortable: true,
+      sortField: "name",
       cell: (row) => (
         <div className="flex items-center gap-2.5">
           <AvatarCell name={row.name} />
@@ -141,17 +157,30 @@ function buildActiveColumns(
           )}
         </div>
       ),
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
     {
       key: "status",
       header: "Status",
+      sortable: true,
+      sortField: "status",
+      filterable: true,
+      filterType: "select",
+      filterOptions: [
+        { value: "active", label: "Active" },
+        { value: "suspended", label: "Suspended" },
+      ],
+      filterLabel: "Status",
       cell: (row) => <StatusBadgeCell status={row.status} />,
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
     {
       key: "campaign",
       header: "Campaign",
+      sortable: true,
+      sortField: "campaignName",
+      filterable: true,
+      filterType: "select",
+      filterOptions: campaignOptions,
+      filterLabel: "Campaign",
       cell: (row) => (
         <span className="text-[12px] text-[#474747]">
           {row.campaignName || "Standard Program"}
@@ -161,39 +190,54 @@ function buildActiveColumns(
     {
       key: "referrals",
       header: "Referrals",
+      sortable: true,
+      sortField: "referralCount",
+      filterable: true,
+      filterType: "number-range",
+      filterLabel: "Referrals",
       cell: (row) => <NumberCell value={row.referralCount || 0} />,
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
     {
       key: "clicks",
       header: "Clicks",
+      sortable: true,
+      sortField: "clickCount",
+      filterable: true,
+      filterType: "number-range",
+      filterLabel: "Clicks",
       cell: (row) => <NumberCell value={row.clickCount?.toLocaleString ? row.clickCount : 0} />,
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
     {
       key: "earnings",
       header: "Earnings",
-      align: "right",
+      sortable: true,
+      sortField: "totalEarnings",
+      filterable: true,
+      filterType: "number-range",
+      filterLabel: "Earnings",
       cell: (row) => (
         <CurrencyCell
           amount={row.totalEarnings || 0}
           muted={row.status === "suspended"}
         />
       ),
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
     {
       key: "joined",
       header: "Joined",
+      sortable: true,
+      sortField: "_creationTime",
+      filterable: true,
+      filterType: "date-range",
+      filterLabel: "Joined",
       cell: (row) => <DateCell value={row._creationTime} format="short" />,
-      // TODO: Enable sortable: true once Convex query supports sorting
     },
   ];
 
   const actions: TableAction<Affiliate>[] = [
     {
       label: "View",
-      variant: "outline",
+      variant: "info",
       icon: <Eye className="w-3.5 h-3.5" />,
       onClick: (row) => onViewDetails(row),
     },
@@ -201,14 +245,14 @@ function buildActiveColumns(
       ? [
           {
             label: "Suspend",
-            variant: "outline" as const,
+            variant: "warning" as const,
             icon: <PauseCircle className="w-3.5 h-3.5" />,
             disabled: (row: Affiliate) => row.status !== "active",
             onClick: (row: Affiliate) => onSuspend(row),
           },
           {
             label: "Reactivate",
-            variant: "default" as const,
+            variant: "success" as const,
             icon: <CheckCircle2 className="w-3.5 h-3.5" />,
             disabled: (row: Affiliate) => row.status !== "suspended",
             onClick: (row: Affiliate) => onReactivate(row),
@@ -227,11 +271,6 @@ function buildActiveColumns(
 const PAGE_SIZE = 20;
 
 type AffiliateTabStatus = "all" | "pending" | "active" | "suspended";
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "suspended", label: "Suspended" },
-];
 
 // ---------------------------------------------------------------------------
 // Inner content (hooks live here, wrapped by Suspense)
@@ -264,6 +303,26 @@ function AffiliatesContent() {
     parseAsInteger.withDefault(1)
   );
 
+  // Client-side sort state — persisted in URL so back/forward and refresh work
+  const [sortBy, setSortBy] = useQueryState(
+    "sortBy",
+    parseAsString.withDefault("")
+  );
+  const [sortOrder, setSortOrder] = useQueryState(
+    "order",
+    parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc")
+  );
+
+  // ── Column-level filter state (URL-persisted via nuqs) ───────────────────
+  const [referralMin, setReferralMin] = useQueryState("referral_min", parseAsString.withDefault(""));
+  const [referralMax, setReferralMax] = useQueryState("referral_max", parseAsString.withDefault(""));
+  const [clickMin, setClickMin] = useQueryState("click_min", parseAsString.withDefault(""));
+  const [clickMax, setClickMax] = useQueryState("click_max", parseAsString.withDefault(""));
+  const [earningsMin, setEarningsMin] = useQueryState("earnings_min", parseAsString.withDefault(""));
+  const [earningsMax, setEarningsMax] = useQueryState("earnings_max", parseAsString.withDefault(""));
+  const [joinedAfter, setJoinedAfter] = useQueryState("joined_after", parseAsString.withDefault(""));
+  const [joinedBefore, setJoinedBefore] = useQueryState("joined_before", parseAsString.withDefault(""));
+
   // ── Ephemeral UI state (NOT in URL) ─────────────────────────────────────
   const [selectedAffiliates, setSelectedAffiliates] = useState<Set<Id<"affiliates">>>(new Set());
   const [rejectingAffiliate, setRejectingAffiliate] = useState<Affiliate | null>(null);
@@ -273,11 +332,11 @@ function AffiliatesContent() {
   const [detailDrawerAffiliate, setDetailDrawerAffiliate] = useState<Affiliate | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // ── Page reset on search / filter change ────────────────────────────────
+  // ── Page reset on search / filter / sort change ─────────────────────────
   useEffect(() => {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statuses, campaigns]);
+  }, [search, statuses, campaigns, sortBy, sortOrder, referralMin, referralMax, clickMin, clickMax, earningsMin, earningsMax, joinedAfter, joinedBefore]);
 
   // ── RBAC ────────────────────────────────────────────────────────────────
   const currentUser = useQuery(api.auth.getCurrentUser);
@@ -287,12 +346,8 @@ function AffiliatesContent() {
   const allCampaigns = useQuery(api.campaigns.listCampaigns, {});
   const campaignOptions = useMemo(() => {
     if (!allCampaigns) return [];
-    return allCampaigns.map((c) => ({
-      value: c._id as unknown as string,
-      label: c.name,
-    }));
+    return allCampaigns.map((c) => ({ value: c._id, label: c.name }));
   }, [allCampaigns]);
-  const isLoadingCampaigns = allCampaigns === undefined;
 
   // ── Build query args ────────────────────────────────────────────────────
   // Map the tab → status for the Convex query.
@@ -305,6 +360,149 @@ function AffiliatesContent() {
     return campaigns.map((c) => c as unknown as Id<"campaigns">);
   }, [campaigns]);
 
+  // ── Build filter query args ─────────────────────────────────────────────
+  // Parse nuqs string params into typed values for Convex
+  const parsedReferralMin = referralMin ? parseFloat(referralMin) : undefined;
+  const parsedReferralMax = referralMax ? parseFloat(referralMax) : undefined;
+  const parsedClickMin = clickMin ? parseFloat(clickMin) : undefined;
+  const parsedClickMax = clickMax ? parseFloat(clickMax) : undefined;
+  const parsedEarningsMin = earningsMin ? parseFloat(earningsMin) : undefined;
+  const parsedEarningsMax = earningsMax ? parseFloat(earningsMax) : undefined;
+  const parsedJoinedAfter = joinedAfter ? dateToStartTimestamp(joinedAfter) : undefined;
+  const parsedJoinedBefore = joinedBefore ? dateToTimestamp(joinedBefore) : undefined;
+
+  // ── Build activeFilters for DataTable ───────────────────────────────────
+  const activeFilters: ColumnFilter[] = useMemo(() => {
+    const filters: ColumnFilter[] = [];
+    if (statuses.length > 0) {
+      filters.push({ columnKey: "status", type: "select", values: statuses });
+    }
+    if (parsedReferralMin != null || parsedReferralMax != null) {
+      filters.push({
+        columnKey: "referrals",
+        type: "number-range",
+        min: parsedReferralMin ?? null,
+        max: parsedReferralMax ?? null,
+      });
+    }
+    if (parsedClickMin != null || parsedClickMax != null) {
+      filters.push({
+        columnKey: "clicks",
+        type: "number-range",
+        min: parsedClickMin ?? null,
+        max: parsedClickMax ?? null,
+      });
+    }
+    if (parsedEarningsMin != null || parsedEarningsMax != null) {
+      filters.push({
+        columnKey: "earnings",
+        type: "number-range",
+        min: parsedEarningsMin ?? null,
+        max: parsedEarningsMax ?? null,
+      });
+    }
+    if (parsedJoinedAfter != null || parsedJoinedBefore != null) {
+      filters.push({
+        columnKey: "joined",
+        type: "date-range",
+        after: parsedJoinedAfter ?? null,
+        before: parsedJoinedBefore ?? null,
+      });
+    }
+    if (campaigns.length > 0) {
+      filters.push({ columnKey: "campaign", type: "select", values: campaigns });
+    }
+    return filters;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, statuses, referralMin, referralMax, clickMin, clickMax, earningsMin, earningsMax, joinedAfter, joinedBefore, campaigns]);
+
+  // ── onFilterChange handler — maps ColumnFilter changes to nuqs params ───
+  const handleFilterChange = (filters: ColumnFilter[]) => {
+    // Find what changed by comparing with current activeFilters
+    const currentKeys = new Set(activeFilters.map((f) => f.columnKey));
+    const nextKeys = new Set(filters.map((f) => f.columnKey));
+
+    // Handle removals (clear nuqs params for removed columns)
+    for (const key of currentKeys) {
+      if (!nextKeys.has(key)) {
+        clearFilterForColumn(key);
+      }
+    }
+
+    // Handle additions/updates
+    for (const filter of filters) {
+      applyFilter(filter);
+    }
+  };
+
+  const applyFilter = (filter: ColumnFilter) => {
+    switch (filter.columnKey) {
+      case "status":
+        setStatuses(filter.values ?? []);
+        break;
+      case "referrals":
+        setReferralMin(filter.min != null ? String(filter.min) : "");
+        setReferralMax(filter.max != null ? String(filter.max) : "");
+        break;
+      case "clicks":
+        setClickMin(filter.min != null ? String(filter.min) : "");
+        setClickMax(filter.max != null ? String(filter.max) : "");
+        break;
+      case "earnings":
+        setEarningsMin(filter.min != null ? String(filter.min) : "");
+        setEarningsMax(filter.max != null ? String(filter.max) : "");
+        break;
+      case "joined":
+        setJoinedAfter(filter.after != null ? timestampToDateInput(filter.after) : "");
+        setJoinedBefore(filter.before != null ? timestampToDateInput(filter.before) : "");
+        break;
+      case "campaign":
+        setCampaigns(filter.values ?? []);
+        break;
+    }
+  };
+
+  const clearFilterForColumn = (columnKey: string) => {
+    switch (columnKey) {
+      case "status":
+        setStatuses([]);
+        break;
+      case "referrals":
+        setReferralMin("");
+        setReferralMax("");
+        break;
+      case "clicks":
+        setClickMin("");
+        setClickMax("");
+        break;
+      case "earnings":
+        setEarningsMin("");
+        setEarningsMax("");
+        break;
+      case "joined":
+        setJoinedAfter("");
+        setJoinedBefore("");
+        break;
+      case "campaign":
+        setCampaigns([]);
+        break;
+    }
+  };
+
+  const handleClearAllFilters = () => {
+    setSearch("");
+    setStatuses([]);
+    setReferralMin("");
+    setReferralMax("");
+    setClickMin("");
+    setClickMax("");
+    setEarningsMin("");
+    setEarningsMax("");
+    setJoinedAfter("");
+    setJoinedBefore("");
+    setCampaigns([]);
+  };
+
   // ── Main query (non-pending tabs use paginated filtered query) ──────────
   const isPendingTab = tab === "pending";
 
@@ -314,7 +512,7 @@ function AffiliatesContent() {
     isPendingTab ? { status: "pending" as const } : "skip"
   );
 
-  // For non-pending tabs, use paginated filtered query
+  // For non-pending tabs, use paginated filtered query with server-side filters
   const paginatedResult = useQuery(
     api.affiliates.listAffiliatesFiltered,
     !isPendingTab
@@ -324,6 +522,19 @@ function AffiliatesContent() {
           campaignIds,
           page: page,
           numItems: PAGE_SIZE,
+          // Server-side filters
+          searchQuery: search.trim() || undefined,
+          referralMin: parsedReferralMin,
+          referralMax: parsedReferralMax,
+          clickMin: parsedClickMin,
+          clickMax: parsedClickMax,
+          earningsMin: parsedEarningsMin,
+          earningsMax: parsedEarningsMax,
+          joinedAfter: parsedJoinedAfter,
+          joinedBefore: parsedJoinedBefore,
+          // Server-side sort
+          sortBy: sortBy ? (sortBy as "name" | "status" | "campaignName" | "referralCount" | "clickCount" | "totalEarnings" | "_creationTime") : undefined,
+          sortOrder: sortBy ? sortOrder : undefined,
         }
       : "skip"
   );
@@ -372,23 +583,40 @@ function AffiliatesContent() {
   const bulkRejectAffiliates = useMutation(api.affiliates.bulkRejectAffiliates);
   const updateNote = useMutation(api.affiliates.updateAffiliateNote);
 
-  // ── Client-side search filter (applied to current page results) ─────────
+  // ── CSV Export ─────────────────────────────────────────────────────────
+  const exportCSV = useAction(api.reportsExport.exportAffiliatePerformanceCSV);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    const tenantId = currentUser?.tenantId;
+    if (!tenantId) {
+      toast.error("Unable to export: tenant not found.");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const now = Date.now();
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+      const base64Data = await exportCSV({
+        tenantId,
+        dateRange: { start: thirtyDaysAgo, end: now },
+        campaignId: campaignIds?.[0], // use first selected campaign if any
+      });
+
+      downloadCsv(base64Data, "affiliates");
+      toast.success("Affiliate data exported successfully.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to export affiliate data.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // ── Use server-side filtered/sorted data directly ───────────────────────
   const allAffiliates = isPendingTab ? (legacyResult ?? []) : (paginatedResult?.page ?? []);
 
-  const filteredAffiliates = useMemo(() => {
-    if (!search.trim()) return allAffiliates;
-    const q = search.toLowerCase().trim();
-    return allAffiliates.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.email.toLowerCase().includes(q) ||
-        a.uniqueCode.toLowerCase().includes(q)
-    );
-  }, [allAffiliates, search]);
-
-  // ── Determine which status filter options to show ──────────────────────
-  // On "all" tab, show active + suspended. On specific tab, no status filter.
-  const visibleStatusOptions = tab === "all" ? STATUS_OPTIONS : [];
 
   // ── Handlers ────────────────────────────────────────────────────────────
   const handleApprove = async (affiliateId: Id<"affiliates">, affiliateName: string) => {
@@ -484,13 +712,15 @@ function AffiliatesContent() {
   const pendingCols = buildPendingColumns(
     canManageAffiliates,
     handleApprove,
-    (affiliate) => setRejectingAffiliate(affiliate)
+    (affiliate) => setRejectingAffiliate(affiliate),
+    campaignOptions
   );
   const activeCols = buildActiveColumns(
     canManageAffiliates,
     (affiliate) => setSuspendingAffiliate(affiliate),
     (affiliate) => setReactivatingAffiliate(affiliate),
-    handleViewDetails
+    handleViewDetails,
+    campaignOptions
   );
 
   // Prepare drawer data
@@ -516,7 +746,7 @@ function AffiliatesContent() {
   return (
     <div className="min-h-screen bg-[#f2f2f2]">
       {/* Top Bar */}
-      <AffiliateTopbar />
+      <AffiliateTopbar onExport={handleExportCSV} isExporting={isExporting} />
 
       {/* Page Content */}
       <div className="px-8 py-7">
@@ -542,29 +772,37 @@ function AffiliatesContent() {
             <AffiliateToolbar
               searchQuery={search}
               onSearchChange={setSearch}
-              statusOptions={visibleStatusOptions}
-              selectedStatuses={statuses}
-              onStatusesChange={setStatuses}
-              campaignOptions={campaignOptions}
-              selectedCampaigns={campaigns}
-              onCampaignsChange={setCampaigns}
-              isLoadingCampaigns={isLoadingCampaigns}
+            />
+
+            <FilterChips<Affiliate>
+              filters={activeFilters}
+              columns={activeCols.columns}
+              onRemove={clearFilterForColumn}
+              onClearAll={handleClearAllFilters}
             />
 
             <DataTable<Affiliate>
               columns={activeCols.columns}
               actions={activeCols.actions}
-              data={filteredAffiliates}
+              data={allAffiliates}
               getRowId={(row) => row._id}
               isLoading={isLoading}
               emptyMessage="No affiliates found"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={(field, order) => {
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
             />
 
             {/* Pagination */}
             {!isLoading && total > 0 && (
               <div className="mt-4 flex items-center justify-between text-[12px] text-[#6b7280]">
                 <span>
-                  Showing {filteredAffiliates.length} of {total} affiliates
+                  Showing {allAffiliates.length} of {total} affiliates
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -636,29 +874,37 @@ function AffiliatesContent() {
             <AffiliateToolbar
               searchQuery={search}
               onSearchChange={setSearch}
-              statusOptions={visibleStatusOptions}
-              selectedStatuses={statuses}
-              onStatusesChange={setStatuses}
-              campaignOptions={campaignOptions}
-              selectedCampaigns={campaigns}
-              onCampaignsChange={setCampaigns}
-              isLoadingCampaigns={isLoadingCampaigns}
+            />
+
+            <FilterChips<Affiliate>
+              filters={activeFilters}
+              columns={activeCols.columns}
+              onRemove={clearFilterForColumn}
+              onClearAll={handleClearAllFilters}
             />
 
             <DataTable<Affiliate>
               columns={activeCols.columns}
               actions={activeCols.actions}
-              data={filteredAffiliates}
+              data={allAffiliates}
               getRowId={(row) => row._id}
               isLoading={isLoading}
               emptyMessage={`No ${tab} affiliates found`}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={(field, order) => {
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
             />
 
             {/* Pagination */}
             {!isLoading && total > 0 && (
               <div className="mt-4 flex items-center justify-between text-[12px] text-[#6b7280]">
                 <span>
-                  Showing {filteredAffiliates.length} of {total} affiliates
+                  Showing {allAffiliates.length} of {total} affiliates
                 </span>
                 <div className="flex items-center gap-1">
                   <button

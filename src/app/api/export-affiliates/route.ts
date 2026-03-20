@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Call the Convex action
     const base64Data = await fetchAction(
-      api.reports.exportAffiliatePerformanceCSV,
+      api.reportsExport.exportAffiliatePerformanceCSV,
       {
         tenantId,
         dateRange,

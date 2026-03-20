@@ -165,6 +165,8 @@ export default defineSchema({
     status: v.string(),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"]),
+    // Note: _creationTime is auto-appended by Convex to all indexes.
+    // Use by_tenant with .order("desc") for newest-first paginated queries.
 
   affiliates: defineTable({
     tenantId: v.id("tenants"),
