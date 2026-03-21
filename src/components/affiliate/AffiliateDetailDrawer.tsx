@@ -322,7 +322,7 @@ export function AffiliateDetailDrawer({
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 h-8 text-[12px] transition-all duration-200 active:scale-95"
+            className="flex-1 h-8 text-[12px]"
           >
             <Mail className="h-3.5 w-3.5 mr-1" />
             Send Email
@@ -331,7 +331,7 @@ export function AffiliateDetailDrawer({
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-8 text-[12px] text-[#92400e] border-[#f59e0b] bg-[#fffbeb] hover:bg-[#fef3c7] hover:border-[#f59e0b] hover:shadow-[0_0_0_2px_rgba(245,158,11,0.15)] transition-all duration-200 active:scale-95 active:translate-y-[1px]"
+              className="flex-1 h-8 text-[12px] text-[#92400e] border-[#f59e0b] bg-[#fffbeb] hover:bg-[#fef3c7] hover:border-[#f59e0b] hover:shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
               onClick={onSuspend}
             >
               <PauseCircle className="h-3.5 w-3.5 mr-1" />
@@ -342,7 +342,7 @@ export function AffiliateDetailDrawer({
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-8 text-[12px] text-[#065f46] border-[#10b981] bg-[#ecfdf5] hover:bg-[#d1fae5] hover:border-[#10b981] hover:shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all duration-200 active:scale-95 active:translate-y-[1px]"
+              className="flex-1 h-8 text-[12px] text-[#065f46] border-[#10b981] bg-[#ecfdf5] hover:bg-[#d1fae5] hover:border-[#10b981] hover:shadow-[0_0_0_2px_rgba(16,185,129,0.15)]"
               onClick={onReactivate}
             >
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -351,7 +351,7 @@ export function AffiliateDetailDrawer({
           )}
           <Button
             size="sm"
-            className="flex-1 h-8 text-[12px] bg-[#10409a] hover:bg-[#1659d6] hover:shadow-[0_2px_8px_rgba(16,64,154,0.25)] transition-all duration-200 active:scale-95 active:translate-y-[1px]"
+            className="flex-1 h-8 text-[12px] bg-[#10409a] hover:bg-[#1659d6] hover:shadow-[0_2px_8px_rgba(16,64,154,0.25)]"
             asChild
           >
             <a href={`/affiliates/${affiliate._id}`}>

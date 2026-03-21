@@ -50,6 +50,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -533,10 +534,12 @@ function CommissionsContent() {
       <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
         <div className="flex items-center justify-between w-full">
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportCSV}
             disabled={isExporting}
-            className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent flex items-center gap-1.5"
+            className="gap-1.5 text-[12px]"
           >
             {isExporting ? (
               <>
@@ -549,7 +552,7 @@ function CommissionsContent() {
                 Export CSV
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -628,12 +631,13 @@ function CommissionsContent() {
 
             {/* Approve All Pending */}
             {canManage && (stats?.pendingCount ?? 0) > 0 && (
-              <button
+              <Button
+                size="sm"
                 onClick={() => setShowApproveAllDialog(true)}
-                className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors"
+                className="text-[12px]"
               >
                 Approve All Pending
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -694,12 +698,14 @@ function CommissionsContent() {
               Showing {sortedCommissions.length} of {filteredCommissions.length} commissions
             </span>
             {remainingCount > 0 && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent"
+                className="text-[12px]"
               >
                 Load {Math.min(PAGE_SIZE, remainingCount)} more ({remainingCount} remaining)
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -822,50 +828,56 @@ function CommissionsContent() {
                 {effectiveDetail.status === "pending" && canManage && (
                   isFlagged(effectiveDetail) ? (
                     <>
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => {
                           if (selectedCommission) handleOverrideLegitimate(selectedCommission._id);
                         }}
                         disabled={isActionLoading}
-                        className="w-full px-4 py-2.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent flex items-center justify-center gap-2"
+                        className="w-full gap-2 text-[12px]"
                       >
                         {isActionLoading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : null}
                         Override — Mark Legitimate
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => setShowDeclineDialog(true)}
                         disabled={isActionLoading}
-                        className="w-full px-4 py-2.5 text-[12px] font-semibold bg-[#ef4444] text-white rounded-lg hover:bg-[#dc2626] transition-colors flex items-center justify-center gap-2"
+                        className="w-full gap-2 text-[12px] bg-[#ef4444] text-white hover:bg-[#dc2626]"
                       >
                         Decline Commission
-                      </button>
+                      </Button>
                     </>
                   ) : (
                     <>
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setShowDeclineDialog(true)}
                         disabled={isActionLoading}
-                        className="w-full px-4 py-2.5 text-[12px] font-semibold border border-[#ef4444] text-[#ef4444] rounded-lg hover:bg-[#fee2e2] transition-colors bg-transparent flex items-center justify-center gap-2"
+                        className="w-full gap-2 text-[12px] border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
                       >
                         {isActionLoading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : null}
                         Decline
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => {
                           if (selectedCommission) handleApprove(selectedCommission._id);
                         }}
                         disabled={isActionLoading}
-                        className="w-full px-4 py-2.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors flex items-center justify-center gap-2"
+                        className="w-full gap-2 text-[12px]"
                       >
                         {isActionLoading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : null}
                         Approve
-                      </button>
+                      </Button>
                     </>
                   )
                 )}

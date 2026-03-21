@@ -22,9 +22,9 @@ export const campaignReturnShape = v.object({
   name: v.string(),
   description: v.optional(v.string()),
   commissionType: v.string(),
-  commissionRate: v.number(),          // alias for commissionValue
+  commissionRate: v.number(),               // alias for commissionValue
   cookieDuration: v.optional(v.number()),
-  recurringCommissions: v.boolean(),    // alias for recurringCommission
+  recurringCommissions: v.optional(v.boolean()),  // alias for recurringCommission (optional for safety)
   recurringRate: v.optional(v.number()),
   recurringRateType: v.optional(v.string()),
   autoApproveCommissions: v.optional(v.boolean()),
@@ -1126,14 +1126,6 @@ export const getTopCampaigns = query({
   args: {},
   returns: v.object({
     campaigns: v.array(campaignReturnShape),
-    stats: v.record(
-      v.string(),
-      v.object({
-        affiliates: v.number(),
-        conversions: v.number(),
-        paidOut: v.number(),
-      })
-    ),
   }),
   handler: async (ctx, _args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -1143,8 +1135,8 @@ export const getTopCampaigns = query({
 
     const tenantId = user.tenantId;
 
-    // Fetch up to 50 active campaigns to find actual top converters
-    const activeCampaigns = await ctx.db
+    // Fetch up to 50 active campaigns, newest first
+    let campaigns = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant_and_status", (q) =>
         q.eq("tenantId", tenantId).eq("status", "active")
@@ -1152,37 +1144,26 @@ export const getTopCampaigns = query({
       .order("desc")
       .take(50);
 
-    if (activeCampaigns.length === 0) {
-      return { campaigns: [], stats: {} };
+    // Fall back to paused campaigns if no active ones exist
+    if (campaigns.length === 0) {
+      campaigns = await ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", tenantId).eq("status", "paused")
+        )
+        .order("desc")
+        .take(50);
     }
 
-    // Get card stats internally for sorting (1 internal round-trip)
-    const cardStats = await ctx.runQuery(
-      internal.campaigns.getCampaignCardStatsInternal,
-      { tenantId }
-    );
-
-    // Sort by conversions descending, fallback to creation date
-    const sorted = [...activeCampaigns].sort((a, b) => {
-      const aConversions = cardStats[a._id as string]?.conversions ?? 0;
-      const bConversions = cardStats[b._id as string]?.conversions ?? 0;
-      if (bConversions !== aConversions) {
-        return bConversions - aConversions;
-      }
-      return b._creationTime - a._creationTime;
-    });
-
-    // Return top 5 campaigns + their stats
-    const top5 = sorted.slice(0, 5);
-    const top5Stats: Record<string, { affiliates: number; conversions: number; paidOut: number }> = {};
-    for (const c of top5) {
-      const id = c._id as string;
-      top5Stats[id] = cardStats[id] ?? { affiliates: 0, conversions: 0, paidOut: 0 };
+    if (campaigns.length === 0) {
+      return { campaigns: [] };
     }
+
+    // Return top 5 campaigns sorted by creation date (newest first)
+    const top5 = campaigns.slice(0, 5);
 
     return {
       campaigns: top5.map(mapCampaignToReturnShape),
-      stats: top5Stats,
     };
   },
 });

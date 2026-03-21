@@ -2,6 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -43,13 +44,14 @@ export class QueryErrorBoundary extends Component<
             <span className="text-[13px] text-[#ef4444]">
               Failed to load data
             </span>
-            <button
-              type="button"
+            <Button
+              variant="link"
+              size="sm"
               onClick={this.handleRetry}
-              className="text-[12px] font-semibold text-[#10409a] hover:underline"
+              className="text-[12px] font-semibold text-[#10409a]"
             >
               Retry
-            </button>
+            </Button>
           </div>
         )
       );

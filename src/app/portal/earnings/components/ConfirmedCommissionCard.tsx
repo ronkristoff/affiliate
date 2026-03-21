@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from "@/components/ui/button";
+
 interface ConfirmedCommissionCardProps {
   commission: {
     _id: string;
@@ -89,18 +91,21 @@ export function ConfirmedCommissionCard({
 
         {/* Actions */}
         <div className="flex gap-3">
-          <button
+          <Button
+            size="sm"
             onClick={onShare}
-            className="flex-1 py-2.5 px-4 bg-white text-[var(--brand)] font-medium rounded-lg hover:bg-white/90 transition-colors"
+            className="flex-1 bg-white text-[var(--brand)] hover:bg-white/90"
           >
             Share this win 🎉
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onViewDetails}
-            className="flex-1 py-2.5 px-4 bg-white/20 text-white font-medium rounded-lg hover:bg-white/30 transition-colors"
+            className="flex-1 bg-white/20 text-white hover:bg-white/30"
           >
             View Details
-          </button>
+          </Button>
         </div>
       </div>
     </div>

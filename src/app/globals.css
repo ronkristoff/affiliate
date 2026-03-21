@@ -419,6 +419,46 @@
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2;
   }
+
+  /* ── Button Motion ── */
+  /* Subtle hover lift, click press-down, and icon slide — applied to all <Button> components */
+  .btn-motion {
+    transition: transform 150ms cubic-bezier(0.25, 1, 0.5, 1),
+                box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1),
+                background-color 150ms cubic-bezier(0.25, 1, 0.5, 1),
+                border-color 150ms cubic-bezier(0.25, 1, 0.5, 1),
+                color 150ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .btn-motion:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.015);
+  }
+
+  .btn-motion:active:not(:disabled) {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 75ms;
+  }
+
+  .btn-motion:hover:not(:disabled) > svg {
+    transform: translateX(2px);
+    transition: transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .btn-motion:active:not(:disabled) > svg {
+    transform: translateX(0);
+    transition-duration: 75ms;
+  }
+
+  .btn-motion[data-slot="button"][class*="size-icon"]:hover:not(:disabled) > svg {
+    transform: scale(1.1);
+  }
+  .btn-motion[data-slot="button"][class*="size-icon"]:active:not(:disabled) > svg {
+    transform: scale(0.95);
+  }
+
+  .btn-motion:disabled > svg.animate-spin {
+    opacity: 0.7;
+  }
 }
 
 /* Keyframe Animations */

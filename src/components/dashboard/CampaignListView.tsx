@@ -239,10 +239,10 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
             <div className="mt-4 flex justify-center">
               <CreateCampaignModal
                 trigger={
-                  <button className="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold bg-[#1659d6] text-white rounded-lg hover:bg-[#10409a] transition-colors">
+                  <Button>
                     <Plus className="w-3.5 h-3.5" />
                     Create Campaign
-                  </button>
+                  </Button>
                 }
               />
             </div>

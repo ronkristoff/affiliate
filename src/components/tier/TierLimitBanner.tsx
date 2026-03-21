@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getLimitStatusText } from "@/lib/tierConfig";
+import { Button } from "@/components/ui/button";
 
 /**
  * Props for TierLimitBanner component.
@@ -87,16 +88,15 @@ export function TierLimitBanner({
         </p>
       </div>
       {upgradePrompt && onUpgradeClick && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onUpgradeClick}
-          className={cn(
-            "flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium",
-            "bg-white hover:bg-gray-50 border"
-          )}
+          className="gap-1"
         >
           <ArrowUpRight className="h-4 w-4" />
           Upgrade Plan
-        </button>
+        </Button>
       )}
     </div>
   );

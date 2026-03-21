@@ -13,6 +13,8 @@ import {
   AlertBanner,
   DateRangeSelector,
 } from "./components";
+import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import Link from "next/link";
 import { downloadCsv } from "@/lib/utils";
@@ -130,10 +132,12 @@ export default function DashboardPage() {
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
           <div className="flex items-center gap-3">
             <DateRangeSelector />
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleExport}
               disabled={isExporting}
-              className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent flex items-center gap-1.5"
+              className="gap-1.5"
             >
               {isExporting ? (
                 <>
@@ -146,13 +150,12 @@ export default function DashboardPage() {
                   Export CSV
                 </>
               )}
-            </button>
-            <Link 
-              href="/affiliates/invite"
-              className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors"
-            >
-              + Invite Affiliate
-            </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/affiliates/invite">
+                + Invite Affiliate
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -214,13 +217,13 @@ export default function DashboardPage() {
               <div className="card-header">
                 <h3 className="card-title">Recent Commissions</h3>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent">
+                  <Button variant="outline" size="sm">
                     View All
-                  </button>
+                  </Button>
                   {canManage && (stats?.pendingCommissionsCount ?? 0) > 0 && (
-                    <button className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--success)] text-white rounded-lg hover:bg-[#059669] transition-colors">
+                    <Button size="sm" className="bg-[var(--success)] text-white hover:bg-[#059669]">
                       💸 Pay All Pending
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -234,9 +237,9 @@ export default function DashboardPage() {
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Top Affiliates</h3>
-                <button className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent">
+                <Button variant="outline" size="sm">
                   View All
-                </button>
+                </Button>
               </div>
               <TopAffiliatesTable
                 affiliates={topAffiliates ?? []}

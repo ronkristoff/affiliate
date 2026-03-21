@@ -7,6 +7,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { CommissionItem } from './CommissionItem';
 import { ConfirmedCommissionCard } from './ConfirmedCommissionCard';
 import { CommissionDetailDrawer } from './CommissionDetailDrawer';
+import { Button } from '@/components/ui/button';
 import { Loader2, Share2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -165,9 +166,9 @@ export function CommissionList({
       {/* Load More */}
       {commissions.length >= 20 && (
         <div className="text-center pt-4">
-          <button className="px-6 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors">
+          <Button variant="outline" className="rounded-full">
             Load more ({commissions.length - 20} remaining)
-          </button>
+          </Button>
         </div>
       )}
 

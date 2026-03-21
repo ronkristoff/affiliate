@@ -366,16 +366,17 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
 
             {/* Submit */}
             <div className="flex gap-3">
-              <Link
-                href="/sign-in"
-                className="flex-1 h-[46px] border border-[#e5e7eb] text-[#6b7280] text-sm font-semibold rounded-lg flex items-center justify-center transition-all hover:bg-[#f9fafb]"
+              <Button
+                variant="outline"
+                asChild
+                className="flex-1 h-[46px] text-sm font-semibold"
               >
-                Cancel
-              </Link>
-              <button
+                <Link href="/sign-in">Cancel</Link>
+              </Button>
+              <Button
                 type="submit"
                 disabled={loading}
-                className="flex-1 h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg cursor-pointer transition-all hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 h-[46px] text-sm font-semibold gap-2"
               >
                 {loading ? (
                   <>
@@ -385,7 +386,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
                 ) : (
                   "Create Account"
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -458,12 +459,14 @@ function InvitationError({ errorType }: { errorType: "invalid" | "expired" | "mi
           </p>
 
           <div className="flex flex-col gap-3">
-            <Link
-              href="/sign-in"
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg flex items-center justify-center transition-all hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)]"
+            <Button
+              asChild
+              className="w-full h-[46px] text-sm font-semibold"
             >
-              Go to Sign In
-            </Link>
+              <Link href="/sign-in">
+                Go to Sign In
+              </Link>
+            </Button>
           </div>
         </div>
       </main>

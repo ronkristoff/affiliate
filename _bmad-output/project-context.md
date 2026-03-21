@@ -160,6 +160,43 @@ When implementing, AI agents MUST load relevant skills:
 | **Frontend Design** | UI components |
 | **Convex Realtime** | Real-time features |
 
+### Button Motion (`src/components/ui/button.tsx` + `globals.css`)
+
+**All buttons across the app have subtle motion built into the base `Button` component** via the `btn-motion` CSS class in `@layer utilities`. No additional imports or wrappers needed — every `<Button>` automatically inherits these micro-interactions.
+
+**Built-in behaviors:**
+| Interaction | Effect | Timing |
+|-------------|--------|--------|
+| Hover | Gentle lift (`translateY(-1px)`) + scale 1.015 + shadow | 150ms ease-out-quart |
+| Click/Active | Press-down + scale 0.97 | 75ms snappy |
+| Hover (icon inside) | Icon slides forward 2px | 200ms ease-out-quart |
+| Click (icon inside) | Icon snaps back | 75ms |
+| Hover (icon-only) | Icon scales to 1.1 | 150ms |
+| Click (icon-only) | Icon scales to 0.95 | 75ms |
+| Disabled + spinner | Spinning icon softened (opacity 0.7) | — |
+
+**Icons work automatically** — any `<svg>` child of `<Button>` gets hover/click slide animation.
+
+**`prefers-reduced-motion` respected** — all transitions killed via existing media query.
+
+**IMPORTANT:** CSS must live inside `@layer utilities { }` — Tailwind v4 strips CSS outside layers.
+
+**DO NOT add inline transition/animation classes to `<Button>` elements:**
+```tsx
+// ✅ Correct — motion is automatic
+<Button variant="outline" size="sm">
+  <Mail className="h-4 w-4" />
+  Send Email
+</Button>
+
+// ❌ Wrong — redundant, already in btn-motion
+<Button className="transition-all duration-200 active:scale-95 hover:shadow-lg">
+  Send
+</Button>
+```
+
+**NEVER use raw `<button>` tags** — always use `<Button>` from `@/components/ui/button` (or `<Button asChild>` for links). Raw buttons bypass the motion system entirely.
+
 ### Design Context
 
 **Users:**

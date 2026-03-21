@@ -155,8 +155,9 @@ export default function AttributionSettingsPage() {
         {/* Webhook Logs Section - NEW */}
         <Card>
           <CardHeader>
-            <button 
-              className="flex items-center justify-between w-full text-left"
+            <Button
+              variant="ghost"
+              className="flex items-center justify-between w-full text-left h-auto p-0"
               onClick={() => setShowWebhookLogs(!showWebhookLogs)}
             >
               <div>
@@ -173,7 +174,7 @@ export default function AttributionSettingsPage() {
               ) : (
                 <ChevronDown className="w-5 h-5 text-muted-foreground" />
               )}
-            </button>
+            </Button>
           </CardHeader>
           {showWebhookLogs && (
             <CardContent>

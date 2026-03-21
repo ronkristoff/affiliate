@@ -307,15 +307,16 @@ export default function SignIn() {
                   </span>
                 )}
                 {lockoutEndTime && (
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    className="text-red-800 font-semibold no-underline h-auto p-0 ml-1"
                     onClick={() => {
                       // Let user retry after cooldown
                     }}
-                    className="text-red-800 font-semibold bg-transparent border-none cursor-pointer ml-1"
                   >
                     Try again later
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -360,13 +361,15 @@ export default function SignIn() {
                 <label htmlFor="password" className="text-[13px] font-semibold text-[#333]">
                   Password
                 </label>
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
+                  className="text-[12px] h-auto p-0 text-[#10409a] font-medium no-underline"
                   onClick={handleForgotPassword}
-                  className="text-[12px] text-[#10409a] font-medium no-underline hover:underline bg-transparent border-none cursor-pointer"
                 >
                   Forgot password?
-                </button>
+                </Button>
               </div>
               <div className="relative">
                 <svg
@@ -391,10 +394,12 @@ export default function SignIn() {
                   autoComplete="current-password"
                   required
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[#6b7280] hover:text-[#474747]"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -424,7 +429,7 @@ export default function SignIn() {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -443,10 +448,10 @@ export default function SignIn() {
             </div>
 
             {/* Submit */}
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg cursor-pointer transition-all hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -456,7 +461,7 @@ export default function SignIn() {
               ) : (
                 "Sign in to dashboard"
               )}
-            </button>
+            </Button>
           </form>
 
           {/* Divider */}

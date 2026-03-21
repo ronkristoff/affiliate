@@ -234,13 +234,12 @@ function CampaignDetailContent() {
             <p className="text-[13px] text-[var(--text-muted)] mb-4">
               The campaign you&apos;re looking for doesn&apos;t exist.
             </p>
-            <Link
-              href="/campaigns"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Campaigns
-            </Link>
+            <Button size="sm" asChild>
+              <Link href="/campaigns">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Campaigns
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -444,10 +443,10 @@ function CampaignDetailContent() {
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
-                <button
+                <Button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? (
                     <>
@@ -460,27 +459,33 @@ function CampaignDetailContent() {
                       Save
                     </>
                   )}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent inline-flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-[12px] font-semibold"
                 >
                   <X className="w-3 h-3" />
                   Cancel
-                </button>
+                </Button>
               </>
             ) : campaign.status !== "archived" ? (
               <>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent inline-flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
                 >
                   <Settings className="w-3 h-3" />
                   Edit
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handlePauseResume}
-                  className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent inline-flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
                 >
                   {campaign.status === "active" ? (
                     <>
@@ -493,14 +498,16 @@ function CampaignDetailContent() {
                       Resume
                     </>
                   )}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowArchiveConfirm(true)}
-                  className="px-3 py-1.5 text-[12px] font-semibold border border-[var(--border)] rounded-lg hover:bg-[var(--bg-page)] transition-colors bg-transparent inline-flex items-center gap-1.5 text-[var(--text-muted)]"
+                  className="px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)]"
                 >
                   <Archive className="w-3 h-3" />
                   Archive
-                </button>
+                </Button>
               </>
             ) : null}
           </div>

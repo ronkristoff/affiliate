@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, XCircle, Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -27,28 +28,34 @@ export function BulkActionBar({
         {selectedCount} selected
       </span>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onApproveAll}
         disabled={isProcessing}
-        className="px-3 py-1.5 rounded-md text-[12px] font-bold bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50"
+        className="rounded-md text-[12px] font-bold bg-white/20 hover:bg-white/30 text-white"
       >
         Approve All ({selectedCount})
-      </button>
+      </Button>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onRejectAll}
         disabled={isProcessing}
-        className="px-3 py-1.5 rounded-md text-[12px] font-bold bg-red-500/30 hover:bg-red-500/40 transition-colors disabled:opacity-50"
+        className="rounded-md text-[12px] font-bold bg-red-500/30 hover:bg-red-500/40 text-white"
       >
         Reject All ({selectedCount})
-      </button>
+      </Button>
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={onClearSelection}
-        className="ml-auto text-[12px] opacity-70 hover:opacity-100 transition-opacity"
+        className="ml-auto text-[12px] opacity-70 hover:opacity-100 text-white"
       >
         Clear selection ×
-      </button>
+      </Button>
     </div>
   );
 }

@@ -341,13 +341,15 @@ export default function SignUp() {
             <div className="text-[13px] text-blue-800">
               Selected: <strong>{currentPlan.name}</strong> — <span>{updatePlanSummary()}</span>
             </div>
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="sm"
+              className="text-[12px] text-[#10409a] font-semibold no-underline h-auto p-0"
               onClick={() => document.querySelector(".grid")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-[12px] text-[#10409a] font-semibold no-underline hover:underline cursor-pointer bg-transparent border-none"
             >
               Change plan
-            </button>
+            </Button>
           </div>
 
           <form onSubmit={handleSignUp}>
@@ -489,10 +491,12 @@ export default function SignUp() {
                   autoComplete="new-password"
                   required
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 text-[#6b7280] hover:text-[#474747]"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -506,7 +510,7 @@ export default function SignUp() {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   )}
-                </button>
+                </Button>
               </div>
               {/* Password Strength */}
               <div className="mt-1.5 flex items-center gap-2">
@@ -586,10 +590,10 @@ export default function SignUp() {
             </div>
 
             {/* Submit */}
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg cursor-pointer transition-all hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-3"
+              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed mb-3"
             >
               {loading ? (
                 <>
@@ -599,7 +603,7 @@ export default function SignUp() {
               ) : (
                 "Start free trial →"
               )}
-            </button>
+            </Button>
 
             <div className="flex items-center justify-center gap-1.5 text-[12px] text-[#6b7280]">
               <svg

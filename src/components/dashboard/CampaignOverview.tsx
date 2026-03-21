@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { CampaignCard } from "./CampaignCard";
 import { CreateCampaignModal } from "./CreateCampaignModal";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryErrorBoundary } from "@/components/ui/QueryErrorBoundary";
 import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
@@ -19,11 +20,13 @@ import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
 export function CampaignOverview() {
   return (
     <QueryErrorBoundary
-      onError={() => null}
+      onError={(error) => {
+        console.error("[CampaignOverview] QueryErrorBoundary caught:", error);
+      }}
       fallback={
         <div className="text-center py-12 text-[#6b7280]">
           <p className="text-sm">Failed to load campaign overview.</p>
-          <p className="text-xs mt-1">Please refresh the page.</p>
+          <p className="text-xs mt-1 text-red-500">Check the browser console (F12) for details.</p>
         </div>
       }
     >
@@ -43,13 +46,15 @@ function CampaignOverviewInner() {
     return <CampaignOverviewLoadingSkeleton />;
   }
 
-  // Destructure getTopCampaigns response (ADR-3: stats returned alongside campaigns)
-  const topCampaigns = topCampaignsData.campaigns;
-  const topStats = topCampaignsData.stats;
+  // Destructure getTopCampaigns response
+  const topCampaigns = topCampaignsData?.campaigns ?? [];
+
+  // Determine if we're showing paused fallback (no active campaigns)
+  const hasActiveCampaigns = topCampaigns.length > 0 && topCampaigns.some((c) => c.status === "active");
 
   // Zero-affiliate campaign IDs from getCampaignStats
-  const zeroAffiliateIds = campaignStats.zeroAffiliateCampaignIds;
-  const hasAttention = (attentionData.pausedTotal > 0) || (zeroAffiliateIds.length > 0);
+  const zeroAffiliateIds = campaignStats?.zeroAffiliateCampaignIds ?? [];
+  const hasAttention = (attentionData?.pausedTotal ?? 0) > 0 || zeroAffiliateIds.length > 0;
 
   return (
     <div className="space-y-6">
@@ -78,17 +83,14 @@ function CampaignOverviewInner() {
       {/* Top Campaigns Section */}
       {topCampaigns.length > 0 && (
         <div>
-          <h2 className="text-[15px] font-bold text-gray-800 mb-3.5">Top Active Campaigns</h2>
+          <h2 className="text-[15px] font-bold text-gray-800 mb-3.5">
+            {hasActiveCampaigns ? "Top Active Campaigns" : "Your Campaigns"}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {topCampaigns.map((campaign) => (
               <CampaignCard
                 key={campaign._id}
                 campaign={campaign}
-                stats={{
-                  affiliates: topStats[campaign._id]?.affiliates ?? 0,
-                  conversions: topStats[campaign._id]?.conversions ?? 0,
-                  paidOut: topStats[campaign._id]?.paidOut ?? 0,
-                }}
               />
             ))}
           </div>
@@ -186,10 +188,10 @@ function CampaignOverviewInner() {
       <div className="flex items-center gap-3 pt-2">
         <CreateCampaignModal
           trigger={
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors">
+            <Button size="sm">
               <Plus className="w-3.5 h-3.5" />
               New Campaign
-            </button>
+            </Button>
           }
         />
         <Link

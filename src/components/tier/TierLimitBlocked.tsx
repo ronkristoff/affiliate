@@ -3,6 +3,7 @@
 import { AlertCircle, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getLimitStatusText } from "@/lib/tierConfig";
+import { Button } from "@/components/ui/button";
 
 /**
  * Props for TierLimitBlocked component.
@@ -76,13 +77,14 @@ export function TierLimitBlocked({
             {resourceType}: {current} / {formatLimit(limit)}
           </p>
           {onUpgradeClick && (
-            <button
+            <Button
+              size="sm"
               onClick={onUpgradeClick}
-              className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+              className="mt-3 gap-1"
             >
               <ArrowUpRight className="h-4 w-4" />
               Upgrade Plan
-            </button>
+            </Button>
           )}
         </div>
       </div>

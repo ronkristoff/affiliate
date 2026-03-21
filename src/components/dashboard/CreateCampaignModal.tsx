@@ -888,7 +888,7 @@ export function CreateCampaignModal({
             <Button
               type="submit"
               disabled={loading || isLimitReached}
-              className="h-10 px-5 text-sm bg-[#10409a] hover:bg-[#1659d6] transition-colors duration-200"
+              className="h-10 px-5 text-sm bg-[#10409a] hover:bg-[#1659d6]"
             >
               {loading ? (
                 <>

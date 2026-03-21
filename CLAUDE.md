@@ -521,7 +521,7 @@ tr:hover td { background: #f9fafb; }
 1. **Status Badges**: Rounded-full with colored dot indicator + label
 2. **Metric Cards**: White background with 3px colored top accent bar
 3. **Tables**: Header with #fafafa background, hover rows with #f9fafb
-4. **Buttons**: Primary uses `--brand-primary`, outline uses `--border`
+4. **Buttons**: Primary uses `--brand-primary`, outline uses `--border`. All buttons have built-in hover lift, click press-down, and icon slide animations via `.btn-motion` in `globals.css` `@layer utilities`. **NEVER use raw `<button>` tags — always use `<Button>` from `@/components/ui/button`**. **DO NOT add inline `transition-*`, `active:scale-*`, or `hover:shadow-*` classes to `<Button>`**.
 5. **Filter Pills**: Rounded-full with active state using `--brand-light` background
 6. **Cards**: 12px border-radius, subtle shadow, 16-20px padding
 7. **Activity Feed**: List items with icon, text content, and relative timestamp

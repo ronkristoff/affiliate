@@ -332,6 +332,7 @@ export default defineSchema({
     status: v.string(),
     paymentReference: v.optional(v.string()),
     paidAt: v.optional(v.number()),
+    paymentSource: v.optional(v.string()),
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
     .index("by_batch", ["batchId"])
@@ -344,6 +345,8 @@ export default defineSchema({
     status: v.string(),
     generatedAt: v.number(),
     completedAt: v.optional(v.number()),
+    manualCount: v.optional(v.number()),
+    saligPayCount: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"]),
 

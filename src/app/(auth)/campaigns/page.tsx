@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { CampaignOverview } from "@/components/dashboard/CampaignOverview";
 import { CampaignStatsBar } from "@/components/dashboard/CampaignStatsBar";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
 
@@ -65,10 +66,10 @@ export default function CampaignsPage() {
           <div className="flex items-center gap-3">
             <CreateCampaignModal
               trigger={
-                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors">
+                <Button size="sm">
                   <Plus className="w-3.5 h-3.5" />
                   New Campaign
-                </button>
+                </Button>
               }
             />
           </div>

@@ -57,7 +57,7 @@ export function AffiliateProfileHero({
               variant="outline"
               size="sm"
               onClick={onSuspend}
-              className="text-[#92400e] border-[#f59e0b] bg-[#fffbeb] hover:bg-[#fef3c7] hover:border-[#f59e0b] hover:shadow-[0_0_0_2px_rgba(245,158,11,0.15)] transition-all duration-200 active:scale-95 active:translate-y-[1px]"
+              className="text-[#92400e] border-[#f59e0b] bg-[#fffbeb] hover:bg-[#fef3c7] hover:border-[#f59e0b] hover:shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
             >
               <PauseCircle className="mr-2 h-4 w-4" />
               Suspend
@@ -68,7 +68,7 @@ export function AffiliateProfileHero({
               variant="outline"
               size="sm"
               onClick={onReactivate}
-              className="text-[#065f46] border-[#10b981] bg-[#ecfdf5] hover:bg-[#d1fae5] hover:border-[#10b981] hover:shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all duration-200 active:scale-95 active:translate-y-[1px]"
+              className="text-[#065f46] border-[#10b981] bg-[#ecfdf5] hover:bg-[#d1fae5] hover:border-[#10b981] hover:shadow-[0_0_0_2px_rgba(16,185,129,0.15)]"
             >
               <CheckCircle className="mr-2 h-4 w-4" />
               Reactivate

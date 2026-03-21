@@ -316,6 +316,37 @@ export default function DashboardPage() {
 - Use shadcn/ui-like patterns with class-variance-authority
 - Tailwind CSS v4 for styling
 
+### ⚠️ Button Motion Is Built Into the Base Component
+
+**All `<Button>` components have subtle motion animations built in** via the `btn-motion` CSS class applied in `buttonVariants`. Every button gets hover lift, click press-down, and icon slide micro-interactions automatically.
+
+**NEVER use raw `<button>` tags** — always use `<Button>` from `@/components/ui/button`. Raw buttons bypass the entire motion system. Use `<Button asChild>` for link-wrapped buttons.
+
+**DO NOT add inline animation classes** (`transition-all`, `active:scale-95`, `hover:shadow-*`, etc.) to `<Button>` elements — the base component handles all motion.
+
+**CSS for `.btn-motion` MUST live inside `@layer utilities { }` in `globals.css`** — Tailwind v4 strips custom CSS outside of layers.
+
+```tsx
+import { Button } from "@/components/ui/button";
+
+// ✅ Correct — motion is automatic, icons animate on hover/click
+<Button variant="outline" size="sm">
+  <Mail className="h-4 w-4" />
+  Send Email
+</Button>
+
+// ✅ Correct — link buttons use asChild
+<Button size="sm" asChild>
+  <Link href="/somewhere">Go</Link>
+</Button>
+
+// ❌ Wrong — raw button has no animation
+<button className="px-3 py-1.5 ...">Send</button>
+
+// ❌ Wrong — redundant classes, already in btn-motion
+<Button className="transition-all duration-200 active:scale-95">Send</Button>
+```
+
 ### Git Conventions
 
 - Do NOT commit unless explicitly asked

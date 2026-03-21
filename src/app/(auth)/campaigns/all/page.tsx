@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { CampaignFilters, type FilterState, type ViewMode } from "@/components/dashboard/CampaignFilters";
 import { CampaignListView } from "@/components/dashboard/CampaignListView";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, ArrowLeft } from "lucide-react";
 
@@ -76,10 +77,10 @@ export default function CampaignListingPage() {
           <div className="flex items-center gap-3">
             <CreateCampaignModal
               trigger={
-                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] transition-colors">
+                <Button size="sm">
                   <Plus className="w-3.5 h-3.5" />
                   New Campaign
-                </button>
+                </Button>
               }
             />
           </div>
