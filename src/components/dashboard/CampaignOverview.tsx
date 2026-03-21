@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,7 +13,8 @@ import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
 /**
  * CampaignOverview — dashboard overview for the 80% case (5-20 campaigns).
  * Shows: status summary, top 5 active campaigns, "Needs Attention" section, quick actions.
- * Query budget: 3 external + 1 internal round-trips (~290ms).
+ * Query budget: 3 external + 1 internal round-trips (~290ms). ADR-3 compliant — no separate
+ * getCampaignCardStats call from frontend; stats returned by getTopCampaigns internally.
  */
 export function CampaignOverview() {
   return (
@@ -34,15 +34,18 @@ export function CampaignOverview() {
 
 function CampaignOverviewInner() {
   const campaignStats = useQuery(api.campaigns.getCampaignStats);
-  const topCampaigns = useQuery(api.campaigns.getTopCampaigns);
+  const topCampaignsData = useQuery(api.campaigns.getTopCampaigns);
   const attentionData = useQuery(api.campaigns.getAttentionCampaigns);
-  const cardStats = useQuery(api.campaigns.getCampaignCardStats);
 
-  const isLoading = campaignStats === undefined || topCampaigns === undefined || attentionData === undefined;
+  const isLoading = campaignStats === undefined || topCampaignsData === undefined || attentionData === undefined;
 
   if (isLoading) {
     return <CampaignOverviewLoadingSkeleton />;
   }
+
+  // Destructure getTopCampaigns response (ADR-3: stats returned alongside campaigns)
+  const topCampaigns = topCampaignsData.campaigns;
+  const topStats = topCampaignsData.stats;
 
   // Zero-affiliate campaign IDs from getCampaignStats
   const zeroAffiliateIds = campaignStats.zeroAffiliateCampaignIds;
@@ -82,9 +85,9 @@ function CampaignOverviewInner() {
                 key={campaign._id}
                 campaign={campaign}
                 stats={{
-                  affiliates: cardStats?.[campaign._id]?.affiliates ?? 0,
-                  conversions: cardStats?.[campaign._id]?.conversions ?? 0,
-                  paidOut: cardStats?.[campaign._id]?.paidOut ?? 0,
+                  affiliates: topStats[campaign._id]?.affiliates ?? 0,
+                  conversions: topStats[campaign._id]?.conversions ?? 0,
+                  paidOut: topStats[campaign._id]?.paidOut ?? 0,
                 }}
               />
             ))}

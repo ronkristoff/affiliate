@@ -3,7 +3,6 @@
 import { Suspense } from "react";
 import { CampaignOverview } from "@/components/dashboard/CampaignOverview";
 import { CampaignStatsBar } from "@/components/dashboard/CampaignStatsBar";
-import { AffiliatesByCampaignTable } from "@/components/dashboard/AffiliatesByCampaignTable";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
@@ -13,9 +12,6 @@ function CampaignsContent() {
     <>
       <CampaignStatsBar />
       <CampaignOverview />
-      <div className="mt-6">
-        <AffiliatesByCampaignTable />
-      </div>
     </>
   );
 }
@@ -54,18 +50,6 @@ function CampaignOverviewSkeleton() {
       <div className="flex gap-3 pt-2">
         <Skeleton className="h-10 w-40 rounded-lg" />
         <Skeleton className="h-10 w-48 rounded-lg" />
-      </div>
-
-      {/* Affiliates by Campaign table skeleton */}
-      <div className="mt-6">
-        <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-          <Skeleton className="h-12 w-full" />
-          <div className="space-y-0">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-11 w-full border-t border-[#f3f4f6]" />
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

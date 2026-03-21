@@ -196,12 +196,12 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
 
 ### Tasks
 
-- [ ] **Task 1: Add `by_tenant_and_creationTime` index to campaigns schema**
+- [x] **Task 1: Add `by_tenant_and_creationTime` index to campaigns schema**
   - File: `convex/schema.ts`
   - Action: Add `.index("by_tenant_and_creationTime", ["tenantId", "_creationTime"])` to the campaigns table definition (line ~167, after existing indexes)
-  - Notes: This index enables efficient paginated "newest first" queries. Convex automatically backfills indexes — no migration needed. Run `pnpm convex dev --once` to push schema.
+  - Notes: **Alternative approach used** — relied on existing `by_tenant` index with `.order("desc")` (Convex auto-appends `_creationTime` to all indexes). Comment added at schema.ts:168-169. ADR-2 supports no dedicated filter indexes.
 
-- [ ] **Task 2: Create `listCampaignsPaginated` query**
+- [x] **Task 2: Create `listCampaignsPaginated` query**
   - File: `convex/campaigns.ts`
   - Action: Add new paginated query following the established pattern from `convex/payouts.ts:218-268`:
     ```
@@ -232,22 +232,25 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
     8. **Hydration indicator**: Return `hasMoreFiltered: true` if post-filtering removed items AND `isDone` is false — signals frontend to fetch next page
   - Notes: Import `paginationOptsValidator` from `"convex/server"`. Use shared `campaignReturnShape` validator (ADR-4). Date filters use Convex `_creationTime` (epoch ms). **Hydration strategy** (ADR-1): The frontend requests `numItems: 30` but displays only 20. Post-filtering is applied client-side. If fewer than 20 items remain after filtering and `isDone` is false, the frontend automatically fetches the next page and appends. This prevents the "sparse page" problem where filtering 30 → 8 items looks broken. Add `hasMoreFiltered` to returns as `v.boolean()`.
 
-- [ ] **Task 3: Create `getTopCampaigns` query**
+- [x] **Task 3: Create `getTopCampaigns` query**
   - File: `convex/campaigns.ts`
   - Action: Add new query that returns top 5 active campaigns for the overview page:
-    ```
-    args: {}
-    returns: v.array(campaignReturnShape)
-    ```
+     ```
+     args: {}
+     returns: v.object({
+       campaigns: v.array(campaignReturnShape),
+       stats: v.record(v.string(), v.object({ affiliates: v.number(), conversions: v.number(), paidOut: v.number() })),
+     })
+     ```
   - Handler logic:
     1. Get authenticated user → tenantId
     2. Use `by_tenant_and_status` index with `status: "active"` → `.take(50)` (fetch up to 50 to find actual top converters — Adversarial F32 fix)
     3. Call `getCampaignCardStats` via `ctx.runQuery` (one internal round-trip) to get conversion counts
     4. Sort active campaigns by `cardStats[campaignId].conversions` descending, fallback to `_creationTime` desc
-    5. Return top 5 using `mapCampaignToReturnShape` helper
-  - Notes: Use shared `campaignReturnShape` validator (ADR-4) + `mapCampaignToReturnShape` helper (F1 fix). **Calls `getCampaignCardStats` internally** — this is the ONE exception to ADR-3 because without it, the "Top Campaigns" section is misleading (fetching 10 newest ≠ top converters at scale). ADR-3 still holds for `getAttentionCampaigns` and the overview component. Impact on query budget: 1 extra internal round-trip (~50ms), total still ~390ms (under 500ms).
+    5. Return top 5 campaigns + their stats (ADR-3: stats returned alongside campaigns, no separate frontend query)
+  - Notes: **ADR-3 enhancement** — returns stats alongside campaigns so the frontend does NOT need a separate `getCampaignCardStats` query. This keeps the overview at 3 external + 1 internal round-trips (~290ms). Uses shared `campaignReturnShape` validator (ADR-4) + `mapCampaignToReturnShape` helper (F1 fix).
 
-- [ ] **Task 3b: Create `getAttentionCampaigns` query**
+- [x] **Task 3b: Create `getAttentionCampaigns` query**
   - File: `convex/campaigns.ts`
   - Action: Add new query that returns campaigns needing attention for the overview page:
     ```
@@ -263,14 +266,14 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
     3. Return paused data — **zero-affiliate detection is handled entirely on the frontend** (see Task 5 notes below)
   - Notes: Use shared `campaignReturnShape` validator (ADR-4) + `mapCampaignToReturnShape` helper. **Does NOT return zero-affiliate data or `zeroAffiliateTotal`** — this was an ADR-3 contradiction (Adversarial F31). Instead, `getCampaignStats` is extended (see Task 3c below) to return `zeroAffiliateCampaignIds`, and the frontend handles zero-affiliate display entirely. **Does NOT call `getCampaignCardStats` internally** (ADR-3 holds).
 
-- [ ] **Task 3c: Extend `getCampaignStats` to return zero-affiliate campaign IDs**
+- [x] **Task 3c: Extend `getCampaignStats` to return zero-affiliate campaign IDs**
   - File: `convex/campaigns.ts`
   - Action: Modify existing `getCampaignStats` query to also return `zeroAffiliateCampaignIds`:
     - During the existing campaign scan loop, collect IDs of active campaigns that have zero affiliates (no matching document in `affiliates` table)
     - Add to returns: `zeroAffiliateCampaignIds: v.array(v.id("campaigns"))`
   - Notes: This query already scans all campaigns for status counts. Adding zero-affiliate detection is zero extra cost (just check affiliates table existence for each campaign). The frontend uses these IDs to display up to 5 zero-affiliate campaign rows and show the accurate count.
 
-- [ ] **Task 4: Refactor campaigns overview page**
+- [x] **Task 4: Refactor campaigns overview page**
   - File: `src/app/(auth)/campaigns/page.tsx`
   - Action: Replace current page shell content. Remove `CampaignList` and `AffiliatesByCampaignTable` imports. Replace with:
     ```tsx
@@ -279,7 +282,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
     ```
   - Notes: Keep the same top bar structure (title "Campaigns", "New Campaign" button). `CampaignOverview` is a new component (Task 5).
 
-- [ ] **Task 5: Create `CampaignOverview` component**
+- [x] **Task 5: Create `CampaignOverview` component**
   - File: `src/components/dashboard/CampaignOverview.tsx` (NEW)
   - Action: Create overview component with:
     1. **Data fetching** — Call `getCampaignStats`, `getTopCampaigns`, `getAttentionCampaigns`. Use `useMemo` for derived sorting/filtering.
@@ -295,7 +298,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
        - **"View All X Campaigns →"** = secondary (outline) — links to `/campaigns/all` (X from `getCampaignStats`)
   - Notes: Use existing `CampaignCard` component for the top 5 cards. `"use client"` directive needed for hooks. Wrap in Suspense in the page.tsx. If tenant has 0 campaigns, show the empty state CTA (existing "Create New Campaign" card). **Primary/secondary button hierarchy** makes CREATE the obvious action (Focus Group — Alex). **Count displays** give Alex confidence about what's behind each link (Focus Group — Alex). **Overview serves the 80% case** (5-20 campaigns) — Party Mode — Mary. **Updated query budget: 3 external + 1 internal round-trips (~390ms)** — ADR-3 revised after F32 fix (getTopCampaigns now calls cardStats internally).
 
-- [ ] **Task 6: Create campaigns listing page**
+- [x] **Task 6: Create campaigns listing page**
   - File: `src/app/(auth)/campaigns/all/page.tsx` (NEW)
   - Action: Create new page with same top bar structure as current campaigns page:
     ```tsx
@@ -306,7 +309,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
     ```
   - Notes: Follow established component pattern — Suspense wrapper around content. The page shell is similar to the current campaigns page but uses the new listing components.
 
-- [ ] **Task 7: Create `CampaignFilters` component**
+- [x] **Task 7: Create `CampaignFilters` component**
   - File: `src/components/dashboard/CampaignFilters.tsx` (NEW)
   - Action: Create filter bar component with:
     1. **Search input** — text input with magnifying glass icon; debounced (300ms); filters client-side by name/description. **Label** (Adversarial F8 fix): Placeholder text reads "Search within current page" to clarify that search only operates on the currently loaded ~20 campaigns, not across all pages. Add a subtle helper text: "For exact campaign lookup, use the status and type filters."
@@ -320,7 +323,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
   - State: All filter state lives here. Expose via props to `CampaignListView`.
   - Notes: `"use client"` directive. Use existing UI components (`Input`, `Select`, `Button`). Status filter calls `listCampaignsPaginated` with `statusFilter` arg (server-side). Date range is secondary per data-aligned UX (Party Mode — Mary: status ~60% usage, type ~10%, date ~5% of filter interactions).
 
-- [ ] **Task 8: Create `CampaignListView` component**
+- [x] **Task 8: Create `CampaignListView` component**
   - File: `src/components/dashboard/CampaignListView.tsx` (NEW)
   - Action: Create the main listing component with pagination and view toggle:
     1. **Data fetching** — Call `listCampaignsPaginated` with filter args + `paginationOpts: { numItems: 30, cursor }` (hydration strategy: request 30, display up to 20). **Default**: `includeArchived: false` to match existing behavior (Adversarial F35 fix).
@@ -340,7 +343,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
   - Props: `viewMode: "cards" | "table"` (from CampaignFilters toggle), `filterState` (from CampaignFilters)
   - Notes: `"use client"` directive. For table view, stats come from `getCampaignCardStats` query (already exists). Table rows link to `/campaigns/[id]`. Hydration prevents sparse pages (Party Mode — Winston).
 
-- [ ] **Task 9: Move `AffiliatesByCampaignTable` to campaign detail page**
+- [x] **Task 9: Move `AffiliatesByCampaignTable` to campaign detail page**
   - File: `src/app/(auth)/campaigns/[id]/page.tsx`
   - File: `src/components/dashboard/AffiliatesByCampaignTable.tsx`
   - Action:
@@ -349,7 +352,7 @@ Restructure `/campaigns` into a **dashboard overview page** (stats + top campaig
     3. Remove the "Affiliates by Campaign" header from the table since the page already provides context. Or keep it as a section label.
   - Notes: This is the key UX improvement — the campaign picker dropdown becomes unnecessary when the table is in context. The existing `DataTable` with its column-level filters (text search on affiliate name/email, number ranges on clicks/conversions/revenue, date range on joined) is already excellent.
 
-- [ ] **Task 10: Confirm sidebar navigation (no-op)**
+- [x] **Task 10: Confirm sidebar navigation (no-op)**
   - File: `src/components/shared/Sidebar.tsx`
   - File: `src/components/shared/SidebarNav.tsx`
   - Action: **No changes needed.** Verified by Amelia (Party Mode — Dev). The existing `startsWith` active detection on line 223 (`pathname.startsWith(item.href + "/")`) already handles `/campaigns/all` — when user is on `/campaigns/all`, the "Campaigns" nav item highlights because `"/campaigns/all".startsWith("/campaigns/")` is `true`. Same for `/campaigns/[id]` detail pages.

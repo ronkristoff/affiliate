@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, ExternalLink } from "lucide-react";
 
 interface CampaignListViewProps {
   viewMode?: ViewMode;
@@ -180,6 +180,20 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
         key: "_creationTime",
         header: "Created",
         cell: (row: any) => <DateCell value={row._creationTime} format="short" />,
+      },
+      {
+        key: "actions",
+        header: "",
+        align: "right" as const,
+        cell: (row: any) => (
+          <Link
+            href={`/campaigns/${row._id}`}
+            className="inline-flex items-center gap-1 px-2 py-1 text-[12px] font-medium text-[#1659d6] hover:text-[#10409a] hover:bg-blue-50 rounded-md transition-colors"
+          >
+            View
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        ),
       },
     ],
     [cardStats]

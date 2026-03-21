@@ -2,7 +2,7 @@
 title: "Campaigns Module Enhancement — Stats Bar, Affiliates Table & CSV Export"
 slug: "campaigns-module-enhancement"
 created: "2026-03-20"
-status: "implementation-complete"
+status: "complete"
 stepsCompleted: [1, 2, 3, 4]
 tech_stack:
   - Convex (queries with new function syntax)
