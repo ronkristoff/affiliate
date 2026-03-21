@@ -1,9 +1,10 @@
-import { mutation, internalMutation, query, internalQuery } from "./_generated/server";
+import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
+import { betterAuthComponent } from "./auth";
 
 /**
  * Commission Management Functions
@@ -1241,5 +1242,373 @@ export const getCommissionForReview = query({
       conversionId: commission.conversionId,
       eventMetadata: commission.eventMetadata,
     };
+  },
+});
+
+// =============================================================================
+// OWNER COMMISSIONS PAGE — NEW QUERIES/ACTIONS
+// =============================================================================
+
+/**
+ * Event source type mapping for plan/event display.
+ */
+function formatEventType(source: string | undefined): string {
+  switch (source) {
+    case "webhook": return "Subscription";
+    case "manual": return "Manual Entry";
+    case "api": return "API Triggered";
+    default: return source ?? "Event";
+  }
+}
+
+/**
+ * List all commissions with enriched data (affiliate name/email, campaign name, customer email, plan/event).
+ * Used by the Owner Commissions page DataTable.
+ * Capped at 500 for performance. Client-side filters handle status/search/campaign.
+ */
+export const listCommissionsEnriched = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      campaignId: v.id("campaigns"),
+      conversionId: v.optional(v.id("conversions")),
+      amount: v.number(),
+      status: v.string(),
+      eventMetadata: v.optional(v.object({
+        source: v.string(),
+        transactionId: v.optional(v.string()),
+        timestamp: v.number(),
+        subscriptionId: v.optional(v.string()),
+      })),
+      reversalReason: v.optional(v.string()),
+      transactionId: v.optional(v.string()),
+      batchId: v.optional(v.id("payoutBatches")),
+      isSelfReferral: v.optional(v.boolean()),
+      fraudIndicators: v.optional(v.array(v.string())),
+      affiliateName: v.string(),
+      affiliateEmail: v.string(),
+      campaignName: v.string(),
+      customerEmail: v.optional(v.string()),
+      planEvent: v.string(),
+    })
+  ),
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .order("desc")
+      .take(500);
+
+    // Batch-fetch unique affiliates, campaigns, conversions to minimize N+1
+    const affiliateIds = [...new Set(commissions.map((c) => c.affiliateId))];
+    const campaignIds = [...new Set(commissions.map((c) => c.campaignId))];
+    const conversionIds = [...new Set(
+      commissions.map((c) => c.conversionId).filter((id): id is Id<"conversions"> => id !== undefined)
+    )];
+
+    const [affiliates, campaigns, conversions] = await Promise.all([
+      Promise.all(affiliateIds.map((id) => ctx.db.get(id))),
+      Promise.all(campaignIds.map((id) => ctx.db.get(id))),
+      Promise.all(conversionIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const affiliateMap: Record<string, (typeof affiliates)[number]> = {};
+    for (const a of affiliates) {
+      if (a) affiliateMap[a._id] = a;
+    }
+    const campaignMap: Record<string, (typeof campaigns)[number]> = {};
+    for (const c of campaigns) {
+      if (c) campaignMap[c._id] = c;
+    }
+    const conversionMap: Record<string, (typeof conversions)[number]> = {};
+    for (const c of conversions) {
+      if (c) conversionMap[c._id] = c;
+    }
+
+    return commissions.map((commission) => {
+      const affiliate = affiliateMap[commission.affiliateId];
+      const campaign = campaignMap[commission.campaignId];
+      const conversion = commission.conversionId
+        ? conversionMap[commission.conversionId]
+        : undefined;
+
+      const campaignName = campaign?.name ?? "Unknown";
+      const source = commission.eventMetadata?.source;
+      const eventType = formatEventType(source);
+      const planEvent = `${campaignName} · ${eventType}`;
+
+      let customerEmail: string | undefined;
+      if (conversion) {
+        customerEmail = (conversion as any).customerEmail;
+      }
+
+      return {
+        _id: commission._id,
+        _creationTime: commission._creationTime,
+        tenantId: commission.tenantId,
+        affiliateId: commission.affiliateId,
+        campaignId: commission.campaignId,
+        conversionId: commission.conversionId,
+        amount: commission.amount,
+        status: commission.status,
+        eventMetadata: commission.eventMetadata,
+        reversalReason: commission.reversalReason,
+        transactionId: (commission as any).transactionId,
+        batchId: (commission as any).batchId,
+        isSelfReferral: commission.isSelfReferral,
+        fraudIndicators: commission.fraudIndicators,
+        affiliateName: affiliate?.name ?? "Unknown",
+        affiliateEmail: affiliate?.email ?? "Unknown",
+        campaignName,
+        customerEmail,
+        planEvent,
+      };
+    });
+  },
+});
+
+/**
+ * Get full commission detail for the drawer — works for ALL statuses.
+ * Unlike getCommissionForReview which only returns pending commissions.
+ */
+export const getCommissionDetail = query({
+  args: {
+    commissionId: v.id("commissions"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      campaignId: v.id("campaigns"),
+      conversionId: v.optional(v.id("conversions")),
+      amount: v.number(),
+      status: v.string(),
+      eventMetadata: v.optional(v.object({
+        source: v.string(),
+        transactionId: v.optional(v.string()),
+        timestamp: v.number(),
+        subscriptionId: v.optional(v.string()),
+      })),
+      reversalReason: v.optional(v.string()),
+      transactionId: v.optional(v.string()),
+      batchId: v.optional(v.id("payoutBatches")),
+      isSelfReferral: v.optional(v.boolean()),
+      fraudIndicators: v.optional(v.array(v.string())),
+      affiliateName: v.string(),
+      affiliateEmail: v.string(),
+      campaignName: v.string(),
+      customerEmail: v.optional(v.string()),
+      planInfo: v.optional(v.string()),
+      planEvent: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      return null;
+    }
+
+    if (commission.tenantId !== user.tenantId) {
+      throw new Error("Commission not found or access denied");
+    }
+
+    const affiliate = await ctx.db.get(commission.affiliateId);
+    const campaign = await ctx.db.get(commission.campaignId);
+
+    let customerEmail: string | undefined;
+    let planInfo: string | undefined;
+
+    if (commission.conversionId) {
+      const conversion = await ctx.db.get(commission.conversionId);
+      if (conversion) {
+        customerEmail = (conversion as any).customerEmail;
+        const meta = (conversion as any).metadata;
+        if (meta?.planId) {
+          planInfo = meta.planId;
+        } else if (meta?.subscriptionId) {
+          planInfo = "Subscription";
+        }
+      }
+    }
+
+    return {
+      _id: commission._id,
+      _creationTime: commission._creationTime,
+      tenantId: commission.tenantId,
+      affiliateId: commission.affiliateId,
+      campaignId: commission.campaignId,
+      conversionId: commission.conversionId,
+      amount: commission.amount,
+      status: commission.status,
+      eventMetadata: commission.eventMetadata,
+      reversalReason: commission.reversalReason,
+      transactionId: (commission as any).transactionId,
+      batchId: (commission as any).batchId,
+      isSelfReferral: commission.isSelfReferral,
+      fraudIndicators: commission.fraudIndicators,
+      affiliateName: affiliate?.name ?? "Unknown",
+      affiliateEmail: affiliate?.email ?? "Unknown",
+      campaignName: campaign?.name ?? "Unknown",
+      customerEmail,
+      planInfo,
+      planEvent: `${campaign?.name ?? "Unknown"} · ${formatEventType(commission.eventMetadata?.source)}`,
+    };
+  },
+});
+
+/**
+ * Get aggregated commission stats for the metric cards.
+ * Computes pending, confirmed, reversed, and flagged counts/values in a single pass.
+ */
+export const getCommissionStats = query({
+  args: {},
+  returns: v.object({
+    pendingCount: v.number(),
+    pendingValue: v.number(),
+    confirmedCountThisMonth: v.number(),
+    confirmedValueThisMonth: v.number(),
+    reversedCountThisMonth: v.number(),
+    reversedValueThisMonth: v.number(),
+    flaggedCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const endOfMonth = now.getTime();
+
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .collect();
+
+    let pendingCount = 0;
+    let pendingValue = 0;
+    let confirmedCountThisMonth = 0;
+    let confirmedValueThisMonth = 0;
+    let reversedCountThisMonth = 0;
+    let reversedValueThisMonth = 0;
+    let flaggedCount = 0;
+
+    for (const c of commissions) {
+      // Pending
+      if (c.status === "pending") {
+        pendingCount++;
+        pendingValue += c.amount;
+      }
+
+      // Confirmed this month (approved or confirmed)
+      if ((c.status === "approved" || c.status === "confirmed") && c._creationTime >= startOfMonth && c._creationTime <= endOfMonth) {
+        confirmedCountThisMonth++;
+        confirmedValueThisMonth += c.amount;
+      }
+
+      // Reversed this month (reversed or declined)
+      if ((c.status === "reversed" || c.status === "declined") && c._creationTime >= startOfMonth && c._creationTime <= endOfMonth) {
+        reversedCountThisMonth++;
+        reversedValueThisMonth += c.amount;
+      }
+
+      // Flagged (self-referral or fraud indicators)
+      if (c.isSelfReferral === true || (c.fraudIndicators != null && c.fraudIndicators.length > 0)) {
+        flaggedCount++;
+      }
+    }
+
+    return {
+      pendingCount,
+      pendingValue,
+      confirmedCountThisMonth,
+      confirmedValueThisMonth,
+      reversedCountThisMonth,
+      reversedValueThisMonth,
+      flaggedCount,
+    };
+  },
+});
+
+/**
+ * Export commissions as CSV (base64-encoded string).
+ * Follows dashboardExport.ts pattern — "use node" action with betterAuthComponent auth.
+ */
+"use node";
+export const exportCommissionsCSV = action({
+  args: {
+    dateRange: v.optional(v.object({
+      start: v.number(),
+      end: v.number(),
+    })),
+  },
+  returns: v.string(),
+  handler: async (ctx, args): Promise<string> => {
+    const betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    if (!betterAuthUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    type AppUser = { _id: Id<"users">; email: string; name?: string; role: string; tenantId: Id<"tenants"> };
+    const appUser: AppUser | null = await ctx.runQuery(internal.users._getUserByEmailInternal, {
+      email: betterAuthUser.email,
+    });
+
+    if (!appUser) {
+      throw new Error("Unauthorized: User not found");
+    }
+
+    // Get enriched commissions data
+    const commissions = await ctx.runQuery(api.commissions.listCommissionsEnriched, {});
+
+    // Apply optional date range filter
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const startDate = args.dateRange?.start ?? thirtyDaysAgo;
+    const endDate = args.dateRange?.end ?? now;
+
+    const filtered = commissions.filter(
+      (c) => c._creationTime >= startDate && c._creationTime <= endDate
+    );
+
+    const formatDate = (timestamp: number) => {
+      return new Date(timestamp).toISOString().split("T")[0];
+    };
+
+    const rows: string[] = [];
+    rows.push("Date,Affiliate Name,Affiliate Email,Customer Email,Campaign,Plan/Event,Amount,Status,Transaction ID");
+    for (const c of filtered) {
+      rows.push([
+        formatDate(c._creationTime),
+        `"${c.affiliateName.replace(/"/g, '""')}"`,
+        `"${c.affiliateEmail.replace(/"/g, '""')}"`,
+        c.customerEmail ? `"${c.customerEmail.replace(/"/g, '""')}"` : "",
+        `"${c.campaignName.replace(/"/g, '""')}"`,
+        `"${c.planEvent.replace(/"/g, '""')}"`,
+        c.amount.toFixed(2),
+        c.status,
+        c.eventMetadata?.transactionId ?? "",
+      ].join(","));
+    }
+
+    return btoa(rows.join("\n"));
   },
 });
