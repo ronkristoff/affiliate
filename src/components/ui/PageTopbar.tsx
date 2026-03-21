@@ -21,7 +21,6 @@ export function PageTopbar({ children, className, description }: PageTopbarProps
       className={cn(
         "sticky top-0 z-50",
         "bg-[var(--bg-surface)]",
-        "border-b border-[var(--border)]",
         description
           ? "px-8 py-3"
           : "h-[60px] flex items-center px-8",

@@ -75,7 +75,7 @@ export function ActivityFeed({ activities, isLoading = false }: ActivityFeedProp
       <div className="card-header">
         <h3 className="card-title">Recent Activity</h3>
       </div>
-      <div className="divide-y divide-[var(--border)]">
+      <div className="divide-y divide-[var(--bg-page)]">
         {activities.slice(0, 5).map((activity) => {
           const iconBg = iconBgMap[activity.iconType] || iconBgMap.blue;
           const emoji = iconEmojiMap[activity.iconType] || "📌";

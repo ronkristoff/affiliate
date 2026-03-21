@@ -170,7 +170,6 @@ export default function DashboardPage() {
               value={stats ? formatCurrency(stats.mrrInfluenced) : "—"}
               subtext={stats ? `from ${stats.activeAffiliatesCount} active affiliates` : "—"}
               delta={mrrDelta}
-              variant="blue"
               isLoading={!stats}
               className="h-full"
             />
@@ -181,7 +180,6 @@ export default function DashboardPage() {
               value={stats ? formatCurrency(stats.pendingCommissionsValue) : "—"}
               subtext={stats ? `${stats.pendingCommissionsCount} pending` : "—"}
               delta={{ value: 0, isPositive: true, label: "vs last week" }}
-              variant="yellow"
               isLoading={!stats}
             />
             <MetricCard
@@ -189,7 +187,6 @@ export default function DashboardPage() {
               value={stats?.activeAffiliatesCount ?? 0}
               subtext="3 pending"
               delta={affiliatesDelta}
-              variant="green"
               isLoading={!stats}
             />
           </div>
@@ -201,7 +198,6 @@ export default function DashboardPage() {
               value={stats ? formatCurrency(stats.totalPaidOut) : "—"}
               subtext="47 affiliates across all campaigns"
               delta={paidOutDelta}
-              variant="gray"
               isLoading={!stats}
             />
           </div>

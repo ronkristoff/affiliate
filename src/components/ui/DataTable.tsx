@@ -406,7 +406,7 @@ export function DataTable<T>({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className={cn("bg-white border border-[#e5e7eb] rounded-xl overflow-hidden", className)}>
+      <div className={cn("bg-white rounded-xl overflow-hidden", className)}>
         <table className="w-full">
           <thead>
             <tr>
@@ -419,7 +419,7 @@ export function DataTable<T>({
                 <th
                   key={col.key}
                   className={cn(
-                    "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
+                      "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa]",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center"
                   )}
@@ -433,13 +433,13 @@ export function DataTable<T>({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th className="w-12 px-4 py-2.5 bg-[#fafafa] border-b border-[#e5e7eb]" />
+                <th className="w-12 px-4 py-2.5 bg-[#fafafa]" />
               )}
             </tr>
           </thead>
           <tbody>
             {[...Array(5)].map((_, i) => (
-              <tr key={i} className="border-b border-[#f3f4f6]">
+              <tr key={i} className="transition-colors">
                 {selectable && (
                   <td className="px-4 py-3">
                     <Skeleton className="h-4 w-4" />
@@ -462,7 +462,7 @@ export function DataTable<T>({
   // Empty state
   if (data.length === 0) {
     return (
-      <div className={cn("bg-white border border-[#e5e7eb] rounded-xl overflow-hidden", className)}>
+      <div className={cn("bg-white rounded-xl overflow-hidden", className)}>
         <div className="flex items-center justify-center h-32 text-[#6b7280] text-sm">
           {emptyMessage}
         </div>
@@ -519,7 +519,7 @@ export function DataTable<T>({
                   <th
                     key={col.key}
                     className={cn(
-                      "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa] border-b border-[#e5e7eb]",
+                    "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa]",
                       col.align === "right" && "text-right",
                       col.align === "center" && "text-center"
                     )}
@@ -546,7 +546,7 @@ export function DataTable<T>({
                 );
               })}
               {actions.length > 0 && (
-                <th className="w-12 px-4 py-2.5 bg-[#fafafa] border-b border-[#e5e7eb]" />
+                <th className="w-12 px-4 py-2.5 bg-[#fafafa]" />
               )}
             </tr>
           </thead>
@@ -561,7 +561,7 @@ export function DataTable<T>({
                 <tr
                   key={rowId}
                   className={cn(
-                    "border-b border-[#f3f4f6] transition-colors",
+                    "transition-colors",
                     isClickable && "cursor-pointer",
                     isSelected && !customRowClass && "bg-[#eff6ff]",
                     !isSelected && "hover:bg-[#f9fafb]",

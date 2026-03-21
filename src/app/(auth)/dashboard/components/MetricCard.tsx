@@ -12,7 +12,6 @@ interface MetricCardProps {
     isPositive: boolean;
     label?: string;
   };
-  variant?: "blue" | "green" | "yellow" | "gray";
   isLoading?: boolean;
   prefix?: string;
   className?: string;
@@ -25,26 +24,25 @@ const variantStyles = {
   gray: "bg-[var(--bg-surface)] border-[var(--border)]",
 };
 
-  const accentColors = {
-    blue: "blue",
-    green: "green",
-    yellow: "yellow",
-    gray: "gray",
-  };
+const accentColors = {
+  blue: "blue",
+  green: "green",
+  yellow: "yellow",
+  gray: "gray",
+};
 
 export function MetricCard({
   label,
   value,
   subtext,
   delta,
-  variant = "blue",
   isLoading = false,
   prefix = "",
   className = "",
 }: MetricCardProps) {
   if (isLoading) {
     return (
-      <div className={cn("metric-card", variant, "rounded-xl border p-5 relative overflow-hidden", variantStyles[variant], className)}>
+      <div className={cn("metric-card", "rounded-xl border p-5 relative overflow-hidden", className)}>
         <Skeleton className="h-3 w-24 mb-3" />
         <Skeleton className="h-8 w-32 mb-2" />
         <Skeleton className="h-3 w-20" />
@@ -68,7 +66,7 @@ export function MetricCard({
   };
 
   return (
-    <div className={cn("metric-card", variant, "rounded-xl border p-5", variantStyles[variant], className)}>
+    <div className={cn("metric-card", "rounded-xl  p-5", className)}>
       <p className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-2.5">
         {label}
       </p>
