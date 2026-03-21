@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -60,6 +60,13 @@ export function AffiliatesByCampaignTable({
   const [selectedCampaignId, setSelectedCampaignId] = useState<
     string | undefined
   >(() => propCampaignId as string | undefined);
+
+  // AC-7: Auto-select first campaign when campaigns load (non-embedded mode only)
+  useEffect(() => {
+    if (!isEmbedded && campaigns && campaigns.length > 0 && !selectedCampaignId) {
+      setSelectedCampaignId(campaigns[0]._id as string);
+    }
+  }, [isEmbedded, campaigns, selectedCampaignId]);
 
   // Column-level filters state
   const [activeFilters, setActiveFilters] = useState<ColumnFilter[]>([]);

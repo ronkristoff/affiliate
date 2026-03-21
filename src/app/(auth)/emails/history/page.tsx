@@ -215,8 +215,14 @@ function BroadcastHistoryPage() {
     "status",
     parseAsStringLiteral(["all", "sent", "partial", "failed", "sending"]).withDefault("all")
   );
-  const [sortField, setSortField] = useState<SortField>("date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [sortField, setSortField] = useQueryState(
+    "sort",
+    parseAsStringLiteral(["date", "subject", "recipientCount"] as const).withDefault("date")
+  );
+  const [sortDirection, setSortDirection] = useQueryState(
+    "order",
+    parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc")
+  );
   const [dateRangeFilter, setDateRangeFilter] = useQueryState(
     "range",
     parseAsStringLiteral(["all", "7d", "30d", "90d"]).withDefault("all")

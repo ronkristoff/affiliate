@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { PayoutHistoryClient } from "./PayoutHistoryClient";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Payout History Page - Server Component
@@ -29,7 +31,17 @@ export default function PayoutHistoryPage() {
         </p>
       </div>
       
-      <PayoutHistoryClient />
+      <Suspense
+        fallback={
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        }
+      >
+        <PayoutHistoryClient />
+      </Suspense>
     </div>
   );
 }

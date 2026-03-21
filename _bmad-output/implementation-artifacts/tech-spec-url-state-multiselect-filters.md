@@ -2,7 +2,7 @@
 title: "URL-Driven State & Multi-Select Filters"
 slug: "url-state-multiselect-filters"
 created: "2026-03-19"
-status: "ready-for-dev"
+status: "complete"
 stepsCompleted: [1, 2, 3, 4, "adversarial-review-r1", "party-mode-r2", "adversarial-review-r2"]
 tech_stack:
   - "Next.js 16.1.0 (App Router, useSearchParams, useRouter)"
