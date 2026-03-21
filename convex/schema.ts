@@ -539,4 +539,27 @@ export default defineSchema({
     removalReason: v.optional(v.string()), // "expired", "manual_removal"
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_active", ["tenantId", "removedAt"]),
+
+  // Denormalized tenant statistics for dashboard performance
+  // See docs/denormalized-counters.md for full documentation
+  tenantStats: defineTable({
+    tenantId: v.id("tenants"),
+    // Affiliate counters
+    affiliatesPending: v.number(),
+    affiliatesActive: v.number(),
+    affiliatesSuspended: v.number(),
+    affiliatesRejected: v.number(),
+    // Commission counters
+    commissionsPendingCount: v.number(),
+    commissionsPendingValue: v.number(),
+    commissionsConfirmedThisMonth: v.number(),
+    commissionsConfirmedValueThisMonth: v.number(),
+    commissionsReversedThisMonth: v.number(),
+    commissionsReversedValueThisMonth: v.number(),
+    commissionsFlagged: v.number(),
+    // Payout counter
+    totalPaidOut: v.number(),
+    // Month tracking
+    currentMonthStart: v.number(),
+  }).index("by_tenant", ["tenantId"]),
 });
