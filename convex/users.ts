@@ -113,6 +113,9 @@ export const syncUserCreation = internalMutation({
       newValue: { name: companyName, slug, plan: "starter" },
     });
 
+    // Seed denormalized tenantStats counters
+    await ctx.runMutation(internal.tenantStats.seedStats, { tenantId });
+
     // Create user with owner role AND store the Better Auth authId
     const userId = await ctx.db.insert("users", {
       tenantId,

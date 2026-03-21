@@ -5,6 +5,7 @@ import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthenticatedUser, requireTenantId } from "./tenantContext";
+import { incrementTotalPaidOut } from "./tenantStats";
 
 // =============================================================================
 // Internal Helpers
@@ -582,6 +583,9 @@ export const markPayoutAsPaid = mutation({
       ...(args.paymentReference ? { paymentReference: args.paymentReference } : {}),
     });
 
+    // Update denormalized totalPaidOut counter
+    await incrementTotalPaidOut(ctx, tenantId, payout.amount);
+
     // --- Schedule payout notification email (Story 13.4) ---
     let emailScheduled = false;
     try {
@@ -713,6 +717,13 @@ export const markBatchAsPaid = mutation({
         ...(args.paymentReference ? { paymentReference: args.paymentReference } : {}),
       });
     }
+
+    // Update denormalized totalPaidOut counter (sum of all individual payout amounts)
+    let batchTotalPaid = 0;
+    for (const payout of pendingPayouts) {
+      batchTotalPaid += payout.amount;
+    }
+    await incrementTotalPaidOut(ctx, tenantId, batchTotalPaid);
 
     // --- Schedule payout notification emails for all affiliates (Story 13.4) ---
     let emailsScheduled = 0;

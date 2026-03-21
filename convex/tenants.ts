@@ -7,6 +7,7 @@ import { getAuthenticatedUser } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { obfuscate, deobfuscate } from "./encryption";
+import { seedStats } from "./tenantStats";
 import DeletionReminderEmail from "./emails/DeletionReminderEmail";
 import { render } from "@react-email/components";
 import React from "react";
@@ -79,6 +80,9 @@ export const createTenant = internalMutation({
       actorType: "system",
       newValue: { name: args.name, slug: args.slug, plan: "starter" },
     });
+
+    // Seed denormalized tenantStats counters
+    await ctx.runMutation(internal.tenantStats.seedStats, { tenantId });
 
     return tenantId;
   },

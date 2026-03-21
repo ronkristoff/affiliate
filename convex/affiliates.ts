@@ -362,10 +362,135 @@ export const listAffiliatesByStatus = query({
   },
 });
 
+// =============================================================================
+// Internal Helpers — per-affiliate stats and campaign name resolution
+// =============================================================================
+
+type AffiliateDoc = {
+  _id: Id<"affiliates">;
+  _creationTime: number;
+  tenantId: Id<"tenants">;
+  email: string;
+  name: string;
+  uniqueCode: string;
+  status: string;
+  vanitySlug?: string;
+  promotionChannel?: string;
+  payoutMethod?: { type: string; details: string };
+};
+
+/**
+ * Fetch per-affiliate stats using by_affiliate indexes.
+ * Only fetches for the given affiliates (typically a page slice of 10-25),
+ * avoiding full-table scans of clicks/conversions/commissions.
+ */
+async function fetchPerAffiliateStats(
+  ctx: any,
+  affiliates: AffiliateDoc[],
+  campaignNameMap: Map<string, string>,
+): Promise<Array<{
+  _id: Id<"affiliates">;
+  _creationTime: number;
+  tenantId: Id<"tenants">;
+  email: string;
+  name: string;
+  uniqueCode: string;
+  status: string;
+  vanitySlug?: string;
+  promotionChannel?: string;
+  payoutMethod?: { type: string; details: string };
+  campaignName?: string;
+  referralCount: number;
+  clickCount: number;
+  totalEarnings: number;
+}>> {
+  const statPromises = affiliates.map(async (affiliate) => {
+    const [clicks, conversions, commissions] = await Promise.all([
+      ctx.db.query("clicks").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(500),
+      ctx.db.query("conversions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
+      ctx.db.query("commissions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
+    ]);
+
+    const clickCount = clicks.length;
+    const referralCount = conversions.length;
+    let totalEarnings = 0;
+    for (const comm of commissions) {
+      if (comm.status === "approved" || comm.status === "pending") {
+        totalEarnings += comm.amount;
+      }
+    }
+
+    return {
+      _id: affiliate._id,
+      _creationTime: affiliate._creationTime,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      vanitySlug: affiliate.vanitySlug,
+      promotionChannel: affiliate.promotionChannel,
+      payoutMethod: affiliate.payoutMethod,
+      campaignName: campaignNameMap.get(affiliate._id.toString()),
+      referralCount,
+      clickCount,
+      totalEarnings,
+    };
+  });
+
+  return Promise.all(statPromises);
+}
+
+/**
+ * Resolve campaign names for a set of affiliates using their referral links.
+ * Fetches only the unique campaign documents needed.
+ */
+async function resolveCampaignNames(
+  ctx: any,
+  affiliates: AffiliateDoc[],
+  allReferralLinks: Array<{ affiliateId: Id<"affiliates">; campaignId?: Id<"campaigns"> }>,
+): Promise<Map<string, string>> {
+  const affiliateIds = new Set(affiliates.map((a) => a._id.toString()));
+
+  const campaignIdSet = new Set<string>();
+  for (const link of allReferralLinks) {
+    if (link.campaignId && affiliateIds.has(link.affiliateId.toString())) {
+      campaignIdSet.add(link.campaignId.toString());
+    }
+  }
+
+  if (campaignIdSet.size === 0) {
+    return new Map();
+  }
+
+  const campaignDocs = await Promise.all(
+    Array.from(campaignIdSet).map((id) => ctx.db.get(id as Id<"campaigns">))
+  );
+  const campaignIdToName = new Map<string, string>();
+  for (const doc of campaignDocs) {
+    if (doc) {
+      campaignIdToName.set(doc._id.toString(), doc.name);
+    }
+  }
+
+  const campaignNameMap = new Map<string, string>();
+  for (const link of allReferralLinks) {
+    const affKey = link.affiliateId.toString();
+    if (!campaignNameMap.has(affKey) && link.campaignId) {
+      const name = campaignIdToName.get(link.campaignId.toString());
+      if (name) {
+        campaignNameMap.set(affKey, name);
+      }
+    }
+  }
+
+  return campaignNameMap;
+}
+
 /**
  * List affiliates with server-side pagination, campaign filtering, and per-affiliate stats.
- * Uses per-affiliate by_affiliate index queries (clicks/conversions/commissions) to avoid
- * Convex's 1MB read limit on tenant-wide stat aggregation.
+ * FAST PATH (default): fetches per-page stats via by_affiliate indexes (~30-75 reads).
+ * STATS-REQUIRED PATH: batch-fetches tenant-wide stats only when stat filters/sort are active.
  * @security Requires authentication. Results filtered by tenant.
  */
 export const listAffiliatesFiltered = query({
@@ -436,11 +561,18 @@ export const listAffiliatesFiltered = query({
     // Performance guard
     const MAX_AFFILIATES = 1000;
 
-    // Step 1: Fetch all referralLinks for the tenant (used for campaign filter AND campaign name resolution)
+    // Detect whether stat-based filters or sorting require full table scans
+    const needsStatPreFetch =
+      args.referralMin != null || args.referralMax != null ||
+      args.clickMin != null || args.clickMax != null ||
+      args.earningsMin != null || args.earningsMax != null ||
+      args.sortBy === "referralCount" || args.sortBy === "clickCount" || args.sortBy === "totalEarnings";
+
+    // ── Step 1: Fetch referralLinks for campaign filter and campaignName display ──
     const allReferralLinks = await ctx.db
       .query("referralLinks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(5000);
 
     // Build campaign allowlist if campaign filter is active
     let campaignAllowlist: Set<Id<"affiliates">> | null = null;
@@ -454,36 +586,36 @@ export const listAffiliatesFiltered = query({
       }
     }
 
-    // Step 2: Fetch affiliates matching status filter
+    // ── Step 2: Fetch affiliates matching status filter — capped reads ──
     let affiliates;
     if (status === "all") {
       affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
+        .take(MAX_AFFILIATES);
     } else {
       affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant_and_status", (q) =>
           q.eq("tenantId", tenantId).eq("status", status)
         )
-        .collect();
+        .take(MAX_AFFILIATES);
     }
 
-    // Step 3: Apply statuses multi-select filter (e.g. from the "all" tab toolbar)
+    // ── Step 3: Apply statuses multi-select filter ──
     if (args.statuses && args.statuses.length > 0) {
       const statusSet = new Set(args.statuses.map((s) => s.toLowerCase()));
       affiliates = affiliates.filter((a) => statusSet.has(a.status.toLowerCase()));
     }
 
-    // Step 4: Apply campaign allowlist
+    // ── Step 4: Apply campaign allowlist ──
     if (campaignAllowlist) {
       affiliates = affiliates.filter((a) => campaignAllowlist!.has(a._id));
     }
 
     if (affiliates.length > MAX_AFFILIATES) {
       console.warn(
-        `[listAffiliatesFiltered] Tenant ${tenantId} has ${affiliates.length} affiliates (max ${MAX_AFFILIATES}). Consider performance optimization.`
+        `[listAffiliatesFiltered] Tenant ${tenantId} has ${affiliates.length} affiliates (max ${MAX_AFFILIATES}).`
       );
     }
 
@@ -491,21 +623,88 @@ export const listAffiliatesFiltered = query({
       return { page: [], total: 0, hasMore: false };
     }
 
-    // Step 5: Batch-fetch stats for ALL affiliates (3 reads total, not 3N)
-    // Build in-memory maps for O(1) lookup per affiliate
-    const affiliateIds = affiliates.map((a) => a._id);
+    // ── Step 5: Text search and date filters (no stats needed) ──
+    if (args.searchQuery && args.searchQuery.trim()) {
+      const q = args.searchQuery.toLowerCase().trim();
+      affiliates = affiliates.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.email.toLowerCase().includes(q) ||
+          a.uniqueCode.toLowerCase().includes(q)
+      );
+    }
+    if (args.joinedAfter != null) {
+      affiliates = affiliates.filter((a) => a._creationTime >= args.joinedAfter!);
+    }
+    if (args.joinedBefore != null) {
+      affiliates = affiliates.filter((a) => a._creationTime <= args.joinedBefore!);
+    }
+
+    // ── Step 6a: FAST PATH — no stat filters/sort, fetch per-page stats only ──
+    if (!needsStatPreFetch) {
+      const total = affiliates.length;
+
+      // Sort by affiliate-level fields only (name, status, _creationTime)
+      const sortByField = args.sortBy ?? "_creationTime";
+      const sortDirection = args.sortOrder === "asc" ? 1 : -1;
+
+      affiliates.sort((a, b) => {
+        let aVal: string | number;
+        let bVal: string | number;
+        switch (sortByField) {
+          case "name":
+            aVal = a.name.toLowerCase();
+            bVal = b.name.toLowerCase();
+            break;
+          case "status":
+            aVal = a.status.toLowerCase();
+            bVal = b.status.toLowerCase();
+            break;
+          case "_creationTime":
+          default:
+            aVal = a._creationTime;
+            bVal = b._creationTime;
+            break;
+        }
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          return aVal.localeCompare(bVal) * sortDirection;
+        }
+        return ((aVal as number) - (bVal as number)) * sortDirection;
+      });
+
+      // Paginate
+      const startIndex = (page - 1) * numItems;
+      const endIndex = startIndex + numItems;
+      const pageAffiliates = affiliates.slice(startIndex, endIndex);
+      const hasMore = endIndex < total;
+
+      if (pageAffiliates.length === 0) {
+        return { page: [], total, hasMore: false };
+      }
+
+      // Fetch stats ONLY for the page slice — by_affiliate indexes, bounded per affiliate
+      const campaignNameMap = await resolveCampaignNames(
+        ctx, pageAffiliates, allReferralLinks
+      );
+
+      const pageWithStats = await fetchPerAffiliateStats(ctx, pageAffiliates, campaignNameMap);
+      return { page: pageWithStats, total, hasMore };
+    }
+
+    // ── Step 6b: STATS-REQUIRED PATH — batch fetch for stat filters/sort ──
+    // Needed when user filters/sorts by referralCount, clickCount, or totalEarnings.
+    // Must fetch all stats to pre-filter and sort. Capped reads prevent 1MB crashes.
 
     if (affiliates.length > 200) {
       console.warn(
-        `[listAffiliatesFiltered] Computing stats for ${affiliates.length} affiliates. Consider denormalized stat fields for large tenants.`
+        `[listAffiliatesFiltered] Stats-required path with ${affiliates.length} affiliates.`
       );
     }
 
-    // Batch-fetch all clicks, conversions, and commissions for the tenant
     const [allClicks, allConversions, allCommissions] = await Promise.all([
-      ctx.db.query("clicks").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
-      ctx.db.query("conversions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
-      ctx.db.query("commissions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).collect(),
+      ctx.db.query("clicks").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(5000),
+      ctx.db.query("conversions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(2000),
+      ctx.db.query("commissions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(2000),
     ]);
 
     // Build stat maps
@@ -522,14 +721,14 @@ export const listAffiliatesFiltered = query({
       referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
     }
     for (const comm of allCommissions) {
-      if (comm.status === "confirmed" || comm.status === "pending") {
+      if (comm.status === "approved" || comm.status === "pending") {
         const key = comm.affiliateId.toString();
         earningsMap.set(key, (earningsMap.get(key) ?? 0) + comm.amount);
       }
     }
 
     // Merge stats onto affiliate objects
-    const affiliatesWithStats = affiliates.map((affiliate) => {
+    let affiliatesWithStats = affiliates.map((affiliate) => {
       const key = affiliate._id.toString();
       return {
         ...affiliate,
@@ -539,86 +738,40 @@ export const listAffiliatesFiltered = query({
       };
     });
 
-    // Step 6: Apply column-level filters (search, numeric ranges, date ranges)
-    let filtered = affiliatesWithStats;
-
-    // Text search: filter on name, email, uniqueCode (case-insensitive)
-    if (args.searchQuery && args.searchQuery.trim()) {
-      const q = args.searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) ||
-          a.email.toLowerCase().includes(q) ||
-          a.uniqueCode.toLowerCase().includes(q)
-      );
-    }
-
-    // Numeric range filters
+    // Apply stat range filters
     if (args.referralMin != null) {
-      filtered = filtered.filter((a) => a.referralCount >= args.referralMin!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.referralCount >= args.referralMin!);
     }
     if (args.referralMax != null) {
-      filtered = filtered.filter((a) => a.referralCount <= args.referralMax!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.referralCount <= args.referralMax!);
     }
     if (args.clickMin != null) {
-      filtered = filtered.filter((a) => a.clickCount >= args.clickMin!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.clickCount >= args.clickMin!);
     }
     if (args.clickMax != null) {
-      filtered = filtered.filter((a) => a.clickCount <= args.clickMax!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.clickCount <= args.clickMax!);
     }
     if (args.earningsMin != null) {
-      filtered = filtered.filter((a) => a.totalEarnings >= args.earningsMin!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.totalEarnings >= args.earningsMin!);
     }
     if (args.earningsMax != null) {
-      filtered = filtered.filter((a) => a.totalEarnings <= args.earningsMax!);
+      affiliatesWithStats = affiliatesWithStats.filter((a) => a.totalEarnings <= args.earningsMax!);
     }
 
-    // Date range filters (on _creationTime)
-    if (args.joinedAfter != null) {
-      filtered = filtered.filter((a) => a._creationTime >= args.joinedAfter!);
-    }
-    if (args.joinedBefore != null) {
-      filtered = filtered.filter((a) => a._creationTime <= args.joinedBefore!);
-    }
+    const total = affiliatesWithStats.length;
 
-    // Step 7: Total count AFTER all filters
-    const total = filtered.length;
-
-    // Resolve campaign names for sorting (reuse allReferralLinks from Step 1)
-    const campaignNameMap = new Map<string, string>();
-    const uniqueCampaignIds = new Set<string>();
-    for (const link of allReferralLinks) {
-      if (link.campaignId) {
-        uniqueCampaignIds.add(link.campaignId.toString());
-      }
-    }
-    const campaignDocs = await Promise.all(
-      Array.from(uniqueCampaignIds).map((id) => ctx.db.get(id as Id<"campaigns">))
+    // Resolve campaign names for all filtered affiliates
+    const campaignNameMap = await resolveCampaignNames(
+      ctx, affiliatesWithStats, allReferralLinks
     );
-    const campaignIdToName = new Map<string, string>();
-    for (const doc of campaignDocs) {
-      if (doc) {
-        campaignIdToName.set(doc._id.toString(), doc.name);
-      }
-    }
-    for (const link of allReferralLinks) {
-      const affKey = link.affiliateId.toString();
-      if (!campaignNameMap.has(affKey) && link.campaignId) {
-        const name = campaignIdToName.get(link.campaignId.toString());
-        if (name) {
-          campaignNameMap.set(affKey, name);
-        }
-      }
-    }
 
-    // Step 8: Dynamic sort (default: desc by _creationTime)
+    // Dynamic sort (supports all fields including stat-based)
     const sortByField = args.sortBy ?? "_creationTime";
     const sortDirection = args.sortOrder === "asc" ? 1 : -1;
 
-    filtered.sort((a, b) => {
+    affiliatesWithStats.sort((a, b) => {
       let aVal: string | number;
       let bVal: string | number;
-
       switch (sortByField) {
         case "name":
           aVal = a.name.toLowerCase();
@@ -650,24 +803,22 @@ export const listAffiliatesFiltered = query({
           bVal = b._creationTime;
           break;
       }
-
       if (typeof aVal === "string" && typeof bVal === "string") {
         return aVal.localeCompare(bVal) * sortDirection;
       }
       return ((aVal as number) - (bVal as number)) * sortDirection;
     });
 
-    // Step 9: Paginate
+    // Paginate
     const startIndex = (page - 1) * numItems;
     const endIndex = startIndex + numItems;
-    const pageAffiliates = filtered.slice(startIndex, endIndex);
+    const pageAffiliates = affiliatesWithStats.slice(startIndex, endIndex);
     const hasMore = endIndex < total;
 
     if (pageAffiliates.length === 0) {
       return { page: [], total, hasMore: false };
     }
 
-    // Build final response (campaignNameMap already resolved above)
     const pageWithStats = pageAffiliates.map((affiliate) => ({
       _id: affiliate._id,
       _creationTime: affiliate._creationTime,
