@@ -9,6 +9,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,19 +81,17 @@ function CampaignDetailSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Topbar skeleton */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-5 w-5" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-20 rounded-lg" />
-            <Skeleton className="h-8 w-20 rounded-lg" />
-          </div>
+      <PageTopbar>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-5" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-48" />
         </div>
-      </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-20 rounded-lg" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
+        </div>
+      </PageTopbar>
 
       {/* Content skeleton */}
       <div className="px-8 pt-6 pb-8 space-y-6">
@@ -217,7 +216,7 @@ function CampaignDetailContent() {
   if (campaign === null) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)]">
-        <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
+        <PageTopbar>
           <Link
             href="/campaigns"
             className="text-[13px] text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1.5"
@@ -225,7 +224,7 @@ function CampaignDetailContent() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Campaigns
           </Link>
-        </div>
+        </PageTopbar>
         <div className="px-8 pt-6 pb-8">
           <div className="bg-white border border-[#e5e7eb] rounded-xl p-12 text-center">
             <p className="text-[15px] font-semibold text-[var(--text-heading)] mb-2">
@@ -421,98 +420,96 @@ function CampaignDetailContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* ── Sticky Top Bar ───────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          {/* Left: Breadcrumb */}
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/campaigns"
-              className="text-[13px] text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Campaigns
-            </Link>
-            <span className="text-[13px] text-[var(--text-muted)]">/</span>
-            <span className="text-[15px] font-semibold text-[var(--text-heading)] truncate max-w-[280px]">
-              {campaign.name}
-            </span>
-            <StatusDot status={campaign.status} />
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-3 h-3" />
-                      Save
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 text-[12px] font-semibold"
-                >
-                  <X className="w-3 h-3" />
-                  Cancel
-                </Button>
-              </>
-            ) : campaign.status !== "archived" ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
-                >
-                  <Settings className="w-3 h-3" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePauseResume}
-                  className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
-                >
-                  {campaign.status === "active" ? (
-                    <>
-                      <Pause className="w-3 h-3" />
-                      Pause
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3 h-3" />
-                      Resume
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowArchiveConfirm(true)}
-                  className="px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)]"
-                >
-                  <Archive className="w-3 h-3" />
-                  Archive
-                </Button>
-              </>
-            ) : null}
-          </div>
+      <PageTopbar>
+        {/* Left: Breadcrumb */}
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/campaigns"
+            className="text-[13px] text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Campaigns
+          </Link>
+          <span className="text-[13px] text-[var(--text-muted)]">/</span>
+          <span className="text-[15px] font-semibold text-[var(--text-heading)] truncate max-w-[280px]">
+            {campaign.name}
+          </span>
+          <StatusDot status={campaign.status} />
         </div>
-      </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3 h-3" />
+                    Save
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(false)}
+                className="px-3 py-1.5 text-[12px] font-semibold"
+              >
+                <X className="w-3 h-3" />
+                Cancel
+              </Button>
+            </>
+          ) : campaign.status !== "archived" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
+              >
+                <Settings className="w-3 h-3" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePauseResume}
+                className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
+              >
+                {campaign.status === "active" ? (
+                  <>
+                    <Pause className="w-3 h-3" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    Resume
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowArchiveConfirm(true)}
+                className="px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)]"
+              >
+                <Archive className="w-3 h-3" />
+                Archive
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </PageTopbar>
 
       {/* ── Page Content ─────────────────────────────────────────────────── */}
       <div className="px-8 pt-6 pb-8 space-y-6">

@@ -14,6 +14,7 @@ import {
   DateRangeSelector,
 } from "./components";
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import Link from "next/link";
@@ -127,38 +128,36 @@ export default function DashboardPage() {
       <AlertBanner setupStatus={setupStatus} />
 
       {/* Top Bar */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
-          <div className="flex items-center gap-3">
-            <DateRangeSelector />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="gap-1.5"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-3 h-3" />
-                  Export CSV
-                </>
-              )}
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/affiliates/invite">
-                + Invite Affiliate
-              </Link>
-            </Button>
-          </div>
+      <PageTopbar>
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
+        <div className="flex items-center gap-3">
+          <DateRangeSelector />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="gap-1.5"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-3 h-3" />
+                Export CSV
+              </>
+            )}
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/affiliates/invite">
+              + Invite Affiliate
+            </Link>
+          </Button>
         </div>
-      </div>
+      </PageTopbar>
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">

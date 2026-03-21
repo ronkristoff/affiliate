@@ -7,6 +7,7 @@ import { CampaignFilters, type FilterState, type ViewMode } from "@/components/d
 import { CampaignListView } from "@/components/dashboard/CampaignListView";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, ArrowLeft } from "lucide-react";
 
@@ -61,31 +62,29 @@ export default function CampaignListingPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/campaigns"
-              className="text-[13px] text-[#6b7280] hover:text-[#1a1a1a] flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Campaigns
-            </Link>
-            <span className="text-[#d1d5db]">/</span>
-            <h1 className="text-[17px] font-bold text-[var(--text-heading)]">All Campaigns</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <CreateCampaignModal
-              trigger={
-                <Button size="sm">
-                  <Plus className="w-3.5 h-3.5" />
-                  New Campaign
-                </Button>
-              }
-            />
-          </div>
+      <PageTopbar>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/campaigns"
+            className="text-[13px] text-[#6b7280] hover:text-[#1a1a1a] flex items-center gap-1 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Campaigns
+          </Link>
+          <span className="text-[#d1d5db]">/</span>
+          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">All Campaigns</h1>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          <CreateCampaignModal
+            trigger={
+              <Button size="sm">
+                <Plus className="w-3.5 h-3.5" />
+                New Campaign
+              </Button>
+            }
+          />
+        </div>
+      </PageTopbar>
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">

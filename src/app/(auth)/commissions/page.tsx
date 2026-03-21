@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -531,30 +532,28 @@ function CommissionsContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            className="gap-1.5 text-[12px]"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-3 h-3" />
-                Export CSV
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageTopbar>
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCSV}
+          disabled={isExporting}
+          className="gap-1.5 text-[12px]"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="w-3 h-3" />
+              Export CSV
+            </>
+          )}
+        </Button>
+      </PageTopbar>
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
@@ -979,9 +978,9 @@ function CommissionsSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top bar skeleton */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
+      <PageTopbar>
         <Skeleton className="h-5 w-32" />
-      </div>
+      </PageTopbar>
 
       <div className="px-8 pt-6 pb-8">
         {/* Metric cards skeleton */}

@@ -5,6 +5,7 @@ import { CampaignOverview } from "@/components/dashboard/CampaignOverview";
 import { CampaignStatsBar } from "@/components/dashboard/CampaignStatsBar";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
 
@@ -60,21 +61,19 @@ export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border)] h-[60px] flex items-center px-8">
-        <div className="flex items-center justify-between w-full">
-          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
-          <div className="flex items-center gap-3">
-            <CreateCampaignModal
-              trigger={
-                <Button size="sm">
-                  <Plus className="w-3.5 h-3.5" />
-                  New Campaign
-                </Button>
-              }
-            />
-          </div>
+      <PageTopbar>
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
+        <div className="flex items-center gap-3">
+          <CreateCampaignModal
+            trigger={
+              <Button size="sm">
+                <Plus className="w-3.5 h-3.5" />
+                New Campaign
+              </Button>
+            }
+          />
         </div>
-      </div>
+      </PageTopbar>
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
