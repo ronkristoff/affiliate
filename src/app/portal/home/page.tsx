@@ -173,6 +173,7 @@ export default function PortalHomePage() {
         logoUrl={tenantLogo}
         primaryColor={primaryColor}
         pageTitle="Home"
+        pageDescription="Your affiliate dashboard overview"
       />
 
       {/* Main Content */}

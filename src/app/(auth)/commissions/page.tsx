@@ -532,7 +532,7 @@ function CommissionsContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Sticky Top Bar */}
-      <PageTopbar>
+      <PageTopbar description="Review, approve, and manage all affiliate commission payouts">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
         <Button
           variant="outline"
@@ -979,7 +979,10 @@ function CommissionsSkeleton() {
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top bar skeleton */}
       <PageTopbar>
-        <Skeleton className="h-5 w-32" />
+        <div>
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-3 w-64 mt-1" />
+        </div>
       </PageTopbar>
 
       <div className="px-8 pt-6 pb-8">

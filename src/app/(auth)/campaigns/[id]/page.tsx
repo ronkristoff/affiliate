@@ -420,7 +420,7 @@ function CampaignDetailContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* ── Sticky Top Bar ───────────────────────────────────────────────── */}
-      <PageTopbar>
+      <PageTopbar description="Manage campaign details, track performance, and monitor affiliate enrollments">
         {/* Left: Breadcrumb */}
         <div className="flex items-center gap-2.5">
           <Link

@@ -128,6 +128,7 @@ export default function PortalEarningsPage() {
           portalName={portalName}
           primaryColor={tenantPrimaryColor}
           pageTitle="Earnings"
+          pageDescription="Track your commissions and payouts"
         />
 
         {/* Page Content */}

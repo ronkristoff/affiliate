@@ -113,6 +113,7 @@ export default function PortalLinksPage() {
           portalName={portalName} 
           primaryColor={primaryColor}
           pageTitle="Links"
+          pageDescription="Your referral links and promo tools"
         />
         <div className="flex">
           <PortalSidebar 
@@ -143,6 +144,7 @@ export default function PortalLinksPage() {
         portalName={portalName} 
         primaryColor={primaryColor}
         pageTitle="Links"
+        pageDescription="Your referral links and promo tools"
       />
       
       {/* Main Content Area */}

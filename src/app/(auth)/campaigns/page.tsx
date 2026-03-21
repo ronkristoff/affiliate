@@ -61,7 +61,7 @@ export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar>
+      <PageTopbar description="Create and manage your affiliate campaigns with custom commission structures">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
         <div className="flex items-center gap-3">
           <CreateCampaignModal

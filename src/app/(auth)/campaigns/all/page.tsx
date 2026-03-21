@@ -62,7 +62,7 @@ export default function CampaignListingPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar>
+      <PageTopbar description="Browse and manage all active, draft, and archived campaigns">
         <div className="flex items-center gap-4">
           <Link
             href="/campaigns"

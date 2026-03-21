@@ -9,9 +9,10 @@ interface PortalHeaderProps {
   portalName: string;
   primaryColor: string;
   pageTitle: string;
+  pageDescription?: string;
 }
 
-export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle }: PortalHeaderProps) {
+export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle, pageDescription }: PortalHeaderProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -68,9 +69,16 @@ export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle }: P
       </div>
       
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 hidden sm:block">
-          {pageTitle}
-        </span>
+        <div className="hidden sm:block text-right">
+          <span className="text-sm text-gray-600 block">
+            {pageTitle}
+          </span>
+          {pageDescription && (
+            <span className="text-[11px] text-gray-400 block leading-tight">
+              {pageDescription}
+            </span>
+          )}
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 

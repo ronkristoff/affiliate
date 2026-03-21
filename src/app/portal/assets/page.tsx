@@ -109,6 +109,7 @@ export default function PortalAssetsPage() {
           portalName={portalName} 
           primaryColor={primaryColor}
           pageTitle="Assets"
+          pageDescription="Download logos, banners, and marketing materials"
         />
         <div className="flex">
           <PortalSidebar 

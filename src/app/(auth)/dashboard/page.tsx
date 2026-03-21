@@ -128,7 +128,7 @@ export default function DashboardPage() {
       <AlertBanner setupStatus={setupStatus} />
 
       {/* Top Bar */}
-      <PageTopbar>
+      <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
         <div className="flex items-center gap-3">
           <DateRangeSelector />

@@ -12,7 +12,7 @@ interface AffiliateTopbarProps {
 
 export function AffiliateTopbar({ onExport, isExporting }: AffiliateTopbarProps) {
   return (
-    <PageTopbar>
+    <PageTopbar description="Manage your affiliate partners, track performance, and handle applications">
       <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Affiliates</h1>
       <div className="flex items-center gap-3">
         <Button
