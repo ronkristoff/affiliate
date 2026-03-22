@@ -1,22 +1,13 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -40,14 +31,15 @@ import {
   DateCell,
   NumberCell,
   CurrencyCell,
+  AvatarCell,
 } from "@/components/ui/DataTable";
+import { FadeIn } from "@/components/ui/FadeIn";
 import {
   Eye,
   Download,
   CheckCircle2,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
+  Clock,
 } from "lucide-react";
 import {
   generatePayoutCsv,
@@ -70,19 +62,6 @@ interface Batch {
   generatedAt: number;
   completedAt?: number;
   batchCode: string;
-}
-
-interface Payout {
-  payoutId: Id<"payouts">;
-  affiliateId: Id<"affiliates">;
-  name: string;
-  email: string;
-  amount: number;
-  payoutMethod?: { type: string; details: string };
-  status: string;
-  commissionCount: number;
-  paymentReference?: string;
-  paidAt?: number;
 }
 
 // =============================================================================
@@ -144,12 +123,12 @@ function BatchDetailDialog({
 }: BatchDetailDialogProps) {
   const [paymentReference, setPaymentReference] = useState("");
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false);
-  
+
   const payouts = useQuery(
     api.payouts.getBatchPayouts,
     batch ? { batchId: batch._id } : "skip"
   );
-  
+
   const status = useQuery(
     api.payouts.getBatchPayoutStatus,
     batch ? { batchId: batch._id } : "skip"
@@ -166,7 +145,7 @@ function BatchDetailDialog({
   // CSV download handler
   const handleDownloadCsv = () => {
     if (!payouts || payouts.length === 0) return;
-    
+
     const csvData = payouts.map((p) => ({
       name: p.name,
       email: p.email,
@@ -174,7 +153,7 @@ function BatchDetailDialog({
       commissionCount: p.commissionCount,
       amount: p.amount,
     }));
-    
+
     const csv = generatePayoutCsv(csvData);
     downloadCsvFromString(csv, `${batch?.batchCode || "batch"}-payouts.csv`);
     toast.success("CSV downloaded successfully");
@@ -197,16 +176,16 @@ function BatchDetailDialog({
             </span>
             <BatchStatusBadge status={batch.status} />
           </DialogTitle>
-          <DialogDescription>
-            Generated on {formatDate(batch.generatedAt)} • {batch.affiliateCount} affiliates •{" "}
+          <DialogDescription className="text-[12px]">
+            Generated on {formatDate(batch.generatedAt)} · {batch.affiliateCount} affiliates ·{" "}
             {formatCurrency(batch.totalAmount)}
           </DialogDescription>
         </DialogHeader>
 
         {/* Progress Bar */}
         <div className="mt-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">
+          <div className="flex justify-between text-[12px] mb-2">
+            <span className="text-[var(--text-muted)]">
               Payment Progress: {paidCount} of {totalCount} paid
             </span>
             <span className="font-medium">{Math.round(progress)}%</span>
@@ -226,6 +205,7 @@ function BatchDetailDialog({
             size="sm"
             onClick={handleDownloadCsv}
             disabled={!payouts || payouts.length === 0}
+            className="text-[12px]"
           >
             <Download className="mr-2 h-4 w-4" />
             Download CSV
@@ -235,6 +215,7 @@ function BatchDetailDialog({
               variant="default"
               size="sm"
               onClick={() => setShowMarkAllConfirm(true)}
+              className="text-[12px]"
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Mark All as Paid
@@ -244,47 +225,47 @@ function BatchDetailDialog({
 
         {/* Mark All Confirmation */}
         {showMarkAllConfirm && (
-          <Card className="mt-4 border-amber-200 bg-amber-50">
-            <CardContent className="pt-4">
-              <p className="text-sm text-amber-800 mb-4">
-                This will mark all {totalCount - paidCount} pending payouts as paid.
-                Please enter a payment reference for the bulk transaction.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Payment Reference (e.g., Bank Transfer Ref #)"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    if (!paymentReference.trim()) {
-                      toast.error("Please enter a payment reference");
-                      return;
-                    }
-                    onMarkAllPaid(batch._id, paymentReference);
-                  }}
-                  disabled={isMarkingAllPaid || !paymentReference.trim()}
-                >
-                  {isMarkingAllPaid ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                  )}
-                  Confirm
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowMarkAllConfirm(false)}
-                  disabled={isMarkingAllPaid}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-[13px] text-amber-800 mb-4">
+              This will mark all {totalCount - paidCount} pending payouts as paid.
+              Please enter a payment reference for the bulk transaction.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Payment Reference (e.g., Bank Transfer Ref #)"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                variant="default"
+                onClick={() => {
+                  if (!paymentReference.trim()) {
+                    toast.error("Please enter a payment reference");
+                    return;
+                  }
+                  onMarkAllPaid(batch._id, paymentReference);
+                }}
+                disabled={isMarkingAllPaid || !paymentReference.trim()}
+                className="text-[12px]"
+              >
+                {isMarkingAllPaid ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                Confirm
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowMarkAllConfirm(false)}
+                disabled={isMarkingAllPaid}
+                className="text-[12px]"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Payouts Table */}
@@ -296,99 +277,90 @@ function BatchDetailDialog({
               ))}
             </div>
           ) : payouts.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-[var(--text-muted)] py-8 text-[13px]">
               No payouts in this batch
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Affiliate</TableHead>
-                  <TableHead>Payout Method</TableHead>
-                  <TableHead className="text-right">Commissions</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment Ref</TableHead>
-                  <TableHead>Paid Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payouts.map((payout) => (
-                  <TableRow key={payout.payoutId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-                          {getInitials(payout.name)}
-                        </div>
-                        <div>
-                          <p className="font-medium">{payout.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {payout.email}
-                          </p>
-                        </div>
+            <DataTable
+              columns={[
+                {
+                  key: "affiliate",
+                  header: "Affiliate",
+                  cell: (row: any) => (
+                    <AvatarCell name={row.name} email={row.email} />
+                  ),
+                },
+                {
+                  key: "payoutMethod",
+                  header: "Payout Method",
+                  cell: (row: any) =>
+                    row.payoutMethod ? (
+                      <div>
+                        <p className="text-[12px] capitalize">{row.payoutMethod.type}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate max-w-[150px]">
+                          {row.payoutMethod.details}
+                        </p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {payout.payoutMethod ? (
-                        <div>
-                          <p className="text-sm capitalize">{payout.payoutMethod.type}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                            {payout.payoutMethod.details}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          Not configured
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {payout.commissionCount}
-                    </TableCell>
-                    <TableCell className="text-right font-bold tabular-nums">
-                      {formatCurrency(payout.amount)}
-                    </TableCell>
-                    <TableCell>
-                      {payout.status === "paid" ? (
-                        <Badge
-                          variant="outline"
-                          className="border-green-200 bg-green-50 text-green-700"
-                        >
-                          <CheckCircle2 className="mr-1 h-3 w-3" />
-                          Paid
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-200 bg-amber-50 text-amber-700"
-                        >
-                          <Loader2 className="mr-1 h-3 w-3" />
-                          Pending
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {payout.paymentReference ? (
-                        <span className="font-mono text-xs">
-                          {payout.paymentReference}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {payout.paidAt ? (
-                        <span className="text-sm">
-                          {formatDate(payout.paidAt)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    ) : (
+                      <span className="text-[12px] text-[var(--text-muted)]">
+                        Not configured
+                      </span>
+                    ),
+                },
+                {
+                  key: "commissions",
+                  header: "Commissions",
+                  align: "right",
+                  cell: (row: any) => <NumberCell value={row.commissionCount} />,
+                },
+                {
+                  key: "amount",
+                  header: "Amount",
+                  align: "right",
+                  cell: (row: any) => <CurrencyCell amount={row.amount} />,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  cell: (row: any) =>
+                    row.status === "paid" ? (
+                      <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-[12px]">
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                        Paid
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[12px]">
+                        <Clock className="mr-1 h-3 w-3" />
+                        Pending
+                      </Badge>
+                    ),
+                },
+                {
+                  key: "paymentReference",
+                  header: "Payment Ref",
+                  cell: (row: any) =>
+                    row.paymentReference ? (
+                      <span className="font-mono text-[11px]">{row.paymentReference}</span>
+                    ) : (
+                      <span className="text-[var(--text-muted)]">—</span>
+                    ),
+                },
+                {
+                  key: "paidAt",
+                  header: "Paid Date",
+                  cell: (row: any) =>
+                    row.paidAt ? (
+                      <DateCell value={row.paidAt} format="short" />
+                    ) : (
+                      <span className="text-[var(--text-muted)]">—</span>
+                    ),
+                },
+              ]}
+              data={payouts}
+              getRowId={(row: any) => row.payoutId}
+              isLoading={false}
+              emptyMessage="No payouts in this batch"
+            />
           )}
         </div>
       </DialogContent>
@@ -456,25 +428,23 @@ export function PayoutHistoryClient() {
   };
 
   const handlePrevPage = () => {
-    // For simplicity, we go back to the first page
-    // In a more complex implementation, you'd maintain a cursor history
     setCursor(null);
   };
 
   const isLoading = batchesResult === undefined;
   const hasError = batchesResult === null;
-  
-  const batches = batchesResult && "page" in batchesResult 
-    ? batchesResult.page 
+
+  const batches = batchesResult && "page" in batchesResult
+    ? batchesResult.page
     : [];
-  const isDone = batchesResult && "isDone" in batchesResult 
-    ? batchesResult.isDone 
+  const isDone = batchesResult && "isDone" in batchesResult
+    ? batchesResult.isDone
     : true;
 
   const batchActions: TableAction<Batch>[] = [
     {
       label: "View",
-      variant: "outline",
+      variant: "info",
       icon: <Eye className="w-3.5 h-3.5" />,
       onClick: (batch) => setSelectedBatch(batch),
     },
@@ -482,48 +452,75 @@ export function PayoutHistoryClient() {
 
   if (hasError) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">
-            Failed to load payout history. Please try again.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-dashed border-[#e5e7eb] p-12 text-center">
+        <p className="text-[var(--text-muted)]">
+          Failed to load payout history. Please try again.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
       {/* Status Filter Tabs */}
-      <Tabs
-        value={statusFilter}
-        onValueChange={(value) => setStatusFilter(value as "all" | "processing" | "completed")}
-      >
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <FadeIn>
+        <Tabs
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as "all" | "processing" | "completed")}
+        >
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="processing">Processing</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </FadeIn>
 
       {/* Batches Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {statusFilter === "all"
-              ? "All Batches"
-              : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Batches`
-            }
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <FadeIn delay={100}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-[15px] font-bold text-[var(--text-heading)]">
+                {statusFilter === "all"
+                  ? "All Batches"
+                  : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Batches`}
+              </h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                {batches.length} batch{batches.length !== 1 ? "es" : ""} shown
+              </p>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrevPage}
+                disabled={cursor === null}
+                className="text-[12px] gap-1"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={isDone}
+                className="text-[12px] gap-1"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+
           <DataTable<Batch>
             columns={batchColumns}
             actions={batchActions}
@@ -536,35 +533,8 @@ export function PayoutHistoryClient() {
                 : `No ${statusFilter} batches found`
             }
           />
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t">
-              <p className="text-[12px] text-[#9ca3af]">
-                {batches.length} batch{batches.length !== 1 ? "es" : ""} shown
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrevPage}
-                  disabled={cursor === null}
-                  className="inline-flex items-center justify-center h-8 px-3 rounded-md border border-[#e5e7eb] text-[12px] font-medium text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextPage}
-                  disabled={isDone}
-                  className="inline-flex items-center justify-center h-8 px-3 rounded-md border border-[#e5e7eb] text-[12px] font-medium text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-                >
-                  Next
-                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                </button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
+      </FadeIn>
 
       {/* Batch Detail Dialog */}
       <BatchDetailDialog

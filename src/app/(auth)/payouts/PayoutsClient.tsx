@@ -1,21 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +17,20 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
 import {
+  DataTable,
+  TableColumn,
+  TableAction,
+  AvatarCell,
+  CurrencyCell,
+  DateCell,
+  NumberCell,
+} from "@/components/ui/DataTable";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { FadeIn } from "@/components/ui/FadeIn";
+import {
   formatCurrency,
-  formatCurrencyCompact,
   formatDate,
   getInitials,
 } from "@/lib/format";
@@ -54,7 +54,7 @@ import {
   generatePayoutCsv,
   downloadCsvFromString,
 } from "@/lib/csv-utils";
-import { PAYOUT_AUDIT_ACTIONS } from "@/convex/audit";
+import { PAYOUT_AUDIT_ACTIONS } from "@/lib/audit-constants";
 
 // =============================================================================
 // Types
@@ -70,91 +70,20 @@ interface Batch {
   batchCode: string;
 }
 
-// =============================================================================
-// Components
-// =============================================================================
-
-function PayoutHeroSkeleton() {
-  return (
-    <div className="rounded-2xl p-7 text-white" style={{ background: "linear-gradient(135deg, #10409a, #1659d6)" }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <Skeleton className="mb-2 h-4 w-24 bg-white/20" />
-          <Skeleton className="mb-2 h-11 w-48 bg-white/20" />
-          <Skeleton className="h-4 w-64 bg-white/20" />
-        </div>
-        <div className="flex items-end gap-8">
-          <Skeleton className="h-14 w-24 bg-white/20" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetricsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-5">
-            <Skeleton className="mb-3 h-3 w-32" />
-            <Skeleton className="mb-2 h-7 w-28" />
-            <Skeleton className="h-3 w-40" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function TableSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-5 w-48" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-3 w-48" />
-              </div>
-              <Skeleton className="h-4 w-20" />
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyState() {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-16">
-        <div className="mb-4 rounded-full bg-muted p-4">
-          <Wallet className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="mb-2 text-lg font-semibold text-foreground">
-          No Pending Payouts
-        </h3>
-        <p className="max-w-md text-center text-sm text-muted-foreground">
-          There are no affiliates with confirmed, unpaid commissions at this time.
-          New payouts will appear here once commissions are confirmed.
-        </p>
-      </CardContent>
-    </Card>
-  );
+interface AffiliatePendingPayout {
+  affiliateId: Id<"affiliates">;
+  name: string;
+  email: string;
+  pendingAmount: number;
+  commissionCount: number;
+  payoutMethod?: { type: string; details: string };
 }
 
 // =============================================================================
-// Main Component
+// Main Content Component
 // =============================================================================
 
-export function PayoutsClient() {
+export function PayoutsContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [csvDownloadBatchId, setCsvDownloadBatchId] = useState<string | null>(null);
@@ -175,7 +104,7 @@ export function PayoutsClient() {
     }>;
   } | null>(null);
 
-  // Story 13.3: Batch detail dialog state
+  // Batch detail dialog state
   const [selectedBatchId, setSelectedBatchId] = useState<Id<"payoutBatches"> | null>(null);
   const [markPaidDialogPayout, setMarkPaidDialogPayout] = useState<{
     payoutId: Id<"payouts">;
@@ -205,7 +134,7 @@ export function PayoutsClient() {
   // Mutation
   const generateBatch = useMutation(api.payouts.generatePayoutBatch);
 
-  // Story 13.3: Batch detail queries and mutations
+  // Batch detail queries and mutations
   const batchPayoutDetails = useQuery(
     api.payouts.getBatchPayouts,
     selectedBatchId ? { batchId: selectedBatchId } : "skip"
@@ -226,10 +155,10 @@ export function PayoutsClient() {
       : "skip"
   );
 
-  // Story 13.6: Payout Audit Log state and query
+  // Payout Audit Log state and query
   const [auditPaginationCursor, setAuditPaginationCursor] = useState<string | undefined>(undefined);
   const [auditActionFilter, setAuditActionFilter] = useState<string | undefined>(undefined);
-  
+
   const auditLogsResult = useQuery(api.audit.listPayoutAuditLogs, {
     paginationOpts: { numItems: 20, cursor: auditPaginationCursor ?? null },
     action: auditActionFilter ?? undefined,
@@ -239,7 +168,6 @@ export function PayoutsClient() {
   useEffect(() => {
     if (batchPayoutsForCsv !== undefined && csvDownloadBatchId !== null && csvDownloadDate !== null) {
       try {
-        // AC#4: Empty batch warning
         if (batchPayoutsForCsv.length === 0) {
           toast.warning("No payout records", {
             description: "This batch has no payout records. The CSV contains headers only.",
@@ -250,7 +178,6 @@ export function PayoutsClient() {
         const csv = generatePayoutCsv(batchPayoutsForCsv);
         downloadCsvFromString(csv, `payout-batch-${dateStr}`);
 
-        // Reset download state
         setCsvDownloadBatchId(null);
         setCsvDownloadDate(null);
         setCsvDownloadError(null);
@@ -326,7 +253,7 @@ export function PayoutsClient() {
     (a) => !a.payoutMethod
   );
 
-  // Story 13.3: Handle marking a single payout as paid
+  // Handle marking a single payout as paid
   async function handleMarkPayoutAsPaid() {
     if (!markPaidDialogPayout) return;
     setIsMarkingPaid(true);
@@ -349,7 +276,7 @@ export function PayoutsClient() {
     }
   }
 
-  // Story 13.3: Handle marking all batch payouts as paid
+  // Handle marking all batch payouts as paid
   async function handleMarkBatchAsPaid() {
     if (!markAllPaidBatch) return;
     setIsMarkingPaid(true);
@@ -387,339 +314,308 @@ export function PayoutsClient() {
     }
   }, [markPaidDialogPayout, markAllPaidBatch]);
 
+  // ── DataTable Columns ────────────────────────────────────────────────────
+
+  const affiliateColumns: TableColumn<AffiliatePendingPayout>[] = useMemo(
+    () => [
+      {
+        key: "affiliate",
+        header: "Affiliate",
+        cell: (row) => <AvatarCell name={row.name} email={row.email} />,
+      },
+      {
+        key: "payoutMethod",
+        header: "Payout Method",
+        cell: (row) =>
+          row.payoutMethod ? (
+            <Badge variant="outline" className="font-normal text-[12px]">
+              {row.payoutMethod.type}
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]"
+            >
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              Not configured
+            </Badge>
+          ),
+      },
+      {
+        key: "commissions",
+        header: "Confirmed Commissions",
+        align: "right",
+        cell: (row) => (
+          <span className="text-[12px] text-[#474747]">
+            {row.commissionCount} commission{row.commissionCount !== 1 ? "s" : ""}
+          </span>
+        ),
+      },
+      {
+        key: "amount",
+        header: "Amount Due",
+        align: "right",
+        cell: (row) => <CurrencyCell amount={row.pendingAmount} />,
+      },
+    ],
+    []
+  );
+
+  const batchColumns: TableColumn<Batch>[] = useMemo(
+    () => [
+      {
+        key: "batchCode",
+        header: "Batch ID",
+        cell: (row) => (
+          <code className="font-mono text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            {row.batchCode}
+          </code>
+        ),
+      },
+      {
+        key: "generatedAt",
+        header: "Date",
+        cell: (row) => <DateCell value={row.generatedAt} format="short" />,
+      },
+      {
+        key: "affiliateCount",
+        header: "Affiliates",
+        align: "right",
+        cell: (row) => <NumberCell value={row.affiliateCount} />,
+      },
+      {
+        key: "totalAmount",
+        header: "Amount",
+        align: "right",
+        cell: (row) => <CurrencyCell amount={row.totalAmount} />,
+      },
+      {
+        key: "status",
+        header: "Status",
+        cell: (row) => <BatchStatusBadge status={row.status} />,
+      },
+    ],
+    []
+  );
+
+  const batchActions: TableAction<Batch>[] = useMemo(
+    () => [
+      {
+        label: "View Details",
+        variant: "info",
+        icon: <Eye className="w-3.5 h-3.5" />,
+        onClick: (row) => setSelectedBatchId(row._id),
+      },
+      {
+        label: "Mark All Paid",
+        variant: "success",
+        icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+        disabled: (row) => row.status !== "pending" && row.status !== "processing",
+        onClick: (row) =>
+          setMarkAllPaidBatch({
+            batchId: row._id,
+            batchCode: row.batchCode,
+            totalAmount: row.totalAmount,
+            affiliateCount: row.affiliateCount,
+            pendingCount: row.affiliateCount,
+          }),
+      },
+      {
+        label: "Download CSV",
+        variant: "outline",
+        icon: <Download className="w-3.5 h-3.5" />,
+        onClick: (row) => {
+          setCsvDownloadBatchId(row._id);
+          setCsvDownloadDate(row.generatedAt);
+        },
+      },
+    ],
+    []
+  );
+
+  // ── Render ──────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6">
-      {/* Hero Banner */}
-      {isLoading ? (
-        <PayoutHeroSkeleton />
-      ) : (
-        <div
-          className="rounded-2xl p-7 text-white"
-          style={{
-            background: "linear-gradient(135deg, #10409a, #1659d6)",
-          }}
-        >
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-8">
+      {/* ── Metric Cards ─────────────────────────────────────────────── */}
+      <FadeIn className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MetricCard
+          label="Total Paid Out (All Time)"
+          numericValue={totalPaidOut}
+          formatValue={formatCurrency}
+          subtext={
+            completedBatchCount > 0
+              ? `Across ${completedBatchCount} batch${completedBatchCount !== 1 ? "es" : ""}`
+              : "—"
+          }
+          variant="green"
+          isLoading={isLoading}
+          icon={<Wallet className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Ready to Pay"
+          numericValue={pendingTotal?.totalAmount ?? 0}
+          formatValue={formatCurrency}
+          subtext={
+            pendingTotal
+              ? `${pendingTotal.affiliateCount} affiliate${(pendingTotal.affiliateCount ?? 0) > 1 ? "s" : ""} · ${pendingTotal.commissionCount} commissions`
+              : "—"
+          }
+          variant="yellow"
+          isLoading={isLoading}
+          icon={<Clock className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Processing"
+          numericValue={processingTotal}
+          formatValue={formatCurrency}
+          subtext={
+            processingBatches.length > 0
+              ? `${processingBatches.filter((b) => b.status === "processing").length} batch${processingBatches.filter((b) => b.status === "processing").length !== 1 ? "es" : ""} in progress`
+              : "—"
+          }
+          variant="blue"
+          isLoading={isLoading}
+          icon={<CreditCard className="w-4 h-4" />}
+        />
+      </FadeIn>
+
+      {/* ── Generate Batch CTA (when there are pending payouts) ─────── */}
+      {hasPendingPayouts && (
+        <FadeIn delay={100}>
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
-                Ready to Pay
+              <h2 className="text-[15px] font-bold text-[var(--text-heading)]">
+                Affiliates Pending Payout
               </h2>
-              <div className="mt-2 text-4xl font-bold tracking-tight tabular-nums">
-                {formatCurrencyCompact(pendingTotal?.totalAmount ?? 0)}
-              </div>
-              <p className="mt-1 text-sm opacity-70">
-                {hasPendingPayouts
-                  ? `Confirmed commissions awaiting payout — ${pendingTotal?.affiliateCount} affiliate${(pendingTotal?.affiliateCount ?? 0) > 1 ? "s" : ""}`
-                  : "No confirmed commissions awaiting payout"}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-end gap-4">
-              <Button
-                size="lg"
-                disabled={!hasPendingPayouts || isGenerating}
-                onClick={() => setShowConfirmDialog(true)}
-                className="bg-white text-[#10409a] font-bold shadow-lg hover:bg-white/90"
-              >
-                {isGenerating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="mr-2 h-4 w-4" />
-                )}
-                Generate Batch
-              </Button>
-
-              <div className="flex gap-8">
-                <div className="text-center">
-                  <div className="text-xl font-bold tabular-nums">
-                    {pendingTotal?.affiliateCount ?? 0}
-                  </div>
-                  <div className="text-xs opacity-65">Affiliates</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xl font-bold tabular-nums">
-                    {pendingTotal?.commissionCount ?? 0}
-                  </div>
-                  <div className="text-xs opacity-65">Commissions</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Metrics Row */}
-      {isLoading ? (
-        <MetricsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Total Paid Out (All Time)
-              </p>
-              <p className="mt-2 text-2xl font-bold tabular-nums">
-                {formatCurrency(totalPaidOut)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Across {completedBatchCount} payout batch
-                {completedBatchCount !== 1 ? "es" : ""}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Pending Batches
-              </p>
-              <p className="mt-2 text-2xl font-bold tabular-nums">
-                {formatCurrency(pendingTotal?.totalAmount ?? 0)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {processingBatches.length} batch
-                {processingBatches.length !== 1 ? "es" : ""} awaiting processing
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Processing
-              </p>
-              <p className="mt-2 text-2xl font-bold tabular-nums text-blue-600">
-                {formatCurrency(processingTotal)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {processingBatches.filter((b) => b.status === "processing").length}{" "}
-                batch{processingBatches.filter((b) => b.status === "processing").length !== 1 ? "es" : ""} in progress
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Affiliates Pending Payout Table */}
-      {isLoading ? (
-        <TableSkeleton />
-      ) : !hasPendingPayouts ? (
-        <EmptyState />
-      ) : (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold">
-              Affiliates Pending Payout
-            </CardTitle>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
                 {affiliates?.length ?? 0} affiliate{(affiliates?.length ?? 0) !== 1 ? "s" : ""} ·{" "}
                 {formatCurrency(pendingTotal?.totalAmount ?? 0)} total
-              </span>
-              <Button
-                size="sm"
-                disabled={isGenerating}
-                onClick={() => setShowConfirmDialog(true)}
-              >
-                {isGenerating ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : (
-                  <CreditCard className="mr-1 h-3 w-3" />
-                )}
-                Generate Batch
-              </Button>
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Affiliate</TableHead>
-                  <TableHead>Payout Method</TableHead>
-                  <TableHead>Confirmed Commissions</TableHead>
-                  <TableHead className="text-right">Amount Due</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {affiliates?.map((affiliate) => (
-                  <TableRow key={affiliate.affiliateId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#10409a]">
-                          {getInitials(affiliate.name)}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold">
-                            {affiliate.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {affiliate.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {affiliate.payoutMethod ? (
-                        <Badge variant="outline" className="font-normal">
-                          {affiliate.payoutMethod.type}
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-200 bg-amber-50 font-normal text-amber-700"
-                        >
-                          <AlertTriangle className="mr-1 h-3 w-3" />
-                          Not configured
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {affiliate.commissionCount} commission
-                      {affiliate.commissionCount !== 1 ? "s" : ""}
-                    </TableCell>
-                    <TableCell className="text-right font-bold tabular-nums">
-                      {formatCurrency(affiliate.pendingAmount)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            <Button
+              size="sm"
+              disabled={isGenerating}
+              onClick={() => setShowConfirmDialog(true)}
+              className="gap-1.5 text-[12px]"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CreditCard className="w-3.5 h-3.5" />
+              )}
+              Generate Batch
+            </Button>
+          </div>
+        </FadeIn>
       )}
 
-      {/* Recent Batch History */}
+      {/* ── Affiliates Pending Payout Table ──────────────────────────── */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : !hasPendingPayouts ? (
+        <FadeIn>
+          <div className="rounded-xl border border-dashed border-[#e5e7eb] p-12 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
+              <Wallet className="h-6 w-6 text-[var(--text-muted)]" />
+            </div>
+            <h3 className="text-[13px] font-semibold text-[var(--text-heading)]">
+              No Pending Payouts
+            </h3>
+            <p className="mt-1 text-[12px] text-[var(--text-muted)] max-w-sm mx-auto">
+              There are no affiliates with confirmed, unpaid commissions at this time.
+              New payouts will appear here once commissions are confirmed.
+            </p>
+          </div>
+        </FadeIn>
+      ) : (
+        <FadeIn delay={150}>
+          <DataTable<AffiliatePendingPayout>
+            columns={affiliateColumns}
+            data={affiliates ?? []}
+            getRowId={(row) => row.affiliateId}
+            isLoading={false}
+            emptyMessage="No affiliates with pending payouts"
+          />
+        </FadeIn>
+      )}
+
+      {/* ── Recent Batch History ────────────────────────────────────── */}
       {batches && batches.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold">Recent Batches</CardTitle>
-            <Link href="/payouts/history">
-              <Button variant="ghost" size="sm">
-                <History className="mr-2 h-4 w-4" />
+        <FadeIn delay={200}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[15px] font-bold text-[var(--text-heading)]">
+                  Recent Batches
+                </h2>
+                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                  Showing latest 10 batches
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-[12px]"
+                onClick={() => {
+                  window.location.href = "/payouts/history";
+                }}
+              >
+                <History className="w-3.5 h-3.5" />
                 View Full History
               </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Batch ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Affiliates</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batches.map((batch) => (
-                  <TableRow
-                    key={batch._id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedBatchId(batch._id)}
-                  >
-                    <TableCell className="font-mono text-xs">
-                      {batch.batchCode}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(batch.generatedAt)}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {batch.affiliateCount} affiliate
-                      {batch.affiliateCount !== 1 ? "s" : ""}
-                    </TableCell>
-                    <TableCell className="text-right font-bold tabular-nums">
-                      {formatCurrency(batch.totalAmount)}
-                    </TableCell>
-                    <TableCell>
-                      <BatchStatusBadge status={batch.status} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="View Details"
-                          onClick={() => setSelectedBatchId(batch._id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {(batch.status === "pending" || batch.status === "processing") && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={isMarkingPaid}
-                            title="Mark All as Paid"
-                            onClick={() =>
-                              setMarkAllPaidBatch({
-                                batchId: batch._id,
-                                batchCode: batch.batchCode,
-                                totalAmount: batch.totalAmount,
-                                affiliateCount: batch.affiliateCount,
-                                pendingCount: batch.affiliateCount,
-                              })
-                            }
-                          >
-                            {isMarkingPaid && markAllPaidBatch?.batchId === batch._id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDownloadingCsv}
-                          onClick={() => {
-                            setCsvDownloadBatchId(batch._id);
-                            setCsvDownloadDate(batch.generatedAt);
-                          }}
-                          title="Download CSV"
-                        >
-                          {isDownloadingCsv && csvDownloadBatchId === batch._id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            </div>
+
+            <DataTable<Batch>
+              columns={batchColumns}
+              actions={batchActions}
+              data={batches}
+              getRowId={(row) => row._id}
+              isLoading={false}
+              emptyMessage="No batches yet"
+            />
+          </div>
+        </FadeIn>
       )}
 
       {/* =============================================================================
-           Story 13.6: Payout Audit Log Section (Stripe-style event timeline)
+           Payout Audit Log Section
            ============================================================================= */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold">Payout Audit Log</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Filter Tabs - Using PAYOUT_AUDIT_ACTIONS constants */}
-          <div className="flex items-center gap-2 border-b pb-3">
+      <FadeIn delay={300}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-[15px] font-bold text-[var(--text-heading)]">
+                Payout Audit Log
+              </h2>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                Track all payout actions and batch operations
+              </p>
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setAuditActionFilter(undefined)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors ${
                 auditActionFilter === undefined
-                  ? "bg-[#10409a] text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                  ? "bg-[var(--brand-primary)] text-white"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
               }`}
             >
               All
             </button>
             <button
               onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.BATCH_GENERATED)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 auditActionFilter === PAYOUT_AUDIT_ACTIONS.BATCH_GENERATED
-                  ? "bg-blue-600 text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                  ? "bg-[#10409a] text-white"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
               }`}
             >
               <PackagePlus className="h-3 w-3" />
@@ -727,10 +623,10 @@ export function PayoutsClient() {
             </button>
             <button
               onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.PAYOUT_MARKED_PAID)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 auditActionFilter === PAYOUT_AUDIT_ACTIONS.PAYOUT_MARKED_PAID
                   ? "bg-green-600 text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
               }`}
             >
               <CheckCircle2 className="h-3 w-3" />
@@ -738,10 +634,10 @@ export function PayoutsClient() {
             </button>
             <button
               onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.BATCH_MARKED_PAID)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 auditActionFilter === PAYOUT_AUDIT_ACTIONS.BATCH_MARKED_PAID
                   ? "bg-green-600 text-white"
-                  : "text-muted-foreground hover:bg-muted"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
               }`}
             >
               <CheckCheck className="h-3 w-3" />
@@ -753,8 +649,8 @@ export function PayoutsClient() {
           {auditLogsResult === undefined ? (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 border rounded-lg">
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
+                  <Skeleton className="h-8 w-8 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-48" />
@@ -764,14 +660,14 @@ export function PayoutsClient() {
             </div>
           ) : auditLogsResult.page.length === 0 ? (
             /* Empty State */
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-3 rounded-full bg-muted p-3">
-                <History className="h-6 w-6 text-muted-foreground" />
+            <div className="rounded-xl border border-dashed border-[#e5e7eb] p-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
+                <History className="h-6 w-6 text-[var(--text-muted)]" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-[13px] font-medium text-[var(--text-muted)]">
                 No audit log entries yet
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[12px] text-[var(--text-muted)] mt-1">
                 Payout actions will appear here as they're performed
               </p>
             </div>
@@ -779,7 +675,6 @@ export function PayoutsClient() {
             /* Audit Log Entries */
             <div className="space-y-2">
               {auditLogsResult.page.map((log: any) => {
-                // Get action display info - Using PAYOUT_AUDIT_ACTIONS constants
                 type ActionConfig = {
                   label: string;
                   icon: React.ComponentType<{ className?: string }>;
@@ -813,7 +708,7 @@ export function PayoutsClient() {
                 return (
                   <div
                     key={log._id}
-                    className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors"
                   >
                     <div className={`flex-shrink-0 rounded-full p-2 ${actionConfig.color}`}>
                       <ActionIcon className="h-4 w-4" />
@@ -821,45 +716,45 @@ export function PayoutsClient() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
+                          <span className="text-[13px] font-medium text-[var(--text-heading)]">
                             {actionConfig.label}
                           </span>
                           {log.entityType === "payouts" && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-[10px]">
                               Single Payout
                             </Badge>
                           )}
                           {log.entityType === "payoutBatches" && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-[10px]">
                               Batch
                             </Badge>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                           {formatDate(log._creationTime)}
                         </span>
                       </div>
-                      
-                      {/* Actor Name - AC #3 requirement */}
-                      <div className="mt-0.5 text-xs text-muted-foreground">
+
+                      {/* Actor Name */}
+                      <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
                         {log.actorName ? (
-                          <span>by <span className="font-medium text-foreground">{log.actorName}</span></span>
+                          <span>by <span className="font-medium text-[var(--text-heading)]">{log.actorName}</span></span>
                         ) : log.actorId ? (
                           <span>by System</span>
                         ) : (
                           <span>by Unknown</span>
                         )}
                       </div>
-                      
+
                       {/* Metadata Preview */}
-                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[var(--text-muted)]">
                         {log.metadata?.totalAmount !== undefined && (
-                          <span className="font-medium text-foreground">
+                          <span className="font-medium text-[var(--text-heading)]">
                             {formatCurrency(log.metadata.totalAmount)}
                           </span>
                         )}
                         {log.metadata?.amount !== undefined && (
-                          <span className="font-medium text-foreground">
+                          <span className="font-medium text-[var(--text-heading)]">
                             {formatCurrency(log.metadata.amount)}
                           </span>
                         )}
@@ -881,10 +776,10 @@ export function PayoutsClient() {
 
                       {/* Expandable Details */}
                       <details className="mt-2 group">
-                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                        <summary className="text-[11px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-heading)]">
                           View details
                         </summary>
-                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs font-mono overflow-x-auto">
+                        <div className="mt-2 p-2 bg-muted/50 rounded text-[11px] font-mono overflow-x-auto">
                           <pre className="whitespace-pre-wrap break-all">
                             {JSON.stringify(log.metadata || {}, null, 2)}
                           </pre>
@@ -896,17 +791,18 @@ export function PayoutsClient() {
               })}
 
               {/* Pagination Controls */}
-              <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center justify-between pt-4 border-t">
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={auditPaginationCursor === undefined}
                   onClick={() => setAuditPaginationCursor(undefined)}
+                  className="text-[12px]"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
                   Newest
                 </Button>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[12px] text-[var(--text-muted)]">
                   {auditLogsResult.page.length} entries
                 </span>
                 <Button
@@ -914,15 +810,20 @@ export function PayoutsClient() {
                   size="sm"
                   disabled={auditLogsResult.isDone}
                   onClick={() => setAuditPaginationCursor(auditLogsResult.continueCursor ?? undefined)}
+                  className="text-[12px]"
                 >
                   Older
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </FadeIn>
+
+      {/* =============================================================================
+           Dialogs
+           ============================================================================= */}
 
       {/* Batch Generated Success Dialog */}
       <Dialog open={!!generatedBatch} onOpenChange={(open) => !open && setGeneratedBatch(null)}>
@@ -943,23 +844,23 @@ export function PayoutsClient() {
               <div className="rounded-lg bg-muted p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">
+                    <p className="text-[11px] font-medium text-[var(--text-muted)]">
                       Batch ID
                     </p>
-                    <p className="font-mono text-sm font-bold">
+                    <p className="font-mono text-[13px] font-bold">
                       {generatedBatch.batchCode}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-medium text-muted-foreground">
+                    <p className="text-[11px] font-medium text-[var(--text-muted)]">
                       Total Amount
                     </p>
-                    <p className="text-xl font-bold text-[#10409a]">
+                    <p className="text-xl font-bold text-[var(--brand-primary)]">
                       {formatCurrency(generatedBatch.totalAmount)}
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
                   <span className="flex items-center gap-1">
                     <FileText className="h-3 w-3" />
                     {generatedBatch.affiliateCount} affiliate
@@ -980,12 +881,12 @@ export function PayoutsClient() {
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#10409a]">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#10409a]">
                         {getInitials(affiliate.name)}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold">{affiliate.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[13px] font-semibold">{affiliate.name}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">
                           {affiliate.commissionCount} commission
                           {affiliate.commissionCount !== 1 ? "s" : ""}{" "}
                           {affiliate.payoutMethod
@@ -994,7 +895,7 @@ export function PayoutsClient() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm font-bold tabular-nums">
+                    <p className="text-[13px] font-bold tabular-nums">
                       {formatCurrency(affiliate.pendingAmount)}
                     </p>
                   </div>
@@ -1013,6 +914,7 @@ export function PayoutsClient() {
                   setCsvDownloadDate(generatedBatch.generatedAt);
                 }
               }}
+              className="text-[12px]"
             >
               {isDownloadingCsv ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1021,12 +923,12 @@ export function PayoutsClient() {
               )}
               Download CSV
             </Button>
-            <Button onClick={() => setGeneratedBatch(null)}>Done</Button>
+            <Button onClick={() => setGeneratedBatch(null)} className="text-[12px]">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
+      {/* Generate Batch Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1038,21 +940,21 @@ export function PayoutsClient() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="rounded-lg bg-muted p-3 text-sm">
+            <div className="rounded-lg bg-muted p-3 text-[13px]">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Affiliates</span>
+                <span className="text-[var(--text-muted)]">Affiliates</span>
                 <span className="font-bold">
                   {pendingTotal?.affiliateCount ?? 0}
                 </span>
               </div>
               <div className="mt-1 flex justify-between">
-                <span className="text-muted-foreground">Total Amount</span>
-                <span className="font-bold text-[#10409a]">
+                <span className="text-[var(--text-muted)]">Total Amount</span>
+                <span className="font-bold text-[var(--brand-primary)]">
                   {formatCurrency(pendingTotal?.totalAmount ?? 0)}
                 </span>
               </div>
               <div className="mt-1 flex justify-between">
-                <span className="text-muted-foreground">Commissions</span>
+                <span className="text-[var(--text-muted)]">Commissions</span>
                 <span className="font-bold">
                   {pendingTotal?.commissionCount ?? 0}
                 </span>
@@ -1060,13 +962,12 @@ export function PayoutsClient() {
             </div>
 
             {affiliatesWithoutMethod.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>
                   <strong>{affiliatesWithoutMethod.length}</strong> affiliate
                   {affiliatesWithoutMethod.length !== 1 ? "s" : ""} do
-                  {affiliatesWithoutMethod.length === 1 ? "es" : ""} not have a
-                  payout method configured. They will still be included in the
+                  not have a payout method configured. They will still be included in the
                   batch.
                 </p>
               </div>
@@ -1077,12 +978,14 @@ export function PayoutsClient() {
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
+              className="text-[12px]"
             >
               Cancel
             </Button>
             <Button
               disabled={isGenerating}
               onClick={handleGenerateBatch}
+              className="text-[12px]"
             >
               {isGenerating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1095,7 +998,7 @@ export function PayoutsClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Story 13.3: Batch Detail Dialog (AC#5) */}
+      {/* Batch Detail Dialog */}
       <Dialog open={!!selectedBatchId} onOpenChange={(open) => !open && setSelectedBatchId(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
@@ -1108,10 +1011,10 @@ export function PayoutsClient() {
           {batchPayoutStatus && (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Status:</span>
+                <span className="text-[12px] text-[var(--text-muted)]">Status:</span>
                 <BatchStatusBadge status={batchPayoutStatus.batchStatus} />
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[12px] text-[var(--text-muted)]">
                 {batchPayoutStatus.paid} of {batchPayoutStatus.total} paid
               </div>
               {/* Progress bar */}
@@ -1139,95 +1042,95 @@ export function PayoutsClient() {
                 ))}
               </div>
             ) : batchPayoutDetails.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
+              <p className="py-8 text-center text-[13px] text-[var(--text-muted)]">
                 No payout records found for this batch.
               </p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Affiliate</TableHead>
-                    <TableHead>Payout Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batchPayoutDetails.map((payout) => (
-                    <TableRow key={payout.payoutId}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#10409a]">
-                            {getInitials(payout.name)}
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold">{payout.name}</div>
-                            <div className="text-xs text-muted-foreground">{payout.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {payout.payoutMethod ? (
-                          <Badge variant="outline" className="font-normal">
-                            {payout.payoutMethod.type}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-amber-200 bg-amber-50 font-normal text-amber-700">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            Not set
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-bold tabular-nums">
-                        {formatCurrency(payout.amount)}
-                      </TableCell>
-                      <TableCell>
-                        {payout.status === "paid" ? (
-                          <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Paid
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                            <Clock className="mr-1 h-3 w-3" />
-                            Pending
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {payout.status === "pending" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() =>
-                              setMarkPaidDialogPayout({
-                                payoutId: payout.payoutId,
-                                affiliateName: payout.name,
-                                amount: payout.amount,
-                              })
-                            }
-                          >
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Mark Paid
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <DataTable
+                columns={[
+                  {
+                    key: "affiliate",
+                    header: "Affiliate",
+                    cell: (row: any) => (
+                      <AvatarCell name={row.name} email={row.email} />
+                    ),
+                  },
+                  {
+                    key: "payoutMethod",
+                    header: "Payout Method",
+                    cell: (row: any) =>
+                      row.payoutMethod ? (
+                        <Badge variant="outline" className="font-normal text-[12px]">
+                          {row.payoutMethod.type}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]">
+                          <AlertTriangle className="mr-1 h-3 w-3" />
+                          Not set
+                        </Badge>
+                      ),
+                  },
+                  {
+                    key: "amount",
+                    header: "Amount",
+                    align: "right",
+                    cell: (row: any) => <CurrencyCell amount={row.amount} />,
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: (row: any) =>
+                      row.status === "paid" ? (
+                        <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-[12px]">
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Paid
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[12px]">
+                          <Clock className="mr-1 h-3 w-3" />
+                          Pending
+                        </Badge>
+                      ),
+                  },
+                  {
+                    key: "action",
+                    header: "",
+                    align: "right",
+                    cell: (row: any) =>
+                      row.status === "pending" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 text-[12px]"
+                          onClick={() =>
+                            setMarkPaidDialogPayout({
+                              payoutId: row.payoutId,
+                              affiliateName: row.name,
+                              amount: row.amount,
+                            })
+                          }
+                        >
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Mark Paid
+                        </Button>
+                      ) : null,
+                  },
+                ]}
+                data={batchPayoutDetails}
+                getRowId={(row: any) => row.payoutId}
+                isLoading={false}
+                emptyMessage="No payouts"
+              />
             )}
           </div>
 
           {batchPayoutStatus && batchPayoutStatus.pending > 0 && (
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setSelectedBatchId(null)}>
+              <Button variant="outline" onClick={() => setSelectedBatchId(null)} className="text-[12px]">
                 Close
               </Button>
               <Button
-                className="bg-green-600 text-white hover:bg-green-700"
+                className="bg-green-600 text-white hover:bg-green-700 text-[12px]"
                 disabled={isMarkingPaid}
                 onClick={() => {
                   const batch = batches?.find((b: Batch) => b._id === selectedBatchId);
@@ -1254,7 +1157,7 @@ export function PayoutsClient() {
 
           {batchPayoutStatus && batchPayoutStatus.pending === 0 && (
             <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedBatchId(null)}>
+              <Button variant="outline" onClick={() => setSelectedBatchId(null)} className="text-[12px]">
                 Close
               </Button>
             </DialogFooter>
@@ -1262,9 +1165,7 @@ export function PayoutsClient() {
         </DialogContent>
       </Dialog>
 
-      {/* =============================================================================
-           Story 13.3: Mark Single Payout as Paid Confirmation Dialog (AC#4)
-           ============================================================================= */}
+      {/* Mark Single Payout as Paid Confirmation Dialog */}
       <Dialog open={!!markPaidDialogPayout} onOpenChange={(open) => !open && setMarkPaidDialogPayout(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1277,19 +1178,19 @@ export function PayoutsClient() {
           {markPaidDialogPayout && (
             <div className="space-y-4">
               {/* Affiliate Info */}
-              <div className="rounded-lg bg-muted p-3 text-sm">
+              <div className="rounded-lg bg-muted p-3 text-[13px]">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Affiliate</span>
+                  <span className="text-[var(--text-muted)]">Affiliate</span>
                   <span className="font-bold">{markPaidDialogPayout.affiliateName}</span>
                 </div>
                 <div className="mt-1 flex justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="font-bold text-[#10409a]">{formatCurrency(markPaidDialogPayout.amount)}</span>
+                  <span className="text-[var(--text-muted)]">Amount</span>
+                  <span className="font-bold text-[var(--brand-primary)]">{formatCurrency(markPaidDialogPayout.amount)}</span>
                 </div>
               </div>
 
               {/* Warning */}
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>
                   This marks the payout as paid. Ensure you've transferred funds externally.
@@ -1299,7 +1200,7 @@ export function PayoutsClient() {
 
               {/* Payment Reference */}
               <div>
-                <label htmlFor="payment-ref-single" className="text-sm font-medium">Payment Reference (optional)</label>
+                <label htmlFor="payment-ref-single" className="text-[12px] font-medium">Payment Reference (optional)</label>
                 <Input
                   id="payment-ref-single"
                   placeholder="e.g., BPI Transfer #12345"
@@ -1312,11 +1213,11 @@ export function PayoutsClient() {
           )}
 
           <DialogFooter className="mt-2 gap-2">
-            <Button variant="outline" onClick={() => setMarkPaidDialogPayout(null)}>
+            <Button variant="outline" onClick={() => setMarkPaidDialogPayout(null)} className="text-[12px]">
               Cancel
             </Button>
             <Button
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-green-600 text-white hover:bg-green-700 text-[12px]"
               disabled={isMarkingPaid}
               onClick={handleMarkPayoutAsPaid}
             >
@@ -1331,9 +1232,7 @@ export function PayoutsClient() {
         </DialogContent>
       </Dialog>
 
-      {/* =============================================================================
-           Story 13.3: Mark All Batch Payouts as Paid Confirmation Dialog (AC#4)
-           ============================================================================= */}
+      {/* Mark All Batch Payouts as Paid Confirmation Dialog */}
       <Dialog open={!!markAllPaidBatch} onOpenChange={(open) => !open && setMarkAllPaidBatch(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1346,27 +1245,27 @@ export function PayoutsClient() {
           {markAllPaidBatch && (
             <div className="space-y-4">
               {/* Batch Summary */}
-              <div className="rounded-lg bg-muted p-3 text-sm">
+              <div className="rounded-lg bg-muted p-3 text-[13px]">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Batch</span>
+                  <span className="text-[var(--text-muted)]">Batch</span>
                   <span className="font-bold font-mono">{markAllPaidBatch.batchCode}</span>
                 </div>
                 <div className="mt-1 flex justify-between">
-                  <span className="text-muted-foreground">Affiliates</span>
+                  <span className="text-[var(--text-muted)]">Affiliates</span>
                   <span className="font-bold">{markAllPaidBatch.affiliateCount}</span>
                 </div>
                 <div className="mt-1 flex justify-between">
-                  <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-bold text-[#10409a]">{formatCurrency(markAllPaidBatch.totalAmount)}</span>
+                  <span className="text-[var(--text-muted)]">Total Amount</span>
+                  <span className="font-bold text-[var(--brand-primary)]">{formatCurrency(markAllPaidBatch.totalAmount)}</span>
                 </div>
                 <div className="mt-1 flex justify-between">
-                  <span className="text-muted-foreground">Pending Payouts</span>
+                  <span className="text-[var(--text-muted)]">Pending Payouts</span>
                   <span className="font-bold">{markAllPaidBatch.pendingCount}</span>
                 </div>
               </div>
 
               {/* Warning */}
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>
                   This marks <strong>all payouts</strong> in this batch as paid. Ensure you've
@@ -1376,7 +1275,7 @@ export function PayoutsClient() {
 
               {/* Payment Reference */}
               <div>
-                <label htmlFor="payment-ref-batch" className="text-sm font-medium">Payment Reference (optional)</label>
+                <label htmlFor="payment-ref-batch" className="text-[12px] font-medium">Payment Reference (optional)</label>
                 <Input
                   id="payment-ref-batch"
                   placeholder="e.g., BPI Batch Transfer #12345"
@@ -1389,11 +1288,11 @@ export function PayoutsClient() {
           )}
 
           <DialogFooter className="mt-2 gap-2">
-            <Button variant="outline" onClick={() => setMarkAllPaidBatch(null)}>
+            <Button variant="outline" onClick={() => setMarkAllPaidBatch(null)} className="text-[12px]">
               Cancel
             </Button>
             <Button
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-green-600 text-white hover:bg-green-700 text-[12px]"
               disabled={isMarkingPaid}
               onClick={handleMarkBatchAsPaid}
             >
@@ -1410,5 +1309,3 @@ export function PayoutsClient() {
     </div>
   );
 }
-
-

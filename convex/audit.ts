@@ -459,6 +459,7 @@ export const listPayoutAuditLogs = query({
     page: v.array(v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
@@ -470,6 +471,8 @@ export const listPayoutAuditLogs = query({
     })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -478,6 +481,8 @@ export const listPayoutAuditLogs = query({
         page: [],
         isDone: true,
         continueCursor: null,
+        pageStatus: null,
+        splitCursor: null,
       };
     }
 
@@ -521,15 +526,24 @@ export const listPayoutAuditLogs = query({
         }
         
         return {
-          ...log,
+          _id: log._id,
+          _creationTime: log._creationTime,
+          action: log.action,
+          entityType: log.entityType,
+          entityId: log.entityId,
+          actorId: log.actorId,
           actorName,
+          actorType: log.actorType,
+          targetId: log.targetId,
+          metadata: log.metadata,
         };
       })
     );
     
     return {
-      ...results,
       page: enrichedPage,
+      isDone: results.isDone,
+      continueCursor: results.continueCursor,
     };
   },
 });
