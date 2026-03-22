@@ -7,10 +7,11 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { Download, Users, Megaphone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
-import { MetricCard } from "@/app/(auth)/dashboard/components";
 import { CampaignFilterDropdown } from "./campaigns/components";
 import { downloadCsv } from "@/lib/utils";
 
@@ -154,28 +155,25 @@ export default function ReportsIndexPage() {
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <FadeIn className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="MRR Influenced"
-          value={summaryMetrics ? summaryMetrics.mrrInfluenced.toLocaleString("en-PH", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }) : "—"}
-          prefix="₱"
+          numericValue={summaryMetrics?.mrrInfluenced ?? 0}
+          formatValue={(n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           delta={commissionsDelta}
           variant="blue"
           isLoading={isLoading}
         />
         <MetricCard
           label="Total Clicks"
-          value={summaryMetrics ? summaryMetrics.totalClicks.toLocaleString() : "—"}
+          numericValue={summaryMetrics?.totalClicks ?? 0}
           delta={clicksDelta}
           variant="green"
           isLoading={isLoading}
         />
         <MetricCard
           label="Total Conversions"
-          value={summaryMetrics ? summaryMetrics.totalConversions.toLocaleString() : "—"}
+          numericValue={summaryMetrics?.totalConversions ?? 0}
           subtext={`${summaryMetrics?.avgConversionRate?.toFixed(1) ?? 0}% conversion rate`}
           delta={conversionsDelta}
           variant="yellow"
@@ -183,16 +181,13 @@ export default function ReportsIndexPage() {
         />
         <MetricCard
           label="Total Commissions"
-          value={summaryMetrics ? summaryMetrics.totalCommissions.toLocaleString("en-PH", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }) : "—"}
-          prefix="₱"
+          numericValue={summaryMetrics?.totalCommissions ?? 0}
+          formatValue={(n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           delta={commissionsDelta}
           variant="gray"
           isLoading={isLoading}
         />
-      </div>
+      </FadeIn>
 
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-2">

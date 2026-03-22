@@ -3,13 +3,22 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { MetricCard } from "@/app/(auth)/dashboard/components/MetricCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { FadeIn } from "@/components/ui/FadeIn";
 
 interface AffiliateMetricsSummaryProps {
   tenantId: Id<"tenants">;
   dateRange?: { start: number; end: number };
   campaignId?: Id<"campaigns">;
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 export function AffiliateMetricsSummary({
@@ -58,39 +67,36 @@ export function AffiliateMetricsSummary({
     : undefined;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <FadeIn className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <MetricCard
         label="Total Affiliates"
-        value={metrics?.totalAffiliates ?? 0}
+        numericValue={metrics?.totalAffiliates ?? 0}
         delta={affiliatesDelta}
         variant="blue"
         isLoading={isLoading}
       />
       <MetricCard
         label="Active Affiliates"
-        value={metrics?.activeAffiliates ?? 0}
+        numericValue={metrics?.activeAffiliates ?? 0}
         delta={activeAffiliatesDelta}
         variant="green"
         isLoading={isLoading}
       />
       <MetricCard
         label="Total Clicks"
-        value={metrics?.totalClicks ?? 0}
+        numericValue={metrics?.totalClicks ?? 0}
         delta={clicksDelta}
         variant="yellow"
         isLoading={isLoading}
       />
       <MetricCard
         label="Total Commissions"
-        value={metrics?.totalCommissions?.toLocaleString("en-PH", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }) ?? "0.00"}
-        prefix="₱"
+        numericValue={metrics?.totalCommissions ?? 0}
+        formatValue={formatCurrency}
         delta={commissionsDelta}
         variant="gray"
         isLoading={isLoading}
       />
-    </div>
+    </FadeIn>
   );
 }

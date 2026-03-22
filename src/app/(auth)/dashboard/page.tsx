@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  MetricCard,
   RecentCommissionsTable,
   TopAffiliatesTable,
   QuickActionsPanel,
@@ -13,6 +12,7 @@ import {
   AlertBanner,
   DateRangeSelector,
 } from "./components";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -162,32 +162,37 @@ export default function DashboardPage() {
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
         {/* Metric Cards Grid - 2 rows for visual hierarchy */}
-        <div className="grid grid-cols-12 gap-6 mb-8">
+        <FadeIn className="grid grid-cols-12 gap-6 mb-8">
           {/* Row 1: MRR takes visual prominence */}
           <div className="col-span-12 lg:col-span-7">
             <MetricCard
               label="MRR Influenced"
-              value={stats ? formatCurrency(stats.mrrInfluenced) : "—"}
+              numericValue={stats?.mrrInfluenced ?? 0}
+              formatValue={formatCurrency}
               subtext={stats ? `from ${stats.activeAffiliatesCount} active affiliates` : "—"}
               delta={mrrDelta}
               isLoading={!stats}
+              variant="blue"
               className="h-full"
             />
           </div>
           <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4 content-start">
             <MetricCard
               label="Pending"
-              value={stats ? formatCurrency(stats.pendingCommissionsValue) : "—"}
+              numericValue={stats?.pendingCommissionsValue ?? 0}
+              formatValue={formatCurrency}
               subtext={stats ? `${stats.pendingCommissionsCount} pending` : "—"}
               delta={{ value: 0, isPositive: true, label: "vs last week" }}
               isLoading={!stats}
+              variant="yellow"
             />
             <MetricCard
               label="Affiliates"
-              value={stats?.activeAffiliatesCount ?? 0}
+              numericValue={stats?.activeAffiliatesCount ?? 0}
               subtext="3 pending"
               delta={affiliatesDelta}
               isLoading={!stats}
+              variant="green"
             />
           </div>
 
@@ -195,13 +200,15 @@ export default function DashboardPage() {
           <div className="col-span-12">
             <MetricCard
               label="Total Paid Out"
-              value={stats ? formatCurrency(stats.totalPaidOut) : "—"}
+              numericValue={stats?.totalPaidOut ?? 0}
+              formatValue={formatCurrency}
               subtext="47 affiliates across all campaigns"
               delta={paidOutDelta}
               isLoading={!stats}
+              variant="gray"
             />
           </div>
-        </div>
+        </FadeIn>
 
         {/* Main Content Grid - 1fr 340px with generous gap */}
         <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px" }}>

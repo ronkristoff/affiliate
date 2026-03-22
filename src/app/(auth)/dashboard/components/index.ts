@@ -1,4 +1,3 @@
-export { MetricCard } from "./MetricCard";
 export { RecentCommissionsTable } from "./RecentCommissionsTable";
 export { TopAffiliatesTable } from "./TopAffiliatesTable";
 export { QuickActionsPanel } from "./QuickActionsPanel";

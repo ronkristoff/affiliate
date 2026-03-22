@@ -1,6 +1,7 @@
 "use client";
 
-import { MetricCard } from "@/app/(auth)/dashboard/components";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { FadeIn } from "@/components/ui/FadeIn";
 
 interface CampaignMetricsSummaryProps {
   metrics?: {
@@ -18,10 +19,6 @@ interface CampaignMetricsSummaryProps {
   };
   isLoading?: boolean;
   canViewSensitiveData?: boolean;
-}
-
-function formatNumber(num: number): string {
-  return new Intl.NumberFormat("en-PH").format(num);
 }
 
 function formatCurrency(amount: number): string {
@@ -58,10 +55,10 @@ export function CampaignMetricsSummary({
     : undefined;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <FadeIn className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         label="Total Campaigns"
-        value={metrics ? metrics.totalCampaigns : "—"}
+        numericValue={metrics?.totalCampaigns ?? 0}
         subtext={`${metrics?.activeCampaigns ?? 0} active`}
         delta={campaignsDelta}
         variant="blue"
@@ -69,14 +66,14 @@ export function CampaignMetricsSummary({
       />
       <MetricCard
         label="Total Clicks"
-        value={metrics ? formatNumber(metrics.totalClicks) : "—"}
+        numericValue={metrics?.totalClicks ?? 0}
         delta={clicksDelta}
         variant="green"
         isLoading={isLoading}
       />
       <MetricCard
         label="Total Conversions"
-        value={metrics ? formatNumber(metrics.totalConversions) : "—"}
+        numericValue={metrics?.totalConversions ?? 0}
         subtext={`${metrics?.avgConversionRate ?? 0}% conversion rate`}
         delta={conversionsDelta}
         variant="yellow"
@@ -84,12 +81,12 @@ export function CampaignMetricsSummary({
       />
       <MetricCard
         label="Total Commissions"
-        value={canViewSensitiveData && metrics ? formatCurrency(metrics.totalCommissions) : "—"}
+        numericValue={canViewSensitiveData && metrics ? metrics.totalCommissions : 0}
+        formatValue={formatCurrency}
         delta={canViewSensitiveData ? commissionsDelta : undefined}
         variant="gray"
         isLoading={isLoading}
-        prefix={canViewSensitiveData ? "₱" : ""}
       />
-    </div>
+    </FadeIn>
   );
 }

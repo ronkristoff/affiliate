@@ -28,6 +28,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CommissionPreview } from "@/components/dashboard/CommissionPreview";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { AffiliatesByCampaignTable } from "@/components/dashboard/AffiliatesByCampaignTable";
 import { DEFAULT_REDUCED_RATE_PERCENTAGE, getRecurringRateDescription } from "@/lib/utils";
 import {
@@ -514,52 +516,30 @@ function CampaignDetailContent() {
       {/* ── Page Content ─────────────────────────────────────────────────── */}
       <div className="px-8 pt-6 pb-8 space-y-6">
         {/* ── Campaign Stats Bar ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Affiliates */}
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                Affiliates
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Users className="w-4 h-4 text-[#10409a]" />
-              </div>
-            </div>
-            <p className="text-[28px] font-bold text-[#1a1a1a] tabular-nums tracking-tight">
-              {campaignStats?.affiliates?.toLocaleString() ?? "—"}
-            </p>
-          </div>
-
-          {/* Conversions */}
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                Conversions
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-amber-600" />
-              </div>
-            </div>
-            <p className="text-[28px] font-bold text-[#1a1a1a] tabular-nums tracking-tight">
-              {campaignStats?.conversions?.toLocaleString() ?? "—"}
-            </p>
-          </div>
-
-          {/* Paid Out */}
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                Paid Out
-              </p>
-              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-green-600" />
-              </div>
-            </div>
-            <p className="text-[28px] font-bold text-[#1a1a1a] tabular-nums tracking-tight">
-              {campaignStats ? formatPeso(campaignStats.paidOut) : "—"}
-            </p>
-          </div>
-        </div>
+        <FadeIn className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <MetricCard
+            label="Affiliates"
+            numericValue={campaignStats?.affiliates ?? 0}
+            variant="blue"
+            isLoading={!campaignStats}
+            icon={<Users className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Conversions"
+            numericValue={campaignStats?.conversions ?? 0}
+            variant="yellow"
+            isLoading={!campaignStats}
+            icon={<Zap className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Paid Out"
+            numericValue={campaignStats?.paidOut ?? 0}
+            formatValue={formatPeso}
+            variant="green"
+            isLoading={!campaignStats}
+            icon={<DollarSign className="w-4 h-4" />}
+          />
+        </FadeIn>
 
         {/* ── Campaign Details ───────────────────────────────────────────── */}
         {isEditing ? (
