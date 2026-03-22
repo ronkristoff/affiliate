@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Download,
-  Search,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -57,6 +56,7 @@ import {
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { SearchField } from "@/components/ui/SearchField";
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
 
@@ -715,16 +715,12 @@ function CommissionsContent() {
         {/* ── Toolbar ──────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-4 mb-4">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9ca3af]" />
-            <input
-              type="text"
-              placeholder="Search affiliate, customer, or TX ID..."
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-[12px] border border-[var(--border)] rounded-lg bg-[var(--bg-surface)] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)]"
-            />
-          </div>
+          <SearchField
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search affiliate, customer, or TX ID..."
+            className="w-full max-w-md"
+          />
 
           {/* Approve All Pending */}
           {canManage && (stats?.pendingCount ?? 0) > 0 && (
