@@ -855,7 +855,7 @@ describe("Affiliate Dashboard Statistics (Story 8.3)", () => {
         title: "Commission Confirmed",
         description: "From conversion #123456",
         amount: 100.0,
-        status: "confirmed",
+        status: "approved",
         timestamp: Date.now(),
         iconType: "green",
       };
@@ -983,7 +983,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
   describe("AC7: Total Earnings Summary Calculation", () => {
     it("should calculate totalEarnings as sum of all commission amounts", () => {
       const commissions = [
-        { amount: 100, status: "confirmed" },
+        { amount: 100, status: "approved" },
         { amount: 50, status: "pending" },
         { amount: 200, status: "paid" },
       ];
@@ -995,7 +995,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
 
     it("should calculate paidOut from only 'paid' commissions", () => {
       const commissions = [
-        { amount: 100, status: "confirmed" },
+        { amount: 100, status: "approved" },
         { amount: 50, status: "pending" },
         { amount: 200, status: "paid" },
         { amount: 150, status: "paid" },
@@ -1010,7 +1010,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
 
     it("should calculate pendingBalance from only 'pending' commissions", () => {
       const commissions = [
-        { amount: 100, status: "confirmed" },  // Should NOT be in pending
+        { amount: 100, status: "approved" },  // Should NOT be in pending
         { amount: 50, status: "pending" },
         { amount: 75, status: "pending" },
         { amount: 200, status: "paid" },
@@ -1027,15 +1027,15 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
 
     it("should count confirmed and pending commissions correctly", () => {
       const commissions = [
-        { amount: 100, status: "confirmed" },
-        { amount: 150, status: "confirmed" },
+        { amount: 100, status: "approved" },
+        { amount: 150, status: "approved" },
         { amount: 50, status: "pending" },
         { amount: 75, status: "pending" },
         { amount: 25, status: "pending" },
         { amount: 200, status: "paid" },
       ];
       
-      const confirmedCount = commissions.filter(c => c.status === "confirmed").length;
+      const confirmedCount = commissions.filter(c => c.status === "approved").length;
       const pendingCount = commissions.filter(c => c.status === "pending").length;
       
       expect(confirmedCount).toBe(2);
@@ -1060,7 +1060,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
 
     it("should handle reversed commissions (not included in calculations)", () => {
       const commissions = [
-        { amount: 100, status: "confirmed" },
+        { amount: 100, status: "approved" },
         { amount: 50, status: "reversed" },  // Should still count in totalEarnings
         { amount: 200, status: "paid" },
       ];
@@ -1107,7 +1107,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
   describe("Edge Cases", () => {
     it("should handle commissions with zero amounts", () => {
       const commissions = [
-        { amount: 0, status: "confirmed" },
+        { amount: 0, status: "approved" },
         { amount: 100, status: "pending" },
       ];
       
@@ -1118,7 +1118,7 @@ describe("getAffiliateEarningsSummary - Earnings Calculation (Task 2)", () => {
 
     it("should handle very large commission amounts", () => {
       const commissions = [
-        { amount: 1000000, status: "confirmed" },
+        { amount: 1000000, status: "approved" },
         { amount: 500000, status: "pending" },
       ];
       

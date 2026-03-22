@@ -57,7 +57,7 @@ export function CommissionList({
       : '';
     
     const shareData = {
-      title: 'Commission Confirmed! 🎉',
+      title: 'Commission Approved! 🎉',
       text: `I just earned $${commission.amount} from ${commission.campaignName}!${referralLink ? ` Join me: ${referralLink}` : ''}`,
     };
 
@@ -102,13 +102,13 @@ export function CommissionList({
     );
   }
 
-  // Get the most recent confirmed commission for the hero card
-  const confirmedCommissions = commissions.filter((c) => c.status === 'confirmed');
-  const mostRecentConfirmed = confirmedCommissions.length > 0 ? confirmedCommissions[0] : null;
+  // Get the most recent approved commission for the hero card
+  const approvedCommissions = commissions.filter((c) => c.status === 'approved');
+  const mostRecentApproved = approvedCommissions.length > 0 ? approvedCommissions[0] : null;
 
-  // Filter out the most recent confirmed from the list (to avoid duplication)
-  const listCommissions = mostRecentConfirmed
-    ? commissions.filter((c) => c._id !== mostRecentConfirmed._id)
+  // Filter out the most recent approved from the list (to avoid duplication)
+  const listCommissions = mostRecentApproved
+    ? commissions.filter((c) => c._id !== mostRecentApproved._id)
     : commissions;
 
   if (commissions.length === 0) {
@@ -127,16 +127,16 @@ export function CommissionList({
 
   return (
     <div className="space-y-4">
-      {/* Confirmed Commission Hero Card */}
-      {mostRecentConfirmed && (
+      {/* Approved Commission Hero Card */}
+      {mostRecentApproved && (
         <div className="mb-6">
           <p className="text-sm font-medium text-[var(--text-muted)] mb-3">
             Recent Win
           </p>
           <ConfirmedCommissionCard
-            commission={mostRecentConfirmed}
-            onShare={() => handleShare(mostRecentConfirmed)}
-            onViewDetails={() => handleCommissionClick(mostRecentConfirmed)}
+            commission={mostRecentApproved}
+            onShare={() => handleShare(mostRecentApproved)}
+            onViewDetails={() => handleCommissionClick(mostRecentApproved)}
             tenantPrimaryColor={tenantPrimaryColor}
           />
         </div>

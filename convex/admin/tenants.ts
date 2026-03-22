@@ -691,15 +691,15 @@ export const getTenantDetails = query({
       ).length,
     };
 
-    // Calculate total commissions (sum of confirmed amounts)
+    // Calculate total commissions (sum of approved amounts)
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .filter((q: any) => q.eq(q.field("status"), "confirmed"))
+      .filter((q: any) => q.eq(q.field("status"), "approved"))
       .collect();
     const totalCommissions = commissions.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
 
-    // Calculate MRR influenced (sum of confirmed commission amounts)
+    // Calculate MRR influenced (sum of approved commission amounts)
     const mrrInfluenced = totalCommissions;
 
     // Determine SaligPay connection status
@@ -783,13 +783,13 @@ export const getTenantStats = query({
 
     const currentMRR = recentCommissions
       .filter((c: { status: string; _creationTime: number }) =>
-        c.status === "confirmed" && c._creationTime > thirtyDaysAgo
+        c.status === "approved" && c._creationTime > thirtyDaysAgo
       )
       .reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
 
     const previousMRR = recentCommissions
       .filter((c: { status: string; _creationTime: number }) =>
-        c.status === "confirmed" && c._creationTime > sixtyDaysAgo && c._creationTime <= thirtyDaysAgo
+        c.status === "approved" && c._creationTime > sixtyDaysAgo && c._creationTime <= thirtyDaysAgo
       )
       .reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
 
@@ -955,11 +955,11 @@ export const getTenantAffiliates = query({
           .withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id))
           .collect();
 
-        // Calculate total earned from confirmed commissions
+        // Calculate total earned from approved commissions
         const commissions = await ctx.db
           .query("commissions")
           .withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id))
-          .filter((q: any) => q.eq(q.field("status"), "confirmed"))
+          .filter((q: any) => q.eq(q.field("status"), "approved"))
           .collect();
         const totalEarned = commissions.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
 

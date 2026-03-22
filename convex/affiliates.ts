@@ -2193,7 +2193,7 @@ export const getAffiliateStats = query({
       .filter(c => c.status === "pending")
       .reduce((sum, c) => sum + c.amount, 0);
     const confirmedCommissions = commissions
-      .filter(c => c.status === "confirmed" || c.status === "approved")
+      .filter(c => c.status === "approved")
       .reduce((sum, c) => sum + c.amount, 0);
 
     return {

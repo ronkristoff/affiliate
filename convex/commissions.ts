@@ -559,7 +559,7 @@ export const getAffiliateCommissions = query({
     affiliateId: v.id("affiliates"),
     limit: v.optional(v.number()),
     period: v.optional(v.string()), // "all" | "this_month" | "last_month" | "last_3_months"
-    status: v.optional(v.string()), // "all" | "confirmed" | "pending" | "reversed" | "paid"
+    status: v.optional(v.string()), // "all" | "approved" | "pending" | "reversed" | "paid"
   },
   returns: v.array(
     v.object({
@@ -622,7 +622,7 @@ export const getAffiliateCommissions = query({
       filteredCommissions = filteredCommissions.filter(commission => {
         // Map status filter to actual commission status values
         const statusMap: Record<string, string[]> = {
-          "confirmed": ["confirmed", "approved"],
+          "approved": ["approved"],
           "pending": ["pending"],
           "reversed": ["reversed"],
           "paid": ["paid"],
@@ -943,7 +943,7 @@ export const approveCommission = mutation({
       },
     });
 
-    // 7. Send commission confirmed email (Story 10.2)
+    // 7. Send commission approved email (Story 10.2)
     // Track approval timestamp for 5-minute SLA monitoring
     const approvalTimestamp = Date.now();
     
@@ -1011,7 +1011,7 @@ export const approveCommission = mutation({
           actorType: "user",
           metadata: {
             error: schedulerError instanceof Error ? schedulerError.message : String(schedulerError),
-            emailType: "commission_confirmed",
+            emailType: "commission_approved",
           },
         });
       }
@@ -1755,7 +1755,7 @@ export const getCommissionDetail = query({
 
 /**
  * Get aggregated commission stats for the metric cards.
- * Computes pending, confirmed, reversed, and flagged counts/values in a single pass.
+ * Computes pending, approved, reversed, and flagged counts/values in a single pass.
  */
 export const getCommissionStats = query({
   args: {},

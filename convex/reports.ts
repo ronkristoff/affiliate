@@ -465,7 +465,7 @@ export const getCampaignPerformanceDetails = query({
     };
 
     for (const commission of campaignCommissions) {
-      if (commission.status === "confirmed") {
+      if (commission.status === "approved") {
         commissionBreakdown.confirmed += commission.amount;
       } else if (commission.status === "pending") {
         commissionBreakdown.pending += commission.amount;
@@ -489,7 +489,7 @@ export const getCampaignPerformanceDetails = query({
     }
 
     for (const commission of campaignCommissions) {
-      if (commission.status === "confirmed") {
+      if (commission.status === "approved") {
         const stats = affiliateStats.get(commission.affiliateId);
         if (stats) stats.revenue += commission.amount;
       }
@@ -549,7 +549,7 @@ export const getCampaignPerformanceDetails = query({
     for (const commission of campaignCommissions) {
       const bucketKey = Math.floor(commission._creationTime / bucketSize) * bucketSize;
       const bucket = buckets.get(bucketKey);
-      if (bucket && commission.status === "confirmed") {
+      if (bucket && commission.status === "approved") {
         bucket.commissions += commission.amount;
       }
     }
@@ -1104,7 +1104,7 @@ export const getAffiliatePerformanceDetails = query({
     };
 
     for (const commission of filteredCommissions) {
-      if (commission.status === "confirmed") commissionBreakdown.confirmed += commission.amount;
+      if (commission.status === "approved") commissionBreakdown.confirmed += commission.amount;
       else if (commission.status === "pending") commissionBreakdown.pending += commission.amount;
       else if (commission.status === "reversed") commissionBreakdown.reversed += commission.amount;
     }
@@ -1187,7 +1187,7 @@ export const getAffiliatePerformanceDetails = query({
     for (const commission of filteredCommissions) {
       const bucketKey = Math.floor(commission._creationTime / bucketSize) * bucketSize;
       const bucket = buckets.get(bucketKey);
-      if (bucket && commission.status === "confirmed") {
+      if (bucket && commission.status === "approved") {
         bucket.commissions += commission.amount;
       }
     }
@@ -1552,7 +1552,7 @@ export const getTopAffiliatesByRevenue = query({
     for (const commission of allCommissions) {
       if (commission._creationTime >= startDate && 
           commission._creationTime <= endDate &&
-          commission.status === "confirmed" &&
+          commission.status === "approved" &&
           (!args.campaignId || commission.campaignId === args.campaignId)) {
         const stats = affiliateStats.get(commission.affiliateId);
         if (stats) stats.commissions += commission.amount;

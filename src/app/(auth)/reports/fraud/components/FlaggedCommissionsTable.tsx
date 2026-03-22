@@ -40,7 +40,6 @@ function StatusBadge({ status }: { status: string }) {
 function getStatusStyle(status: string): { bg: string; text: string } {
   switch (status) {
     case "approved":
-    case "confirmed":
       return { bg: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" };
     case "pending":
       return { bg: "bg-amber-100 text-amber-700", text: "text-amber-700" };

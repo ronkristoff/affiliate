@@ -730,10 +730,10 @@ export const getCampaignCardStats = query({
       }
     }
 
-    // Aggregate paid commissions per campaign (status "confirmed" or "paid")
+    // Aggregate paid commissions per campaign (status "approved" or "paid")
     const paidOutByCampaign = new Map<string, number>();
     for (const comm of allCommissions) {
-      if (comm.status === "confirmed" || comm.status === "paid") {
+      if (comm.status === "approved" || comm.status === "paid") {
         const key = comm.campaignId as string;
         paidOutByCampaign.set(key, (paidOutByCampaign.get(key) ?? 0) + comm.amount);
       }
@@ -931,7 +931,7 @@ export const getAffiliatesByCampaign = query({
           key,
           (pendingByAffiliate.get(key) ?? 0) + comm.amount
         );
-      } else if (comm.status === "confirmed" || comm.status === "paid") {
+      } else if (comm.status === "approved" || comm.status === "paid") {
         confirmedByAffiliate.set(
           key,
           (confirmedByAffiliate.get(key) ?? 0) + comm.amount
@@ -1333,7 +1333,7 @@ export const getCampaignCardStatsInternal = internalQuery({
     // Aggregate paid commissions per campaign
     const paidOutByCampaign = new Map<string, number>();
     for (const comm of allCommissions) {
-      if (comm.status === "confirmed" || comm.status === "paid") {
+      if (comm.status === "approved" || comm.status === "paid") {
         const key = comm.campaignId as string;
         paidOutByCampaign.set(key, (paidOutByCampaign.get(key) ?? 0) + comm.amount);
       }

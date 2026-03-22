@@ -16,7 +16,7 @@ interface StatusFilterProps {
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status' },
-  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'approved', label: 'Approved' },
   { value: 'pending', label: 'Pending' },
   { value: 'reversed', label: 'Reversed' },
   { value: 'paid', label: 'Paid' },

@@ -420,7 +420,7 @@ export const getAffiliatePerformanceDetails = query({
     };
 
     for (const commission of filteredCommissions) {
-      if (commission.status === "confirmed" || commission.status === "approved") {
+      if (commission.status === "approved") {
         commissionBreakdown.confirmed += commission.amount;
       } else if (commission.status === "pending") {
         commissionBreakdown.pending += commission.amount;
@@ -509,7 +509,7 @@ export const getAffiliatePerformanceDetails = query({
     for (const commission of filteredCommissions) {
       const bucketKey = Math.floor(commission._creationTime / bucketSize) * bucketSize;
       const bucket = buckets.get(bucketKey);
-      if (bucket && (commission.status === "confirmed" || commission.status === "approved")) {
+      if (bucket && commission.status === "approved") {
         bucket.commissions += commission.amount;
       }
     }

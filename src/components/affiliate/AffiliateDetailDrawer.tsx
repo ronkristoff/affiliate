@@ -44,7 +44,7 @@ interface AffiliateDetailDrawerProps {
     recentCommissions?: {
       customer: string;
       plan: string;
-      status: "confirmed" | "pending";
+      status: "approved" | "pending";
       amount: number;
     }[];
   } | null;
@@ -265,7 +265,7 @@ export function AffiliateDetailDrawer({
                     <div className="flex items-center gap-2">
                       <span
                         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                          commission.status === "confirmed"
+                          commission.status === "approved"
                             ? "bg-[#d1fae5] text-[#065f46]"
                             : "bg-[#fef3c7] text-[#92400e]"
                         }`}
@@ -274,10 +274,10 @@ export function AffiliateDetailDrawer({
                           className="w-1.5 h-1.5 rounded-full"
                           style={{
                             backgroundColor:
-                              commission.status === "confirmed" ? "#10b981" : "#f59e0b",
+                              commission.status === "approved" ? "#10b981" : "#f59e0b",
                           }}
                         />
-                        {commission.status === "confirmed" ? "Confirmed" : "Pending"}
+                        {commission.status === "approved" ? "Approved" : "Pending"}
                       </span>
                       <span className="font-semibold text-[#333]">
                         {formatCurrency(commission.amount)}

@@ -1228,8 +1228,8 @@ export const seedAllTestData = internalMutation({
                 ? (amount * campaignData.commissionValue) / 100
                 : campaignData?.commissionValue || 0;
 
-              // Determine commission status (mix of pending, confirmed, paid)
-              const statuses = ["pending", "pending", "confirmed", "confirmed", "paid"];
+              // Determine commission status (mix of pending, approved, paid)
+              const statuses = ["pending", "pending", "approved", "approved", "paid"];
               const status = statuses[Math.floor(Math.random() * statuses.length)];
 
               const commissionId = await ctx.db.insert("commissions", {

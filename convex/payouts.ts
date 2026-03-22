@@ -31,15 +31,15 @@ async function countPendingPayouts(
 // =============================================================================
 
 /**
- * Generate a payout batch for all affiliates with confirmed, unpaid commissions.
+ * Generate a payout batch for all affiliates with approved, unpaid commissions.
  * Creates a payoutBatch record with "pending" status, updates commissions to "paid",
  * creates individual payout records, and returns a summary.
  *
- * AC#1: Generate Batch - list all affiliates with confirmed unpaid commissions
+ * AC#1: Generate Batch - list all affiliates with approved unpaid commissions
  * AC#4: Batch Metadata - generated date, total affiliate count, total amount, unique ID
  *
  * SECURITY: This mutation is idempotent - commissions are filtered to only include
- * those with status="confirmed" AND no batchId (not already paid).
+ * those with status="approved" AND no batchId (not already paid).
  */
 export const generatePayoutBatch = mutation({
   args: {},
@@ -70,11 +70,11 @@ export const generatePayoutBatch = mutation({
       throw new Error("Unauthorized");
     }
 
-    // Query confirmed unpaid commissions for this tenant (not already in a batch)
+    // Query approved unpaid commissions for this tenant (not already in a batch)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", "confirmed")
+        q.eq("tenantId", tenantId).eq("status", "approved")
       )
       .collect();
 
@@ -172,7 +172,7 @@ export const generatePayoutBatch = mutation({
           batchId,
         });
 
-        // Wire tenantStats counter hook — confirmed/paid → paid decrements confirmed counters
+        // Wire tenantStats counter hook — approved/paid → paid decrements approved counters
         if (commission) {
           await onCommissionStatusChange(ctx, tenantId, commission.amount, commission.status, "paid", wasFlagged, false);
         }
@@ -295,7 +295,7 @@ export const getPayoutBatches = query({
 /**
  * Get the total pending payout amount for the current tenant.
  * Used by the hero banner to show "Ready to Pay" amount.
- * Only includes confirmed commissions that are not already part of a batch.
+ * Only includes approved commissions that are not already part of a batch.
  */
 export const getPendingPayoutTotal = query({
   args: {},
@@ -416,10 +416,10 @@ export const getBatchPayouts = query({
 });
 
 /**
- * Get affiliates with pending (confirmed, unpaid) payout summaries.
+ * Get affiliates with pending (approved, unpaid) payout summaries.
  * AC#1: Each affiliate shows name, email, payout method, pending amount, commission count
  * AC#3: Payout method display with "Not configured" for missing methods
- * Only includes confirmed commissions not already part of a payout batch.
+ * Only includes approved commissions not already part of a payout batch.
  */
 export const getAffiliatesWithPendingPayouts = query({
   args: {},
@@ -441,11 +441,11 @@ export const getAffiliatesWithPendingPayouts = query({
   handler: async (ctx) => {
     const tenantId = await requireTenantId(ctx);
 
-    // Query confirmed unpaid commissions for this tenant (not already paid)
+    // Query approved unpaid commissions for this tenant (not already paid)
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", "confirmed")
+        q.eq("tenantId", tenantId).eq("status", "approved")
       )
       .take(700);
 

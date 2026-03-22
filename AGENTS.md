@@ -273,19 +273,17 @@ const results = await ctx.db.query("commissions").withIndex("by_tenant", q => q.
 const hasCampaigns = !!(await ctx.db.query("campaigns").withIndex("by_tenant", q => q.eq("tenantId", tenantId)).first());
 ```
 
-### ⚠️ Status Inconsistency — `approved` vs `confirmed`
+### Commission Status Flow
 
-The codebase uses `"approved"` and `"confirmed"` interchangeably for commission statuses. Any query filtering by commission status **MUST** check both:
+Commissions follow a linear status flow: **Pending → Approved → Paid** (or **Declined** / **Reversed** as terminal states). Always use `"approved"` — the `"confirmed"` status has been removed.
 
 ```typescript
-// ❌ WRONG — misses auto-approved commissions
+// ❌ WRONG — "confirmed" no longer exists
 c.status === "confirmed"
 
-// ✅ CORRECT — catches both statuses
-c.status === "approved" || c.status === "confirmed"
+// ✅ CORRECT — use "approved"
+c.status === "approved"
 ```
-
-All `tenantStats` hooks treat both as equivalent for counter purposes. A future migration will unify these into a single status.
 
 ### Authentication
 

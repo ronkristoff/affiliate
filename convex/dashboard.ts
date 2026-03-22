@@ -83,16 +83,16 @@ export const getOwnerDashboardStats = query({
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .take(800);
 
-    // Calculate MRR from confirmed commissions with subscription amounts (FIXED: AC1 requirement)
-    // Filter confirmed commissions in date range first
-    const confirmedCommissions = allCommissions.filter(c => {
+    // Calculate MRR from approved commissions with subscription amounts (FIXED: AC1 requirement)
+    // Filter approved commissions in date range first
+    const approvedCommissions = allCommissions.filter(c => {
       const createdAt = c._creationTime;
-      return (c.status === "confirmed" || c.status === "approved") && createdAt >= startDate && createdAt <= endDate;
+      return c.status === "approved" && createdAt >= startDate && createdAt <= endDate;
     });
 
-    // For each confirmed commission, get the subscription/conversion amount for MRR
+    // For each approved commission, get the subscription/conversion amount for MRR
     let mrrInfluenced = 0;
-    for (const commission of confirmedCommissions) {
+    for (const commission of approvedCommissions) {
       if (commission.conversionId) {
         const conversion = allConversions.find(c => c._id === commission.conversionId);
         if (conversion) {
@@ -108,7 +108,7 @@ export const getOwnerDashboardStats = query({
     // Calculate previous period MRR
     const previousPeriodCommissions = allCommissions.filter(c => {
       const createdAt = c._creationTime;
-      return (c.status === "confirmed" || c.status === "approved") && createdAt >= previousStartDate && createdAt < startDate;
+      return c.status === "approved" && createdAt >= previousStartDate && createdAt < startDate;
     });
 
     let previousPeriodMrr = 0;
@@ -248,7 +248,7 @@ export const getRecentActivity = query({
       let iconType: string;
       
       switch (commission.status) {
-        case "confirmed":
+        case "approved":
           type = "commission_confirmed";
           iconType = "green";
           break;
@@ -269,7 +269,7 @@ export const getRecentActivity = query({
         _id: `commission_${commission._id}`,
         type,
         title: commission.status === "reversed" ? "Commission Reversed" : 
-               commission.status === "confirmed" ? "Commission Confirmed" : "Commission Pending",
+               commission.status === "approved" ? "Commission Approved" : "Commission Pending",
         description: affiliate ? `${affiliate.name} earned a commission` : "Commission recorded",
         amount: canViewSensitiveData ? commission.amount : undefined,
         status: commission.status,
@@ -432,9 +432,9 @@ export const getTopAffiliates = query({
       }
     }
 
-    // Sum revenue per affiliate (only confirmed commissions)
+    // Sum revenue per affiliate (only approved commissions)
     for (const commission of allCommissions) {
-      if ((commission.status === "confirmed" || commission.status === "approved") && 
+      if (commission.status === "approved" && 
           commission._creationTime >= startDate && 
           commission._creationTime <= endDate) {
         const stats = affiliateStatsMap.get(commission.affiliateId);

@@ -954,7 +954,7 @@ export const getAffiliatePortalDashboardStats = query({
     for await (const commission of commissionsQuery) {
       totalCommissions += commission.amount;
       
-      if (commission.status === "confirmed") {
+      if (commission.status === "approved") {
         confirmedCommissions += commission.amount;
       } else if (commission.status === "pending") {
         pendingCommissions += commission.amount;
@@ -1046,16 +1046,16 @@ export const getAffiliateRecentActivity = query({
 
     // Convert commissions to activity items
     const commissionActivities = recentCommissions.map((commission) => {
-      const type = commission.status === "confirmed" 
+      const type = commission.status === "approved" 
         ? "commission_confirmed" 
         : "commission_pending";
       
-      const iconType = commission.status === "confirmed" ? "green" : "amber";
+      const iconType = commission.status === "approved" ? "green" : "amber";
       
       return {
         _id: `commission-${commission._id}`,
         type: type as "commission_confirmed" | "commission_pending",
-        title: type === "commission_confirmed" ? "Commission Confirmed" : "Commission Pending",
+        title: type === "commission_confirmed" ? "Commission Approved" : "Commission Pending",
         description: `From conversion #${commission.conversionId ? commission.conversionId.slice(-6) : "unknown"}`,
         amount: commission.amount,
         status: commission.status,
@@ -1174,7 +1174,7 @@ export const getAffiliateEarningsSummary = query({
       totalEarnings += commission.amount;
       totalCount += 1;
 
-      if (commission.status === "confirmed") {
+      if (commission.status === "approved") {
         confirmedCount += 1;
         confirmedBalance += commission.amount;
       } else if (commission.status === "pending") {

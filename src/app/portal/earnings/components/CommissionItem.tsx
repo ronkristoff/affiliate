@@ -13,7 +13,7 @@ interface CommissionItemProps {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  confirmed: {
+  approved: {
     bg: 'bg-[#d1fae5]',
     text: 'text-[#065f46]',
     dot: 'bg-[#065f46]',
@@ -68,7 +68,7 @@ export function CommissionItem({ commission, onClick }: CommissionItemProps) {
       </div>
       
       <div className="flex-1 text-center">
-        <p className={`font-bold ${commission.status === 'confirmed' ? 'text-[var(--success)]' : ''}`}>
+        <p className={`font-bold ${commission.status === 'approved' ? 'text-[var(--success)]' : ''}`}>
           {formatAmount(commission.amount)}
         </p>
       </div>

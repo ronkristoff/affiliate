@@ -146,7 +146,7 @@ export const getCommissionAgingBuckets = query({
       else bucketIndex = 3;
 
       if (status === "pending") buckets[bucketIndex].pending += amount;
-      else if (status === "confirmed" || status === "approved") buckets[bucketIndex].confirmed += amount;
+      else if (status === "approved") buckets[bucketIndex].confirmed += amount;
       else if (status === "reversed" || status === "declined") buckets[bucketIndex].reversed += amount;
       else if (status === "paid") buckets[bucketIndex].paid += amount;
     }

@@ -434,7 +434,7 @@ export const getCampaignPerformanceDetails = query({
     };
 
     for (const commission of campaignCommissions) {
-      if (commission.status === "confirmed" || commission.status === "approved") {
+      if (commission.status === "approved") {
         commissionBreakdown.confirmed += commission.amount;
       } else if (commission.status === "pending") {
         commissionBreakdown.pending += commission.amount;
@@ -458,7 +458,7 @@ export const getCampaignPerformanceDetails = query({
     }
 
     for (const commission of campaignCommissions) {
-      if (commission.status === "confirmed" || commission.status === "approved") {
+      if (commission.status === "approved") {
         const stats = affiliateStats.get(commission.affiliateId);
         if (stats) stats.revenue += commission.amount;
       }
@@ -518,7 +518,7 @@ export const getCampaignPerformanceDetails = query({
     for (const commission of campaignCommissions) {
       const bucketKey = Math.floor(commission._creationTime / bucketSize) * bucketSize;
       const bucket = buckets.get(bucketKey);
-      if (bucket && (commission.status === "confirmed" || commission.status === "approved")) {
+      if (bucket && commission.status === "approved") {
         bucket.commissions += commission.amount;
       }
     }
@@ -758,13 +758,13 @@ export const getCampaignCostEfficiency = query({
       c._creationTime <= endDate
     );
 
-    // Only count confirmed/approved commissions (status equivalence)
+    // Only count approved commissions (status equivalence)
     const filteredCommissions = allCommissions.filter(c =>
       c.campaignId &&
       campaignIdSet.has(c.campaignId.toString()) &&
       c._creationTime >= startDate &&
       c._creationTime <= endDate &&
-      (c.status === "confirmed" || c.status === "approved")
+      c.status === "approved"
     );
 
     // Build aggregation maps keyed by campaign ID

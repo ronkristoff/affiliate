@@ -193,12 +193,7 @@ export const backfillStats = internalMutation({
       if (c.status === "pending") {
         commissionsPendingCount++;
         commissionsPendingValue += c.amount;
-      } else if (c.status === "approved" || c.status === "confirmed") {
-        if (c._creationTime >= monthStart) {
-          commissionsConfirmedThisMonth++;
-          commissionsConfirmedValueThisMonth += c.amount;
-        }
-      } else if (c.status === "reversed" || c.status === "declined") {
+      } else if (c.status === "approved") {
         if (c._creationTime >= monthStart) {
           commissionsReversedThisMonth++;
           commissionsReversedValueThisMonth += c.amount;
@@ -221,9 +216,9 @@ export const backfillStats = internalMutation({
       }
     }
 
-    // Count confirmed commissions (pending payouts) — not month-bound
+    // Count approved commissions (pending payouts) — not month-bound
     for (const c of commissions) {
-      if (c.status === "confirmed" || c.status === "approved") {
+      if (c.status === "approved") {
         if (!c.batchId) {
           pendingPayoutTotal += c.amount;
           pendingPayoutCount++;
@@ -346,10 +341,10 @@ export async function onCommissionCreated(
   if (status === "pending") {
     patch.commissionsPendingCount = stats.commissionsPendingCount + 1;
     patch.commissionsPendingValue = stats.commissionsPendingValue + amount;
-  } else if (status === "approved" || status === "confirmed") {
+  } else if (status === "approved") {
     patch.commissionsConfirmedThisMonth = stats.commissionsConfirmedThisMonth + 1;
     patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth + amount;
-    // Also track as pending payout (confirmed = awaiting payment)
+    // Also track as pending payout (approved = awaiting payment)
     patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + amount;
     patch.pendingPayoutCount = (stats.pendingPayoutCount ?? 0) + 1;
   }
@@ -384,10 +379,7 @@ export async function onCommissionStatusChange(
     patch.commissionsPendingCount = stats.commissionsPendingCount - 1;
     patch.commissionsPendingValue = stats.commissionsPendingValue - amount;
   }
-  if (oldStatus === "approved" || oldStatus === "confirmed") {
-    patch.commissionsConfirmedThisMonth = stats.commissionsConfirmedThisMonth - 1;
-    patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth - amount;
-    // Undo pending payout tracking
+  if (oldStatus === "approved") {
     patch.pendingPayoutTotal = (patch.pendingPayoutTotal ?? stats.pendingPayoutTotal ?? 0) - amount;
     patch.pendingPayoutCount = (patch.pendingPayoutCount ?? stats.pendingPayoutCount ?? 0) - 1;
   }
@@ -401,7 +393,7 @@ export async function onCommissionStatusChange(
     patch.commissionsPendingCount = (patch.commissionsPendingCount ?? stats.commissionsPendingCount ?? 0) + 1;
     patch.commissionsPendingValue = (patch.commissionsPendingValue ?? stats.commissionsPendingValue ?? 0) + amount;
   }
-  if (newStatus === "approved" || newStatus === "confirmed") {
+  if (newStatus === "approved") {
     patch.commissionsConfirmedThisMonth = (patch.commissionsConfirmedThisMonth ?? stats.commissionsConfirmedThisMonth ?? 0) + 1;
     patch.commissionsConfirmedValueThisMonth = (patch.commissionsConfirmedValueThisMonth ?? stats.commissionsConfirmedValueThisMonth ?? 0) + amount;
     // Track as pending payout
@@ -463,9 +455,7 @@ export async function onCommissionAmountChanged(
 
   if (status === "pending") {
     patch.commissionsPendingValue = stats.commissionsPendingValue + delta;
-  } else if (status === "approved" || status === "confirmed") {
-    patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth + delta;
-    // Also adjust pending payout total
+  } else if (status === "approved") {
     patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + delta;
   } else if (status === "reversed" || status === "declined") {
     patch.commissionsReversedValueThisMonth = stats.commissionsReversedValueThisMonth + delta;

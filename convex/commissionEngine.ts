@@ -1265,7 +1265,7 @@ export const processRefundCreatedEvent = internalAction({
     }
     
     // AC #3: Only allow reversal for commissions with specific statuses
-    const validReversalStatuses = ["pending", "approved", "confirmed"];
+    const validReversalStatuses = ["pending", "approved"];
     if (!validReversalStatuses.includes(commission.status)) {
       console.log(`Webhook ${event.eventId}: Commission ${commission._id} has invalid status for reversal: ${commission.status}`);
       
@@ -1453,7 +1453,7 @@ export const processChargebackCreatedEvent = internalAction({
     }
     
     // AC #3: Only allow reversal for commissions with specific statuses
-    const validReversalStatuses = ["pending", "approved", "confirmed"];
+    const validReversalStatuses = ["pending", "approved"];
     if (!validReversalStatuses.includes(commission.status)) {
       console.log(`Webhook ${event.eventId}: Commission ${commission._id} has invalid status for reversal: ${commission.status}`);
       

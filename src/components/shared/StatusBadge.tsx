@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type AffiliateStatus = "pending" | "active" | "suspended" | "rejected";
-type CommissionStatus = "confirmed" | "pending" | "reversed" | "paid";
+type CommissionStatus = "approved" | "pending" | "reversed" | "paid";
 type PayoutStatus = "processing" | "paid" | "pending_payout";
 
 type Status = AffiliateStatus | CommissionStatus | PayoutStatus;
@@ -43,8 +43,8 @@ const statusConfig: Record<Status, { label: string; dotColor: string; bgClass: s
     textClass: "text-[#991b1b]",
   },
   // Commission statuses
-  confirmed: {
-    label: "Confirmed",
+  approved: {
+    label: "Approved",
     dotColor: "#10b981", // success
     bgClass: "bg-[#d1fae5]",
     textClass: "text-[#065f46]",

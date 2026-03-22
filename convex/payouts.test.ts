@@ -145,7 +145,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       const commission2Id = await t.run(async (ctx) => {
@@ -154,7 +154,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -165,7 +165,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 2500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -250,7 +250,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         // Pending — should NOT be included
         await ctx.db.insert("commissions", {
@@ -294,7 +294,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -316,7 +316,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -349,7 +349,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -381,14 +381,14 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate2Id,
           campaignId,
           amount: 2500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -425,14 +425,14 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate2Id,
           campaignId,
           amount: 2500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -463,7 +463,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -485,7 +485,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: otherAffiliateId,
           campaignId: otherCampaignId,
           amount: 9999,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -517,21 +517,21 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 1000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate1Id,
           campaignId,
           amount: 2000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate1Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
         // 1 commission for affiliate2
         await ctx.db.insert("commissions", {
@@ -539,7 +539,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 4500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -577,7 +577,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -610,7 +610,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -622,7 +622,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -651,7 +651,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
             affiliateId: i % 2 === 0 ? affiliate1Id : affiliate2Id,
             campaignId,
             amount: 1000 * (i + 1),
-            status: "confirmed",
+            status: "approved",
           });
         });
         await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -680,7 +680,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       const batch1 = await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -696,7 +696,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -723,7 +723,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       const batch = await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -759,7 +759,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       const batch1 = await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -774,7 +774,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
       });
       await t.mutation(api.payouts.generatePayoutBatch, {});
@@ -803,7 +803,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 100,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -825,7 +825,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
             affiliateId: affiliate1Id,
             campaignId,
             amount: 100,
-            status: "confirmed",
+            status: "approved",
           });
         }
       });
@@ -847,7 +847,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
@@ -896,21 +896,21 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate1Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate2Id,
           campaignId,
           amount: 2500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -959,7 +959,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1035,7 +1035,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
             affiliateId: affiliate1Id,
             campaignId,
             amount: 1000,
-            status: "confirmed",
+            status: "approved",
           });
         }
       });
@@ -1064,7 +1064,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 1500,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1094,7 +1094,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate2Id,
           campaignId,
           amount: 1200,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1123,7 +1123,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1163,7 +1163,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1198,14 +1198,14 @@ describe("Story 13.1: Payout Batch Generation", () => {
           affiliateId: affiliate1Id,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
         await ctx.db.insert("commissions", {
           tenantId,
           affiliateId: affiliate2Id,
           campaignId,
           amount: 3000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -1653,21 +1653,21 @@ describe("Story 13.4: Payout Notification Email", () => {
         affiliateId: affiliate1Id,
         campaignId,
         amount: 5000,
-        status: "confirmed",
+        status: "approved",
       });
       await ctx.db.insert("commissions", {
         tenantId,
         affiliateId: affiliate1Id,
         campaignId,
         amount: 3000,
-        status: "confirmed",
+        status: "approved",
       });
       await ctx.db.insert("commissions", {
         tenantId,
         affiliateId: affiliate2Id,
         campaignId,
         amount: 2500,
-        status: "confirmed",
+        status: "approved",
       });
     });
 
@@ -2588,7 +2588,7 @@ describe("Story 13.6: Payout Audit Log", () => {
           affiliateId,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -2623,7 +2623,7 @@ describe("Story 13.6: Payout Audit Log", () => {
           affiliateId,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 
@@ -2670,7 +2670,7 @@ describe("Story 13.6: Payout Audit Log", () => {
           affiliateId,
           campaignId,
           amount: 5000,
-          status: "confirmed",
+          status: "approved",
         });
       });
 

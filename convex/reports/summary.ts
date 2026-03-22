@@ -207,7 +207,7 @@ export const getTopAffiliatesByRevenue = query({
     const filteredCommissions = allCommissions.filter(c =>
       c._creationTime >= startDate &&
       c._creationTime <= endDate &&
-      (c.status === "confirmed" || c.status === "approved") &&
+      c.status === "approved" &&
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 

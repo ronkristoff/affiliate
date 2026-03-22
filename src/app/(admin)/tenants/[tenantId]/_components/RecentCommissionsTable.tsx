@@ -37,8 +37,8 @@ const phpFormatter = new Intl.NumberFormat("en-PH", {
 });
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  confirmed: {
-    label: "Confirmed",
+  approved: {
+    label: "Approved",
     className: "bg-[#dcfce7] text-[#166534] border-[#bbf7d0]",
   },
   pending: {

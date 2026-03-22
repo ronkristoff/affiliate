@@ -73,7 +73,7 @@ function countAffiliates(affiliates: MockAffiliate[]) {
 function calculateMRR(commissions: MockCommission[], periodStart: number, periodEnd: number) {
   return commissions
     .filter(
-      (c) => c.status === "confirmed" && c._creationTime > periodStart && c._creationTime <= periodEnd
+      (c) => c.status === "approved" && c._creationTime > periodStart && c._creationTime <= periodEnd
     )
     .reduce((sum, c) => sum + c.amount, 0);
 }
@@ -246,12 +246,12 @@ const MOCK_AFFILIATES: MockAffiliate[] = [
 ];
 
 const MOCK_COMMISSIONS: MockCommission[] = [
-  { _id: "c1", amount: 1000, status: "confirmed", _creationTime: 100, affiliateId: "aff1", campaignId: "camp1" },
-  { _id: "c2", amount: 500, status: "confirmed", _creationTime: 200, affiliateId: "aff1", campaignId: "camp2" },
+  { _id: "c1", amount: 1000, status: "approved", _creationTime: 100, affiliateId: "aff1", campaignId: "camp1" },
+  { _id: "c2", amount: 500, status: "approved", _creationTime: 200, affiliateId: "aff1", campaignId: "camp2" },
   { _id: "c3", amount: 300, status: "pending", _creationTime: 150, affiliateId: "aff2", campaignId: "camp1" },
-  { _id: "c4", amount: 2000, status: "confirmed", _creationTime: 50, affiliateId: "aff3", campaignId: "camp1" },
+  { _id: "c4", amount: 2000, status: "approved", _creationTime: 50, affiliateId: "aff3", campaignId: "camp1" },
   { _id: "c5", amount: 150, status: "reversed", _creationTime: 250, affiliateId: "aff4", campaignId: "camp2" },
-  { _id: "c6", amount: 800, status: "confirmed", _creationTime: 300, affiliateId: "aff5", campaignId: "camp1" },
+  { _id: "c6", amount: 800, status: "approved", _creationTime: 300, affiliateId: "aff5", campaignId: "camp1" },
   { _id: "c7", amount: 400, status: "pending", _creationTime: 350, affiliateId: "aff6", campaignId: "camp2" },
   { _id: "c8", amount: 600, status: "paid", _creationTime: 400, affiliateId: "aff7", campaignId: "camp1" },
 ];
@@ -404,7 +404,7 @@ describe("Story 11.2 - Tenant Account Details", () => {
     });
 
     it("should return zeros when no pending commissions", () => {
-      const confirmed = MOCK_COMMISSIONS.filter((c) => c.status === "confirmed");
+      const confirmed = MOCK_COMMISSIONS.filter((c) => c.status === "approved");
       const result = calculatePendingCommissions(confirmed);
       expect(result).toEqual({ total: 0, count: 0 });
     });
@@ -436,7 +436,7 @@ describe("Story 11.2 - Tenant Account Details", () => {
   // --------------------------------------------------
   describe("AC6: Commission status classification", () => {
     it("should classify confirmed commissions", () => {
-      const confirmed = MOCK_COMMISSIONS.filter((c) => c.status === "confirmed");
+      const confirmed = MOCK_COMMISSIONS.filter((c) => c.status === "approved");
       expect(confirmed).toHaveLength(4);
     });
 
@@ -647,7 +647,7 @@ describe("Story 11.2 - Tenant Account Details", () => {
   // --------------------------------------------------
   describe("Commission pagination", () => {
     it("should paginate commissions with cursor", () => {
-      const items = Array.from({ length: 25 }, (_, i) => ({ _id: `c${i}`, amount: i * 100, status: "confirmed", _creationTime: i, affiliateId: "a", campaignId: "c" }));
+      const items = Array.from({ length: 25 }, (_, i) => ({ _id: `c${i}`, amount: i * 100, status: "approved", _creationTime: i, affiliateId: "a", campaignId: "c" }));
       const limit = 10;
 
       // Page 1

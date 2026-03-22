@@ -115,7 +115,6 @@ const commissionStatusConfig: Record<
 > = {
   pending: { label: "Pending", dotColor: "#f59e0b", bgClass: "bg-[#fef3c7]", textClass: "text-[#92400e]" },
   approved: { label: "Approved", dotColor: "#10b981", bgClass: "bg-[#d1fae5]", textClass: "text-[#065f46]" },
-  confirmed: { label: "Confirmed", dotColor: "#10b981", bgClass: "bg-[#d1fae5]", textClass: "text-[#065f46]" },
   reversed: { label: "Reversed", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
   declined: { label: "Declined", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
   paid: { label: "Paid", dotColor: "#6b7280", bgClass: "bg-[#f3f4f6]", textClass: "text-[#374151]" },
@@ -124,7 +123,6 @@ const commissionStatusConfig: Record<
 const statusFilterOptions: FilterOption[] = [
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
-  { value: "confirmed", label: "Confirmed" },
   { value: "reversed", label: "Reversed" },
   { value: "declined", label: "Declined" },
   { value: "paid", label: "Paid" },
@@ -157,8 +155,6 @@ function formatDetailDate(timestamp: number): string {
 // Constants
 // ---------------------------------------------------------------------------
 
-type StatusFilter = "all" | "pending" | "approved" | "confirmed" | "reversed" | "declined" | "paid";
-
 // ---------------------------------------------------------------------------
 // Inner content (hooks live here, wrapped by Suspense)
 // ---------------------------------------------------------------------------
@@ -184,7 +180,7 @@ function CommissionsContent() {
 
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
-    parseAsStringLiteral(["all", "pending", "approved", "confirmed", "reversed", "declined", "paid"] as const).withDefault("all")
+    parseAsString.withDefault("all")
   );
 
   const [campaignFilter, setCampaignFilter] = useQueryState(
@@ -241,8 +237,10 @@ function CommissionsContent() {
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   // ── Server-side Paginated Query ─────────────────────────────────────────
-  // Convert status filter to array for the query
-  const statusFilterArray = statusFilter !== "all" ? [statusFilter] : undefined;
+  // Convert status filter to array for the query (supports comma-separated multi-select)
+  const statusFilterArray = statusFilter !== "all" && statusFilter.length > 0
+    ? statusFilter.split(",")
+    : undefined;
 
   // Parse nuqs string params into typed values for Convex
   const parsedAmountMin = amountMin ? parseFloat(amountMin) : undefined;
@@ -296,11 +294,11 @@ function CommissionsContent() {
   // ── Active filters for FilterChips ───────────────────────────────────────
   const activeFilters = useMemo<ColumnFilter[]>(() => {
     const filters: ColumnFilter[] = [];
-    if (statusFilter !== "all") {
-      filters.push({ columnKey: "status", type: "select", values: [statusFilter] });
+    if (statusFilter !== "all" && statusFilter.length > 0) {
+      filters.push({ columnKey: "status", type: "select", values: statusFilter.split(",") });
     }
     if (campaignFilter !== "all") {
-      filters.push({ columnKey: "campaign", type: "select", values: [campaignFilter] });
+      filters.push({ columnKey: "campaign", type: "select", values: campaignFilter.split(",") });
     }
     if (searchQuery.trim()) {
       filters.push({ columnKey: "search", type: "text", value: searchQuery.trim() });
@@ -381,10 +379,10 @@ function CommissionsContent() {
     for (const filter of filters) {
       switch (filter.columnKey) {
         case "status":
-          setStatusFilter(filter.values?.length ? (filter.values[0] as StatusFilter) : "all");
+          setStatusFilter(filter.values?.length ? filter.values.join(",") : "all");
           break;
         case "campaign":
-          setCampaignFilter(filter.values?.length ? filter.values[0] : "all");
+          setCampaignFilter(filter.values?.length ? filter.values.join(",") : "all");
           break;
         case "amount":
           setAmountMin(filter.min != null ? String(filter.min) : "");

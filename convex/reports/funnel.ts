@@ -84,7 +84,7 @@ export const getConversionFunnel = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
-    // 6. Query commissions — ONLY confirmed or approved (status equivalence)
+    // 6. Query commissions — ONLY approved (status equivalence)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
@@ -94,7 +94,7 @@ export const getConversionFunnel = query({
     const filteredCommissions = allCommissions.filter(c =>
       c._creationTime >= startDate &&
       c._creationTime <= endDate &&
-      (c.status === "confirmed" || c.status === "approved") &&
+      c.status === "approved" &&
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
@@ -365,7 +365,7 @@ export const getFunnelExportData = query({
     const filteredCommissions = allCommissions.filter(c =>
       c._creationTime >= startDate &&
       c._creationTime <= endDate &&
-      (c.status === "confirmed" || c.status === "approved") &&
+      c.status === "approved" &&
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 

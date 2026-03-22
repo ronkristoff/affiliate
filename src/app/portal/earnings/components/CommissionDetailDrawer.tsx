@@ -24,7 +24,7 @@ interface CommissionDetailDrawerProps {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  confirmed: { bg: 'bg-[#d1fae5]', text: 'text-[#065f46]' },
+  approved: { bg: 'bg-[#d1fae5]', text: 'text-[#065f46]' },
   pending: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]' },
   reversed: { bg: 'bg-[#fee2e2]', text: 'text-[#991b1b]' },
   paid: { bg: 'bg-[#f3f4f6]', text: 'text-[#374151]' },
@@ -70,7 +70,7 @@ export function CommissionDetailDrawer({ commission, isOpen, onClose }: Commissi
         <div className="space-y-6 pt-4">
           {/* Amount and Status */}
           <div className="text-center py-4">
-            <p className={`text-4xl font-black ${commission.status === 'confirmed' ? 'text-[var(--success)]' : ''}`}>
+            <p className={`text-4xl font-black ${commission.status === 'approved' ? 'text-[var(--success)]' : ''}`}>
               {formatAmount(commission.amount)}
             </p>
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${styles.bg} ${styles.text}`}>
@@ -116,7 +116,7 @@ export function CommissionDetailDrawer({ commission, isOpen, onClose }: Commissi
                   </p>
                   <ul className="text-sm text-[#92400e]/80 mt-2 space-y-1 list-disc list-inside">
                     <li>Review typically takes 14-30 days</li>
-                    <li>You'll be notified once confirmed</li>
+                    <li>You'll be notified once approved</li>
                     <li>If approved, payment follows the next payout cycle</li>
                   </ul>
                 </div>
@@ -135,7 +135,7 @@ export function CommissionDetailDrawer({ commission, isOpen, onClose }: Commissi
               <div>
                 <p className="text-sm text-[var(--text-muted)]">Expected Date</p>
                 <p className="font-medium">
-                  {commission.status === 'confirmed' || commission.status === 'pending'
+                  {commission.status === 'approved' || commission.status === 'pending'
                     ? 'Next payout cycle'
                     : '-'}
                 </p>
