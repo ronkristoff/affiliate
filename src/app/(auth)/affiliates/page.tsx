@@ -18,6 +18,7 @@ import { AffiliateTopbar } from "@/components/affiliate/AffiliateTopbar";
 import { AffiliateTabs } from "@/components/affiliate/AffiliateTabs";
 import { AffiliateToolbar } from "@/components/affiliate/AffiliateToolbar";
 import { AffiliateDetailDrawer } from "@/components/affiliate/AffiliateDetailDrawer";
+import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { PendingBanner } from "@/components/affiliate/PendingBanner";
 import { BulkActionBar } from "@/components/affiliate/BulkActionBar";
 import { RejectionDialog } from "@/components/affiliate/RejectionDialog";
@@ -337,6 +338,7 @@ function AffiliatesContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [detailDrawerAffiliate, setDetailDrawerAffiliate] = useState<Affiliate | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
 
   // ── Page reset on search / filter / sort change ─────────────────────────
   useEffect(() => {
@@ -756,7 +758,7 @@ function AffiliatesContent() {
   return (
     <div className="min-h-screen bg-[#f2f2f2]">
       {/* Top Bar */}
-      <AffiliateTopbar onExport={handleExportCSV} isExporting={isExporting} />
+      <AffiliateTopbar onExport={handleExportCSV} isExporting={isExporting} onInvite={() => setIsInviteSheetOpen(true)} />
 
       {/* Page Content */}
       <div className="px-8 py-7">
@@ -900,6 +902,12 @@ function AffiliatesContent() {
           </div>
         )}
       </div>
+
+      {/* Invite Affiliate Sheet */}
+      <InviteAffiliateSheet
+        isOpen={isInviteSheetOpen}
+        onClose={() => setIsInviteSheetOpen(false)}
+      />
 
       {/* Affiliate Detail Drawer */}
       <AffiliateDetailDrawer

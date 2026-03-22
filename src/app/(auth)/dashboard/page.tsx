@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
-import Link from "next/link";
+import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { downloadCsv } from "@/lib/utils";
 import { toast } from "sonner";
 import { Loader2, Download } from "lucide-react";
@@ -47,6 +47,7 @@ export default function DashboardPage() {
 
   // Export CSV state and action
   const [isExporting, setIsExporting] = useState(false);
+  const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const exportCSV = useAction(api.dashboardExport.exportOwnerDashboardCSV);
 
   const handleExport = useCallback(async () => {
@@ -151,10 +152,8 @@ export default function DashboardPage() {
               </>
             )}
           </Button>
-          <Button size="sm" asChild>
-            <Link href="/affiliates/invite">
-              + Invite Affiliate
-            </Link>
+          <Button size="sm" onClick={() => setIsInviteSheetOpen(true)}>
+            + Invite Affiliate
           </Button>
         </div>
       </PageTopbar>
@@ -256,6 +255,7 @@ export default function DashboardPage() {
             <QuickActionsPanel
               pendingCount={stats?.pendingCommissionsCount}
               showPayAll={canManage}
+              onInvite={() => setIsInviteSheetOpen(true)}
             />
 
             {/* Activity Feed */}
@@ -272,6 +272,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      {/* Invite Affiliate Sheet */}
+      <InviteAffiliateSheet
+        isOpen={isInviteSheetOpen}
+        onClose={() => setIsInviteSheetOpen(false)}
+      />
     </div>
   );
 }
