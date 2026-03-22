@@ -28,13 +28,12 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -778,39 +777,38 @@ function CommissionsContent() {
         />
       </div>
 
-      {/* ── Commission Detail Drawer ──────────────────────────────────── */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent
-          className="sm:max-w-xl p-0"
-          style={
-            {
-              "--vaul-drawer-direction": "right",
-            } as React.CSSProperties
-          }
-        >
-          {effectiveDetail && (
-            <>
-              <DrawerHeader className="px-6 pt-6 pb-0">
-                <DrawerTitle className="text-lg font-bold">Commission Detail</DrawerTitle>
-                <DrawerDescription className="text-[12px] text-[var(--text-muted)]">
-                  {effectiveDetail.affiliateName} — {effectiveDetail.campaignName}
-                </DrawerDescription>
-              </DrawerHeader>
+      {/* ── Commission Detail Sheet ──────────────────────────────────── */}
+      <Sheet open={isDrawerOpen} onOpenChange={(open) => !open && setIsDrawerOpen(false)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] p-0 flex flex-col">
+          {/* Header */}
+          <SheetHeader className="px-6 py-5 border-b border-[#e5e7eb]">
+            <SheetTitle className="text-base font-bold text-[#333]">
+              Commission Detail
+            </SheetTitle>
+            <SheetDescription className="text-[12px] text-[#6b7280]">
+              {effectiveDetail
+                ? `${effectiveDetail.affiliateName} — ${effectiveDetail.campaignName}`
+                : "Loading…"}
+            </SheetDescription>
+          </SheetHeader>
 
-              <div className="px-6 py-4 space-y-5 flex-1 overflow-y-auto">
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            {effectiveDetail ? (
+              <div className="space-y-6">
                 {/* Amount Hero */}
-                <div className="bg-[var(--bg-page)] rounded-xl p-5">
+                <div className="bg-[#f9fafb] rounded-xl p-5">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
                       Commission Amount
                     </span>
                     <StatusBadgeCell status={effectiveDetail.status} statusConfig={commissionStatusConfig} />
                   </div>
                   <span
-                    className={`text-3xl font-bold ${
+                    className={`text-[28px] font-bold ${
                       effectiveDetail.status === "reversed" || effectiveDetail.status === "declined"
                         ? "text-[#ef4444]"
-                        : "text-[var(--text-heading)]"
+                        : "text-[#333]"
                     }`}
                   >
                     {formatCurrency(effectiveDetail.amount)}
@@ -819,10 +817,10 @@ function CommissionsContent() {
 
                 {/* Commission Details */}
                 <div>
-                  <h4 className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-3">
                     Commission Details
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-0">
                     <DetailRow label="Affiliate" value={`${effectiveDetail.affiliateName} (${effectiveDetail.affiliateEmail})`} />
                     <DetailRow label="Customer Email" value={effectiveDetail.customerEmail || "—"} />
                     <DetailRow label="Campaign" value={effectiveDetail.campaignName} />
@@ -846,7 +844,7 @@ function CommissionsContent() {
 
                 {/* Fraud Signals */}
                 <div>
-                  <h4 className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-3">
                     Fraud Signals
                   </h4>
                   {isFlagged(effectiveDetail) ? (
@@ -884,70 +882,87 @@ function CommissionsContent() {
                   )}
                 </div>
               </div>
+            ) : (
+              /* Loading skeleton while detail query resolves */
+              <div className="space-y-6">
+                <div className="bg-[#f9fafb] rounded-xl p-5">
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+                <div className="space-y-3">
+                  <Skeleton className="h-3 w-28" />
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex justify-between py-2 border-b border-[#f3f4f6]">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
-              {/* Action Buttons — only for pending status */}
-              <DrawerFooter className="px-6 pb-6 pt-2 border-t border-[var(--border)]">
-                {effectiveDetail.status === "pending" && canManage && (
-                  isFlagged(effectiveDetail) ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (selectedCommission) handleOverrideLegitimate(selectedCommission._id);
-                        }}
-                        disabled={isActionLoading}
-                        className="w-full gap-2 text-[12px]"
-                      >
-                        {isActionLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : null}
-                        Override — Mark Legitimate
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setShowDeclineDialog(true)}
-                        disabled={isActionLoading}
-                        className="w-full gap-2 text-[12px] bg-[#ef4444] text-white hover:bg-[#dc2626]"
-                      >
-                        Decline Commission
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowDeclineDialog(true)}
-                        disabled={isActionLoading}
-                        className="w-full gap-2 text-[12px] border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
-                      >
-                        {isActionLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : null}
-                        Decline
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (selectedCommission) handleApprove(selectedCommission._id);
-                        }}
-                        disabled={isActionLoading}
-                        className="w-full gap-2 text-[12px]"
-                      >
-                        {isActionLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : null}
-                        Approve
-                      </Button>
-                    </>
-                  )
-                )}
-              </DrawerFooter>
-            </>
+          {/* Footer Actions — only for pending status */}
+          {effectiveDetail && effectiveDetail.status === "pending" && canManage && (
+            <div className="px-6 py-4 border-t border-[#e5e7eb] flex flex-col gap-2">
+              {isFlagged(effectiveDetail) ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedCommission) handleOverrideLegitimate(selectedCommission._id);
+                    }}
+                    disabled={isActionLoading}
+                    className="w-full h-8 gap-2 text-[12px]"
+                  >
+                    {isActionLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : null}
+                    Override — Mark Legitimate
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowDeclineDialog(true)}
+                    disabled={isActionLoading}
+                    className="w-full h-8 gap-2 text-[12px] bg-[#ef4444] text-white hover:bg-[#dc2626]"
+                  >
+                    Decline Commission
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeclineDialog(true)}
+                    disabled={isActionLoading}
+                    className="w-full h-8 gap-2 text-[12px] border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
+                  >
+                    {isActionLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : null}
+                    Decline
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (selectedCommission) handleApprove(selectedCommission._id);
+                    }}
+                    disabled={isActionLoading}
+                    className="w-full h-8 gap-2 text-[12px]"
+                  >
+                    {isActionLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : null}
+                    Approve
+                  </Button>
+                </>
+              )}
+            </div>
           )}
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Decline Dialog ─────────────────────────────────────────────── */}
       <AlertDialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
@@ -1024,9 +1039,9 @@ function CommissionsContent() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <span className="text-[12px] text-[var(--text-muted)] shrink-0">{label}</span>
-      <span className="text-[12px] text-[var(--text-heading)] font-medium text-right break-all">
+    <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+      <span className="text-[12px] text-[#6b7280]">{label}</span>
+      <span className="text-[13px] font-semibold text-[#333] text-right break-all max-w-[60%]">
         {value}
       </span>
     </div>
