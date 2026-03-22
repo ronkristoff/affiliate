@@ -1443,6 +1443,9 @@ export const listCommissionsPaginated = query({
       v.literal("_creationTime"),
       v.literal("amount"),
       v.literal("affiliateName"),
+      v.literal("campaignName"),
+      v.literal("customerEmail"),
+      v.literal("planEvent"),
       v.literal("status")
     )),
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),

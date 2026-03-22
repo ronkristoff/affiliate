@@ -263,7 +263,7 @@ function CommissionsContent() {
       affiliateSearch: affiliateSearch.trim() || undefined,
       customerSearch: customerSearch.trim() || undefined,
       planEventSearch: planEventSearch.trim() || undefined,
-      sortBy: sortBy as "_creationTime" | "amount" | "affiliateName" | "status",
+      sortBy: sortBy as "_creationTime" | "amount" | "affiliateName" | "campaignName" | "customerEmail" | "planEvent" | "status",
       sortOrder,
     } : "skip"
   );
@@ -563,6 +563,8 @@ function CommissionsContent() {
       {
         key: "affiliate",
         header: "Affiliate",
+        sortable: true,
+        sortField: "affiliateName",
         filterable: true,
         filterType: "text",
         filterLabel: "Affiliate",
@@ -571,6 +573,8 @@ function CommissionsContent() {
       {
         key: "customer",
         header: "Customer",
+        sortable: true,
+        sortField: "customerEmail",
         filterable: true,
         filterType: "text",
         filterLabel: "Customer",
@@ -581,6 +585,8 @@ function CommissionsContent() {
       {
         key: "planEvent",
         header: "Plan / Event",
+        sortable: true,
+        sortField: "planEvent",
         filterable: true,
         filterType: "text",
         filterLabel: "Plan / Event",
@@ -591,6 +597,8 @@ function CommissionsContent() {
       {
         key: "campaign",
         header: "Campaign",
+        sortable: true,
+        sortField: "campaignName",
         filterable: true,
         filterType: "select",
         filterOptions: campaignOptions,
@@ -619,6 +627,8 @@ function CommissionsContent() {
       {
         key: "status",
         header: "Status",
+        sortable: true,
+        sortField: "status",
         filterable: true,
         filterType: "select",
         filterOptions: statusFilterOptions,
