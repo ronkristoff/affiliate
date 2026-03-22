@@ -54,6 +54,11 @@ function AffiliatePerformancePage() {
   // Export action
   const exportCSV = useAction(api.reportsExport.exportAffiliatePerformanceCSV);
   
+  // Convert empty string campaignId to undefined for Convex (empty string is not a valid ID)
+  const campaignFilterId: Id<"campaigns"> | undefined = selectedCampaignId
+    ? (selectedCampaignId as Id<"campaigns">)
+    : undefined;
+
   // Get tenant ID from user
   const tenantId = user?.tenantId;
   
@@ -93,7 +98,7 @@ function AffiliatePerformancePage() {
       const base64Data = await exportCSV({
         tenantId,
         dateRange: queryDateRange,
-        campaignId: selectedCampaignId as Id<"campaigns"> | undefined,
+        campaignId: campaignFilterId,
       });
 
       // Use shared utility for download
@@ -158,7 +163,7 @@ function AffiliatePerformancePage() {
       <AffiliateMetricsSummary
         tenantId={tenantId}
         dateRange={queryDateRange}
-        campaignId={selectedCampaignId as Id<"campaigns"> | undefined}
+        campaignId={campaignFilterId}
       />
 
       {/* Main Content */}
@@ -176,7 +181,7 @@ function AffiliatePerformancePage() {
               <AffiliatePerformanceTable
                 tenantId={tenantId}
                 dateRange={queryDateRange}
-                campaignId={selectedCampaignId as Id<"campaigns"> | undefined}
+                campaignId={campaignFilterId}
                 onAffiliateSelect={handleAffiliateSelect}
                 canViewSensitiveData={canViewSensitiveData}
               />

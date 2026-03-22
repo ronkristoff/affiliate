@@ -78,16 +78,16 @@ function PayoutHistoryContent() {
     tenantId ? { tenantId } : "skip"
   );
 
+  const isLoading = !metrics || !trendData;
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportAction = useAction(api.reportsExport.exportPayoutReportCSV);
+
   // Export data for truncation warning
   const exportData = useQuery(
     api.reports.payouts.getPayoutExportData,
     tenantId ? { tenantId, dateRange: queryDateRange } : "skip"
   );
-
-  const isLoading = !metrics || !trendData;
-  const [isExporting, setIsExporting] = useState(false);
-
-  const exportAction = useAction(api.reportsExport.exportPayoutReportCSV);
 
   // Compute avg batch size
   const avgBatchSize =

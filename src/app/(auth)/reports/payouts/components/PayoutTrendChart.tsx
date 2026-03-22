@@ -34,8 +34,11 @@ export function PayoutTrendChart({
     );
   }
 
+  // Use unique month key (e.g. "2026-03") as index to prevent Tremor duplicate key warnings.
+  // Include monthLabel for tooltip display.
   const chartData = data.map((d) => ({
-    month: d.monthLabel,
+    month: d.month,
+    monthLabel: d.monthLabel,
     "Total Paid": canViewSensitiveData ? d.totalAmount : 0,
   }));
 
@@ -59,7 +62,6 @@ export function PayoutTrendChart({
             showTooltip
             showYAxis
             showXAxis
-            startEndOnly
             yAxisWidth={60}
             valueFormatter={(value) =>
               canViewSensitiveData ? formatCurrency(value) : "—"
