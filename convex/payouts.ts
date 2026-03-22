@@ -321,6 +321,112 @@ export const getPendingPayoutTotal = query({
   },
 });
 
+/**
+ * Recalculate pending payout stats from actual commission data.
+ * Fixes sync issues when tenantStats.pendingPayoutTotal/Count drift out of sync.
+ * 
+ * This scans all approved commissions without a batchId and updates tenantStats
+ * to match the actual pending payout amount.
+ */
+export const recalcPendingPayoutStats = mutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    pendingPayoutTotal: v.number(),
+    pendingPayoutCount: v.number(),
+    commissionCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    const tenantId = await requireTenantId(ctx);
+
+    // Get all approved commissions for this tenant
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "approved")
+      )
+      .collect();
+
+    // Count only approved commissions without a batchId (truly pending payout)
+    const pendingCommissions = commissions.filter((c) => !c.batchId);
+    
+    const pendingPayoutTotal = pendingCommissions.reduce(
+      (sum, c) => sum + c.amount,
+      0
+    );
+    const pendingPayoutCount = pendingCommissions.length;
+
+    // Update tenantStats
+    const stats = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .first();
+
+    if (stats) {
+      await ctx.db.patch(stats._id, {
+        pendingPayoutTotal,
+        pendingPayoutCount,
+      });
+    }
+
+    return {
+      success: true,
+      pendingPayoutTotal,
+      pendingPayoutCount,
+      commissionCount: pendingCommissions.length,
+    };
+  },
+});
+
+/**
+ * Diagnostic query: Get all approved commissions without a batchId.
+ * Use this to debug why pending payouts appear empty.
+ */
+export const getPendingCommissionsDiagnostic = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      commissionId: v.id("commissions"),
+      affiliateId: v.id("affiliates"),
+      amount: v.number(),
+      status: v.string(),
+      hasBatchId: v.boolean(),
+      batchId: v.optional(v.id("payoutBatches")),
+      affiliateExists: v.boolean(),
+      affiliateTenantId: v.optional(v.id("tenants")),
+    })
+  ),
+  handler: async (ctx) => {
+    const tenantId = await requireTenantId(ctx);
+
+    const commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "approved")
+      )
+      .take(100);
+
+    const results = [];
+    for (const c of commissions) {
+      if (c.batchId) continue; // Skip already paid
+      
+      const affiliate = await ctx.db.get(c.affiliateId);
+      results.push({
+        commissionId: c._id,
+        affiliateId: c.affiliateId,
+        amount: c.amount,
+        status: c.status,
+        hasBatchId: !!c.batchId,
+        batchId: c.batchId,
+        affiliateExists: !!affiliate,
+        affiliateTenantId: affiliate?.tenantId,
+      });
+    }
+
+    return results;
+  },
+});
+
 // =============================================================================
 // Story 13.2: Payout Batch CSV Download
 // =============================================================================
@@ -478,7 +584,21 @@ export const getAffiliatesWithPendingPayouts = query({
     const affiliateDetails = await Promise.all(
       affiliateIds.map(async (affiliateId) => {
         const affiliate = await ctx.db.get(affiliateId);
-        if (!affiliate || affiliate.tenantId !== tenantId) {
+        // If affiliate doesn't exist or belongs to wrong tenant, still include with placeholder data
+        // This can happen if affiliate was deleted but commission wasn't cleaned up
+        if (!affiliate) {
+          const totals = affiliateTotals.get(affiliateId)!;
+          return {
+            affiliateId,
+            name: "[Deleted Affiliate]",
+            email: "unknown@example.com",
+            payoutMethod: undefined,
+            pendingAmount: totals.amount,
+            commissionCount: totals.count,
+          };
+        }
+        if (affiliate.tenantId !== tenantId) {
+          // Skip affiliates from other tenants - cross-tenant data leak prevention
           return null;
         }
         const totals = affiliateTotals.get(affiliateId)!;

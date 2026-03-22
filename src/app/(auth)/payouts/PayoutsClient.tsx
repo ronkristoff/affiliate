@@ -49,6 +49,7 @@ import {
   CheckCheck,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import {
   generatePayoutCsv,
@@ -133,6 +134,8 @@ export function PayoutsContent() {
 
   // Mutation
   const generateBatch = useMutation(api.payouts.generatePayoutBatch);
+  const recalcStats = useMutation(api.payouts.recalcPendingPayoutStats);
+  const [isRecalcing, setIsRecalcing] = useState(false);
 
   // Batch detail queries and mutations
   const batchPayoutDetails = useQuery(
@@ -198,7 +201,7 @@ export function PayoutsContent() {
 
   // Derived data
   const isLoading = pendingTotal === undefined || affiliates === undefined;
-  const hasPendingPayouts = (pendingTotal?.affiliateCount ?? 0) > 0;
+  const hasPendingPayouts = (affiliates?.length ?? 0) > 0;
 
   // Calculate batch metrics from historical batches
   const totalPaidOut = (batches ?? [])
@@ -245,6 +248,29 @@ export function PayoutsContent() {
       }
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  // Handle recalculating pending payout stats from actual commission data
+  async function handleRecalcStats() {
+    setIsRecalcing(true);
+    try {
+      const result = await recalcStats({});
+      if (result.pendingPayoutCount > 0) {
+        toast.success("Stats synced", {
+          description: `Found ${result.pendingPayoutCount} pending payout(s) totaling ${formatCurrency(result.pendingPayoutTotal)}`,
+        });
+      } else {
+        toast.info("Stats synced", {
+          description: "No pending payouts found",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to sync stats", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+    } finally {
+      setIsRecalcing(false);
     }
   }
 
@@ -458,7 +484,7 @@ export function PayoutsContent() {
           formatValue={formatCurrency}
           subtext={
             pendingTotal
-              ? `${pendingTotal.affiliateCount} affiliate${(pendingTotal.affiliateCount ?? 0) > 1 ? "s" : ""} · ${pendingTotal.commissionCount} commissions`
+              ? `${affiliates?.length ?? 0} affiliate${(affiliates?.length ?? 0) !== 1 ? "s" : ""} · ${pendingTotal.commissionCount} commission${pendingTotal.commissionCount !== 1 ? "s" : ""}`
               : "—"
           }
           variant="yellow"
@@ -530,6 +556,18 @@ export function PayoutsContent() {
               There are no affiliates with confirmed, unpaid commissions at this time.
               New payouts will appear here once commissions are confirmed.
             </p>
+            <button
+              onClick={handleRecalcStats}
+              disabled={isRecalcing}
+              className="mt-4 inline-flex items-center gap-1.5 text-[12px] text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 disabled:opacity-50 transition-colors"
+            >
+              {isRecalcing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              Sync stats from commissions
+            </button>
           </div>
         </FadeIn>
       ) : (
