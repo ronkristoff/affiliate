@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useQuery, usePaginatedQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CampaignCard } from "./CampaignCard";
 import { CreateCampaignModal } from "./CreateCampaignModal";
@@ -13,9 +13,11 @@ import {
   NumberCell,
   DateCell,
 } from "@/components/ui/DataTable";
+import { DataTablePagination, type PaginationState } from "@/components/ui/DataTablePagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2, ExternalLink } from "lucide-react";
+import { usePaginationUrlState } from "@/hooks/useDataTableUrlState";
 
 interface CampaignListViewProps {
   viewMode?: ViewMode;
@@ -23,12 +25,15 @@ interface CampaignListViewProps {
 }
 
 /**
- * CampaignListView — paginated listing using usePaginatedQuery.
+ * CampaignListView — paginated listing using page-based pagination.
  * Handles card grid and table view, client-side search, and server-side filters.
  */
 export function CampaignListView({ viewMode = "cards", filterState }: CampaignListViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // URL-based pagination state
+  const { pagination, setPagination } = usePaginationUrlState(20);
 
   // Debounce search input (300ms)
   useEffect(() => {
@@ -37,6 +42,11 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPagination({ ...pagination, page: 1 });
+  }, [filterState?.statusFilter, filterState?.commissionTypeFilter, filterState?.recurringFilter, filterState?.createdAfter, filterState?.createdBefore]);
 
   // Build server-side filter args
   const serverFilters = useMemo(
@@ -56,19 +66,24 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
   // Card stats for table view columns
   const cardStats = useQuery(api.campaigns.getCampaignCardStats);
 
-  // Use usePaginatedQuery for automatic cursor management
-  const { results, status, loadMore, isLoading } = usePaginatedQuery(
-    api.campaigns.listCampaignsPaginated,
+  // Use page-based query
+  const result = useQuery(
+    api.campaigns.listCampaignsPageBased,
     {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
       statusFilter: serverFilters.statusFilter,
       commissionTypeFilter: serverFilters.commissionTypeFilter,
       recurringFilter: serverFilters.recurringFilter,
       createdAfter: serverFilters.createdAfter,
       createdBefore: serverFilters.createdBefore,
       includeArchived,
-    },
-    { initialNumItems: 30 } // Hydration: fetch 30, display up to 20
+    }
   );
+
+  const isLoading = result === undefined;
+  const results = result?.page ?? [];
+  const total = result?.total ?? 0;
 
   // Client-side search filter (applied after pagination)
   const displayItems = useMemo(() => {
@@ -227,7 +242,7 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
     );
   }
 
-  const hasMore = status === "CanLoadMore";
+  const hasMore = (result?.pageNum ?? 1) < (result?.totalPages ?? 1);
 
   return (
     <div className="space-y-4">
@@ -258,48 +273,47 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
             isLoading={isLoading}
             emptyMessage={emptyMessage}
             className="border-0 rounded-none"
+            pagination={pagination}
+            total={total}
+            onPaginationChange={setPagination}
+            hidePagination={total <= pagination.pageSize}
+            pageSizeOptions={[10, 20, 50, 100]}
           />
         </div>
       ) : (
         /* Card grid view */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {displayItems.map((campaign: any) => (
-            <CampaignCard
-              key={campaign._id}
-              campaign={campaign}
-              stats={{
-                affiliates: cardStats?.[campaign._id]?.affiliates ?? 0,
-                conversions: cardStats?.[campaign._id]?.conversions ?? 0,
-                paidOut: cardStats?.[campaign._id]?.paidOut ?? 0,
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {displayItems.map((campaign: any) => (
+              <CampaignCard
+                key={campaign._id}
+                campaign={campaign}
+                stats={{
+                  affiliates: cardStats?.[campaign._id]?.affiliates ?? 0,
+                  conversions: cardStats?.[campaign._id]?.conversions ?? 0,
+                  paidOut: cardStats?.[campaign._id]?.paidOut ?? 0,
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Load More + count */}
+      {/* Pagination + count */}
       {displayItems.length > 0 && (
         <div className="flex items-center justify-between pt-2">
           <span className="text-[12px] text-[#9ca3af]">
-            Showing {displayItems.length} campaign{displayItems.length !== 1 ? "s" : ""}
+            {total} campaign{total !== 1 ? "s" : ""} total
           </span>
-          {hasMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadMore(30)}
-              disabled={isLoading}
-              className="text-[13px] gap-1.5"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                "Load More"
-              )}
-            </Button>
+          {total > pagination.pageSize && (
+            <DataTablePagination
+              pagination={pagination}
+              total={total}
+              onPaginationChange={setPagination}
+              isLoading={isLoading}
+              showPageSizeSelector={false}
+              maxPageButtons={5}
+            />
           )}
         </div>
       )}

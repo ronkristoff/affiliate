@@ -38,6 +38,7 @@ import {
 import { FilterChips } from "@/components/ui/FilterChips";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, PauseCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { downloadCsv } from "@/lib/utils";
 import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
 
@@ -303,6 +304,11 @@ function AffiliatesContent() {
     parseAsInteger.withDefault(1)
   );
 
+  const [pageSize, setPageSize] = useQueryState(
+    "pageSize",
+    parseAsInteger.withDefault(DEFAULT_PAGE_SIZE)
+  );
+
   // Client-side sort state — persisted in URL so back/forward and refresh work
   const [sortBy, setSortBy] = useQueryState(
     "sortBy",
@@ -337,6 +343,12 @@ function AffiliatesContent() {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statuses, campaigns, sortBy, sortOrder, referralMin, referralMax, clickMin, clickMax, earningsMin, earningsMax, joinedAfter, joinedBefore]);
+
+  // ── Reset page to 1 when page size changes ───────────────────────────────
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
+  };
 
   // ── RBAC ────────────────────────────────────────────────────────────────
   const currentUser = useQuery(api.auth.getCurrentUser);
@@ -513,6 +525,8 @@ function AffiliatesContent() {
   );
 
   // For non-pending tabs, use paginated filtered query with server-side filters
+  // NOTE: On first render during loading, `page` is used directly. Once data loads,
+  // maxPage stabilizes and pagination buttons work correctly.
   const paginatedResult = useQuery(
     api.affiliates.listAffiliatesFiltered,
     !isPendingTab
@@ -520,8 +534,8 @@ function AffiliatesContent() {
           status: effectiveStatus,
           statuses: statuses.length > 0 ? statuses : undefined,
           campaignIds,
-          page: page,
-          numItems: PAGE_SIZE,
+          page,
+          numItems: pageSize,
           // Server-side filters
           searchQuery: search.trim() || undefined,
           referralMin: parsedReferralMin,
@@ -549,14 +563,10 @@ function AffiliatesContent() {
 
   const hasMore = isPendingTab ? false : (paginatedResult?.hasMore ?? false);
 
-  // Page clamping — if page exceeds max, clamp to last valid page
-  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  useEffect(() => {
-    if (!isPendingTab && page > maxPage) {
-      setPage(maxPage);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxPage, isPendingTab]);
+  // Stable maxPage — during loading, preserve the user's requested page so
+  // pagination buttons stay enabled while data refetches.
+  const rawMaxPage = Math.max(1, Math.ceil(total / pageSize));
+  const maxPage = isLoading ? Math.max(page, rawMaxPage) : rawMaxPage;
 
   // ── Tab counts ──────────────────────────────────────────────────────────
   const counts = useQuery(api.affiliates.getAffiliateCountByStatus, {}) || {
@@ -796,35 +806,15 @@ function AffiliatesContent() {
               }}
               activeFilters={activeFilters}
               onFilterChange={handleFilterChange}
+              pagination={{ page, pageSize }}
+              total={total}
+              onPaginationChange={({ page: newPage, pageSize: newPageSize }) => {
+                setPage(newPage);
+                if (newPageSize !== pageSize) {
+                  handlePageSizeChange(newPageSize);
+                }
+              }}
             />
-
-            {/* Pagination */}
-            {!isLoading && total > 0 && (
-              <div className="mt-4 flex items-center justify-between text-[12px] text-[#6b7280]">
-                <span>
-                  Showing {allAffiliates.length} of {total} affiliates
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => handlePageChange(page - 1)}
-                    className="p-1.5 border border-[#e5e7eb] rounded-md hover:bg-[#f9fafb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="px-3 py-1.5 text-[12px] font-medium">
-                    Page {page} of {maxPage}
-                  </span>
-                  <button
-                    disabled={page >= maxPage}
-                    onClick={() => handlePageChange(page + 1)}
-                    className="p-1.5 border border-[#e5e7eb] rounded-md hover:bg-[#f9fafb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -898,35 +888,15 @@ function AffiliatesContent() {
               }}
               activeFilters={activeFilters}
               onFilterChange={handleFilterChange}
+              pagination={{ page, pageSize }}
+              total={total}
+              onPaginationChange={({ page: newPage, pageSize: newPageSize }) => {
+                setPage(newPage);
+                if (newPageSize !== pageSize) {
+                  handlePageSizeChange(newPageSize);
+                }
+              }}
             />
-
-            {/* Pagination */}
-            {!isLoading && total > 0 && (
-              <div className="mt-4 flex items-center justify-between text-[12px] text-[#6b7280]">
-                <span>
-                  Showing {allAffiliates.length} of {total} affiliates
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => handlePageChange(page - 1)}
-                    className="p-1.5 border border-[#e5e7eb] rounded-md hover:bg-[#f9fafb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="px-3 py-1.5 text-[12px] font-medium">
-                    Page {page} of {maxPage}
-                  </span>
-                  <button
-                    disabled={page >= maxPage}
-                    onClick={() => handlePageChange(page + 1)}
-                    className="p-1.5 border border-[#e5e7eb] rounded-md hover:bg-[#f9fafb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

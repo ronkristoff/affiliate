@@ -539,28 +539,28 @@ export function PayoutHistoryClient() {
 
             {/* Pagination Controls */}
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Showing {batches.length} batch{batches.length !== 1 ? "es" : ""}
+              <p className="text-[12px] text-[#9ca3af]">
+                {batches.length} batch{batches.length !== 1 ? "es" : ""} shown
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
                   onClick={handlePrevPage}
                   disabled={cursor === null}
+                  className="inline-flex items-center justify-center h-8 px-3 rounded-md border border-[#e5e7eb] text-[12px] font-medium text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
                 >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
                   Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <button
+                  type="button"
                   onClick={handleNextPage}
                   disabled={isDone}
+                  className="inline-flex items-center justify-center h-8 px-3 rounded-md border border-[#e5e7eb] text-[12px] font-medium text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#374151] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
                 >
                   Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                </button>
               </div>
             </div>
           </CardContent>

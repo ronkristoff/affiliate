@@ -18,6 +18,12 @@ import { TextFilter } from "@/components/ui/table-filters/TextFilter";
 import { SelectFilter } from "@/components/ui/table-filters/SelectFilter";
 import { NumberRangeFilter } from "@/components/ui/table-filters/NumberRangeFilter";
 import { DateRangeFilter } from "@/components/ui/table-filters/DateRangeFilter";
+import {
+  DataTablePagination,
+  type PaginationState,
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE_OPTIONS,
+} from "@/components/ui/DataTablePagination";
 
 // Re-export filter types for consumer convenience
 export type { ColumnFilterType, ColumnFilter, FilterOption } from "@/components/ui/table-filters/types";
@@ -297,6 +303,19 @@ interface DataTableProps<T> {
   activeFilters?: ColumnFilter[];
   /** Callback when a column filter changes. DataTable merges with existing filters and emits the full array. */
   onFilterChange?: (filters: ColumnFilter[]) => void;
+  // ── Pagination props ────────────────────────────────────────────────
+  /** Current pagination state (page number and page size) */
+  pagination?: PaginationState;
+  /** Total items count for pagination display */
+  total?: number;
+  /** Callback when pagination changes */
+  onPaginationChange?: (pagination: PaginationState) => void;
+  /** Available page size options */
+  pageSizeOptions?: number[];
+  /** Hide the built-in pagination (use external pagination instead) */
+  hidePagination?: boolean;
+  /** Custom label for items per page */
+  itemsPerPageLabel?: string;
 }
 
 export function DataTable<T>({
@@ -317,6 +336,12 @@ export function DataTable<T>({
   rowClassName,
   activeFilters = [],
   onFilterChange,
+  pagination,
+  total,
+  onPaginationChange,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  hidePagination = false,
+  itemsPerPageLabel,
 }: DataTableProps<T>) {
   // Handle select all
   const allSelected =
@@ -635,6 +660,18 @@ export function DataTable<T>({
             })}
           </tbody>
         </table>
+        
+        {/* Pagination footer */}
+        {pagination && total !== undefined && onPaginationChange && !hidePagination && (
+          <DataTablePagination
+            pagination={pagination}
+            total={total}
+            pageSizeOptions={pageSizeOptions}
+            onPaginationChange={onPaginationChange}
+            isLoading={isLoading}
+            itemsPerPageLabel={itemsPerPageLabel}
+          />
+        )}
       </div>
     </div>
   );

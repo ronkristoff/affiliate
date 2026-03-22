@@ -1114,6 +1114,122 @@ export const listCampaignsPaginated = query({
   },
 });
 
+// ── Page-based listing query for /campaigns/all ───────────────────────────
+
+/**
+ * List campaigns with page-based pagination and multi-dimension filters.
+ * Returns total count so frontend can show proper pagination controls.
+ * Server-side filtering for all filter dimensions.
+ */
+export const listCampaignsPageBased = query({
+  args: {
+    page: v.number(),
+    pageSize: v.number(),
+    statusFilter: v.optional(v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("archived")
+    )),
+    commissionTypeFilter: v.optional(v.union(
+      v.literal("percentage"),
+      v.literal("flatFee")
+    )),
+    recurringFilter: v.optional(v.boolean()),
+    createdAfter: v.optional(v.number()),
+    createdBefore: v.optional(v.number()),
+    includeArchived: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    page: v.array(campaignReturnShape),
+    total: v.number(),
+    pageNum: v.number(),
+    pageSize: v.number(),
+    totalPages: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+    const includeArchived = args.includeArchived ?? false;
+
+    // Choose index based on status filter
+    let queryBuilder;
+    if (args.statusFilter) {
+      queryBuilder = ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", tenantId).eq("status", args.statusFilter!)
+        );
+    } else {
+      queryBuilder = ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant", (q) =>
+          q.eq("tenantId", tenantId)
+        );
+    }
+
+    // Fetch all filtered campaigns (we need all to know total count)
+    // Then sort and slice for pagination
+    const allCampaigns = await queryBuilder
+      .order("desc")
+      .collect();
+
+    // Apply filters
+    let filtered = allCampaigns;
+    
+    // Post-filter: archived (when no status filter set and not including archived)
+    if (!args.statusFilter && !includeArchived) {
+      filtered = filtered.filter((c) => c.status !== "archived");
+    }
+
+    // Post-filter: commission type
+    if (args.commissionTypeFilter) {
+      filtered = filtered.filter(
+        (c) => c.commissionType === args.commissionTypeFilter
+      );
+    }
+
+    // Post-filter: recurring
+    if (args.recurringFilter !== undefined) {
+      filtered = filtered.filter(
+        (c) => c.recurringCommission === args.recurringFilter
+      );
+    }
+
+    // Post-filter: date range
+    if (args.createdAfter !== undefined) {
+      filtered = filtered.filter((c) => c._creationTime >= args.createdAfter!);
+    }
+    if (args.createdBefore !== undefined) {
+      filtered = filtered.filter((c) => c._creationTime <= args.createdBefore!);
+    }
+
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / args.pageSize) || 1;
+    
+    // Clamp page to valid range
+    const pageNum = Math.max(1, Math.min(args.page, totalPages));
+    
+    // Calculate start and end indices
+    const startIndex = (pageNum - 1) * args.pageSize;
+    const endIndex = startIndex + args.pageSize;
+    
+    // Slice the filtered results
+    const pageResults = filtered.slice(startIndex, endIndex);
+
+    return {
+      page: pageResults.map(mapCampaignToReturnShape),
+      total,
+      pageNum,
+      pageSize: args.pageSize,
+      totalPages,
+    };
+  },
+});
+
 // ── Overview queries ──────────────────────────────────────────────────────
 
 /**

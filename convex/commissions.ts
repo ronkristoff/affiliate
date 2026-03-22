@@ -1377,6 +1377,257 @@ export const listCommissionsEnriched = query({
 });
 
 /**
+ * Column filter types for server-side filtering
+ */
+interface ParsedColumnFilter {
+  columnKey: string;
+  type: "text" | "select" | "number-range" | "date-range";
+  value?: string;
+  values?: string[];
+  min?: number;
+  max?: number;
+  after?: number;
+  before?: number;
+}
+
+/**
+ * List commissions with server-side pagination, sorting, and filtering.
+ * Used by the Owner Commissions page for better performance with large datasets.
+ */
+export const listCommissionsPaginated = query({
+  args: {
+    page: v.number(),
+    numItems: v.number(),
+    // Optional filters
+    statusFilter: v.optional(v.array(v.string())),
+    campaignIdFilter: v.optional(v.string()),
+    searchQuery: v.optional(v.string()),
+    amountMin: v.optional(v.number()),
+    amountMax: v.optional(v.number()),
+    dateAfter: v.optional(v.number()),
+    dateBefore: v.optional(v.number()),
+    affiliateSearch: v.optional(v.string()),
+    customerSearch: v.optional(v.string()),
+    planEventSearch: v.optional(v.string()),
+    // Optional sorting
+    sortBy: v.optional(v.union(
+      v.literal("_creationTime"),
+      v.literal("amount"),
+      v.literal("affiliateName"),
+      v.literal("status")
+    )),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("commissions"),
+        _creationTime: v.number(),
+        tenantId: v.id("tenants"),
+        affiliateId: v.id("affiliates"),
+        campaignId: v.id("campaigns"),
+        conversionId: v.optional(v.id("conversions")),
+        amount: v.number(),
+        status: v.string(),
+        eventMetadata: v.optional(v.object({
+          source: v.string(),
+          transactionId: v.optional(v.string()),
+          timestamp: v.number(),
+          subscriptionId: v.optional(v.string()),
+        })),
+        reversalReason: v.optional(v.string()),
+        transactionId: v.optional(v.string()),
+        batchId: v.optional(v.id("payoutBatches")),
+        isSelfReferral: v.optional(v.boolean()),
+        fraudIndicators: v.optional(v.array(v.string())),
+        affiliateName: v.string(),
+        affiliateEmail: v.string(),
+        campaignName: v.string(),
+        customerEmail: v.optional(v.string()),
+        planEvent: v.string(),
+      })
+    ),
+    total: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const numItems = Math.min(args.numItems, 100);
+
+    // Fetch all commissions for the tenant (capped for safety)
+    const MAX_COMMISSIONS = 5000;
+    let commissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .order("desc")
+      .take(MAX_COMMISSIONS);
+
+    // Apply filters in memory
+    if (args.statusFilter && args.statusFilter.length > 0) {
+      const statusSet = new Set(args.statusFilter.map((s) => s.toLowerCase()));
+      commissions = commissions.filter((c) => statusSet.has(c.status.toLowerCase()));
+    }
+
+    if (args.campaignIdFilter) {
+      commissions = commissions.filter((c) => c.campaignId === args.campaignIdFilter);
+    }
+
+    // Batch-fetch unique affiliates, campaigns, conversions
+    const affiliateIds = [...new Set(commissions.map((c) => c.affiliateId))];
+    const campaignIds = [...new Set(commissions.map((c) => c.campaignId))];
+    const conversionIds = [...new Set(
+      commissions.map((c) => c.conversionId).filter((id): id is Id<"conversions"> => id !== undefined)
+    )];
+
+    const [affiliates, campaigns, conversions] = await Promise.all([
+      Promise.all(affiliateIds.map((id) => ctx.db.get(id))),
+      Promise.all(campaignIds.map((id) => ctx.db.get(id))),
+      Promise.all(conversionIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const affiliateMap: Record<string, (typeof affiliates)[number]> = {};
+    for (const a of affiliates) {
+      if (a) affiliateMap[a._id] = a;
+    }
+    const campaignMap: Record<string, (typeof campaigns)[number]> = {};
+    for (const c of campaigns) {
+      if (c) campaignMap[c._id] = c;
+    }
+    const conversionMap: Record<string, (typeof conversions)[number]> = {};
+    for (const c of conversions) {
+      if (c) conversionMap[c._id] = c;
+    }
+
+    // Enrich results
+    let enriched = commissions.map((commission) => {
+      const affiliate = affiliateMap[commission.affiliateId];
+      const campaign = campaignMap[commission.campaignId];
+      const conversion = commission.conversionId
+        ? conversionMap[commission.conversionId]
+        : undefined;
+
+      const campaignName = campaign?.name ?? "Unknown";
+      const source = commission.eventMetadata?.source;
+      const eventType = formatEventType(source);
+      const planEvent = `${campaignName} · ${eventType}`;
+
+      let customerEmail: string | undefined;
+      if (conversion) {
+        customerEmail = (conversion as any).customerEmail;
+      }
+
+      return {
+        _id: commission._id,
+        _creationTime: commission._creationTime,
+        tenantId: commission.tenantId,
+        affiliateId: commission.affiliateId,
+        campaignId: commission.campaignId,
+        conversionId: commission.conversionId,
+        amount: commission.amount,
+        status: commission.status,
+        eventMetadata: commission.eventMetadata,
+        reversalReason: commission.reversalReason,
+        transactionId: (commission as any).transactionId,
+        batchId: (commission as any).batchId,
+        isSelfReferral: commission.isSelfReferral,
+        fraudIndicators: commission.fraudIndicators,
+        affiliateName: affiliate?.name ?? "Unknown",
+        affiliateEmail: affiliate?.email ?? "Unknown",
+        campaignName,
+        customerEmail,
+        planEvent,
+      };
+    });
+
+    // Apply search filter
+    if (args.searchQuery) {
+      const search = args.searchQuery.toLowerCase();
+      enriched = enriched.filter((c) => {
+        return (
+          c.affiliateName.toLowerCase().includes(search) ||
+          c.affiliateEmail.toLowerCase().includes(search) ||
+          (c.customerEmail ?? "").toLowerCase().includes(search) ||
+          (c.transactionId ?? "").toLowerCase().includes(search)
+        );
+      });
+    }
+
+    // Apply amount range filter
+    if (args.amountMin != null) {
+      enriched = enriched.filter((c) => c.amount >= args.amountMin!);
+    }
+    if (args.amountMax != null) {
+      enriched = enriched.filter((c) => c.amount <= args.amountMax!);
+    }
+
+    // Apply date range filter
+    if (args.dateAfter != null) {
+      enriched = enriched.filter((c) => c._creationTime >= args.dateAfter!);
+    }
+    if (args.dateBefore != null) {
+      enriched = enriched.filter((c) => c._creationTime <= args.dateBefore!);
+    }
+
+    // Apply column-level text filters
+    if (args.affiliateSearch) {
+      const q = args.affiliateSearch.toLowerCase();
+      enriched = enriched.filter((c) =>
+        c.affiliateName.toLowerCase().includes(q) ||
+        c.affiliateEmail.toLowerCase().includes(q)
+      );
+    }
+    if (args.customerSearch) {
+      const q = args.customerSearch.toLowerCase();
+      enriched = enriched.filter((c) =>
+        (c.customerEmail ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (args.planEventSearch) {
+      const q = args.planEventSearch.toLowerCase();
+      enriched = enriched.filter((c) =>
+        c.planEvent.toLowerCase().includes(q)
+      );
+    }
+
+    const total = enriched.length;
+
+    // Apply sorting before pagination
+    if (args.sortBy && args.sortOrder) {
+      const field = args.sortBy as keyof typeof enriched[number];
+      const order = args.sortOrder === "asc" ? 1 : -1;
+      
+      enriched = [...enriched].sort((a, b) => {
+        const aVal = a[field];
+        const bVal = b[field];
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          return (aVal - bVal) * order;
+        }
+        return String(aVal).localeCompare(String(bVal)) * order;
+      });
+    }
+
+    // Page-based pagination
+    const startIndex = (args.page - 1) * numItems;
+    const endIndex = startIndex + numItems;
+    const pageItems = enriched.slice(startIndex, endIndex);
+    const hasMore = endIndex < total;
+
+    return {
+      page: pageItems,
+      total,
+      hasMore,
+    };
+  },
+});
+
+/**
  * Get full commission detail for the drawer — works for ALL statuses.
  * Unlike getCommissionForReview which only returns pending commissions.
  */

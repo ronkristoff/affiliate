@@ -6,6 +6,12 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import {
+  useQueryState,
+  parseAsStringLiteral,
+  parseAsString,
+  parseAsInteger,
+} from "nuqs";
+import {
   DataTable,
   TableColumn,
   TableAction,
@@ -14,6 +20,7 @@ import {
   DateCell,
   StatusBadgeCell,
   type FilterOption,
+  type ColumnFilter,
 } from "@/components/ui/DataTable";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -47,11 +54,12 @@ import {
   ShieldAlert,
   Loader2,
   Eye,
-  ChevronDown,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
+import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -150,7 +158,6 @@ function formatDetailDate(timestamp: number): string {
 // Constants
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 20;
 type StatusFilter = "all" | "pending" | "approved" | "confirmed" | "reversed" | "declined" | "paid";
 
 // ---------------------------------------------------------------------------
@@ -168,23 +175,59 @@ function CommissionsContent() {
     currentUser ? {} : "skip"
   );
 
-  const allCommissions = useQuery(
-    api.commissions.listCommissionsEnriched,
-    currentUser ? {} : "skip"
+  const allCampaigns = useQuery(api.campaigns.listCampaigns, {});
+
+  // ── URL-persisted state via nuqs ──────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useQueryState(
+    "search",
+    parseAsString.withDefault("")
   );
 
-  const allCampaigns = useQuery(api.campaigns.listCampaigns, {});
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsStringLiteral(["all", "pending", "approved", "confirmed", "reversed", "declined", "paid"] as const).withDefault("all")
+  );
+
+  const [campaignFilter, setCampaignFilter] = useQueryState(
+    "campaign",
+    parseAsString.withDefault("all")
+  );
+
+  const [page, setPage] = useQueryState(
+    "page",
+    parseAsInteger.withDefault(1)
+  );
+
+  const [pageSize, setPageSize] = useQueryState(
+    "pageSize",
+    parseAsInteger.withDefault(DEFAULT_PAGE_SIZE)
+  );
+
+  const [sortBy, setSortBy] = useQueryState(
+    "sortBy",
+    parseAsString.withDefault("_creationTime")
+  );
+
+  const [sortOrder, setSortOrder] = useQueryState(
+    "order",
+    parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc")
+  );
+
+  // ── Column-level filter params (URL-persisted) ──────────────────────────
+  const [amountMin, setAmountMin] = useQueryState("amount_min", parseAsString.withDefault(""));
+  const [amountMax, setAmountMax] = useQueryState("amount_max", parseAsString.withDefault(""));
+  const [dateAfter, setDateAfter] = useQueryState("date_after", parseAsString.withDefault(""));
+  const [dateBefore, setDateBefore] = useQueryState("date_before", parseAsString.withDefault(""));
+  const [affiliateSearch, setAffiliateSearch] = useQueryState("affiliate", parseAsString.withDefault(""));
+  const [customerSearch, setCustomerSearch] = useQueryState("customer", parseAsString.withDefault(""));
+  const [planEventSearch, setPlanEventSearch] = useQueryState("planEvent", parseAsString.withDefault(""));
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const approveCommission = useMutation(api.commissions.approveCommission);
   const declineCommission = useMutation(api.commissions.declineCommission);
-  const exportCSV = useAction(api.commissions.exportCommissionsCSV);
+  const exportCsv = useAction(api.commissions.exportCommissionsCSV);
 
   // ── Local UI state ──────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [campaignFilter, setCampaignFilter] = useState<string>("all");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState<EnrichedCommission | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -198,96 +241,182 @@ function CommissionsContent() {
   const [isApprovingAll, setIsApprovingAll] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
+  // ── Server-side Paginated Query ─────────────────────────────────────────
+  // Convert status filter to array for the query
+  const statusFilterArray = statusFilter !== "all" ? [statusFilter] : undefined;
+
+  // Parse nuqs string params into typed values for Convex
+  const parsedAmountMin = amountMin ? parseFloat(amountMin) : undefined;
+  const parsedAmountMax = amountMax ? parseFloat(amountMax) : undefined;
+  const parsedDateAfter = dateAfter ? dateToStartTimestamp(dateAfter) : undefined;
+  const parsedDateBefore = dateBefore ? dateToTimestamp(dateBefore) : undefined;
+
+  const paginatedResult = useQuery(
+    api.commissions.listCommissionsPaginated,
+    currentUser ? {
+      page,
+      numItems: pageSize,
+      statusFilter: statusFilterArray,
+      campaignIdFilter: campaignFilter !== "all" ? campaignFilter : undefined,
+      searchQuery: searchQuery.trim() || undefined,
+      amountMin: parsedAmountMin,
+      amountMax: parsedAmountMax,
+      dateAfter: parsedDateAfter,
+      dateBefore: parsedDateBefore,
+      affiliateSearch: affiliateSearch.trim() || undefined,
+      customerSearch: customerSearch.trim() || undefined,
+      planEventSearch: planEventSearch.trim() || undefined,
+      sortBy: sortBy as "_creationTime" | "amount" | "affiliateName" | "status",
+      sortOrder,
+    } : "skip"
+  );
+
+  const commissions = paginatedResult?.page ?? [];
+  const totalCount = paginatedResult?.total ?? 0;
+  const isLoading = paginatedResult === undefined;
+
+  // Stable maxPage — during loading, preserve the user's requested page so
+  // pagination buttons stay enabled while data refetches.
+  const rawMaxPage = Math.max(1, Math.ceil(totalCount / pageSize));
+  const maxPage = isLoading ? Math.max(page, rawMaxPage) : rawMaxPage;
+
   // ── Campaign filter options ─────────────────────────────────────────────
   const campaignOptions: FilterOption[] = useMemo(() => {
     if (!allCampaigns) return [];
     return allCampaigns.map((c) => ({ value: c._id, label: c.name }));
   }, [allCampaigns]);
 
-  // ── Client-side filtering ───────────────────────────────────────────────
-  const filteredCommissions = useMemo(() => {
-    if (!allCommissions) return [];
+  // ── Page reset on filter / sort change ──────────────────────────────────
+  // nuqs setters trigger re-renders; page resets inline via helpers below.
 
-    let data = allCommissions;
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
+  };
 
-    // Status filter
+  // ── Active filters for FilterChips ───────────────────────────────────────
+  const activeFilters = useMemo<ColumnFilter[]>(() => {
+    const filters: ColumnFilter[] = [];
     if (statusFilter !== "all") {
-      data = data.filter((c) => c.status === statusFilter);
+      filters.push({ columnKey: "status", type: "select", values: [statusFilter] });
     }
-
-    // Campaign filter
     if (campaignFilter !== "all") {
-      data = data.filter((c) => c.campaignId === campaignFilter);
+      filters.push({ columnKey: "campaign", type: "select", values: [campaignFilter] });
     }
-
-    // Search filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      data = data.filter((c) => {
-        return (
-          c.affiliateName.toLowerCase().includes(q) ||
-          c.affiliateEmail.toLowerCase().includes(q) ||
-          (c.customerEmail ?? "").toLowerCase().includes(q) ||
-          (c.eventMetadata?.transactionId ?? "").toLowerCase().includes(q)
-        );
+      filters.push({ columnKey: "search", type: "text", value: searchQuery.trim() });
+    }
+    if (parsedAmountMin != null || parsedAmountMax != null) {
+      filters.push({
+        columnKey: "amount",
+        type: "number-range",
+        min: parsedAmountMin ?? null,
+        max: parsedAmountMax ?? null,
       });
     }
-
-    return data;
-  }, [allCommissions, statusFilter, campaignFilter, searchQuery]);
-
-  // ── Visible slice (load more) ──────────────────────────────────────────
-  const visibleCommissions = useMemo(
-    () => filteredCommissions.slice(0, visibleCount),
-    [filteredCommissions, visibleCount]
-  );
-
-  const remainingCount = filteredCommissions.length - visibleCount;
-
-  // ── Reset visible count on filter change ───────────────────────────────
-  const handleStatusFilterChange = (s: StatusFilter) => {
-    setStatusFilter(s);
-    setVisibleCount(PAGE_SIZE);
-  };
-
-  const handleCampaignFilterChange = (c: string) => {
-    setCampaignFilter(c);
-    setVisibleCount(PAGE_SIZE);
-  };
-
-  const handleSearchChange = (q: string) => {
-    setSearchQuery(q);
-    setVisibleCount(PAGE_SIZE);
-  };
-
-  // ── Active filter chips for FilterChips component ───────────────────────
-  const activeFilters = useMemo(() => {
-    const filters: { columnKey: string; values: string[] }[] = [];
-    if (statusFilter !== "all") {
-      filters.push({ columnKey: "status", values: [statusFilter] });
+    if (parsedDateAfter != null || parsedDateBefore != null) {
+      filters.push({
+        columnKey: "date",
+        type: "date-range",
+        after: parsedDateAfter ?? null,
+        before: parsedDateBefore ?? null,
+      });
     }
-    if (campaignFilter !== "all") {
-      const campaignLabel = campaignOptions.find((o) => o.value === campaignFilter)?.label ?? campaignFilter;
-      filters.push({ columnKey: "campaign", values: [campaignLabel] });
+    if (affiliateSearch.trim()) {
+      filters.push({ columnKey: "affiliate", type: "text", value: affiliateSearch.trim() });
     }
-    if (searchQuery.trim()) {
-      filters.push({ columnKey: "search", values: [searchQuery.trim()] });
+    if (customerSearch.trim()) {
+      filters.push({ columnKey: "customer", type: "text", value: customerSearch.trim() });
+    }
+    if (planEventSearch.trim()) {
+      filters.push({ columnKey: "planEvent", type: "text", value: planEventSearch.trim() });
     }
     return filters;
-  }, [statusFilter, campaignFilter, searchQuery, campaignOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, campaignFilter, searchQuery, amountMin, amountMax, dateAfter, dateBefore, affiliateSearch, customerSearch, planEventSearch]);
 
+  // ── Handle filter removal ────────────────────────────────────────────────
   const handleRemoveFilter = (key: string) => {
     switch (key) {
       case "status": setStatusFilter("all"); break;
       case "campaign": setCampaignFilter("all"); break;
       case "search": setSearchQuery(""); break;
+      case "amount":
+        setAmountMin("");
+        setAmountMax("");
+        break;
+      case "date":
+        setDateAfter("");
+        setDateBefore("");
+        break;
+      case "affiliate": setAffiliateSearch(""); break;
+      case "customer": setCustomerSearch(""); break;
+      case "planEvent": setPlanEventSearch(""); break;
     }
+    setPage(1);
   };
 
   const handleClearAllFilters = () => {
     setStatusFilter("all");
     setCampaignFilter("all");
     setSearchQuery("");
+    setAmountMin("");
+    setAmountMax("");
+    setDateAfter("");
+    setDateBefore("");
+    setAffiliateSearch("");
+    setCustomerSearch("");
+    setPlanEventSearch("");
+    setPage(1);
+  };
+
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    setPage(1);
+  };
+
+  // ── Column-level filter change handler (maps DataTable ColumnFilter → nuqs) ──
+  const handleColumnFilterChange = (filters: ColumnFilter[]) => {
+    const activeKeys = new Set(filters.map((f) => f.columnKey));
+
+    for (const filter of filters) {
+      switch (filter.columnKey) {
+        case "status":
+          setStatusFilter(filter.values?.length ? (filter.values[0] as StatusFilter) : "all");
+          break;
+        case "campaign":
+          setCampaignFilter(filter.values?.length ? filter.values[0] : "all");
+          break;
+        case "amount":
+          setAmountMin(filter.min != null ? String(filter.min) : "");
+          setAmountMax(filter.max != null ? String(filter.max) : "");
+          break;
+        case "date":
+          setDateAfter(filter.after != null ? timestampToDateInput(filter.after) : "");
+          setDateBefore(filter.before != null ? timestampToDateInput(filter.before) : "");
+          break;
+        case "affiliate":
+          setAffiliateSearch((filter as any).value ?? "");
+          break;
+        case "customer":
+          setCustomerSearch((filter as any).value ?? "");
+          break;
+        case "planEvent":
+          setPlanEventSearch((filter as any).value ?? "");
+          break;
+      }
+    }
+
+    // Clear any filters that were removed
+    if (!activeKeys.has("status")) setStatusFilter("all");
+    if (!activeKeys.has("campaign")) setCampaignFilter("all");
+    if (!activeKeys.has("amount")) { setAmountMin(""); setAmountMax(""); }
+    if (!activeKeys.has("date")) { setDateAfter(""); setDateBefore(""); }
+    if (!activeKeys.has("affiliate")) setAffiliateSearch("");
+    if (!activeKeys.has("customer")) setCustomerSearch("");
+    if (!activeKeys.has("planEvent")) setPlanEventSearch("");
+
+    setPage(1);
   };
 
   // ── Commission detail drawer ────────────────────────────────────────────
@@ -357,15 +486,17 @@ function CommissionsContent() {
   };
 
   // ── Approve All Pending ─────────────────────────────────────────────────
+  // Note: This is now based on stats instead of fetching all commissions
+  // For bulk approve, we still need to know the pending commissions
   const pendingNonFlagged = useMemo(() => {
-    if (!allCommissions) return [];
-    return allCommissions.filter(
+    if (!commissions || isLoading) return [];
+    return commissions.filter(
       (c) =>
         c.status === "pending" &&
         !c.isSelfReferral &&
         (!c.fraudIndicators || c.fraudIndicators.length === 0)
     );
-  }, [allCommissions]);
+  }, [commissions, isLoading]);
 
   const pendingNonFlaggedValue = useMemo(
     () => pendingNonFlagged.reduce((sum, c) => sum + c.amount, 0),
@@ -409,7 +540,7 @@ function CommissionsContent() {
   const handleExportCSV = async () => {
     setIsExporting(true);
     try {
-      const base64Data = await exportCSV({});
+      const base64Data = await exportCsv({});
       downloadCsv(base64Data, "commissions");
       toast.success("Commissions exported successfully");
     } catch (error) {
@@ -419,16 +550,7 @@ function CommissionsContent() {
     }
   };
 
-  // ── Status filter pills ────────────────────────────────────────────────
-  const statusPills: { value: StatusFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "pending", label: "Pending" },
-    { value: "approved", label: "Approved" },
-    { value: "reversed", label: "Reversed" },
-    { value: "paid", label: "Paid" },
-  ];
-
-  // ── DataTable columns ───────────────────────────────────────────────────
+  // ── CSV Export ──────────────────────────────────────────────────────────
   const columns: TableColumn<EnrichedCommission>[] = useMemo(
     () => [
       {
@@ -436,16 +558,25 @@ function CommissionsContent() {
         header: "Date",
         sortable: true,
         sortField: "_creationTime",
+        filterable: true,
+        filterType: "date-range",
+        filterLabel: "Date",
         cell: (row) => <DateCell value={row._creationTime} format="short" />,
       },
       {
         key: "affiliate",
         header: "Affiliate",
+        filterable: true,
+        filterType: "text",
+        filterLabel: "Affiliate",
         cell: (row) => <AvatarCell name={row.affiliateName} email={row.affiliateEmail} />,
       },
       {
         key: "customer",
         header: "Customer",
+        filterable: true,
+        filterType: "text",
+        filterLabel: "Customer",
         cell: (row) => (
           <span className="text-[12px] text-[#474747]">{row.customerEmail || "—"}</span>
         ),
@@ -453,6 +584,9 @@ function CommissionsContent() {
       {
         key: "planEvent",
         header: "Plan / Event",
+        filterable: true,
+        filterType: "text",
+        filterLabel: "Plan / Event",
         cell: (row) => (
           <span className="text-[12px] text-[#474747]">{row.planEvent}</span>
         ),
@@ -474,6 +608,10 @@ function CommissionsContent() {
         align: "right" as const,
         sortable: true,
         sortField: "amount",
+        filterable: true,
+        filterType: "number-range",
+        filterLabel: "Amount",
+        filterStep: 0.01,
         cell: (row) => (
           <CurrencyCell
             amount={row.amount}
@@ -506,27 +644,6 @@ function CommissionsContent() {
   // ── Is commission flagged? ──────────────────────────────────────────────
   const isFlagged = (c: EnrichedCommission | CommissionDetail | null) =>
     c !== null && (c.isSelfReferral === true || (c.fraudIndicators != null && c.fraudIndicators.length > 0));
-
-  // ── Sort handler ────────────────────────────────────────────────────────
-  const [sortBy, setSortBy] = useState("_creationTime");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-
-  const sortedCommissions = useMemo(() => {
-    const data = [...visibleCommissions];
-    data.sort((a, b) => {
-      const aVal = (a as any)[sortBy];
-      const bVal = (b as any)[sortBy];
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
-      }
-      const aStr = String(aVal ?? "");
-      const bStr = String(bVal ?? "");
-      return sortOrder === "desc"
-        ? bStr.localeCompare(aStr)
-        : aStr.localeCompare(bStr);
-    });
-    return data;
-  }, [visibleCommissions, sortBy, sortOrder]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -610,52 +727,16 @@ function CommissionsContent() {
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Campaign Filter */}
-            <div className="relative">
-              <select
-                value={campaignFilter}
-                onChange={(e) => handleCampaignFilterChange(e.target.value)}
-                className="h-9 pl-3 pr-8 text-[12px] border border-[var(--border)] rounded-lg bg-[var(--bg-surface)] appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
-              >
-                <option value="all">All Campaigns</option>
-                {campaignOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9ca3af] pointer-events-none" />
-            </div>
-
-            {/* Approve All Pending */}
-            {canManage && (stats?.pendingCount ?? 0) > 0 && (
-              <Button
-                size="sm"
-                onClick={() => setShowApproveAllDialog(true)}
-                className="text-[12px]"
-              >
-                Approve All Pending
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Status Filter Pills ──────────────────────────────────────── */}
-        <div className="flex items-center gap-2 mb-4">
-          {statusPills.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => handleStatusFilterChange(pill.value)}
-              className={`px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${
-                statusFilter === pill.value
-                  ? "bg-[var(--brand-primary)] text-white"
-                  : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-page)]"
-              }`}
+          {/* Approve All Pending */}
+          {canManage && (stats?.pendingCount ?? 0) > 0 && (
+            <Button
+              size="sm"
+              onClick={() => setShowApproveAllDialog(true)}
+              className="text-[12px]"
             >
-              {pill.label}
-            </button>
-          ))}
+              Approve All Pending
+            </Button>
+          )}
         </div>
 
         {/* ── Filter Chips ─────────────────────────────────────────────── */}
@@ -666,53 +747,35 @@ function CommissionsContent() {
           onClearAll={handleClearAllFilters}
         />
 
-        {/* ── DataTable ────────────────────────────────────────────────── */}
+        {/* ── DataTable with Server-side Pagination ────────────────────────────────────────────────── */}
         <DataTable<EnrichedCommission>
           columns={columns}
           actions={tableActions}
-          data={sortedCommissions}
+          data={commissions}
           getRowId={(row) => row._id}
-          isLoading={!allCommissions}
+          isLoading={isLoading}
           emptyMessage="No commissions found"
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={(field, order) => {
             setSortBy(field);
             setSortOrder(order);
+            setPage(1);
           }}
+          activeFilters={activeFilters}
+          onFilterChange={handleColumnFilterChange}
           rowClassName={(row) =>
             isFlagged(row) ? "!bg-[#fffbeb]" : ""
           }
+          pagination={{ page, pageSize }}
+          total={totalCount}
+          onPaginationChange={({ page: newPage, pageSize: newPageSize }) => {
+            setPage(newPage);
+            if (newPageSize !== pageSize) {
+              handlePageSizeChange(newPageSize);
+            }
+          }}
         />
-
-        {/* ── Load More / Pagination ───────────────────────────────────── */}
-        {!allCommissions && (
-          <div className="mt-4">
-            <Skeleton className="h-8 w-64" />
-          </div>
-        )}
-        {allCommissions && filteredCommissions.length > PAGE_SIZE && (
-          <div className="mt-4 flex items-center justify-between text-[12px] text-[#6b7280]">
-            <span>
-              Showing {sortedCommissions.length} of {filteredCommissions.length} commissions
-            </span>
-            {remainingCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                className="text-[12px]"
-              >
-                Load {Math.min(PAGE_SIZE, remainingCount)} more ({remainingCount} remaining)
-              </Button>
-            )}
-          </div>
-        )}
-        {allCommissions && filteredCommissions.length <= PAGE_SIZE && filteredCommissions.length > 0 && (
-          <div className="mt-4 text-[12px] text-[#6b7280]">
-            Showing {filteredCommissions.length} commissions
-          </div>
-        )}
       </div>
 
       {/* ── Commission Detail Drawer ──────────────────────────────────── */}
