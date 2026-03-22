@@ -322,7 +322,8 @@ export default defineSchema({
     .index("by_conversion", ["conversionId"])
     .index("by_tenant_and_status", ["tenantId", "status"])
     .index("by_tenant_and_transaction", ["tenantId", "transactionId"])
-    .index("by_batch", ["batchId"]),
+    .index("by_batch", ["batchId"])
+    .index("by_tenant_and_isSelfReferral", ["tenantId", "isSelfReferral"]),
 
   payouts: defineTable({
     tenantId: v.id("tenants"),
@@ -567,5 +568,18 @@ export default defineSchema({
     pendingPayoutCount: v.optional(v.number()),
     // Month tracking
     currentMonthStart: v.number(),
+    // Last month counters (copied from *ThisMonth on month boundary)
+    commissionsConfirmedLastMonth: v.optional(v.number()),
+    commissionsConfirmedValueLastMonth: v.optional(v.number()),
+    totalClicksLastMonth: v.optional(v.number()),
+    totalConversionsLastMonth: v.optional(v.number()),
+    // Rolling 3-month counters
+    commissionsConfirmedLast3Months: v.optional(v.number()),
+    commissionsConfirmedValueLast3Months: v.optional(v.number()),
+    totalClicksLast3Months: v.optional(v.number()),
+    totalConversionsLast3Months: v.optional(v.number()),
+    // Current month click/conversion counters
+    totalClicksThisMonth: v.optional(v.number()),
+    totalConversionsThisMonth: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
 });

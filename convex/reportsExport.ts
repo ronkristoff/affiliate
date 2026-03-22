@@ -156,6 +156,64 @@ export const exportCampaignPerformanceCSV = action({
 });
 
 /**
+ * Export payout report data as CSV.
+ */
+export const exportPayoutReportCSV = action({
+  args: {
+    tenantId: v.id("tenants"),
+    dateRange: dateRangeValidator,
+  },
+  returns: v.string(),
+  handler: async (ctx, args): Promise<string> => {
+    const betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    if (!betterAuthUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    type UserResult = { _id: Id<"users">; email: string; name?: string; role: string; tenantId: Id<"tenants"> } | null;
+    const user: UserResult = await ctx.runQuery(internal.users._getUserByEmailInternal, {
+      email: betterAuthUser.email,
+    });
+
+    if (!user || user.tenantId !== args.tenantId) {
+      throw new Error("Unauthorized: Access denied");
+    }
+
+    if (user.role !== "owner" && user.role !== "manager") {
+      throw new Error("Forbidden: Only owners and managers can export data");
+    }
+
+    const payoutData = await ctx.runQuery(
+      api.reports.payouts.getPayoutExportData,
+      {
+        tenantId: args.tenantId,
+        dateRange: args.dateRange,
+      }
+    );
+
+    const formatDate = (timestamp: number) =>
+      new Date(timestamp).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+
+    const headers = ["Batch ID", "Batch Date", "Status", "Total Amount", "Payout Count", "Created At"];
+    const rows = [headers.join(",")];
+
+    for (const data of payoutData.data) {
+      rows.push([
+        data.batchId,
+        formatDate(data.batchDate),
+        data.status,
+        data.totalAmount.toFixed(2),
+        data.payoutCount,
+        formatDate(data.createdAt),
+      ].join(","));
+    }
+
+    const csv = rows.join("\n");
+    return Buffer.from(csv).toString("base64");
+  },
+});
+
+/**
  * Export program report data as CSV.
  */
 export const exportProgramReportCSV = action({
