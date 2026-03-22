@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "./tenantContext";
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
+import { onCommissionCreated, onCommissionStatusChange, onCommissionAmountChanged } from "./tenantStats";
 
 /**
  * Commission Management Functions
@@ -148,6 +149,9 @@ export const createCommission = mutation({
       eventMetadata: args.eventMetadata,
     });
 
+    // Wire tenantStats counter hook
+    await onCommissionCreated(ctx, tenantId, commissionAmount, commissionStatus, false, false);
+
     return commissionId;
   },
 });
@@ -279,6 +283,9 @@ export const createCommissionFromConversionInternal = internalMutation({
       fraudIndicators: matchedIndicators.length > 0 ? matchedIndicators : undefined,
       eventMetadata: args.eventMetadata,
     });
+
+    // Wire tenantStats counter hook — both hasFraudSignals and isSelfReferral independently flagged
+    await onCommissionCreated(ctx, args.tenantId, commissionAmount, commissionStatus, matchedIndicators.length > 0, isSelfReferral);
 
     // Story 7.8: Log COMMISSION_CREATED audit event
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
@@ -416,7 +423,7 @@ export const listCommissions = query({
       query = query.filter((q) => q.eq(q.field("status"), args.status));
     }
 
-    const commissions = await query.order("desc").collect();
+    const commissions = await query.order("desc").take(500);
     return commissions;
   },
 });
@@ -615,7 +622,7 @@ export const getAffiliateCommissions = query({
       filteredCommissions = filteredCommissions.filter(commission => {
         // Map status filter to actual commission status values
         const statusMap: Record<string, string[]> = {
-          "confirmed": ["confirmed"],
+          "confirmed": ["confirmed", "approved"],
           "pending": ["pending"],
           "reversed": ["reversed"],
           "paid": ["paid"],
@@ -733,9 +740,19 @@ export const adjustCommissionAmountInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Fetch commission to capture old values for tenantStats hook
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission) {
+      throw new Error(`Commission ${args.commissionId} not found`);
+    }
+    const oldAmount = commission.amount;
+
     await ctx.db.patch(args.commissionId, {
       amount: args.newAmount,
     });
+
+    // Wire tenantStats counter hook
+    await onCommissionAmountChanged(ctx, commission.tenantId, oldAmount, args.newAmount, commission.status);
     return null;
   },
 });
@@ -813,12 +830,16 @@ export const reverseCommissionInternal = internalMutation({
     }
     
     const previousStatus = commission.status;
+    const wasFlagged = (commission.fraudIndicators?.length ?? 0) > 0 || commission.isSelfReferral === true;
     
     // Update commission status to "reversed" and set reversalReason
     await ctx.db.patch(args.commissionId, {
       status: "reversed",
       reversalReason: args.reversalReason,
     });
+    
+    // Wire tenantStats counter hook
+    await onCommissionStatusChange(ctx, commission.tenantId, commission.amount, previousStatus, "reversed", wasFlagged, false);
     
     // Story 7.8: Log COMMISSION_REVERSED audit event
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
@@ -898,9 +919,13 @@ export const approveCommission = mutation({
     
     // 5. Update status atomically
     const previousStatus = commission.status;
+    const wasFlagged = (commission.fraudIndicators?.length ?? 0) > 0 || commission.isSelfReferral === true;
     await ctx.db.patch(args.commissionId, {
       status: "approved",
     });
+
+    // Wire tenantStats counter hook — approval clears flagged status
+    await onCommissionStatusChange(ctx, user.tenantId, commission.amount, previousStatus, "approved", wasFlagged, false);
     
     // 6. Log audit trail (Story 7.8 - Task 3)
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
@@ -1060,10 +1085,14 @@ export const declineCommission = mutation({
     
     // 5. Update status and store decline reason (reusing reversalReason field)
     const previousStatus = commission.status;
+    const wasFlagged = (commission.fraudIndicators?.length ?? 0) > 0 || commission.isSelfReferral === true;
     await ctx.db.patch(args.commissionId, {
       status: "declined",
       reversalReason: args.reason, // Store decline reason (internal only)
     });
+
+    // Wire tenantStats counter hook
+    await onCommissionStatusChange(ctx, user.tenantId, commission.amount, previousStatus, "declined", wasFlagged, false);
     
     // 6. Log audit trail with reason (Story 7.8 - Task 3)
     // Note: Decline reason is stored internally but NOT exposed to affiliates (AC2)
@@ -1745,56 +1774,24 @@ export const getCommissionStats = query({
       throw new Error("Unauthorized: Authentication required");
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const endOfMonth = now.getTime();
-
-    const commissions = await ctx.db
-      .query("commissions")
+    // Read from denormalized tenantStats — zero table scans
+    const stats = await ctx.db
+      .query("tenantStats")
       .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
-      .collect();
+      .first();
 
-    let pendingCount = 0;
-    let pendingValue = 0;
-    let confirmedCountThisMonth = 0;
-    let confirmedValueThisMonth = 0;
-    let reversedCountThisMonth = 0;
-    let reversedValueThisMonth = 0;
-    let flaggedCount = 0;
-
-    for (const c of commissions) {
-      // Pending
-      if (c.status === "pending") {
-        pendingCount++;
-        pendingValue += c.amount;
-      }
-
-      // Confirmed this month (approved or confirmed)
-      if ((c.status === "approved" || c.status === "confirmed") && c._creationTime >= startOfMonth && c._creationTime <= endOfMonth) {
-        confirmedCountThisMonth++;
-        confirmedValueThisMonth += c.amount;
-      }
-
-      // Reversed this month (reversed or declined)
-      if ((c.status === "reversed" || c.status === "declined") && c._creationTime >= startOfMonth && c._creationTime <= endOfMonth) {
-        reversedCountThisMonth++;
-        reversedValueThisMonth += c.amount;
-      }
-
-      // Flagged (self-referral or fraud indicators)
-      if (c.isSelfReferral === true || (c.fraudIndicators != null && c.fraudIndicators.length > 0)) {
-        flaggedCount++;
-      }
-    }
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const stale = stats && stats.currentMonthStart < monthStart;
 
     return {
-      pendingCount,
-      pendingValue,
-      confirmedCountThisMonth,
-      confirmedValueThisMonth,
-      reversedCountThisMonth,
-      reversedValueThisMonth,
-      flaggedCount,
+      pendingCount: stats?.commissionsPendingCount ?? 0,
+      pendingValue: stats?.commissionsPendingValue ?? 0,
+      confirmedCountThisMonth: stale ? 0 : (stats?.commissionsConfirmedThisMonth ?? 0),
+      confirmedValueThisMonth: stale ? 0 : (stats?.commissionsConfirmedValueThisMonth ?? 0),
+      reversedCountThisMonth: stale ? 0 : (stats?.commissionsReversedThisMonth ?? 0),
+      reversedValueThisMonth: stale ? 0 : (stats?.commissionsReversedValueThisMonth ?? 0),
+      flaggedCount: stats?.commissionsFlagged ?? 0,
     };
   },
 });

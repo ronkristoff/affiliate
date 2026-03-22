@@ -325,12 +325,12 @@ The query-side (`getStats`) also detects stale monthly counters and returns 0 fo
 | File | Purpose |
 |------|---------|
 | `convex/schema.ts` | `tenantStats` table definition |
-| `convex/tenantStats.ts` | Helper functions, seed, backfill, internal query |
-| `convex/affiliates.ts` | 7 mutations hooked with `updateAffiliateStatus` / `incrementAffiliateCount` |
-| `convex/commissions.ts` | 4 mutations hooked with `onCommissionCreated` / `onCommissionStatusChange` |
-| `convex/dashboard.ts` | `getOwnerDashboardStats` reads from `tenantStats` |
-| `convex/commissions.ts` | `getCommissionStats` reads from `tenantStats` |
-| `convex/affiliates.ts` | `getAffiliateCountByStatus` reads from `tenantStats` |
+| `convex/tenantStats.ts` | Helper functions, seed, backfill, hooks |
+| `convex/affiliates.ts` | 10 mutations hooked with `updateAffiliateCount`; `getAffiliateCountByStatus` reads from `tenantStats` |
+| `convex/commissions.ts` | 4 mutations hooked with `onCommissionCreated` / `onCommissionStatusChange` / `onCommissionAmountChanged`; `getCommissionStats` reads from `tenantStats` |
+| `convex/dashboard.ts` | `getOwnerDashboardStats`, `getPlanUsage` read from `tenantStats`; `getSetupStatus` uses `.first()` |
+| `convex/payouts.ts` | 2 mutations hooked with `incrementTotalPaidOut` |
+| `convex/crons.ts` | Weekly `backfillAllTenants` cron for drift correction |
 
 ---
 

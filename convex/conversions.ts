@@ -943,7 +943,7 @@ export const getConversionStatsByTenant = query({
     let conversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(800);
 
     // Apply date range filtering if provided
     if (args.startDate || args.endDate) {

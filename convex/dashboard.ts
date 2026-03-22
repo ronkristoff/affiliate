@@ -60,37 +60,34 @@ export const getOwnerDashboardStats = query({
     const endDate = args.dateRange?.end ?? now;
     const previousStartDate = startDate - (endDate - startDate);
 
-    // 1. Get active affiliates count - use index and filter in query
-    const affiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant_and_status", (q) => 
-        q.eq("tenantId", args.tenantId).eq("status", "active")
-      )
-      .collect();
-    const activeAffiliatesCount = affiliates.length;
+    // Read from denormalized tenantStats — eliminates 2 table scans (affiliates, payouts)
+    const tenantStatsDoc = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .first();
 
-    // 2. Get all commissions for this tenant once
+    const activeAffiliatesCount = tenantStatsDoc?.affiliatesActive ?? 0;
+    const pendingCommissionsCount = tenantStatsDoc?.commissionsPendingCount ?? 0;
+    const pendingCommissionsValue = tenantStatsDoc?.commissionsPendingValue ?? 0;
+    const totalPaidOut = tenantStatsDoc?.totalPaidOut ?? 0;
+
+    // 2. Get all commissions for this tenant once (capped for scalability)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(1500);
 
-    // Calculate pending commissions
-    const pendingCommissions = allCommissions.filter(c => c.status === "pending");
-    const pendingCommissionsCount = pendingCommissions.length;
-    const pendingCommissionsValue = pendingCommissions.reduce((sum, c) => sum + c.amount, 0);
-
-    // Get ALL conversions upfront (for MRR calculation)
+    // Get ALL conversions upfront (for MRR calculation) — capped
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(800);
 
     // Calculate MRR from confirmed commissions with subscription amounts (FIXED: AC1 requirement)
     // Filter confirmed commissions in date range first
     const confirmedCommissions = allCommissions.filter(c => {
       const createdAt = c._creationTime;
-      return c.status === "confirmed" && createdAt >= startDate && createdAt <= endDate;
+      return (c.status === "confirmed" || c.status === "approved") && createdAt >= startDate && createdAt <= endDate;
     });
 
     // For each confirmed commission, get the subscription/conversion amount for MRR
@@ -99,15 +96,11 @@ export const getOwnerDashboardStats = query({
       if (commission.conversionId) {
         const conversion = allConversions.find(c => c._id === commission.conversionId);
         if (conversion) {
-          // Use conversion amount as MRR contribution
-          // This represents the revenue from affiliate-referred conversions
           mrrInfluenced += conversion.amount;
         } else {
-          // Fallback to commission amount if conversion not found
           mrrInfluenced += commission.amount;
         }
       } else {
-        // No conversion link - use commission amount
         mrrInfluenced += commission.amount;
       }
     }
@@ -115,7 +108,7 @@ export const getOwnerDashboardStats = query({
     // Calculate previous period MRR
     const previousPeriodCommissions = allCommissions.filter(c => {
       const createdAt = c._creationTime;
-      return c.status === "confirmed" && createdAt >= previousStartDate && createdAt < startDate;
+      return (c.status === "confirmed" || c.status === "approved") && createdAt >= previousStartDate && createdAt < startDate;
     });
 
     let previousPeriodMrr = 0;
@@ -137,20 +130,11 @@ export const getOwnerDashboardStats = query({
       ? Math.round(((mrrInfluenced - previousPeriodMrr) / previousPeriodMrr) * 100)
       : 0;
 
-    // 3. Get total paid out from payouts
-    const payouts = await ctx.db
-      .query("payouts")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
-    const totalPaidOut = payouts
-      .filter(p => p.status === "paid")
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    // 4. Get recent clicks in date range - filter at DB level
+    // 4. Get recent clicks in date range — capped
     const clicks = await ctx.db
       .query("clicks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(1000);
     const recentClicks = clicks.filter(c => {
       const createdAt = c._creationTime;
       return createdAt >= startDate && createdAt <= endDate;
@@ -227,11 +211,12 @@ export const getRecentActivity = query({
     }> = [];
 
     // FIXED: Fetch ALL data upfront to avoid N+1 queries
-    // Fetch all affiliates once
+    // Fetch all affiliates once (capped for scalability)
     const allAffiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .order("desc")
+      .take(50);
 
     // Create affiliate lookup map
     const affiliateMap = new Map<string, typeof allAffiliates[0]>();
@@ -239,17 +224,19 @@ export const getRecentActivity = query({
       affiliateMap.set(affiliate._id, affiliate);
     }
 
-    // Fetch all commissions
+    // Fetch all commissions (capped)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .order("desc")
+      .take(50);
 
-    // Fetch all payouts
+    // Fetch all payouts (capped)
     const allPayouts = await ctx.db
       .query("payouts")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .order("desc")
+      .take(50);
 
     // 1. Commission activities - use pre-fetched data
     for (const commission of allCommissions) {
@@ -389,29 +376,29 @@ export const getTopAffiliates = query({
     const endDate = args.dateRange?.end ?? now;
 
     // FIXED: Fetch ALL data upfront to avoid N+1 queries
-    // Get all affiliates for this tenant
+    // Get all affiliates for this tenant (capped)
     const allAffiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(200);
 
-    // Get all clicks for this tenant (will filter by affiliate in memory)
+    // Get all clicks for this tenant (capped)
     const allClicks = await ctx.db
       .query("clicks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
 
-    // Get all conversions for this tenant
+    // Get all conversions for this tenant (capped)
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
 
-    // Get all commissions for this tenant
+    // Get all commissions for this tenant (capped)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(300);
 
     // Build affiliate ID to stats mapping
     const affiliateStatsMap = new Map<string, {
@@ -447,7 +434,7 @@ export const getTopAffiliates = query({
 
     // Sum revenue per affiliate (only confirmed commissions)
     for (const commission of allCommissions) {
-      if (commission.status === "confirmed" && 
+      if ((commission.status === "confirmed" || commission.status === "approved") && 
           commission._creationTime >= startDate && 
           commission._creationTime <= endDate) {
         const stats = affiliateStatsMap.get(commission.affiliateId);
@@ -522,44 +509,45 @@ export const getRecentCommissions = query({
     const endDate = args.dateRange?.end ?? now;
 
     // FIXED: Fetch all data upfront to avoid N+1
-    // Get all affiliates for lookup
+    // Get all affiliates for lookup (capped)
     const allAffiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(50);
     
     const affiliateMap = new Map<string, typeof allAffiliates[0]>();
     for (const affiliate of allAffiliates) {
       affiliateMap.set(affiliate._id, affiliate);
     }
 
-    // Get all campaigns for lookup
+    // Get all campaigns for lookup (capped)
     const allCampaigns = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(50);
     
     const campaignMap = new Map<string, typeof allCampaigns[0]>();
     for (const campaign of allCampaigns) {
       campaignMap.set(campaign._id, campaign);
     }
 
-    // Get all conversions for plan context lookup
+    // Get all conversions for plan context lookup (capped)
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(50);
     
     const conversionMap = new Map<string, typeof allConversions[0]>();
     for (const conversion of allConversions) {
       conversionMap.set(conversion._id, conversion);
     }
 
-    // Get all commissions for this tenant
+    // Get all commissions for this tenant (capped)
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .order("desc")
+      .take(50);
 
     // Filter by date range and sort
     const filteredCommissions = commissions
@@ -647,18 +635,21 @@ export const getPlanUsage = query({
     const maxAffiliates = tierConfig?.maxAffiliates ?? 100;
     const maxCampaigns = tierConfig?.maxCampaigns ?? 3;
 
-    // Count active affiliates
-    const affiliates = await ctx.db
-      .query("affiliates")
+    // Read affiliate count from denormalized tenantStats
+    const tenantStatsDoc = await ctx.db
+      .query("tenantStats")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
-    const affiliateCount = affiliates.length;
+      .first();
+    const affiliateCount = (tenantStatsDoc?.affiliatesPending ?? 0)
+      + (tenantStatsDoc?.affiliatesActive ?? 0)
+      + (tenantStatsDoc?.affiliatesSuspended ?? 0)
+      + (tenantStatsDoc?.affiliatesRejected ?? 0);
 
-    // Count campaigns
+    // Count campaigns (capped)
     const campaigns = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
     const campaignCount = campaigns.length;
 
     // Calculate usage percentages
@@ -720,21 +711,21 @@ export const getSetupStatus = query({
     // Check SaligPay connection
     const saligPayConnected = !!tenant.saligPayCredentials?.connectedAt;
 
-    // Check for campaigns
-    const campaigns = await ctx.db
+    // Check for campaigns — existence check only, use .first()
+    const campaign = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
-    const firstCampaignCreated = campaigns.length > 0;
+      .first();
+    const firstCampaignCreated = !!campaign;
 
-    // Check for approved affiliates
-    const affiliates = await ctx.db
+    // Check for approved affiliates — use tenantStats or .first()
+    const activeAffiliate = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant_and_status", (q) => 
         q.eq("tenantId", args.tenantId).eq("status", "active")
       )
-      .collect();
-    const firstAffiliateApproved = affiliates.length > 0;
+      .first();
+    const firstAffiliateApproved = !!activeAffiliate;
 
     return {
       trackingSnippetInstalled,

@@ -562,6 +562,9 @@ export default defineSchema({
     commissionsFlagged: v.number(),
     // Payout counter
     totalPaidOut: v.number(),
+    // Pending payout totals (confirmed commissions awaiting payment — non-monthly)
+    pendingPayoutTotal: v.optional(v.number()),
+    pendingPayoutCount: v.optional(v.number()),
     // Month tracking
     currentMonthStart: v.number(),
   }).index("by_tenant", ["tenantId"]),

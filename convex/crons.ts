@@ -28,4 +28,16 @@ crons.interval(
 //   {}
 // );
 
+// Weekly backfill of tenantStats counters — catches any drift from edge cases
+crons.weekly(
+  "weekly-stats-backfill",
+  {
+    dayOfWeek: "sunday",
+    hourUTC: 2,
+    minuteUTC: 0,
+  },
+  internal.tenantStats.backfillAllTenants,
+  {}
+);
+
 export default crons;

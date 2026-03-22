@@ -707,19 +707,19 @@ export const getCampaignCardStats = query({
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(500);
 
     // Fetch all commissions for tenant
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(300);
 
     // Fetch all referral links for affiliate counting
     const allReferralLinks = await ctx.db
       .query("referralLinks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(1000);
 
     // Aggregate conversions per campaign
     const conversionsByCampaign = new Map<string, number>();
@@ -875,19 +875,19 @@ export const getAffiliatesByCampaign = query({
         ctx.db
           .query("clicks")
           .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-          .collect(),
+          .take(500),
         // Conversions — fetch by tenant, filter to this campaign in memory
         ctx.db
           .query("conversions")
           .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-          .collect(),
+          .take(500),
         // Commissions — filter directly by campaign using index
         ctx.db
           .query("commissions")
           .withIndex("by_campaign", (q) =>
             q.eq("campaignId", args.campaignId)
           )
-          .collect(),
+          .take(300),
         // Fetch all affiliate docs in one batch
         Promise.all(
           Array.from(affiliateIds).map((id) =>

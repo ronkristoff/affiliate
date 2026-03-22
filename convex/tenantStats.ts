@@ -41,6 +41,8 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       commissionsReversedValueThisMonth: 0,
       commissionsFlagged: 0,
       totalPaidOut: 0,
+      pendingPayoutTotal: 0,
+      pendingPayoutCount: 0,
       currentMonthStart: monthStart,
     });
     return (await ctx.db.get(id))!;
@@ -54,6 +56,8 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       commissionsReversedValueThisMonth: 0,
       currentMonthStart: monthStart,
     });
+    // Re-fetch after reset to avoid returning stale in-memory values
+    return (await ctx.db.get(stats._id))!;
   }
 
   return stats;
@@ -82,6 +86,8 @@ export const getStats = query({
     commissionsReversedValueThisMonth: v.number(),
     commissionsFlagged: v.number(),
     totalPaidOut: v.number(),
+    pendingPayoutTotal: v.number(),
+    pendingPayoutCount: v.number(),
   }),
   handler: async (ctx, args) => {
     const stats = await ctx.db
@@ -105,6 +111,8 @@ export const getStats = query({
       commissionsReversedValueThisMonth: stale ? 0 : (stats?.commissionsReversedValueThisMonth ?? 0),
       commissionsFlagged: stats?.commissionsFlagged ?? 0,
       totalPaidOut: stats?.totalPaidOut ?? 0,
+      pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
+      pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
     };
   },
 });
@@ -134,6 +142,8 @@ export const seedStats = internalMutation({
       commissionsReversedValueThisMonth: 0,
       commissionsFlagged: 0,
       totalPaidOut: 0,
+      pendingPayoutTotal: 0,
+      pendingPayoutCount: 0,
       currentMonthStart: getMonthStart(),
     });
     return null;
@@ -197,12 +207,27 @@ export const backfillStats = internalMutation({
       if (c.fraudIndicators && c.fraudIndicators.length > 0) {
         commissionsFlagged++;
       }
+      if (c.isSelfReferral === true) {
+        commissionsFlagged++;
+      }
     }
 
     let totalPaidOut = 0;
+    let pendingPayoutTotal = 0;
+    let pendingPayoutCount = 0;
     for (const p of payouts) {
       if (p.status === "paid") {
         totalPaidOut += p.amount;
+      }
+    }
+
+    // Count confirmed commissions (pending payouts) — not month-bound
+    for (const c of commissions) {
+      if (c.status === "confirmed" || c.status === "approved") {
+        if (!c.batchId) {
+          pendingPayoutTotal += c.amount;
+          pendingPayoutCount++;
+        }
       }
     }
 
@@ -225,6 +250,8 @@ export const backfillStats = internalMutation({
       commissionsReversedValueThisMonth,
       commissionsFlagged,
       totalPaidOut,
+      pendingPayoutTotal,
+      pendingPayoutCount,
       currentMonthStart: monthStart,
     };
 
@@ -240,17 +267,29 @@ export const backfillStats = internalMutation({
 
 /**
  * Backfill stats for all tenants. Run once after deploying tenantStats.
+ * Also runs weekly via cron job in crons.ts.
  */
 export const backfillAllTenants = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const tenants = await ctx.db.query("tenants").take(100);
-    for (const tenant of tenants) {
-      await ctx.runMutation(internal.tenantStats.backfillStats, {
-        tenantId: tenant._id,
-      });
-    }
+    let cursor = null;
+    let totalBackfilled = 0;
+    let isDone = false;
+    do {
+      const result = await ctx.db
+        .query("tenants")
+        .paginate({ numItems: 500, cursor, });
+      for (const tenant of result.page) {
+        await ctx.runMutation(internal.tenantStats.backfillStats, {
+          tenantId: tenant._id,
+        });
+        totalBackfilled++;
+      }
+      cursor = result.continueCursor;
+      isDone = result.isDone;
+    } while (!isDone);
+    console.log(`Backfilled ${totalBackfilled} tenants`);
     return null;
   },
 });
@@ -298,7 +337,8 @@ export async function onCommissionCreated(
   tenantId: Id<"tenants">,
   amount: number,
   status: string,
-  hasFraudSignals: boolean,
+  hasFraudSignals: boolean = false,
+  isSelfReferral: boolean = false,
 ) {
   const stats = await getOrCreateStats(ctx, tenantId);
   const patch: Record<string, number> = {};
@@ -309,9 +349,12 @@ export async function onCommissionCreated(
   } else if (status === "approved" || status === "confirmed") {
     patch.commissionsConfirmedThisMonth = stats.commissionsConfirmedThisMonth + 1;
     patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth + amount;
+    // Also track as pending payout (confirmed = awaiting payment)
+    patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + amount;
+    patch.pendingPayoutCount = (stats.pendingPayoutCount ?? 0) + 1;
   }
 
-  if (hasFraudSignals) {
+  if (hasFraudSignals || isSelfReferral) {
     patch.commissionsFlagged = stats.commissionsFlagged + 1;
   }
 
@@ -330,6 +373,8 @@ export async function onCommissionStatusChange(
   amount: number,
   oldStatus: string,
   newStatus: string,
+  wasFlagged: boolean = false,
+  isFlagged: boolean = false,
 ) {
   const stats = await getOrCreateStats(ctx, tenantId);
   const patch: Record<string, number> = {};
@@ -342,6 +387,9 @@ export async function onCommissionStatusChange(
   if (oldStatus === "approved" || oldStatus === "confirmed") {
     patch.commissionsConfirmedThisMonth = stats.commissionsConfirmedThisMonth - 1;
     patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth - amount;
+    // Undo pending payout tracking
+    patch.pendingPayoutTotal = (patch.pendingPayoutTotal ?? stats.pendingPayoutTotal ?? 0) - amount;
+    patch.pendingPayoutCount = (patch.pendingPayoutCount ?? stats.pendingPayoutCount ?? 0) - 1;
   }
   if (oldStatus === "reversed" || oldStatus === "declined") {
     patch.commissionsReversedThisMonth = stats.commissionsReversedThisMonth - 1;
@@ -356,10 +404,24 @@ export async function onCommissionStatusChange(
   if (newStatus === "approved" || newStatus === "confirmed") {
     patch.commissionsConfirmedThisMonth = (patch.commissionsConfirmedThisMonth ?? stats.commissionsConfirmedThisMonth ?? 0) + 1;
     patch.commissionsConfirmedValueThisMonth = (patch.commissionsConfirmedValueThisMonth ?? stats.commissionsConfirmedValueThisMonth ?? 0) + amount;
+    // Track as pending payout
+    patch.pendingPayoutTotal = (patch.pendingPayoutTotal ?? stats.pendingPayoutTotal ?? 0) + amount;
+    patch.pendingPayoutCount = (patch.pendingPayoutCount ?? stats.pendingPayoutCount ?? 0) + 1;
   }
   if (newStatus === "reversed" || newStatus === "declined") {
     patch.commissionsReversedThisMonth = (patch.commissionsReversedThisMonth ?? stats.commissionsReversedThisMonth ?? 0) + 1;
     patch.commissionsReversedValueThisMonth = (patch.commissionsReversedValueThisMonth ?? stats.commissionsReversedValueThisMonth ?? 0) + amount;
+  }
+  // "paid" is a terminal status — no counter bucket for paid commissions
+  // The old status undo (above) handles decrementing the source bucket
+
+  // Handle flagged counter changes
+  if (wasFlagged && !isFlagged) {
+    // Flag cleared (e.g., on approval)
+    patch.commissionsFlagged = stats.commissionsFlagged - 1;
+  } else if (!wasFlagged && isFlagged) {
+    // Flag added
+    patch.commissionsFlagged = stats.commissionsFlagged + 1;
   }
 
   if (Object.keys(patch).length > 0) {
@@ -380,6 +442,38 @@ export async function incrementTotalPaidOut(
   await ctx.db.patch(stats._id, {
     totalPaidOut: stats.totalPaidOut + amount,
   });
+}
+
+/**
+ * Called when a commission amount changes without a status change.
+ * Adjusts the appropriate value counter based on current status.
+ */
+export async function onCommissionAmountChanged(
+  ctx: MutationCtx,
+  tenantId: Id<"tenants">,
+  oldAmount: number,
+  newAmount: number,
+  status: string,
+) {
+  const delta = newAmount - oldAmount;
+  if (delta === 0) return;
+
+  const stats = await getOrCreateStats(ctx, tenantId);
+  const patch: Record<string, number> = {};
+
+  if (status === "pending") {
+    patch.commissionsPendingValue = stats.commissionsPendingValue + delta;
+  } else if (status === "approved" || status === "confirmed") {
+    patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth + delta;
+    // Also adjust pending payout total
+    patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + delta;
+  } else if (status === "reversed" || status === "declined") {
+    patch.commissionsReversedValueThisMonth = stats.commissionsReversedValueThisMonth + delta;
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await ctx.db.patch(stats._id, patch);
+  }
 }
 
 /**
@@ -409,7 +503,21 @@ export const getOrCreateStatsInternal = internalMutation({
         commissionsReversedValueThisMonth: 0,
         commissionsFlagged: 0,
         totalPaidOut: 0,
+        pendingPayoutTotal: 0,
+        pendingPayoutCount: 0,
         currentMonthStart: getMonthStart(),
+      });
+    }
+
+    // Check for month boundary reset
+    const monthStart = getMonthStart();
+    if (stats && stats.currentMonthStart < monthStart) {
+      await ctx.db.patch(stats._id, {
+        commissionsConfirmedThisMonth: 0,
+        commissionsConfirmedValueThisMonth: 0,
+        commissionsReversedThisMonth: 0,
+        commissionsReversedValueThisMonth: 0,
+        currentMonthStart: monthStart,
       });
     }
 

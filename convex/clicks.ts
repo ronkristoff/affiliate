@@ -362,7 +362,7 @@ export const getClickStats = query({
         .withIndex("by_referral_link", (q) =>
           q.eq("referralLinkId", args.referralLinkId!)
         )
-        .collect();
+        .take(1200);
     } else if (args.affiliateId) {
       // Use affiliate index
       clicks = await ctx.db
@@ -370,10 +370,10 @@ export const getClickStats = query({
         .withIndex("by_affiliate", (q) =>
           q.eq("affiliateId", args.affiliateId!)
         )
-        .collect();
+        .take(1200);
     } else {
       // No filter - get all clicks (use sparingly)
-      clicks = await ctx.db.query("clicks").collect();
+      clicks = await ctx.db.query("clicks").take(1200);
     }
 
     // Filter by date range if provided

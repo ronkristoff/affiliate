@@ -5,6 +5,7 @@ import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticated
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api, internal } from "./_generated/api";
+import { updateAffiliateCount } from "./tenantStats";
 
 /**
  * Generate a unique referral code for an affiliate.
@@ -320,7 +321,7 @@ export const listAffiliatesByStatus = query({
     const allClicks = await ctx.db
       .query("clicks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(500);
 
     for (const click of allClicks) {
       if (clickCounts.has(click.affiliateId)) {
@@ -332,7 +333,7 @@ export const listAffiliatesByStatus = query({
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(500);
 
     for (const conversion of allConversions) {
       if (conversionCounts.has(conversion.affiliateId)) {
@@ -344,7 +345,7 @@ export const listAffiliatesByStatus = query({
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(500);
 
     for (const commission of allCommissions) {
       if (commissionTotals.has(commission.affiliateId)) {
@@ -864,7 +865,6 @@ export const getAffiliateCountByStatus = query({
   handler: async (ctx, args) => {
     const tenantId = await getTenantId(ctx);
 
-    // Return default counts if not authenticated (allows UI to render before auth is ready)
     if (!tenantId) {
       return {
         pending: 0,
@@ -875,48 +875,17 @@ export const getAffiliateCountByStatus = query({
       };
     }
 
-    // If specific status requested, just count that one
-    const statusFilter = args.status;
-    if (statusFilter) {
-      const affiliates = await ctx.db
-        .query("affiliates")
-        .withIndex("by_tenant_and_status", (q) =>
-          q.eq("tenantId", tenantId).eq("status", statusFilter)
-        )
-        .collect();
-
-      const count = affiliates.length;
-      return {
-        pending: statusFilter === "pending" ? count : 0,
-        active: statusFilter === "active" ? count : 0,
-        suspended: statusFilter === "suspended" ? count : 0,
-        rejected: statusFilter === "rejected" ? count : 0,
-        total: count,
-      };
-    }
-
-    // Count all statuses
-    const allAffiliates = await ctx.db
-      .query("affiliates")
+    const stats = await ctx.db
+      .query("tenantStats")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .first();
 
-    const counts = {
-      pending: 0,
-      active: 0,
-      suspended: 0,
-      rejected: 0,
-      total: allAffiliates.length,
-    };
+    const pending = stats?.affiliatesPending ?? 0;
+    const active = stats?.affiliatesActive ?? 0;
+    const suspended = stats?.affiliatesSuspended ?? 0;
+    const rejected = stats?.affiliatesRejected ?? 0;
 
-    for (const affiliate of allAffiliates) {
-      if (affiliate.status === "pending") counts.pending++;
-      else if (affiliate.status === "active") counts.active++;
-      else if (affiliate.status === "suspended") counts.suspended++;
-      else if (affiliate.status === "rejected") counts.rejected++;
-    }
-
-    return counts;
+    return { pending, active, suspended, rejected, total: pending + active + suspended + rejected };
   },
 });
 
@@ -958,7 +927,7 @@ export const registerAffiliate = mutation({
       const currentAffiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
+        .take(500);
       
       const affiliateCount = currentAffiliates.length;
       
@@ -992,6 +961,8 @@ export const registerAffiliate = mutation({
       status: "pending",
       passwordHash: args.passwordHash,
     });
+
+    await updateAffiliateCount(ctx, tenantId, undefined, "pending");
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
@@ -1049,7 +1020,7 @@ export const inviteAffiliate = mutation({
       const currentAffiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
+        .take(500);
 
       if (tierConfig.maxAffiliates !== -1 && currentAffiliates.length >= tierConfig.maxAffiliates) {
         throw new Error(
@@ -1077,6 +1048,8 @@ export const inviteAffiliate = mutation({
       status: "active",
       promotionChannel: args.promotionChannel,
     });
+
+    await updateAffiliateCount(ctx, tenantId, undefined, "active");
 
     await ctx.db.insert("auditLogs", {
       tenantId,
@@ -1152,6 +1125,8 @@ export const updateAffiliateStatus = mutation({
 
     const previousStatus = affiliate.status;
     await ctx.db.patch(args.affiliateId, { status: args.status });
+
+    await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
@@ -1417,6 +1392,8 @@ export const setAffiliateStatus = mutation({
     const previousStatus = affiliate.status;
     await ctx.db.patch(args.affiliateId, { status: args.status });
 
+    await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
+
     // Add fraud signal if suspended with reason
     if (args.status === "suspended" && args.reason) {
       const fraudSignals = affiliate.fraudSignals || [];
@@ -1500,6 +1477,8 @@ export const suspendAffiliate = mutation({
 
     // Update status to suspended
     await ctx.db.patch(args.affiliateId, { status: "suspended" });
+
+    await updateAffiliateCount(ctx, tenantId, "active", "suspended");
 
     // Add fraud signal if reason provided
     if (args.reason) {
@@ -1621,6 +1600,8 @@ export const reactivateAffiliate = mutation({
     // Update status to active
     await ctx.db.patch(args.affiliateId, { status: "active" });
 
+    await updateAffiliateCount(ctx, tenantId, "suspended", "active");
+
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
@@ -1686,7 +1667,7 @@ export const invalidateAffiliateSessions = internalMutation({
     const sessions = await ctx.db
       .query("affiliateSessions")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(100);
 
     // Delete all sessions (immediate invalidation)
     for (const session of sessions) {
@@ -1751,6 +1732,8 @@ export const approveAffiliate = mutation({
 
     // Update status to active
     await ctx.db.patch(args.affiliateId, { status: "active" });
+
+    await updateAffiliateCount(ctx, tenantId, "pending", "active");
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
@@ -1859,6 +1842,8 @@ export const rejectAffiliate = mutation({
 
     // Update status to rejected
     await ctx.db.patch(args.affiliateId, { status: "rejected" });
+
+    await updateAffiliateCount(ctx, tenantId, "pending", "rejected");
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
@@ -1970,6 +1955,8 @@ export const bulkApproveAffiliates = mutation({
 
         // Update status to active
         await ctx.db.patch(affiliateId, { status: "active" });
+
+        await updateAffiliateCount(ctx, tenantId, "pending", "active");
 
         // Create audit log entry
         await ctx.db.insert("auditLogs", {
@@ -2093,6 +2080,8 @@ export const bulkRejectAffiliates = mutation({
         // Update status to rejected
         await ctx.db.patch(affiliateId, { status: "rejected" });
 
+        await updateAffiliateCount(ctx, tenantId, "pending", "rejected");
+
         // Create audit log entry
         await ctx.db.insert("auditLogs", {
           tenantId,
@@ -2183,28 +2172,28 @@ export const getAffiliateStats = query({
     const clicks = await ctx.db
       .query("clicks")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(500);
     const totalClicks = clicks.length;
 
     // Get conversions count
     const conversions = await ctx.db
       .query("conversions")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(500);
     const totalConversions = conversions.length;
 
     // Get commissions
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(500);
 
     const totalCommissions = commissions.reduce((sum, c) => sum + c.amount, 0);
     const pendingCommissions = commissions
       .filter(c => c.status === "pending")
       .reduce((sum, c) => sum + c.amount, 0);
     const confirmedCommissions = commissions
-      .filter(c => c.status === "confirmed")
+      .filter(c => c.status === "confirmed" || c.status === "approved")
       .reduce((sum, c) => sum + c.amount, 0);
 
     return {

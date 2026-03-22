@@ -239,6 +239,54 @@ async function handler(ctx) {
 
 This pattern is critical when sharing auth helpers across admin modules.
 
+### ⚠️ Denormalized Counters — Mandatory Mutation Hooks
+
+If your mutation changes a **status field** on `affiliates`, `commissions`, or `payouts`, you **MUST** call the corresponding `tenantStats` hook function in the same transaction. See `docs/scalability-guidelines.md` for the full checklist.
+
+**Quick reference:**
+```typescript
+import { updateAffiliateCount, onCommissionCreated, onCommissionStatusChange, onCommissionAmountChanged, incrementTotalPaidOut } from "./tenantStats";
+
+// Affiliate status change → updateAffiliateCount(ctx, tenantId, oldStatus, newStatus)
+// Commission created → onCommissionCreated(ctx, tenantId, amount, status, hasFraudSignals, isSelfReferral)
+// Commission status change → onCommissionStatusChange(ctx, tenantId, amount, oldStatus, newStatus, wasFlagged, isFlagged)
+// Commission amount change → onCommissionAmountChanged(ctx, tenantId, oldAmount, newAmount, status)
+// Payout marked paid → incrementTotalPaidOut(ctx, tenantId, amount)
+```
+
+### ⚠️ No Unbounded `.collect()` on High-Volume Tables
+
+Never use unbounded `.collect()` on `clicks`, `conversions`, `commissions`, `payouts`, or `affiliates`. Always use `.take(N)`, `.paginate()`, or read from `tenantStats`. See `docs/scalability-guidelines.md` for the full `.take()` cap reference table.
+
+**Quick reference:**
+```typescript
+// ❌ WRONG — unbounded, will crash at scale
+const allCommissions = await ctx.db.query("commissions").withIndex("by_tenant", q => q.eq("tenantId", tenantId)).collect();
+
+// ✅ CORRECT — capped
+const commissions = await ctx.db.query("commissions").withIndex("by_tenant", q => q.eq("tenantId", tenantId)).take(500);
+
+// ✅ CORRECT — paginated for user-facing lists
+const results = await ctx.db.query("commissions").withIndex("by_tenant", q => q.eq("tenantId", tenantId)).paginate(paginationOpts);
+
+// ✅ CORRECT — existence check uses .first()
+const hasCampaigns = !!(await ctx.db.query("campaigns").withIndex("by_tenant", q => q.eq("tenantId", tenantId)).first());
+```
+
+### ⚠️ Status Inconsistency — `approved` vs `confirmed`
+
+The codebase uses `"approved"` and `"confirmed"` interchangeably for commission statuses. Any query filtering by commission status **MUST** check both:
+
+```typescript
+// ❌ WRONG — misses auto-approved commissions
+c.status === "confirmed"
+
+// ✅ CORRECT — catches both statuses
+c.status === "approved" || c.status === "confirmed"
+```
+
+All `tenantStats` hooks treat both as equivalent for counter purposes. A future migration will unify these into a single status.
+
 ### Authentication
 
 - Use `authClient` from `@/lib/auth-client` for client-side auth

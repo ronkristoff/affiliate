@@ -5,7 +5,7 @@ import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthenticatedUser, requireTenantId } from "./tenantContext";
-import { incrementTotalPaidOut } from "./tenantStats";
+import { incrementTotalPaidOut, onCommissionStatusChange } from "./tenantStats";
 
 // =============================================================================
 // Internal Helpers
@@ -164,10 +164,18 @@ export const generatePayoutBatch = mutation({
 
       // Update all commissions for this affiliate: mark as paid and link to batch
       for (const commissionId of affiliate.commissionIds) {
+        const commission = await ctx.db.get(commissionId);
+        const wasFlagged = commission ? ((commission.fraudIndicators?.length ?? 0) > 0 || commission.isSelfReferral === true) : false;
+
         await ctx.db.patch(commissionId, {
           status: "paid",
           batchId,
         });
+
+        // Wire tenantStats counter hook — confirmed/paid → paid decrements confirmed counters
+        if (commission) {
+          await onCommissionStatusChange(ctx, tenantId, commission.amount, commission.status, "paid", wasFlagged, false);
+        }
       }
     }
 
@@ -299,44 +307,16 @@ export const getPendingPayoutTotal = query({
   handler: async (ctx) => {
     const tenantId = await requireTenantId(ctx);
 
-    // Query confirmed commissions that are not already in a batch
-    const commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", "confirmed")
-      )
-      .collect();
-
-    // Filter out commissions already paid (have batchId)
-    const unpaidCommissions = commissions.filter((c) => !c.batchId);
-
-    // Aggregate by affiliate
-    const affiliateTotals = new Map<
-      Id<"affiliates">,
-      { amount: number; count: number }
-    >();
-
-    for (const commission of unpaidCommissions) {
-      const existing = affiliateTotals.get(commission.affiliateId) ?? {
-        amount: 0,
-        count: 0,
-      };
-      existing.amount += commission.amount;
-      existing.count += 1;
-      affiliateTotals.set(commission.affiliateId, existing);
-    }
-
-    let totalAmount = 0;
-    for (const totals of affiliateTotals.values()) {
-      totalAmount += totals.amount;
-    }
-
-    const commissionCount = unpaidCommissions.length;
+    // Read from denormalized tenantStats — zero table scans, always accurate
+    const stats = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .first();
 
     return {
-      totalAmount,
-      affiliateCount: affiliateTotals.size,
-      commissionCount,
+      totalAmount: stats?.pendingPayoutTotal ?? 0,
+      affiliateCount: 0, // Per-affiliate count not available from tenantStats alone
+      commissionCount: stats?.pendingPayoutCount ?? 0,
     };
   },
 });
@@ -467,7 +447,7 @@ export const getAffiliatesWithPendingPayouts = query({
       .withIndex("by_tenant_and_status", (q) =>
         q.eq("tenantId", tenantId).eq("status", "confirmed")
       )
-      .collect();
+      .take(700);
 
     // Filter out commissions already paid (have batchId)
     const unpaidCommissions = commissions.filter((c) => !c.batchId);
