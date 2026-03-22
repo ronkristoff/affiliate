@@ -50,43 +50,41 @@ function ReportsNav() {
   ];
 
   return (
-    <nav className="w-full">
-      <div className="flex items-center gap-1 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className={cn(
-            "shrink-0 rounded-lg",
-            isOverview && "bg-[#10409a]/10 text-[#10409a] font-medium hover:bg-[#10409a]/15 hover:text-[#10409a]"
-          )}
-        >
-          <Link href="/reports">Overview</Link>
-        </Button>
+    <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <Button
+        variant="ghost"
+        size="sm"
+        asChild
+        className={cn(
+          "shrink-0 rounded-lg",
+          isOverview && "bg-[#10409a]/10 text-[#10409a] font-medium hover:bg-[#10409a]/15 hover:text-[#10409a]"
+        )}
+      >
+        <Link href="/reports">Overview</Link>
+      </Button>
 
-        {categories.map((category) => (
-          <div key={category.label} className="flex items-center gap-1 shrink-0">
-            <span className="text-xs text-muted-foreground/70 px-1.5 select-none">
-              {category.emoji} {category.label}
-            </span>
-            {category.items.map((item) => (
-              <Button
-                key={item.href}
-                variant="ghost"
-                size="sm"
-                asChild
-                className={cn(
-                  "shrink-0 rounded-lg",
-                  item.isActive && "bg-[#10409a]/10 text-[#10409a] font-medium hover:bg-[#10409a]/15 hover:text-[#10409a]"
-                )}
-              >
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
-            ))}
-          </div>
-        ))}
-      </div>
-    </nav>
+      {categories.map((category) => (
+        <div key={category.label} className="flex items-center gap-1 shrink-0">
+          <span className="text-xs text-muted-foreground/70 px-1.5 select-none">
+            {category.emoji} {category.label}
+          </span>
+          {category.items.map((item) => (
+            <Button
+              key={item.href}
+              variant="ghost"
+              size="sm"
+              asChild
+              className={cn(
+                "shrink-0 rounded-lg",
+                item.isActive && "bg-[#10409a]/10 text-[#10409a] font-medium hover:bg-[#10409a]/15 hover:text-[#10409a]"
+              )}
+            >
+              <Link href={item.href}>{item.label}</Link>
+            </Button>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -96,8 +94,11 @@ export default function ReportsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col">
-      <ReportsNav />
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Sticky reports navigation tabs */}
+      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] px-8 py-2 border-b border-border">
+        <ReportsNav />
+      </div>
       {children}
     </div>
   );

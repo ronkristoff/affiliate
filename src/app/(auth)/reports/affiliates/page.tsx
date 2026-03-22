@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { cn, downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Download, Users, Loader2 } from "lucide-react";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components/DateRangeSelector";
 import { CampaignFilterDropdown } from "@/app/(auth)/reports/campaigns/components/CampaignFilterDropdown";
@@ -115,22 +116,11 @@ function AffiliatePerformancePage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Affiliate Performance</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            View and analyze affiliate performance metrics
-          </p>
-          {/* Date range indicator */}
-          {dateRange && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Showing data for: <span className="font-medium text-foreground">{dateRange.label}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
+    <>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="View and analyze affiliate performance metrics">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Affiliate Performance</h1>
+        <div className="flex items-center gap-2">
           {isViewer && (
             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
               Read-only view
@@ -141,26 +131,28 @@ function AffiliatePerformancePage() {
             size="sm"
             onClick={handleExport}
             disabled={!canExport || isExporting}
-            className={cn(!canExport && "opacity-50 cursor-not-allowed")}
+            className={cn(!canExport && "opacity-50 cursor-not-allowed", "gap-1.5")}
           >
             {isExporting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-3 h-3" />
             )}
             Export CSV
           </Button>
         </div>
-      </div>
+      </PageTopbar>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <DateRangeSelector onChange={handleDateRangeChange} />
-        <CampaignFilterDropdown
-          selectedCampaignId={selectedCampaignId}
-          onCampaignSelect={handleCampaignChange}
-        />
-      </div>
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
+        {/* Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <DateRangeSelector onChange={handleDateRangeChange} />
+          <CampaignFilterDropdown
+            selectedCampaignId={selectedCampaignId}
+            onCampaignSelect={handleCampaignChange}
+          />
+        </div>
 
       {/* Summary Metrics */}
       <AffiliateMetricsSummary
@@ -204,6 +196,7 @@ function AffiliatePerformancePage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

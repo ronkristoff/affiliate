@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Download, Loader2, ShieldAlert, Users, Flag, AlertOctagon } from "lucide-react";
@@ -175,33 +176,32 @@ function FraudDashboardContent() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[var(--text-heading)]">
-          Fraud &amp; Risk Dashboard
-        </h1>
-        {canExport && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting || !fraudExportData || fraudExportData.data.length === 0}
-          >
-            {isExporting ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Exporting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export CSV
-              </span>
-            )}
-          </Button>
-        )}
-      </div>
+    <>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="Monitor fraud signals, risk trends, and flagged commissions">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Fraud & Risk</h1>
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting || !fraudExportData || fraudExportData.data.length === 0}
+              className="gap-1.5"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Download className="w-3 h-3" />
+              )}
+              Export CSV
+            </Button>
+          )}
+        </div>
+      </PageTopbar>
+
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
 
       {/* Needs Attention Alert */}
       <NeedsAttentionAlert unreviewedHighSeverity={unreviewedHighSeverity} />
@@ -282,7 +282,8 @@ function FraudDashboardContent() {
         canViewSensitiveData={canViewSensitiveData}
         isLoading={isLoading}
       />
-    </div>
+      </div>
+    </>
   );
 }
 

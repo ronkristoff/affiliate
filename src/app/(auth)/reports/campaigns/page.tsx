@@ -5,6 +5,7 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import {
   CampaignMetricsSummary,
@@ -119,29 +120,22 @@ export default function CampaignReportsPage() {
   const isLoading = !summaryMetrics || !campaignPerformance;
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Read-only indicator for viewers */}
       {!canViewSensitiveData && (
-        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <Eye className="w-4 h-4 text-amber-600" />
-          <span className="text-sm text-amber-700">
-            Read-only mode: Sensitive data hidden. Contact your administrator for full access.
-          </span>
+        <div className="px-8 pt-4">
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <Eye className="w-4 h-4 text-amber-600" />
+            <span className="text-sm text-amber-700">
+              Read-only mode: Sensitive data hidden. Contact your administrator for full access.
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Header with Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Campaign Performance</h1>
-          <p className="text-muted-foreground">Track and analyze your campaign metrics</p>
-          {/* Date range indicator */}
-          {dateRange && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Showing data for: <span className="font-medium text-foreground">{dateRange.label}</span>
-            </p>
-          )}
-        </div>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="Track and analyze your campaign metrics">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaign Performance</h1>
         <div className="flex items-center gap-2">
           <CampaignFilterDropdown
             selectedCampaignId={selectedCampaignId}
@@ -151,24 +145,29 @@ export default function CampaignReportsPage() {
           {canViewSensitiveData && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleExport}
               disabled={isExporting}
+              className="gap-1.5"
             >
               {isExporting ? (
-                <span className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 animate-pulse" />
+                <>
+                  <FileSpreadsheet className="w-3 h-3 animate-pulse" />
                   Exporting...
-                </span>
+                </>
               ) : (
-                <span className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
+                <>
+                  <Download className="w-3 h-3" />
                   Export CSV
-                </span>
+                </>
               )}
             </Button>
           )}
         </div>
-      </div>
+      </PageTopbar>
+
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
 
       {/* Summary Metrics */}
       <CampaignMetricsSummary
@@ -203,6 +202,7 @@ export default function CampaignReportsPage() {
           canViewSensitiveData={canViewSensitiveData}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

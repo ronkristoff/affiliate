@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -240,31 +241,22 @@ function FunnelPageContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Read-only indicator for viewers */}
       {!canViewSensitiveData && (
-        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <Eye className="w-4 h-4 text-amber-600" />
-          <span className="text-sm text-amber-700">
-            Read-only mode: Commission values are hidden. Contact your administrator for full access.
-          </span>
+        <div className="px-8 pt-4">
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <Eye className="w-4 h-4 text-amber-600" />
+            <span className="text-sm text-amber-700">
+              Read-only mode: Commission values are hidden. Contact your administrator for full access.
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Header with Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Conversion Funnel</h1>
-          <p className="text-muted-foreground">
-            Track your click-to-commission conversion pipeline
-          </p>
-          {dateRange && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Showing data for:{" "}
-              <span className="font-medium text-foreground">{dateRange.label}</span>
-            </p>
-          )}
-        </div>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="Track your click-to-commission conversion pipeline">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Conversion Funnel</h1>
         <div className="flex items-center gap-2">
           <CampaignFilterDropdown
             selectedCampaignId={selectedCampaignId}
@@ -273,24 +265,24 @@ function FunnelPageContent() {
           {canViewSensitiveData && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleExport}
               disabled={isExporting}
+              className="gap-1.5"
             >
               {isExporting ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Exporting...
-                </span>
+                <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
-                <span className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </span>
+                <Download className="w-3 h-3" />
               )}
+              Export CSV
             </Button>
           )}
         </div>
-      </div>
+      </PageTopbar>
+
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
 
       {/* Truncation warning */}
       {funnelData && (
@@ -358,7 +350,8 @@ function FunnelPageContent() {
         canViewSensitiveData={canViewSensitiveData}
         isLoading={isLoading}
       />
-    </div>
+      </div>
+    </>
   );
 }
 

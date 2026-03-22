@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, AlertTriangle, Loader2, Wallet, Clock, Package, TrendingUp } from "lucide-react";
@@ -112,38 +113,32 @@ function PayoutHistoryContent() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-heading)]">
-            Payout History & Trends
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track payout batches, monthly trends, and export data.
-          </p>
+    <>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="Track payout batches, monthly trends, and export data">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payout History & Trends</h1>
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="gap-1.5"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Download className="w-3 h-3" />
+              )}
+              Export CSV
+            </Button>
+          )}
         </div>
-        {canExport && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            {isExporting ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Exporting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export CSV
-              </span>
-            )}
-          </Button>
-        )}
-      </div>
+      </PageTopbar>
+
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
 
       {/* Truncation warning */}
       {exportData && (
@@ -208,7 +203,8 @@ function PayoutHistoryContent() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

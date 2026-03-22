@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -113,19 +114,10 @@ export default function ReportsIndexPage() {
     : undefined;
 
   return (
-    <div className="space-y-6">
-      {/* Header with Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-muted-foreground">Overview of your affiliate program performance</p>
-          {/* Date range indicator */}
-          {dateRange && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Showing data for: <span className="font-medium text-foreground">{dateRange.label}</span>
-            </p>
-          )}
-        </div>
+    <>
+      {/* Sticky Top Bar */}
+      <PageTopbar description="Overview of your affiliate program performance">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Reports</h1>
         <div className="flex items-center gap-2">
           <CampaignFilterDropdown
             selectedCampaignId={selectedCampaignId}
@@ -135,24 +127,29 @@ export default function ReportsIndexPage() {
           {canExport && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleExport}
               disabled={isExporting}
+              className="gap-1.5"
             >
               {isExporting ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
                   Exporting...
-                </span>
+                </>
               ) : (
-                <span className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
+                <>
+                  <Download className="w-3 h-3" />
                   Export CSV
-                </span>
+                </>
               )}
             </Button>
           )}
         </div>
-      </div>
+      </PageTopbar>
+
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8 space-y-6">
 
       {/* Summary Metrics */}
       <FadeIn className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -268,6 +265,7 @@ export default function ReportsIndexPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
