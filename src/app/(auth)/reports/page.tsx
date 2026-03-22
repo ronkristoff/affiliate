@@ -10,7 +10,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { Download, Users, Megaphone, Loader2 } from "lucide-react";
+import { Download, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { CampaignFilterDropdown } from "./campaigns/components";
@@ -185,32 +185,6 @@ export default function ReportsIndexPage() {
           isLoading={isLoading}
         />
       </FadeIn>
-
-      {/* Navigation Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => window.location.href = "/reports/campaigns"}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Campaign Performance</CardTitle>
-            <Megaphone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              View detailed metrics for each campaign
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => window.location.href = "/reports/affiliates"}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Affiliate Performance</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              View detailed metrics for each affiliate
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Top Affiliates Table */}
       <Card>

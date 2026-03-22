@@ -7,12 +7,22 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
+import { ChevronRight } from "lucide-react";
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
   badge?: number;
+}
+
+interface NavSubItem {
+  href: string;
+  label: string;
+}
+
+interface NavItemWithChildren extends NavItem {
+  children?: NavSubItem[];
 }
 
 interface SidebarProps {
@@ -77,7 +87,16 @@ const STATIC_NAV_ITEMS = {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
-    },
+      children: [
+        { href: "/reports", label: "Overview" },
+        { href: "/reports/commissions", label: "Commissions" },
+        { href: "/reports/payouts", label: "Payouts" },
+        { href: "/reports/funnel", label: "Funnel" },
+        { href: "/reports/affiliates", label: "Affiliates" },
+        { href: "/reports/campaigns", label: "Campaigns" },
+        { href: "/reports/fraud", label: "Fraud" },
+      ],
+    } as NavItemWithChildren,
     {
       href: "/emails",
       label: "Emails",
@@ -147,6 +166,7 @@ export function Sidebar({ className }: SidebarProps) {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const user = useQuery(api.auth.getCurrentUser);
 
   useEffect(() => {
@@ -166,6 +186,18 @@ export function Sidebar({ className }: SidebarProps) {
     }
   }, [router]);
 
+  const toggleExpanded = useCallback((href: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) {
+        next.delete(href);
+      } else {
+        next.add(href);
+      }
+      return next;
+    });
+  }, []);
+
   if (!isMounted || !user) {
     return <SidebarSkeleton />;
   }
@@ -175,6 +207,10 @@ export function Sidebar({ className }: SidebarProps) {
   const displayEmail = user.email;
 
   const pendingCount = 0;
+
+  // Auto-expand Reports when user is on any /reports/* path
+  const isOnReports = pathname.startsWith("/reports");
+  const isReportsExpanded = expandedItems.has("/reports") || isOnReports;
 
   return (
     <aside
@@ -254,7 +290,64 @@ export function Sidebar({ className }: SidebarProps) {
             Insights
           </div>
           {STATIC_NAV_ITEMS.insights.map((item) => {
+            const hasChildren = "children" in item && item.children;
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isExpanded = isReportsExpanded && item.href === "/reports";
+
+            if (hasChildren) {
+              return (
+                <div key={item.href}>
+                  <button
+                    onClick={() => toggleExpanded(item.href)}
+                    className={cn(
+                      "flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-all border-l-[3px] w-full text-left",
+                      isActive
+                        ? "text-white bg-white/[0.08] border-l-[#7dd3fc] font-semibold"
+                        : "text-white/[0.55] border-l-transparent hover:text-white/[0.9] hover:bg-white/[0.05]"
+                    )}
+                  >
+                    <span className={cn("w-[18px] h-[18px] shrink-0", isActive ? "opacity-100" : "opacity-[0.7]")}>
+                      {item.icon}
+                    </span>
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronRight
+                      className={cn(
+                        "w-3.5 h-3.5 shrink-0 transition-transform duration-200",
+                        isExpanded ? "rotate-90" : ""
+                      )}
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div className="pl-[46px] pr-5">
+                      {item.children!.map((child) => {
+                        const isChildActive = child.href === "/reports"
+                          ? pathname === "/reports"
+                          : pathname.startsWith(child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              "flex items-center py-[7px] text-[13px] transition-colors",
+                              isChildActive
+                                ? "text-white font-medium"
+                                : "text-white/[0.4] hover:text-white/[0.8]"
+                            )}
+                          >
+                            <span className={cn(
+                              "w-1 h-1 rounded-full mr-2.5 shrink-0",
+                              isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.2]"
+                            )} />
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
