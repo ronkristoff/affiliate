@@ -220,7 +220,7 @@ export function Sidebar({ className }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="px-5 py-6 border-b border-white/[0.08]">
+      <Link href="/dashboard" className="px-5 py-6 border-b border-white/[0.08] block">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#1659d6] rounded-lg flex items-center justify-center font-black text-sm text-white">
             S
@@ -229,20 +229,20 @@ export function Sidebar({ className }: SidebarProps) {
             salig<span className="text-[#7dd3fc]">affiliate</span>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Tenant Info */}
       <div className="px-5 py-3.5 border-b border-white/[0.08]">
         <div className="flex items-center gap-2.5 cursor-pointer">
           <div className="w-8 h-8 bg-[#1659d6] rounded-lg flex items-center justify-center font-bold text-[13px] text-white shrink-0">
-            MS
+            {user.tenant.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
           </div>
           <div className="min-w-0">
             <div className="text-[13px] font-semibold text-[#e2e8f0] truncate">
-              My SaaS
+              {user.tenant.name}
             </div>
-            <div className="text-[11px] text-white/[0.4]">
-              Growth Plan · 14 days trial
+            <div className="text-[11px] text-white/[0.4] capitalize">
+              {user.tenant.plan}
             </div>
           </div>
         </div>
