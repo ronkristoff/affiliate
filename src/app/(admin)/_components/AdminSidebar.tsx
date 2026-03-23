@@ -20,27 +20,27 @@ interface AdminNavItem {
 
 const adminNavItems: AdminNavItem[] = [
   {
-    href: "/admin/tenants",
+    href: "/tenants",
     label: "Tenants",
     icon: <Building2 className="h-4 w-4" />,
   },
   {
-    href: "/admin/tiers",
+    href: "/tiers",
     label: "Tier Config",
     icon: <Layers className="h-4 w-4" />,
   },
   {
-    href: "/admin/health",
+    href: "/health",
     label: "Platform Health",
     icon: <Activity className="h-4 w-4" />,
   },
   {
-    href: "/admin/audit",
+    href: "/audit",
     label: "Audit Log",
     icon: <FileText className="h-4 w-4" />,
   },
   {
-    href: "/admin/settings",
+    href: "/admin-settings",
     label: "Settings",
     icon: <Settings className="h-4 w-4" />,
   },

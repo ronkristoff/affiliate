@@ -4,6 +4,7 @@ import { paginationOptsValidator } from "convex/server";
 import { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { betterAuthComponent } from "../auth";
+import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
 
 /**
  * Verify that the caller is a platform admin.
@@ -445,18 +446,16 @@ export const getTenantPlanUsage = query({
       throw new Error("Tenant not found");
     }
 
-    // Get tier config
+    // Get tier config — fall back to defaults if no DB row exists
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q: any) => q.eq("tier", tenant.plan))
       .first();
 
-    if (!tierConfig) {
-      throw new Error(`Tier configuration not found for plan: ${tenant.plan}`);
-    }
+    const resolvedTierConfig = tierConfig ?? DEFAULT_TIER_CONFIGS[tenant.plan as keyof typeof DEFAULT_TIER_CONFIGS] ?? DEFAULT_TIER_CONFIGS.starter;
 
     // Story 11.5: Get effective limits (considering active overrides)
-    const effectiveLimits = await getEffectiveLimits(ctx, args.tenantId, tierConfig);
+    const effectiveLimits = await getEffectiveLimits(ctx, args.tenantId, resolvedTierConfig);
 
     // Count affiliates — use active count for limit checking
     const affiliates = await ctx.db
@@ -524,13 +523,13 @@ export const getTenantPlanUsage = query({
 
     return {
       plan: {
-        tier: tierConfig.tier,
-        price: tierConfig.price,
+        tier: resolvedTierConfig.tier,
+        price: resolvedTierConfig.price,
         maxAffiliates: effectiveLimits.maxAffiliates,
         maxCampaigns: effectiveLimits.maxCampaigns,
         maxTeamMembers: effectiveLimits.maxTeamMembers,
         maxPayoutsPerMonth: effectiveLimits.maxPayoutsPerMonth,
-        features: tierConfig.features,
+        features: resolvedTierConfig.features,
       },
       usage: {
         affiliates: {

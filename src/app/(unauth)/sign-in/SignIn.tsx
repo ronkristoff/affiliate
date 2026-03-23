@@ -104,6 +104,7 @@ export default function SignIn() {
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {
+              // Route to dashboard — (auth)/layout.tsx will redirect admins to /tenants
               router.push("/dashboard");
             }
           },

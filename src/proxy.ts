@@ -40,7 +40,7 @@ const affiliatePublicRoutes = [
 ];
 
 // Platform admin routes (require owner session + admin role)
-const adminRoutes = ["/admin"];
+const adminRoutes = ["/tenants", "/tiers"];
 
 // Affiliate portal protected routes
 const affiliateProtectedRoutes = [

@@ -18,7 +18,7 @@ export function NotFoundState() {
         Please check the URL and try again.
       </p>
       <Button
-        onClick={() => router.push("/admin/tenants")}
+        onClick={() => router.push("/tenants")}
         className="gap-2 bg-[#10409a] text-white hover:bg-[#0d347a]"
       >
         <ArrowLeft className="h-4 w-4" />

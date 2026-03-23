@@ -188,8 +188,8 @@ export const endImpersonation = mutation({
     });
 
     const redirectUrl = args.returnToTenantId
-      ? `/admin/tenants/${args.returnToTenantId}`
-      : "/admin/tenants";
+      ? `/tenants/${args.returnToTenantId}`
+      : "/tenants";
 
     return {
       success: true,

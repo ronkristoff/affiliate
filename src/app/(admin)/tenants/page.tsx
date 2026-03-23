@@ -62,7 +62,7 @@ function AdminTenantsContent() {
 
     const queryString = params.toString();
     router.replace(
-      `/admin/tenants${queryString ? `?${queryString}` : ""}`,
+      `/tenants${queryString ? `?${queryString}` : ""}`,
       { scroll: false }
     );
   }, [debouncedSearch, activeFilter, page, sortField, sortOrder, router]);
@@ -95,7 +95,7 @@ function AdminTenantsContent() {
 
   // Navigate to tenant detail
   const handleViewTenant = useCallback((tenantId: string) => {
-    router.push(`/admin/tenants/${tenantId}`);
+    router.push(`/tenants/${tenantId}`);
   }, [router]);
 
   const hasActiveFilters =

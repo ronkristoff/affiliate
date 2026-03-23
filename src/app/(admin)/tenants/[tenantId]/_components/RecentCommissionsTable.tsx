@@ -100,7 +100,7 @@ export function RecentCommissionsTable({
           asChild
           className="text-xs text-[#6b7280] hover:text-[#10409a]"
         >
-          <Link href={`/admin/tenants/${tenantId}?tab=payouts`}>
+          <Link href={`/tenants/${tenantId}?tab=payouts`}>
             View All
           </Link>
         </Button>

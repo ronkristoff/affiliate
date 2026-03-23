@@ -99,8 +99,8 @@ function buildEndRedirectUrl(
   returnToTenantId?: string
 ): string {
   return returnToTenantId
-    ? `/admin/tenants/${returnToTenantId}`
-    : "/admin/tenants";
+    ? `/tenants/${returnToTenantId}`
+    : "/tenants";
 }
 
 /**
@@ -367,11 +367,11 @@ describe("Impersonation Business Logic (Subtask 10.1-10.4)", () => {
 
   describe("AC6: Redirect URL construction", () => {
     it("should build redirect URL with tenant ID", () => {
-      expect(buildEndRedirectUrl("tenant1")).toBe("/admin/tenants/tenant1");
+      expect(buildEndRedirectUrl("tenant1")).toBe("/tenants/tenant1");
     });
 
     it("should build redirect URL without tenant ID", () => {
-      expect(buildEndRedirectUrl(undefined)).toBe("/admin/tenants");
+      expect(buildEndRedirectUrl(undefined)).toBe("/tenants");
     });
   });
 

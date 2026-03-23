@@ -287,7 +287,7 @@ export function PlanUsageCard({ tenantId }: PlanUsageCardProps) {
   const hasOverride = override?.active === true;
 
   const handleViewAllLimits = () => {
-    router.push(`/admin/tenants/${tenantId}/limits`);
+    router.push(`/tenants/${tenantId}/limits`);
   };
 
   const handleRemoveSuccess = () => {

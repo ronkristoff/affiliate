@@ -60,7 +60,7 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
     const params = new URLSearchParams(searchParams);
     params.set("tab", activeTab);
     router.replace(
-      `/admin/tenants/${tenant._id}?${params.toString()}`,
+      `/tenants/${tenant._id}?${params.toString()}`,
       { scroll: false }
     );
   }, [activeTab, router, searchParams, tenant._id]);
@@ -99,7 +99,7 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-1 text-sm text-[#6b7280]">
         <Link
-          href="/admin/tenants"
+          href="/tenants"
           className="hover:text-[#10409a] transition-colors"
         >
           Tenants

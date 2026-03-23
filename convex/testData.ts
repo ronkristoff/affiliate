@@ -16,6 +16,7 @@ import { internalMutation, internalAction, internalQuery } from "./_generated/se
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
+import { internal } from "./_generated/api";
 
 /**
  * Test data configuration
@@ -1299,6 +1300,58 @@ export const seedAllTestData = internalMutation({
       } catch (error) {
         errors.push(`Error creating tenant ${tenantConfig.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
+    }
+
+    // =========================================================================
+    // Create Platform Admin tenant and user
+    // =========================================================================
+    try {
+      const adminSlug = generateUniqueSlug(PLATFORM_ADMIN.name, existingSlugs);
+      const adminTenantId = await ctx.db.insert("tenants", {
+        name: PLATFORM_ADMIN.name,
+        slug: adminSlug,
+        plan: "starter",
+        trialEndsAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year trial (effectively unlimited for dev)
+        status: "active",
+        branding: {
+          portalName: PLATFORM_ADMIN.name,
+          primaryColor: "#10409a",
+        },
+      });
+      stats.tenantsCreated++;
+
+      await ctx.runMutation(internal.tenantStats.seedStats, { tenantId: adminTenantId });
+
+      // Create Better Auth user for platform admin
+      const adminAuthUserId = await createBetterAuthUser(
+        ctx,
+        PLATFORM_ADMIN.users[0].email,
+        PLATFORM_ADMIN.users[0].name,
+        TEST_PASSWORD,
+      );
+
+      // Create platform admin user with role "admin"
+      await ctx.db.insert("users", {
+        tenantId: adminTenantId,
+        email: PLATFORM_ADMIN.users[0].email,
+        name: PLATFORM_ADMIN.users[0].name,
+        role: PLATFORM_ADMIN.users[0].role, // "admin"
+        emailVerified: true,
+        authId: adminAuthUserId,
+      });
+      stats.usersCreated++;
+
+      await ctx.db.insert("auditLogs", {
+        tenantId: adminTenantId,
+        action: "user_created",
+        entityType: "user",
+        entityId: adminTenantId,
+        actorType: "system",
+        newValue: { email: PLATFORM_ADMIN.users[0].email, name: PLATFORM_ADMIN.users[0].name, role: PLATFORM_ADMIN.users[0].role },
+      });
+      stats.auditLogsCreated++;
+    } catch (error) {
+      errors.push(`Error creating platform admin: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return {

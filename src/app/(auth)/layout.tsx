@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { useQuery } from "convex/react";
@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { Toaster } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
@@ -48,9 +48,26 @@ function AuthLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
   const impersonationStatus = useQuery(api.admin.impersonation.getImpersonationStatus);
   const isImpersonating = !!impersonationStatus;
+
+  // Redirect platform admins to the admin panel via useEffect (React 19 / Next.js 16 requirement)
+  const isAdmin = user && user.role === "admin";
+  useEffect(() => {
+    if (isAdmin) {
+      router.replace("/tenants");
+    }
+  }, [isAdmin, router]);
+
+  if (isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className={`flex min-h-screen ${isImpersonating ? "pt-11" : ""}`}>
