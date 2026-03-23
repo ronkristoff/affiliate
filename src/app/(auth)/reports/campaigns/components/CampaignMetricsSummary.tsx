@@ -2,6 +2,7 @@
 
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { BarChart3, MousePointerClick, Target, DollarSign } from "lucide-react";
 
 interface CampaignMetricsSummaryProps {
   metrics?: {
@@ -63,6 +64,7 @@ export function CampaignMetricsSummary({
         delta={campaignsDelta}
         variant="blue"
         isLoading={isLoading}
+        icon={<BarChart3 className="w-4 h-4" />}
       />
       <MetricCard
         label="Total Clicks"
@@ -70,6 +72,7 @@ export function CampaignMetricsSummary({
         delta={clicksDelta}
         variant="green"
         isLoading={isLoading}
+        icon={<MousePointerClick className="w-4 h-4" />}
       />
       <MetricCard
         label="Total Conversions"
@@ -78,6 +81,7 @@ export function CampaignMetricsSummary({
         delta={conversionsDelta}
         variant="yellow"
         isLoading={isLoading}
+        icon={<Target className="w-4 h-4" />}
       />
       <MetricCard
         label="Total Commissions"
@@ -86,6 +90,7 @@ export function CampaignMetricsSummary({
         delta={canViewSensitiveData ? commissionsDelta : undefined}
         variant="gray"
         isLoading={isLoading}
+        icon={<DollarSign className="w-4 h-4" />}
       />
     </FadeIn>
   );

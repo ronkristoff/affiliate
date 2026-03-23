@@ -10,7 +10,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { Download, Users, Loader2 } from "lucide-react";
+import { Download, Users, Loader2, TrendingUp, MousePointerClick, Target, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { CampaignFilterDropdown } from "./campaigns/components";
@@ -160,6 +160,7 @@ export default function ReportsIndexPage() {
           delta={commissionsDelta}
           variant="blue"
           isLoading={isLoading}
+          icon={<TrendingUp className="w-4 h-4" />}
         />
         <MetricCard
           label="Total Clicks"
@@ -167,6 +168,7 @@ export default function ReportsIndexPage() {
           delta={clicksDelta}
           variant="green"
           isLoading={isLoading}
+          icon={<MousePointerClick className="w-4 h-4" />}
         />
         <MetricCard
           label="Total Conversions"
@@ -175,6 +177,7 @@ export default function ReportsIndexPage() {
           delta={conversionsDelta}
           variant="yellow"
           isLoading={isLoading}
+          icon={<Target className="w-4 h-4" />}
         />
         <MetricCard
           label="Total Commissions"
@@ -183,6 +186,7 @@ export default function ReportsIndexPage() {
           delta={commissionsDelta}
           variant="gray"
           isLoading={isLoading}
+          icon={<DollarSign className="w-4 h-4" />}
         />
       </FadeIn>
 

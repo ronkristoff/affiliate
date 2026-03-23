@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { Users, UserCheck, MousePointerClick, DollarSign } from "lucide-react";
 
 interface AffiliateMetricsSummaryProps {
   tenantId: Id<"tenants">;
@@ -74,6 +75,7 @@ export function AffiliateMetricsSummary({
         delta={affiliatesDelta}
         variant="blue"
         isLoading={isLoading}
+        icon={<Users className="w-4 h-4" />}
       />
       <MetricCard
         label="Active Affiliates"
@@ -81,6 +83,7 @@ export function AffiliateMetricsSummary({
         delta={activeAffiliatesDelta}
         variant="green"
         isLoading={isLoading}
+        icon={<UserCheck className="w-4 h-4" />}
       />
       <MetricCard
         label="Total Clicks"
@@ -88,6 +91,7 @@ export function AffiliateMetricsSummary({
         delta={clicksDelta}
         variant="yellow"
         isLoading={isLoading}
+        icon={<MousePointerClick className="w-4 h-4" />}
       />
       <MetricCard
         label="Total Commissions"
@@ -96,6 +100,7 @@ export function AffiliateMetricsSummary({
         delta={commissionsDelta}
         variant="gray"
         isLoading={isLoading}
+        icon={<DollarSign className="w-4 h-4" />}
       />
     </FadeIn>
   );

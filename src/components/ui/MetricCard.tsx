@@ -26,8 +26,8 @@ interface MetricCardProps {
   formatValue?: (n: number) => string;
 
   // ── Icon support ──
-  /** Lucide icon or any ReactNode rendered top-right with a subtle breathing animation. */
-  icon?: React.ReactNode;
+  /** Lucide icon or any ReactNode rendered top-right with a subtle breathing animation. Required for visual consistency. */
+  icon: React.ReactNode;
 }
 
 const variantStyles = {

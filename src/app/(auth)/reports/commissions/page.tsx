@@ -10,7 +10,7 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, AlertTriangle, Loader2 } from "lucide-react";
+import { Download, AlertTriangle, Loader2, Clock, CheckCircle2, RotateCcw, Wallet, CreditCard, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart } from "@tremor/react";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
@@ -200,6 +200,7 @@ function CommissionSummaryContent() {
           subtext={`${metrics?.pendingCount ?? 0} commissions`}
           variant="yellow"
           isLoading={isLoading}
+          icon={<Clock className="w-4 h-4" />}
         />
         <MetricCard
           label="Confirmed This Month"
@@ -208,6 +209,7 @@ function CommissionSummaryContent() {
           subtext={`${metrics?.confirmedThisMonth ?? 0} commissions`}
           variant="green"
           isLoading={isLoading}
+          icon={<CheckCircle2 className="w-4 h-4" />}
         />
         <MetricCard
           label="Reversed This Month"
@@ -216,6 +218,7 @@ function CommissionSummaryContent() {
           subtext={`${metrics?.reversedThisMonth ?? 0} commissions`}
           variant="yellow"
           isLoading={isLoading}
+          icon={<RotateCcw className="w-4 h-4" />}
         />
         <MetricCard
           label="Total Paid Out"
@@ -223,6 +226,7 @@ function CommissionSummaryContent() {
           formatValue={(n) => formatCurrency(n)}
           variant="gray"
           isLoading={isLoading}
+          icon={<Wallet className="w-4 h-4" />}
         />
         <MetricCard
           label="Pending Payouts"
@@ -231,12 +235,14 @@ function CommissionSummaryContent() {
           subtext={`${metrics?.pendingPayoutCount ?? 0} payouts`}
           variant="blue"
           isLoading={isLoading}
+          icon={<CreditCard className="w-4 h-4" />}
         />
         <MetricCard
           label="Fraud Flags"
           numericValue={metrics?.flagged ?? 0}
           variant="yellow"
           isLoading={isLoading}
+          icon={<ShieldAlert className="w-4 h-4" />}
         />
       </FadeIn>
 

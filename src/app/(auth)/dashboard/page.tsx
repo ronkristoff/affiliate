@@ -20,7 +20,7 @@ import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { downloadCsv } from "@/lib/utils";
 import { toast } from "sonner";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, TrendingUp, Clock, Users, Wallet } from "lucide-react";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-PH", {
@@ -173,6 +173,7 @@ export default function DashboardPage() {
               isLoading={!stats}
               variant="blue"
               className="h-full"
+              icon={<TrendingUp className="w-4 h-4" />}
             />
           </div>
           <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4 content-start">
@@ -184,6 +185,7 @@ export default function DashboardPage() {
               delta={{ value: 0, isPositive: true, label: "vs last week" }}
               isLoading={!stats}
               variant="yellow"
+              icon={<Clock className="w-4 h-4" />}
             />
             <MetricCard
               label="Affiliates"
@@ -192,6 +194,7 @@ export default function DashboardPage() {
               delta={affiliatesDelta}
               isLoading={!stats}
               variant="green"
+              icon={<Users className="w-4 h-4" />}
             />
           </div>
 
@@ -205,6 +208,7 @@ export default function DashboardPage() {
               delta={paidOutDelta}
               isLoading={!stats}
               variant="gray"
+              icon={<Wallet className="w-4 h-4" />}
             />
           </div>
         </FadeIn>

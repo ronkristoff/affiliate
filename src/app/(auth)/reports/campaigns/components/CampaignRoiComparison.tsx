@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { cn } from "@/lib/utils";
+import { MousePointerClick, Target, Percent, DollarSign, BadgeCheck } from "lucide-react";
 
 interface CampaignRoiComparisonProps {
   comparisonData: Array<{
@@ -58,17 +59,20 @@ export function CampaignRoiComparison({
                   label="Clicks"
                   numericValue={campaign.clicks}
                   variant="blue"
+                  icon={<MousePointerClick className="w-4 h-4" />}
                 />
                 <MetricCard
                   label="Conversions"
                   numericValue={campaign.conversions}
                   variant="green"
+                  icon={<Target className="w-4 h-4" />}
                 />
               </div>
               <MetricCard
                 label="Conv. Rate"
                 value={`${campaign.conversionRate.toFixed(2)}%`}
                 variant="yellow"
+                icon={<Percent className="w-4 h-4" />}
               />
               {canViewSensitiveData && (
                 <>
@@ -76,11 +80,13 @@ export function CampaignRoiComparison({
                     label="Cost/Conversion"
                     value={formatCurrency(campaign.costPerConversion)}
                     variant="gray"
+                    icon={<DollarSign className="w-4 h-4" />}
                   />
                   <MetricCard
                     label="Conv. Efficiency"
                     value={`${campaign.convEfficiency.toFixed(1)}%`}
                     variant="green"
+                    icon={<BadgeCheck className="w-4 h-4" />}
                   />
                 </>
               )}
