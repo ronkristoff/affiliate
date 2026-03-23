@@ -3,6 +3,60 @@
 
 import type { QueryCtx } from "../_generated/server";
 import { betterAuthComponent } from "../auth";
+import { Id } from "../_generated/dataModel";
+
+// =============================================================================
+// Shared Tenant Stats Reader
+// =============================================================================
+
+/**
+ * Shape of the denormalized tenantStats document.
+ * Mirrors the fields in convex/schema.ts for convenience.
+ */
+export interface TenantStatsData {
+  affiliatesPending: number;
+  affiliatesActive: number;
+  affiliatesSuspended: number;
+  affiliatesRejected: number;
+  commissionsPendingCount: number;
+  commissionsPendingValue: number;
+  commissionsConfirmedThisMonth: number;
+  commissionsConfirmedValueThisMonth: number;
+  commissionsFlagged: number;
+  totalPaidOut: number;
+  pendingPayoutTotal: number | undefined;
+  pendingPayoutCount: number | undefined;
+}
+
+/**
+ * Read the denormalized tenantStats for a tenant.
+ * Returns null-safe defaults if no stats document exists.
+ * Used across all admin views to avoid table scans for aggregate counts.
+ */
+export async function readTenantStats(
+  ctx: QueryCtx,
+  tenantId: Id<"tenants">,
+): Promise<TenantStatsData> {
+  const stats = await ctx.db
+    .query("tenantStats")
+    .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+    .first();
+
+  return {
+    affiliatesPending: stats?.affiliatesPending ?? 0,
+    affiliatesActive: stats?.affiliatesActive ?? 0,
+    affiliatesSuspended: stats?.affiliatesSuspended ?? 0,
+    affiliatesRejected: stats?.affiliatesRejected ?? 0,
+    commissionsPendingCount: stats?.commissionsPendingCount ?? 0,
+    commissionsPendingValue: stats?.commissionsPendingValue ?? 0,
+    commissionsConfirmedThisMonth: stats?.commissionsConfirmedThisMonth ?? 0,
+    commissionsConfirmedValueThisMonth: stats?.commissionsConfirmedValueThisMonth ?? 0,
+    commissionsFlagged: stats?.commissionsFlagged ?? 0,
+    totalPaidOut: stats?.totalPaidOut ?? 0,
+    pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
+    pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
+  };
+}
 
 /**
  * Verify that the caller is a platform admin.

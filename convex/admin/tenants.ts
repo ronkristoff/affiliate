@@ -5,10 +5,16 @@ import { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { betterAuthComponent } from "../auth";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
+import { readTenantStats } from "./_helpers";
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 /**
  * Verify that the caller is a platform admin.
  * Returns the admin user document or null.
+ * @deprecated Prefer requireAdmin from _helpers.ts
  */
 async function requireAdmin(ctx: QueryCtx) {
   let betterAuthUser;
@@ -38,6 +44,9 @@ async function requireAdmin(ctx: QueryCtx) {
  * Determine if a tenant is flagged based on conditions:
  * - SaligPay credentials expired (expiresAt in the past)
  * - High fraud signals detected (affiliates with fraud signals)
+ *
+ * NOTE: Fraud signal check requires scanning affiliates (not in tenantStats).
+ * Uses .take(500) cap per AGENTS.md scalability rules.
  */
 async function isTenantFlagged(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<boolean> {
   // Check if SaligPay credentials are expired
@@ -53,7 +62,7 @@ async function isTenantFlagged(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<
   const affiliates = await ctx.db
     .query("affiliates")
     .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
-    .collect();
+    .take(500);
 
   for (const affiliate of affiliates) {
     if (affiliate.fraudSignals) {
@@ -72,39 +81,63 @@ async function isTenantFlagged(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<
 
 /**
  * Get the owner email for a tenant by finding the owner user.
+ * Uses .take(50) cap — a tenant won't have more than ~50 team members.
  */
 async function getTenantOwnerEmail(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<string> {
   const users = await ctx.db
     .query("users")
     .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
-    .collect();
+    .take(50);
 
   const owner = users.find((u: { role: string }) => u.role === "owner");
   return owner?.email ?? "";
 }
 
 /**
- * Count affiliates for a tenant.
+ * Get total affiliate count for a tenant from denormalized tenantStats.
+ * Replaces the old unbounded .collect() scan.
  */
 async function getAffiliateCount(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<number> {
-  const affiliates = await ctx.db
-    .query("affiliates")
-    .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
-    .collect();
-  return affiliates.length;
+  const stats = await readTenantStats(ctx, tenantId);
+  return stats.affiliatesPending
+    + stats.affiliatesActive
+    + stats.affiliatesSuspended
+    + stats.affiliatesRejected;
 }
 
 /**
- * Get estimated MRR for a tenant based on plan tier config.
+ * Get MRR influenced by affiliate commissions for a tenant.
+ * Aligns with the SaaS owner dashboard: sum of conversion.amount
+ * for approved commissions in the last 30 days.
+ * Uses .take(500) cap per AGENTS.md scalability rules.
  */
 async function getTenantMRR(ctx: QueryCtx, tenant: any): Promise<number> {
-  // Look up tier pricing
-  const tierConfig = await ctx.db
-    .query("tierConfigs")
-    .withIndex("by_tier", (q: any) => q.eq("tier", tenant.plan))
-    .first();
+  const now = Date.now();
+  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
-  return tierConfig?.price ?? 0;
+  const commissions = await ctx.db
+    .query("commissions")
+    .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenant._id))
+    .take(500);
+
+  const approvedInRange = commissions.filter(
+    (c: { status: string; _creationTime: number }) =>
+      c.status === "approved" && c._creationTime >= thirtyDaysAgo
+  );
+
+  // Sum conversion amounts (full subscription price), matching owner dashboard logic
+  let mrr = 0;
+  for (const commission of approvedInRange) {
+    if (commission.conversionId) {
+      const conversion = await ctx.db.get(commission.conversionId);
+      if (conversion) {
+        mrr += conversion.amount;
+        continue;
+      }
+    }
+    mrr += commission.amount;
+  }
+  return mrr;
 }
 
 export interface TenantRow {
@@ -120,6 +153,10 @@ export interface TenantRow {
   mrr: number;
   isFlagged: boolean;
 }
+
+// =============================================================================
+// Story 11.1: Tenant Search & Platform Stats
+// =============================================================================
 
 /**
  * Search and filter tenants with pagination.
@@ -170,6 +207,7 @@ export const searchTenants = query({
     const allTenants = await ctx.db.query("tenants").order("desc").collect();
 
     // Enrich each tenant with computed fields
+    // affiliateCount now reads from tenantStats (O(1)) instead of .collect()
     let enriched: TenantRow[] = [];
     for (const tenant of allTenants) {
       const [ownerEmail, affiliateCount, isFlagged, mrr] = await Promise.all([
@@ -330,7 +368,7 @@ async function getEffectiveLimits(
       q.eq("tenantId", tenantId).eq("removedAt", undefined)
     )
     .order("desc")
-    .collect();
+    .take(50);
 
   const now = Date.now();
   const activeOverride = overrides.find((o: any) => {
@@ -362,6 +400,10 @@ async function getEffectiveLimits(
 /**
  * Get tenant plan usage with visual indicators for admin dashboard.
  * (Task 1: Backend - Get Tenant Plan Usage Query, AC: #1, #2)
+ *
+ * FIXED: Affiliate count now reads from tenantStats (O(1)) instead of .collect().
+ * Campaigns, team members, and payouts still use capped .take() since those
+ * tables are low-volume per-tenant.
  */
 export const getTenantPlanUsage = query({
   args: { tenantId: v.id("tenants") },
@@ -457,35 +499,33 @@ export const getTenantPlanUsage = query({
     // Story 11.5: Get effective limits (considering active overrides)
     const effectiveLimits = await getEffectiveLimits(ctx, args.tenantId, resolvedTierConfig);
 
-    // Count affiliates — use active count for limit checking
-    const affiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
-    const activeAffiliates = affiliates.filter(
-      (a: { status: string }) => a.status === "active"
-    ).length;
+    // Read affiliate count from denormalized tenantStats — O(1), no table scan
+    const stats = await readTenantStats(ctx, args.tenantId);
+    const activeAffiliates = stats.affiliatesActive;
 
     // Count campaigns — use active count for limit checking
+    // Low-volume per tenant; .take(500) cap is safe
     const campaigns = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
     const activeCampaigns = campaigns.filter(
       (c: { status: string }) => c.status === "active"
     ).length;
 
     // Count team members (non-removed users on tenant)
+    // Low-volume per tenant; .take(50) cap is safe
     const teamMembers = await ctx.db
       .query("users")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(50);
     const activeTeamMembers = teamMembers.filter(
       (u: { status?: string; removedAt?: number }) =>
         u.status !== "removed" && !u.removedAt
     ).length;
 
     // Count payouts this month (processing status)
+    // Low-volume per tenant; .take(500) cap is safe
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfMonthMs = startOfMonth.getTime();
@@ -493,7 +533,7 @@ export const getTenantPlanUsage = query({
     const payouts = await ctx.db
       .query("payoutBatches")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
     const monthlyPayouts = payouts.filter(
       (p: { generatedAt: number; status: string }) =>
         p.generatedAt >= startOfMonthMs && p.status === "processing"
@@ -629,6 +669,10 @@ export const getTierLimits = query({
  * Get comprehensive tenant details including owner email, affiliate counts,
  * commission totals, and SaligPay connection status.
  * (Task 1: Backend - Tenant Detail Query, AC: #1, #2, #4)
+ *
+ * FIXED: Affiliate counts and commission totals now read from tenantStats (O(1))
+ * instead of unbounded .collect() on affiliates and commissions tables.
+ * "flagged" affiliate count still needs a capped scan (not tracked in tenantStats).
  */
 export const getTenantDetails = query({
   args: { tenantId: v.id("tenants") },
@@ -669,37 +713,61 @@ export const getTenantDetails = query({
     const users = await ctx.db
       .query("users")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(50);
     const owner = users.find((u: { role: string }) => u.role === "owner");
 
-    // Count affiliates by status
+    // Read aggregate counts from denormalized tenantStats — O(1)
+    const stats = await readTenantStats(ctx, args.tenantId);
+
+    // "flagged" count requires scanning affiliates for fraud signals (not in tenantStats)
     const affiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
+    const flaggedAffiliateCount = affiliates.filter((a: { fraudSignals?: any[] }) =>
+      a.fraudSignals?.some(
+        (s: { severity: string; reviewedAt?: number }) =>
+          s.severity === "high" && !s.reviewedAt
+      )
+    ).length;
 
     const affiliateCount = {
-      total: affiliates.length,
-      active: affiliates.filter((a: { status: string }) => a.status === "active").length,
-      pending: affiliates.filter((a: { status: string }) => a.status === "pending").length,
-      flagged: affiliates.filter((a: { fraudSignals?: any[] }) =>
-        a.fraudSignals?.some(
-          (s: { severity: string; reviewedAt?: number }) =>
-            s.severity === "high" && !s.reviewedAt
-        )
-      ).length,
+      total: stats.affiliatesPending + stats.affiliatesActive + stats.affiliatesSuspended + stats.affiliatesRejected,
+      active: stats.affiliatesActive,
+      pending: stats.affiliatesPending,
+      flagged: flaggedAffiliateCount,
     };
 
-    // Calculate total commissions (sum of approved amounts)
+    // Total commissions = approved + pending payout value (from tenantStats)
+    // pendingPayoutTotal tracks approved commissions not yet paid out
+    // commissionsPendingValue tracks pending commissions
+    const totalCommissions = (stats.pendingPayoutTotal ?? 0) + stats.commissionsPendingValue;
+
+    // Calculate MRR influenced (last 30 days, using conversion amounts)
+    // Still requires a commission scan — this is a time-range filter not tracked in tenantStats
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .filter((q: any) => q.eq(q.field("status"), "approved"))
-      .collect();
-    const totalCommissions = commissions.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
+      .take(500);
+    const recentApproved = commissions.filter(
+      (c: { status: string; _creationTime: number }) =>
+        c.status === "approved" && c._creationTime >= thirtyDaysAgo
+    );
 
-    // Calculate MRR influenced (sum of approved commission amounts)
-    const mrrInfluenced = totalCommissions;
+    let mrrInfluenced = 0;
+    for (const commission of recentApproved) {
+      if (commission.conversionId) {
+        const conversion = await ctx.db.get(commission.conversionId) as { amount: number } | null;
+        if (conversion) {
+          mrrInfluenced += conversion.amount;
+          continue;
+        }
+      }
+      mrrInfluenced += commission.amount;
+    }
 
     // Determine SaligPay connection status
     let saligPayStatus: string | undefined;
@@ -751,6 +819,11 @@ export const getTenantDetails = query({
 /**
  * Get tenant statistics including MRR, active affiliates, pending commissions, open payouts.
  * (Task 2: Backend - Tenant Stats Query, AC: #4)
+ *
+ * FIXED: Affiliate counts, pending commissions, and total paid out now read
+ * from tenantStats (O(1)) instead of unbounded .collect() scans.
+ * MRR still requires a time-range scan (not pre-computed in tenantStats).
+ * Open payouts use capped .take() on payoutBatches (low-volume per tenant).
  */
 export const getTenantStats = query({
   args: { tenantId: v.id("tenants") },
@@ -770,51 +843,60 @@ export const getTenantStats = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    // MRR influenced: sum of confirmed commissions (current 30 days)
-    const now = Date.now() / 1000;
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
-    const sixtyDaysAgo = now - 60 * 24 * 60 * 60;
+    // Read aggregate counts from denormalized tenantStats — O(1)
+    const stats = await readTenantStats(ctx, args.tenantId);
 
-    const recentCommissions = await ctx.db
+    // MRR influenced: sum of conversion amounts for approved commissions (last 30 days)
+    // This requires a time-range scan — not pre-computed in tenantStats
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
+
+    const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
 
-    const currentMRR = recentCommissions
-      .filter((c: { status: string; _creationTime: number }) =>
-        c.status === "approved" && c._creationTime > thirtyDaysAgo
-      )
-      .reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
+    // Get conversions for MRR calculation (use full subscription amount, not affiliate cut)
+    const approvedInRange = commissions.filter(
+      (c: { status: string; _creationTime: number }) =>
+        c.status === "approved" && c._creationTime >= thirtyDaysAgo
+    );
+    const approvedPrevRange = commissions.filter(
+      (c: { status: string; _creationTime: number }) =>
+        c.status === "approved" && c._creationTime >= sixtyDaysAgo && c._creationTime < thirtyDaysAgo
+    );
 
-    const previousMRR = recentCommissions
-      .filter((c: { status: string; _creationTime: number }) =>
-        c.status === "approved" && c._creationTime > sixtyDaysAgo && c._creationTime <= thirtyDaysAgo
-      )
-      .reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
+    // Helper: sum conversion amounts for a set of commissions
+    const sumConversionAmounts = async (comms: Array<{ amount: number; conversionId?: any }>): Promise<number> => {
+      let total = 0;
+      for (const commission of comms) {
+        if (commission.conversionId) {
+          const conversion = await ctx.db.get(commission.conversionId) as { amount: number } | null;
+          if (conversion) {
+            total += conversion.amount;
+            continue;
+          }
+        }
+        total += commission.amount;
+      }
+      return total;
+    };
+
+    const currentMRR = await sumConversionAmounts(approvedInRange);
+    const previousMRR = await sumConversionAmounts(approvedPrevRange);
 
     // MRR delta: percentage change
     const mrrDelta = previousMRR > 0
       ? Math.round(((currentMRR - previousMRR) / previousMRR) * 100)
       : currentMRR > 0 ? 100 : 0;
 
-    // Affiliate counts
-    const affiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
-    const activeAffiliates = affiliates.filter((a: { status: string }) => a.status === "active").length;
-    const pendingAffiliates = affiliates.filter((a: { status: string }) => a.status === "pending").length;
-
-    // Pending commissions
-    const pendingComms = recentCommissions.filter((c: { status: string }) => c.status === "pending");
-    const pendingCommissions = pendingComms.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
-    const pendingCommissionsCount = pendingComms.length;
-
     // Open payouts (payout batches in processing or pending status)
+    // Low-volume per tenant; .take(500) cap is safe
     const payoutBatches = await ctx.db
       .query("payoutBatches")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
     const openBatches = payoutBatches.filter((b: { status: string }) =>
       b.status === "processing" || b.status === "pending"
     );
@@ -824,10 +906,10 @@ export const getTenantStats = query({
     return {
       mrrInfluenced: currentMRR,
       mrrDelta,
-      activeAffiliates,
-      pendingAffiliates,
-      pendingCommissions,
-      pendingCommissionsCount,
+      activeAffiliates: stats.affiliatesActive,
+      pendingAffiliates: stats.affiliatesPending,
+      pendingCommissions: stats.commissionsPendingValue,
+      pendingCommissionsCount: stats.commissionsPendingCount,
       openPayouts,
       openPayoutsTotal,
     };
@@ -837,6 +919,8 @@ export const getTenantStats = query({
 /**
  * Get recent commissions for a tenant with affiliate and campaign name lookups.
  * (Task 3: Backend - Tenant Commissions Query, AC: #6)
+ *
+ * FIXED: Uses .take(500) instead of unbounded .collect().
  */
 export const getTenantCommissions = query({
   args: {
@@ -861,13 +945,13 @@ export const getTenantCommissions = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const limit = args.limit ?? 10;
+    const limit = Math.min(args.limit ?? 10, 100);
 
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
       .order("desc")
-      .collect();
+      .take(500);
 
     // Cursor-based pagination
     let startIndex = 0;
@@ -908,6 +992,9 @@ export const getTenantCommissions = query({
 /**
  * Get all affiliates for a tenant with search filtering.
  * (Task 4: Backend - Tenant Affiliates Query, AC: #9)
+ *
+ * FIXED: Uses .take(500) instead of unbounded .collect() for affiliate list.
+ * Uses .take(500) instead of unbounded .collect() for per-affiliate lookups.
  */
 export const getTenantAffiliates = query({
   args: {
@@ -933,7 +1020,7 @@ export const getTenantAffiliates = query({
     let affiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .collect();
+      .take(500);
 
     // Search filter by name or email
     if (args.searchQuery && args.searchQuery.trim() !== "") {
@@ -948,19 +1035,20 @@ export const getTenantAffiliates = query({
     // Enrich each affiliate with referral count, total earned, and flagged status
     const enrichedAffiliates = await Promise.all(
       affiliates.map(async (affiliate: any) => {
-        // Count referrals (clicks)
+        // Count referrals (clicks) — capped per affiliate
         const referrals = await ctx.db
           .query("clicks")
           .withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id))
-          .collect();
+          .take(500);
 
-        // Calculate total earned from approved commissions
+        // Calculate total earned from approved commissions — capped per affiliate
         const commissions = await ctx.db
           .query("commissions")
           .withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id))
-          .filter((q: any) => q.eq(q.field("status"), "approved"))
-          .collect();
-        const totalEarned = commissions.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
+          .take(500);
+        const totalEarned = commissions
+          .filter((c: { status: string }) => c.status === "approved")
+          .reduce((sum: number, c: { amount: number }) => sum + c.amount, 0);
 
         // Check if flagged
         const isFlagged = affiliate.fraudSignals?.some(
@@ -988,6 +1076,8 @@ export const getTenantAffiliates = query({
 /**
  * Get payout batches for a tenant with stall duration calculation.
  * (Task 5: Backend - Tenant Payout Batches Query, AC: #10)
+ *
+ * FIXED: Uses .take(500) instead of unbounded .collect().
  */
 export const getTenantPayoutBatches = query({
   args: { tenantId: v.id("tenants") },
@@ -1011,7 +1101,7 @@ export const getTenantPayoutBatches = query({
       .query("payoutBatches")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
       .order("desc")
-      .collect();
+      .take(500);
 
     const now = Date.now() / 1000;
     const STALL_THRESHOLD_HOURS = 48;
@@ -1147,6 +1237,8 @@ export const getTenantIntegrations = query({
 /**
  * Get admin notes for a tenant.
  * (Task 7: Backend - Admin Notes Query, AC: #12)
+ *
+ * FIXED: Uses .take(100) instead of unbounded .collect().
  */
 export const getTenantAdminNotes = query({
   args: { tenantId: v.id("tenants") },
@@ -1166,7 +1258,7 @@ export const getTenantAdminNotes = query({
       .query("adminNotes")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
       .order("desc")
-      .collect();
+      .take(100);
 
     // Enrich with author name
     const enrichedNotes = await Promise.all(
@@ -1229,6 +1321,8 @@ export const addTenantAdminNote = mutation({
 /**
  * Get audit log entries for a tenant with pagination.
  * (Task 8: Backend - Tenant Audit Log Query, AC: #13)
+ *
+ * FIXED: Uses .take(500) instead of unbounded .collect().
  */
 export const getTenantAuditLog = query({
   args: {
@@ -1253,13 +1347,13 @@ export const getTenantAuditLog = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const limit = args.limit ?? 20;
+    const limit = Math.min(args.limit ?? 20, 100);
 
     const logs = await ctx.db
       .query("auditLogs")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
       .order("desc")
-      .collect();
+      .take(500);
 
     // Cursor-based pagination
     let startIndex = 0;

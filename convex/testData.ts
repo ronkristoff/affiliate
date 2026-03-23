@@ -1297,6 +1297,15 @@ export const seedAllTestData = internalMutation({
           }
         }
 
+        // Backfill denormalized tenantStats counters from actual records
+        // (seedStats only creates zeros; the direct ctx.db.insert calls
+        // above bypass the tenantStats mutation hooks, so we must sync here)
+        try {
+          await ctx.runMutation(internal.tenantStats.backfillStats, { tenantId });
+        } catch (bfError) {
+          errors.push(`Error backfilling stats for ${tenantConfig.name}: ${bfError instanceof Error ? bfError.message : String(bfError)}`);
+        }
+
       } catch (error) {
         errors.push(`Error creating tenant ${tenantConfig.name}: ${error instanceof Error ? error.message : String(error)}`);
       }

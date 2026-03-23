@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { query, action, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -544,5 +544,23 @@ export const getOrCreateStatsInternal = internalMutation({
     }
 
     return null;
+  },
+});
+
+// =============================================================================
+// Public Action: Trigger Backfill (dev convenience)
+// =============================================================================
+
+/**
+ * Public action to trigger a full backfill of all tenant stats.
+ * Intended for dev/debugging use only — the weekly cron handles production.
+ * Run via: npx convex run tenantStats:backfillAll
+ */
+export const backfillAll = action({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    await ctx.runMutation(internal.tenantStats.backfillAllTenants, {});
+    return "Backfill complete.";
   },
 });
