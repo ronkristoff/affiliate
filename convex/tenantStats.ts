@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getTenantId } from "./tenantContext";
 
 // =============================================================================
 // Helpers
@@ -113,6 +114,40 @@ export const getStats = query({
       totalPaidOut: stats?.totalPaidOut ?? 0,
       pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
       pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
+    };
+  },
+});
+
+// =============================================================================
+// Public Query: Sidebar Badge Counts
+// =============================================================================
+
+/**
+ * Get pending action counts for sidebar notification badges.
+ * Single read from denormalized tenantStats — O(1), no table scans.
+ */
+export const getSidebarBadgeCounts = query({
+  args: {},
+  returns: v.object({
+    pendingAffiliates: v.number(),
+    pendingCommissions: v.number(),
+    pendingPayouts: v.number(),
+  }),
+  handler: async (ctx) => {
+    const tenantId = await getTenantId(ctx);
+    if (!tenantId) {
+      return { pendingAffiliates: 0, pendingCommissions: 0, pendingPayouts: 0 };
+    }
+
+    const stats = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .first();
+
+    return {
+      pendingAffiliates: stats?.affiliatesPending ?? 0,
+      pendingCommissions: stats?.commissionsPendingCount ?? 0,
+      pendingPayouts: stats?.pendingPayoutCount ?? 0,
     };
   },
 });

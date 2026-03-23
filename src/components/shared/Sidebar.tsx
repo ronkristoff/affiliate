@@ -168,6 +168,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const user = useQuery(api.auth.getCurrentUser);
+  const badgeCounts = useQuery(api.tenantStats.getSidebarBadgeCounts, {});
 
   useEffect(() => {
     setIsMounted(true);
@@ -206,7 +207,9 @@ export function Sidebar({ className }: SidebarProps) {
   const displayName = user.name || "User";
   const displayEmail = user.email;
 
-  const pendingCount = 0;
+  const pendingAffiliates = badgeCounts?.pendingAffiliates ?? 0;
+  const pendingCommissions = badgeCounts?.pendingCommissions ?? 0;
+  const pendingPayouts = badgeCounts?.pendingPayouts ?? 0;
 
   // Auto-expand Reports when user is on any /reports/* path
   const isOnReports = pathname.startsWith("/reports");
@@ -257,8 +260,9 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
           {STATIC_NAV_ITEMS.program.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            const badge = item.href === "/affiliates" && pendingCount > 0 ? pendingCount : 
-                         item.href === "/commissions" && pendingCount > 0 ? pendingCount : undefined;
+            const badge = item.href === "/affiliates" ? (pendingAffiliates > 0 ? pendingAffiliates : undefined) :
+                         item.href === "/commissions" ? (pendingCommissions > 0 ? pendingCommissions : undefined) :
+                         item.href === "/payouts" ? (pendingPayouts > 0 ? pendingPayouts : undefined) : undefined;
             return (
               <Link
                 key={item.href}
