@@ -56,6 +56,9 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
   );
 
   // Sync tab to URL
+  // Note: searchParams is intentionally excluded from deps to avoid an infinite loop.
+  // When router.replace updates the URL, useSearchParams returns a new reference,
+  // which would re-trigger this effect endlessly if listed as a dependency.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     params.set("tab", activeTab);
@@ -63,7 +66,8 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
       `/tenants/${tenant._id}?${params.toString()}`,
       { scroll: false }
     );
-  }, [activeTab, router, searchParams, tenant._id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, tenant._id]);
 
   const setTab = useCallback((tab: Tab) => {
     setActiveTab(tab);
