@@ -87,6 +87,7 @@ interface AffiliatePendingPayout {
 export function PayoutsContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [selectedAffiliates, setSelectedAffiliates] = useState<Set<Id<"affiliates">>>(new Set());
   const [csvDownloadBatchId, setCsvDownloadBatchId] = useState<string | null>(null);
   const [csvDownloadDate, setCsvDownloadDate] = useState<number | null>(null);
   const [generatedBatch, setGeneratedBatch] = useState<{
@@ -203,6 +204,20 @@ export function PayoutsContent() {
   const isLoading = pendingTotal === undefined || affiliates === undefined;
   const hasPendingPayouts = (affiliates?.length ?? 0) > 0;
 
+  // Computed totals for selected affiliates
+  const selectedAffiliateList = (affiliates ?? []).filter((a) =>
+    selectedAffiliates.has(a.affiliateId)
+  );
+  const selectedTotalAmount = selectedAffiliateList.reduce(
+    (sum, a) => sum + a.pendingAmount,
+    0
+  );
+  const selectedCommissionCount = selectedAffiliateList.reduce(
+    (sum, a) => sum + a.commissionCount,
+    0
+  );
+  const hasSelected = selectedAffiliates.size > 0;
+
   // Calculate batch metrics from historical batches
   const totalPaidOut = (batches ?? [])
     .filter((b) => b.status === "completed")
@@ -222,7 +237,13 @@ export function PayoutsContent() {
   async function handleGenerateBatch() {
     setIsGenerating(true);
     try {
-      const result = await generateBatch({});
+      const affiliateIdsArg =
+        selectedAffiliates.size > 0
+          ? Array.from(selectedAffiliates)
+          : undefined;
+      const result = await generateBatch({
+        affiliateIds: affiliateIdsArg,
+      });
       setGeneratedBatch({
         batchId: result.batchId,
         batchCode: `BATCH-${result.batchId.slice(-8).toUpperCase()}`,
@@ -232,8 +253,9 @@ export function PayoutsContent() {
         affiliates: result.affiliates,
       });
       setShowConfirmDialog(false);
+      setSelectedAffiliates(new Set());
       toast.success("Payout batch generated successfully", {
-        description: `Batch ${result.batchId.slice(-8).toUpperCase()} created with ${result.affiliateCount} affiliates`,
+        description: `Batch ${result.batchId.slice(-8).toUpperCase()} created with ${result.affiliateCount} affiliate${result.affiliateCount !== 1 ? "s" : ""}`,
       });
     } catch (error) {
       if (error instanceof Error && error.message === "NO_PENDING_PAYOUTS") {
@@ -515,23 +537,52 @@ export function PayoutsContent() {
                 Affiliates Pending Payout
               </h2>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                {affiliates?.length ?? 0} affiliate{(affiliates?.length ?? 0) !== 1 ? "s" : ""} ·{" "}
-                {formatCurrency(pendingTotal?.totalAmount ?? 0)} total
+                {hasSelected ? (
+                  <>
+                    <span className="font-semibold text-[var(--text-heading)]">
+                      {selectedAffiliates.size} of {affiliates?.length ?? 0}
+                    </span>{" "}
+                    selected · {formatCurrency(selectedTotalAmount)} total
+                  </>
+                ) : (
+                  <>
+                    {affiliates?.length ?? 0} affiliate
+                    {(affiliates?.length ?? 0) !== 1 ? "s" : ""} ·{" "}
+                    {formatCurrency(pendingTotal?.totalAmount ?? 0)} total
+                  </>
+                )}
               </p>
             </div>
-            <Button
-              size="sm"
-              disabled={isGenerating}
-              onClick={() => setShowConfirmDialog(true)}
-              className="gap-1.5 text-[12px]"
-            >
-              {isGenerating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <CreditCard className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-2">
+              {hasSelected && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedAffiliates(new Set())}
+                  className="text-[12px] text-[var(--text-muted)]"
+                >
+                  Clear selection
+                </Button>
               )}
-              Generate Batch
-            </Button>
+              <Button
+                size="sm"
+                disabled={isGenerating || !hasSelected}
+                onClick={() => setShowConfirmDialog(true)}
+                className="gap-1.5 text-[12px]"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CreditCard className="w-3.5 h-3.5" />
+                )}
+                Generate Batch
+                {hasSelected && (
+                  <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
+                    {selectedAffiliates.size}
+                  </Badge>
+                )}
+              </Button>
+            </div>
           </div>
         </FadeIn>
       )}
@@ -576,6 +627,14 @@ export function PayoutsContent() {
             columns={affiliateColumns}
             data={affiliates ?? []}
             getRowId={(row) => row.affiliateId}
+            selectable
+            selectedIds={selectedAffiliates as Set<string | number>}
+            onSelectionChange={(ids) =>
+              setSelectedAffiliates(new Set(ids as Set<Id<"affiliates">>))
+            }
+            rowClassName={(row) =>
+              selectedAffiliates.has(row.affiliateId) ? "bg-[#eff6ff]" : ""
+            }
             isLoading={false}
             emptyMessage="No affiliates with pending payouts"
           />
@@ -972,8 +1031,9 @@ export function PayoutsContent() {
           <DialogHeader>
             <DialogTitle>Generate Payout Batch</DialogTitle>
             <DialogDescription>
-              Create a payout batch for all affiliates with confirmed, unpaid
-              commissions.
+              {hasSelected
+                ? `Create a payout batch for the ${selectedAffiliates.size} selected affiliate${selectedAffiliates.size !== 1 ? "s" : ""} with confirmed, unpaid commissions.`
+                : "Create a payout batch for all affiliates with confirmed, unpaid commissions."}
             </DialogDescription>
           </DialogHeader>
 
@@ -982,24 +1042,40 @@ export function PayoutsContent() {
               <div className="flex justify-between">
                 <span className="text-[var(--text-muted)]">Affiliates</span>
                 <span className="font-bold">
-                  {pendingTotal?.affiliateCount ?? 0}
+                  {hasSelected ? selectedAffiliates.size : (pendingTotal?.affiliateCount ?? 0)}
                 </span>
               </div>
               <div className="mt-1 flex justify-between">
                 <span className="text-[var(--text-muted)]">Total Amount</span>
                 <span className="font-bold text-[var(--brand-primary)]">
-                  {formatCurrency(pendingTotal?.totalAmount ?? 0)}
+                  {hasSelected
+                    ? formatCurrency(selectedTotalAmount)
+                    : formatCurrency(pendingTotal?.totalAmount ?? 0)}
                 </span>
               </div>
               <div className="mt-1 flex justify-between">
                 <span className="text-[var(--text-muted)]">Commissions</span>
                 <span className="font-bold">
-                  {pendingTotal?.commissionCount ?? 0}
+                  {hasSelected
+                    ? selectedCommissionCount
+                    : (pendingTotal?.commissionCount ?? 0)}
                 </span>
               </div>
             </div>
 
-            {affiliatesWithoutMethod.length > 0 && (
+            {hasSelected && selectedAffiliateList.some((a) => !a.payoutMethod) && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p>
+                  <strong>{selectedAffiliateList.filter((a) => !a.payoutMethod).length}</strong> of the selected affiliate
+                  {selectedAffiliateList.filter((a) => !a.payoutMethod).length !== 1 ? "s" : ""} do
+                  not have a payout method configured. They will still be included in the
+                  batch.
+                </p>
+              </div>
+            )}
+
+            {!hasSelected && affiliatesWithoutMethod.length > 0 && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                 <p>

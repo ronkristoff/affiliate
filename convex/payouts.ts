@@ -42,7 +42,9 @@ async function countPendingPayouts(
  * those with status="approved" AND no batchId (not already paid).
  */
 export const generatePayoutBatch = mutation({
-  args: {},
+  args: {
+    affiliateIds: v.optional(v.array(v.id("affiliates"))),
+  },
   returns: v.object({
     batchId: v.id("payoutBatches"),
     affiliateCount: v.number(),
@@ -63,7 +65,7 @@ export const generatePayoutBatch = mutation({
       })
     ),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
@@ -79,7 +81,13 @@ export const generatePayoutBatch = mutation({
       .collect();
 
     // Filter out commissions that are already part of a batch (prevents regeneration)
-    const commissions = allCommissions.filter((c) => !c.batchId);
+    let commissions = allCommissions.filter((c) => !c.batchId);
+
+    // If specific affiliate IDs were provided, only include their commissions
+    if (args.affiliateIds && args.affiliateIds.length > 0) {
+      const allowedIds = new Set(args.affiliateIds);
+      commissions = commissions.filter((c) => allowedIds.has(c.affiliateId));
+    }
 
     // Aggregate by affiliate: sum amounts and count commissions
     const affiliateCommissions = new Map<
