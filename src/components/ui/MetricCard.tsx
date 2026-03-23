@@ -86,13 +86,20 @@ export function MetricCard({
         </span>
       );
     }
-    const arrow = delta.isPositive ? "▲" : "▼";
     const colorClass = delta.isPositive
       ? "text-[var(--success)]"
       : "text-[var(--danger)]";
     return (
-      <span className={cn("text-[12px] font-semibold", colorClass)}>
-        {arrow} {delta.value}%{delta.label && ` ${delta.label}`}
+      <span className={cn("text-[12px] font-semibold inline-flex items-center gap-0.5", colorClass)}>
+        <span
+          className={cn(
+            "inline-block text-[13px] leading-none",
+            delta.isPositive ? "animate-bounce-up" : "animate-bounce-down"
+          )}
+        >
+          {delta.isPositive ? "▲" : "▼"}
+        </span>
+        {delta.value}%{delta.label && <span className="ml-0.5">{delta.label}</span>}
       </span>
     );
   };

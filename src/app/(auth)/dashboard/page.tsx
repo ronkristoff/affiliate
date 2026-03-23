@@ -160,57 +160,47 @@ export default function DashboardPage() {
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
-        {/* Metric Cards Grid - 2 rows for visual hierarchy */}
-        <FadeIn className="grid grid-cols-12 gap-6 mb-8">
-          {/* Row 1: MRR takes visual prominence */}
-          <div className="col-span-12 lg:col-span-7">
-            <MetricCard
-              label="MRR Influenced"
-              numericValue={stats?.mrrInfluenced ?? 0}
-              formatValue={formatCurrency}
-              subtext={stats ? `from ${stats.activeAffiliatesCount} active affiliates` : "—"}
-              delta={mrrDelta}
-              isLoading={!stats}
-              variant="blue"
-              className="h-full"
-              icon={<TrendingUp className="w-4 h-4" />}
-            />
-          </div>
-          <div className="col-span-12 lg:col-span-5 grid grid-cols-2 gap-4 content-start">
-            <MetricCard
-              label="Pending"
-              numericValue={stats?.pendingCommissionsValue ?? 0}
-              formatValue={formatCurrency}
-              subtext={stats ? `${stats.pendingCommissionsCount} pending` : "—"}
-              delta={{ value: 0, isPositive: true, label: "vs last week" }}
-              isLoading={!stats}
-              variant="yellow"
-              icon={<Clock className="w-4 h-4" />}
-            />
-            <MetricCard
-              label="Affiliates"
-              numericValue={stats?.activeAffiliatesCount ?? 0}
-              subtext="3 pending"
-              delta={affiliatesDelta}
-              isLoading={!stats}
-              variant="green"
-              icon={<Users className="w-4 h-4" />}
-            />
-          </div>
-
-          {/* Row 2: Full width Total Paid Out */}
-          <div className="col-span-12">
-            <MetricCard
-              label="Total Paid Out"
-              numericValue={stats?.totalPaidOut ?? 0}
-              formatValue={formatCurrency}
-              subtext="47 affiliates across all campaigns"
-              delta={paidOutDelta}
-              isLoading={!stats}
-              variant="gray"
-              icon={<Wallet className="w-4 h-4" />}
-            />
-          </div>
+        {/* Metric Cards Grid - 4 columns */}
+        <FadeIn className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <MetricCard
+            label="MRR Influenced"
+            numericValue={stats?.mrrInfluenced ?? 0}
+            formatValue={formatCurrency}
+            subtext={stats ? `from ${stats.activeAffiliatesCount} active affiliates` : "—"}
+            delta={mrrDelta}
+            isLoading={!stats}
+            variant="blue"
+            icon={<TrendingUp className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Pending"
+            numericValue={stats?.pendingCommissionsValue ?? 0}
+            formatValue={formatCurrency}
+            subtext={stats ? `${stats.pendingCommissionsCount} pending` : "—"}
+            delta={{ value: 0, isPositive: true, label: "vs last week" }}
+            isLoading={!stats}
+            variant="yellow"
+            icon={<Clock className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Affiliates"
+            numericValue={stats?.activeAffiliatesCount ?? 0}
+            subtext="3 pending"
+            delta={affiliatesDelta}
+            isLoading={!stats}
+            variant="green"
+            icon={<Users className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Total Paid Out"
+            numericValue={stats?.totalPaidOut ?? 0}
+            formatValue={formatCurrency}
+            subtext="47 affiliates across all campaigns"
+            delta={paidOutDelta}
+            isLoading={!stats}
+            variant="gray"
+            icon={<Wallet className="w-4 h-4" />}
+          />
         </FadeIn>
 
         {/* Main Content Grid - 1fr 340px with generous gap */}

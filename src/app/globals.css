@@ -420,6 +420,15 @@
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2;
   }
 
+  /* ── Delta Arrow Bounce ── */
+  .animate-bounce-up {
+    animation: bounceUp 2s ease-in-out infinite;
+  }
+
+  .animate-bounce-down {
+    animation: bounceDown 2s ease-in-out infinite;
+  }
+
   /* ── Button Motion ── */
   /* Subtle hover lift, click press-down, and icon slide — applied to all <Button> components */
   .btn-motion {
@@ -490,4 +499,16 @@
 @keyframes subtle-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }
+}
+
+@keyframes bounceUp {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+  60% { transform: translateY(0); }
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(3px); }
+  60% { transform: translateY(0); }
 }

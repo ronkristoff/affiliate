@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   DataTable,
   AvatarCell,
@@ -30,10 +31,33 @@ export function TopAffiliatesTable({
   affiliates,
   isLoading = false,
 }: TopAffiliatesTableProps) {
+  const [sortBy, setSortBy] = useState<string>();
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">();
+
+  // Client-side sort — DataTable skips sorting when onSortChange is provided
+  const sortedData = (() => {
+    if (!sortBy || !sortOrder) return affiliates;
+    const field = sortBy as keyof Affiliate;
+    const direction = sortOrder === "asc" ? 1 : -1;
+    return [...affiliates].sort((a, b) => {
+      const aVal = a[field];
+      const bVal = b[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return (aVal - bVal) * direction;
+      }
+      return String(aVal).localeCompare(String(bVal)) * direction;
+    });
+  })();
+
   const columns: TableColumn<Affiliate>[] = [
     {
       key: "affiliate",
       header: "Affiliate",
+      sortable: true,
+      sortField: "name",
       cell: (row) => (
         <div className="flex items-center gap-2">
           <AvatarCell name={row.name} email={row.handle ? `@${row.handle}` : row.email} size="sm" />
@@ -72,6 +96,8 @@ export function TopAffiliatesTable({
     {
       key: "status",
       header: "Status",
+      sortable: true,
+      sortField: "status",
       cell: (row) => <StatusBadgeCell status={row.status} />,
       width: 100,
     },
@@ -81,11 +107,17 @@ export function TopAffiliatesTable({
     <div className="card-body">
       <DataTable
         columns={columns}
-        data={affiliates}
+        data={sortedData}
         getRowId={(row) => row._id}
         isLoading={isLoading}
         emptyMessage="No affiliates yet"
         className="rounded-none border-0"
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(field, order) => {
+          setSortBy(field);
+          setSortOrder(order);
+        }}
       />
     </div>
   );
