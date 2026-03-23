@@ -57,6 +57,8 @@ import type * as emails_verifyEmail from "../emails/verifyEmail.js";
 import type * as emails_verifyOTP from "../emails/verifyOTP.js";
 import type * as encryption from "../encryption.js";
 import type * as fraudDetection from "../fraudDetection.js";
+import type * as fraudDetectionMigration from "../fraudDetectionMigration.js";
+import type * as fraudDetectionMigrationAction from "../fraudDetectionMigrationAction.js";
 import type * as fraudSignals from "../fraudSignals.js";
 import type * as http from "../http.js";
 import type * as migrations from "../migrations.js";
@@ -145,6 +147,8 @@ declare const fullApi: ApiFromModules<{
   "emails/verifyOTP": typeof emails_verifyOTP;
   encryption: typeof encryption;
   fraudDetection: typeof fraudDetection;
+  fraudDetectionMigration: typeof fraudDetectionMigration;
+  fraudDetectionMigrationAction: typeof fraudDetectionMigrationAction;
   fraudSignals: typeof fraudSignals;
   http: typeof http;
   migrations: typeof migrations;

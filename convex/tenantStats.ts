@@ -228,16 +228,13 @@ export const backfillStats = internalMutation({
       if (c.status === "pending") {
         commissionsPendingCount++;
         commissionsPendingValue += c.amount;
-      } else if (c.status === "approved") {
+      } else if (c.status === "reversed") {
         if (c._creationTime >= monthStart) {
           commissionsReversedThisMonth++;
           commissionsReversedValueThisMonth += c.amount;
         }
       }
-      if (c.fraudIndicators && c.fraudIndicators.length > 0) {
-        commissionsFlagged++;
-      }
-      if (c.isSelfReferral === true) {
+      if ((c.fraudIndicators && c.fraudIndicators.length > 0) || c.isSelfReferral === true) {
         commissionsFlagged++;
       }
     }

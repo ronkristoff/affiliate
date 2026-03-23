@@ -8,6 +8,14 @@ import { api, internal } from "./_generated/api";
 import { updateAffiliateCount } from "./tenantStats";
 
 /**
+ * Generate a unique signal ID for fraud signals.
+ * Duplicated from fraudDetection.ts — Convex queries/mutations can't share code via dynamic imports.
+ */
+function generateSignalId(): string {
+  return `sig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/**
  * Generate a unique referral code for an affiliate.
  * Format: 8-character alphanumeric code.
  */
@@ -1402,6 +1410,7 @@ export const setAffiliateStatus = mutation({
         severity: "high",
         timestamp: Date.now(),
         details: args.reason,
+        signalId: generateSignalId(),
       });
       await ctx.db.patch(args.affiliateId, { fraudSignals });
     }
@@ -1488,6 +1497,7 @@ export const suspendAffiliate = mutation({
         severity: "high",
         timestamp: Date.now(),
         details: args.reason,
+        signalId: generateSignalId(),
       });
       await ctx.db.patch(args.affiliateId, { fraudSignals });
     }
@@ -2808,6 +2818,7 @@ export const addFraudSignalInternal = internalMutation({
       timestamp: Date.now(),
       details: args.details,
       commissionId: args.commissionId,
+      signalId: generateSignalId(),
     };
     
     await ctx.db.patch(args.affiliateId, {

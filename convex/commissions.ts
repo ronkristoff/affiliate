@@ -205,6 +205,7 @@ export const createCommissionFromConversionInternal = internalMutation({
     // Story 5.6: Self-referral detection
     let isSelfReferral = false;
     let matchedIndicators: string[] = [];
+    let totalScore = 0;
     
     // Check if conversion has fraud detection data (ipAddress, deviceFingerprint, etc.)
     const conversion = await ctx.db.get(args.conversionId);
@@ -212,7 +213,7 @@ export const createCommissionFromConversionInternal = internalMutation({
       // Only run detection if conversion has tracking data
       if (conversion.ipAddress || conversion.deviceFingerprint || conversion.customerEmail) {
         // Run self-referral detection
-        const detectionResult: { isSelfReferral: boolean; matchedIndicators: string[] } = await ctx.runQuery(
+        const detectionResult: { isSelfReferral: boolean; matchedIndicators: string[]; totalScore: number } = await ctx.runQuery(
           internal.fraudDetection.detectSelfReferral as any,
           {
             tenantId: args.tenantId,
@@ -223,6 +224,7 @@ export const createCommissionFromConversionInternal = internalMutation({
         
         isSelfReferral = detectionResult.isSelfReferral;
         matchedIndicators = detectionResult.matchedIndicators;
+        totalScore = detectionResult.totalScore;
         
         if (isSelfReferral) {
           console.log(`Self-referral detected! Indicators: ${matchedIndicators.join(", ")}`);
@@ -316,6 +318,7 @@ export const createCommissionFromConversionInternal = internalMutation({
           affiliateId: args.affiliateId,
           matchedIndicators,
           commissionId,
+          totalScore,
         });
 
         // Log security event with actual commissionId

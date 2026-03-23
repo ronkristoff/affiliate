@@ -44,6 +44,8 @@ export interface FraudSignal {
   reviewedBy?: string;
   reviewedByName?: string;
   reviewNote?: string;
+  signalId?: string;
+  commissionId?: string;
 }
 
 interface FraudSignalsSectionProps {
@@ -51,7 +53,7 @@ interface FraudSignalsSectionProps {
   affiliateId: string;
   affiliateName: string;
   onViewCommission?: (commissionId: string) => void;
-  onDismissSignal?: (signalIndex: number, note?: string) => Promise<void>;
+  onDismissSignal?: (signalId: string, note?: string) => Promise<void>;
   onSuspendAffiliate?: (reason?: string) => Promise<void>;
   isLoading?: boolean;
   canManage?: boolean;
@@ -103,7 +105,7 @@ export function FraudSignalsSection({
 
   // Dismiss dialog state
   const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
-  const [selectedSignalIndex, setSelectedSignalIndex] = useState<number | null>(null);
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [selectedSignal, setSelectedSignal] = useState<FraudSignal | null>(null);
   const [dismissNote, setDismissNote] = useState("");
   const [isDismissing, setIsDismissing] = useState(false);
@@ -177,15 +179,15 @@ export function FraudSignalsSection({
       return 0;
     });
 
-  const handleDismissClick = (signal: FraudSignal, index: number) => {
+  const handleDismissClick = (signal: FraudSignal) => {
     setSelectedSignal(signal);
-    setSelectedSignalIndex(index);
+    setSelectedSignalId(signal.signalId || null);
     setDismissNote("");
     setDismissDialogOpen(true);
   };
 
   const handleDismissConfirm = async () => {
-    if (selectedSignalIndex === null || !onDismissSignal) return;
+    if (selectedSignalId === null || !onDismissSignal) return;
 
     // Require note for high severity
     if (selectedSignal?.severity === "high" && !dismissNote.trim()) {
@@ -194,9 +196,9 @@ export function FraudSignalsSection({
 
     setIsDismissing(true);
     try {
-      await onDismissSignal(selectedSignalIndex, dismissNote.trim() || undefined);
+      await onDismissSignal(selectedSignalId, dismissNote.trim() || undefined);
       setDismissDialogOpen(false);
-      setSelectedSignalIndex(null);
+      setSelectedSignalId(null);
       setSelectedSignal(null);
       setDismissNote("");
     } finally {
@@ -456,8 +458,9 @@ export function FraudSignalsSection({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDismissClick(signal, originalIndex)}
-                            disabled={isLoading}
+                            onClick={() => handleDismissClick(signal)}
+                            disabled={isLoading || !signal.signalId}
+                            title={!signal.signalId ? "Signal pending migration" : undefined}
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Dismiss

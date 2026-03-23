@@ -11,6 +11,38 @@ import { Id } from "./_generated/dataModel";
  */
 
 /**
+ * Signal weights for weighted scoring.
+ * Each matched indicator contributes its weight to the total score.
+ * Detection triggers when totalScore >= SELF_REFERRAL_THRESHOLD.
+ */
+const SIGNAL_WEIGHTS: Record<string, number> = {
+  email_match: 3,
+  ip_match: 3,
+  ip_subnet_match: 1,
+  device_match: 2,
+  payment_method_match: 2,
+  payment_processor_match: 2,
+};
+
+/**
+ * Minimum weighted score required to flag as self-referral.
+ * Calibrated for PH/SEA market where shared networks are common:
+ * - email_match alone triggers (3pts)
+ * - ip_subnet_match alone does NOT trigger (1pt)
+ * - ip_subnet_match + device_match triggers (1+2=3pts)
+ */
+const SELF_REFERRAL_THRESHOLD = 3;
+
+/**
+ * Generate a unique signal ID for fraud signals.
+ * Format: sig_{timestamp}_{random} — prefix prevents accidental collision,
+ * 11-char random suffix provides ~58 bits of entropy.
+ */
+function generateSignalId(): string {
+  return `sig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/**
  * Helper function to check if two IP addresses are in the same /24 subnet.
  */
 function isSameSubnet(ip1: string, ip2: string, subnetMask: number = 24): boolean {
@@ -35,8 +67,10 @@ function isSameSubnet(ip1: string, ip2: string, subnetMask: number = 24): boolea
  * Detect self-referral by comparing affiliate data with customer/conversion data.
  * Compares email (case-insensitive), IP address (exact or /24 subnet match),
  * device fingerprint (exact match), and payment method (last 4 digits or processor ID).
+ * Uses weighted scoring — each matched indicator contributes its weight to totalScore.
+ * Detection triggers when totalScore >= SELF_REFERRAL_THRESHOLD (3).
  * 
- * @returns { isSelfReferral: boolean, matchedIndicators: string[] }
+ * @returns { isSelfReferral: boolean, matchedIndicators: string[], totalScore: number }
  */
 export const detectSelfReferral = internalQuery({
   args: {
@@ -47,6 +81,7 @@ export const detectSelfReferral = internalQuery({
   returns: v.object({
     isSelfReferral: v.boolean(),
     matchedIndicators: v.array(v.string()),
+    totalScore: v.number(),
   }),
   handler: async (ctx, args) => {
     const matchedIndicators: string[] = [];
@@ -55,26 +90,26 @@ export const detectSelfReferral = internalQuery({
     const conversion = await ctx.db.get(args.conversionId);
     if (!conversion) {
       console.log("Self-referral detection: Conversion not found");
-      return { isSelfReferral: false, matchedIndicators: [] };
+      return { isSelfReferral: false, matchedIndicators: [], totalScore: 0 };
     }
 
     // Verify conversion belongs to the same tenant
     if (conversion.tenantId !== args.tenantId) {
       console.log("Self-referral detection: Conversion tenant mismatch");
-      return { isSelfReferral: false, matchedIndicators: [] };
+      return { isSelfReferral: false, matchedIndicators: [], totalScore: 0 };
     }
 
     // 2. Fetch affiliate data
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate) {
       console.log("Self-referral detection: Affiliate not found");
-      return { isSelfReferral: false, matchedIndicators: [] };
+      return { isSelfReferral: false, matchedIndicators: [], totalScore: 0 };
     }
 
     // Verify affiliate belongs to the same tenant
     if (affiliate.tenantId !== args.tenantId) {
       console.log("Self-referral detection: Affiliate tenant mismatch");
-      return { isSelfReferral: false, matchedIndicators: [] };
+      return { isSelfReferral: false, matchedIndicators: [], totalScore: 0 };
     }
 
     // 3. Compare email (case-insensitive)
@@ -116,18 +151,23 @@ export const detectSelfReferral = internalQuery({
       }
     }
 
-    // Threshold: Any 1+ match = self-referral detected
-    const isSelfReferral = matchedIndicators.length >= 1;
+    // Weighted scoring: sum weights of matched indicators
+    const totalScore = matchedIndicators.reduce(
+      (sum, indicator) => sum + (SIGNAL_WEIGHTS[indicator] ?? 1),
+      0
+    );
+    const isSelfReferral = totalScore >= SELF_REFERRAL_THRESHOLD;
 
-    console.log(`Self-referral detection result: isSelfReferral=${isSelfReferral}, indicators=${JSON.stringify(matchedIndicators)}`);
+    console.log(`Self-referral detection result: isSelfReferral=${isSelfReferral}, totalScore=${totalScore}, threshold=${SELF_REFERRAL_THRESHOLD}, indicators=${JSON.stringify(matchedIndicators)}`);
 
-    return { isSelfReferral, matchedIndicators };
+    return { isSelfReferral, matchedIndicators, totalScore };
   },
 });
 
 /**
  * Internal mutation to add a fraud signal to an affiliate record.
  * This adds a self-referral fraud signal to the embedded fraudSignals array.
+ * Includes dedup guard: skips if a signal with same type + commissionId + severity exists.
  */
 export const addSelfReferralFraudSignal = internalMutation({
   args: {
@@ -135,6 +175,7 @@ export const addSelfReferralFraudSignal = internalMutation({
     affiliateId: v.id("affiliates"),
     matchedIndicators: v.array(v.string()),
     commissionId: v.optional(v.id("commissions")),
+    totalScore: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -153,16 +194,31 @@ export const addSelfReferralFraudSignal = internalMutation({
     // Get existing fraud signals or initialize empty array
     const fraudSignals = affiliate.fraudSignals || [];
 
+    // Dedup guard: check if a signal with same type + commissionId + severity already exists
+    const isDuplicate = fraudSignals.some(
+      (s: any) => s.type === "selfReferral"
+        && s.commissionId === args.commissionId
+        && s.severity === "high"
+    );
+    if (isDuplicate) {
+      console.log(`Duplicate self-referral signal skipped for affiliate ${args.affiliateId}`);
+      return null;
+    }
+
     // Create the fraud signal
     const fraudSignal = {
       type: "selfReferral",
       severity: "high", // Self-referral is serious fraud
       timestamp: Date.now(),
+      signalId: generateSignalId(),
       details: JSON.stringify({
         matchedIndicators: args.matchedIndicators,
         commissionId: args.commissionId,
         detectedAt: new Date().toISOString(),
+        totalScore: args.totalScore,
+        threshold: SELF_REFERRAL_THRESHOLD,
       }),
+      commissionId: args.commissionId,
     };
 
     // Add to fraud signals array
@@ -171,41 +227,9 @@ export const addSelfReferralFraudSignal = internalMutation({
     // Update the affiliate record
     await ctx.db.patch(args.affiliateId, { fraudSignals });
 
-    console.log(`Added self-referral fraud signal to affiliate ${args.affiliateId}`);
+    console.log(`Added self-referral fraud signal to affiliate ${args.affiliateId} (signalId=${fraudSignal.signalId})`);
 
     return null;
-  },
-});
-
-/**
- * Query to check if a conversion has already been flagged as self-referral.
- * Used to prevent duplicate fraud signal creation.
- */
-export const isConversionSelfReferred = internalQuery({
-  args: {
-    conversionId: v.id("conversions"),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const conversion = await ctx.db.get(args.conversionId);
-    if (!conversion) {
-      return false;
-    }
-
-    // Query commissions for this conversion
-    const commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_conversion", (q) => q.eq("conversionId", args.conversionId))
-      .collect();
-
-    // Check if any commission for this conversion is flagged as self-referral
-    for (const commission of commissions) {
-      if (commission.isSelfReferral === true) {
-        return true;
-      }
-    }
-
-    return false;
   },
 });
 

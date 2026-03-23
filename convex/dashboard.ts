@@ -317,7 +317,7 @@ export const getRecentActivity = query({
       
       for (const signal of affiliate.fraudSignals) {
         if (signal.timestamp < startDate || signal.timestamp > endDate) continue;
-        if (signal.type !== "self_referral_detected") continue;
+        if (signal.type !== "selfReferral") continue;
 
         activities.push({
           _id: `fraud_${affiliate._id}_${signal.timestamp}`,

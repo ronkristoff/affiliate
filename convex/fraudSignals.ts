@@ -4,6 +4,7 @@ import { getTenantId, requireTenantId, getAuthenticatedUser } from "./tenantCont
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 type FraudSignalSeverity = "low" | "medium" | "high";
 type FraudSignalType = "selfReferral" | "botTraffic" | "ipAnomaly" | "manual_suspension";
@@ -56,6 +57,24 @@ interface FraudSignal {
   reviewedAt?: number;
   reviewedBy?: string;
   reviewNote?: string;
+  signalId?: string;
+  commissionId?: Id<"commissions">;
+}
+
+/**
+ * Helper to find a signal by its stable signalId.
+ * Returns the array index and signal, or null if not found.
+ */
+function findSignalBySignalId(
+  signals: FraudSignal[],
+  signalId: string
+): { index: number; signal: FraudSignal } | null {
+  for (let i = 0; i < signals.length; i++) {
+    if (signals[i].signalId === signalId) {
+      return { index: i, signal: signals[i] };
+    }
+  }
+  return null;
 }
 
 /**
@@ -78,6 +97,8 @@ export const getAffiliateFraudSignals = query({
       reviewedBy: v.optional(v.string()),
       reviewedByName: v.optional(v.string()),
       reviewNote: v.optional(v.string()),
+      signalId: v.optional(v.string()),
+      commissionId: v.optional(v.id("commissions")),
     })
   ),
   handler: async (ctx, args) => {
@@ -164,7 +185,7 @@ export const getAffiliateFraudSignals = query({
       }
     }
 
-    // Map signals with resolved reviewer names
+    // Map signals with resolved reviewer names, signalId, and commissionId
     return fraudSignals.map((signal: FraudSignal) => ({
       type: signal.type,
       severity: signal.severity as FraudSignalSeverity,
@@ -174,12 +195,15 @@ export const getAffiliateFraudSignals = query({
       reviewedBy: signal.reviewedBy,
       reviewedByName: signal.reviewedBy ? reviewerMap[signal.reviewedBy] : undefined,
       reviewNote: signal.reviewNote,
+      signalId: signal.signalId,
+      commissionId: signal.commissionId,
     }));
   },
 });
 
 /**
  * Dismiss a fraud signal by marking it as reviewed.
+ * Uses stable signalId for lookup instead of array index.
  * Adds review timestamp, reviewer ID, and optional note.
  * @security Requires authentication. Requires 'affiliates:manage' permission.
  * @security Validates tenant ownership of the fraud signal.
@@ -187,7 +211,7 @@ export const getAffiliateFraudSignals = query({
 export const dismissFraudSignal = mutation({
   args: {
     affiliateId: v.id("affiliates"),
-    signalIndex: v.number(), // Index in the fraudSignals array
+    signalId: v.string(),
     note: v.optional(v.string()),
   },
   returns: v.null(),
@@ -212,7 +236,7 @@ export const dismissFraudSignal = mutation({
         actorType: "user",
         metadata: {
           securityEvent: true,
-          additionalInfo: `attemptedPermission=affiliates:manage, attemptedAction=dismissFraudSignal, signalIndex=${args.signalIndex}`,
+          additionalInfo: `attemptedPermission=affiliates:manage, attemptedAction=dismissFraudSignal, signalId=${args.signalId}`,
         },
       });
       throw new Error("Access denied: You require 'affiliates:manage' permission to dismiss fraud signals");
@@ -227,15 +251,13 @@ export const dismissFraudSignal = mutation({
       throw new Error("Affiliate not found or access denied");
     }
 
-    // Get current fraud signals
+    // Get current fraud signals and find by signalId
     const fraudSignals: FraudSignal[] = affiliate.fraudSignals || [];
-
-    // Validate signal index
-    if (args.signalIndex < 0 || args.signalIndex >= fraudSignals.length) {
+    const found = findSignalBySignalId(fraudSignals, args.signalId);
+    if (!found) {
       throw new Error("Fraud signal not found");
     }
-
-    const signal = fraudSignals[args.signalIndex];
+    const { index: signalIndex, signal } = found;
 
     // Check if already reviewed
     if (signal.reviewedAt) {
@@ -254,7 +276,7 @@ export const dismissFraudSignal = mutation({
 
     // Update the signal with review information
     const updatedSignals = [...fraudSignals];
-    updatedSignals[args.signalIndex] = {
+    updatedSignals[signalIndex] = {
       ...signal,
       reviewedAt: Date.now(),
       reviewedBy: authUser.userId,
@@ -283,7 +305,7 @@ export const dismissFraudSignal = mutation({
       },
       metadata: {
         securityEvent: true,
-        additionalInfo: `signalIndex=${args.signalIndex}, affiliateId=${args.affiliateId}`,
+        additionalInfo: `signalId=${args.signalId}, affiliateId=${args.affiliateId}`,
       },
     });
 
@@ -293,6 +315,7 @@ export const dismissFraudSignal = mutation({
 
 /**
  * Suspend an affiliate from a fraud signal view.
+ * Uses stable signalId for lookup instead of array index.
  * Wrapper around suspendAffiliate that adds fraud signal context to audit log.
  * @security Requires authentication. Requires 'affiliates:manage' permission.
  * @security Validates tenant ownership.
@@ -300,7 +323,7 @@ export const dismissFraudSignal = mutation({
 export const suspendAffiliateFromFraudSignal = mutation({
   args: {
     affiliateId: v.id("affiliates"),
-    signalIndex: v.optional(v.number()), // Optional: specific fraud signal that triggered suspension
+    signalId: v.optional(v.string()),
     reason: v.optional(v.string()),
   },
   returns: v.null(),
@@ -346,10 +369,11 @@ export const suspendAffiliateFromFraudSignal = mutation({
 
     // Get fraud signal details if provided
     let fraudSignalDetails: FraudSignal | null = null;
-    if (args.signalIndex !== undefined) {
+    if (args.signalId !== undefined) {
       const fraudSignals: FraudSignal[] = affiliate.fraudSignals || [];
-      if (args.signalIndex >= 0 && args.signalIndex < fraudSignals.length) {
-        fraudSignalDetails = fraudSignals[args.signalIndex];
+      const found = findSignalBySignalId(fraudSignals, args.signalId);
+      if (found) {
+        fraudSignalDetails = found.signal;
       }
     }
 
@@ -377,7 +401,7 @@ export const suspendAffiliateFromFraudSignal = mutation({
       },
       metadata: {
         securityEvent: true,
-        additionalInfo: `signalIndex=${args.signalIndex || 'none'}, affiliateId=${args.affiliateId}`,
+        additionalInfo: `signalId=${args.signalId || 'none'}, affiliateId=${args.affiliateId}`,
       },
     });
 
@@ -440,12 +464,13 @@ export const getFraudSignalStats = query({
 
 /**
  * Internal mutation to mark a fraud signal as reviewed.
+ * Uses stable signalId for lookup instead of array index.
  * Used by system processes when automatic actions are taken.
  */
 export const markFraudSignalReviewed = internalMutation({
   args: {
     affiliateId: v.id("affiliates"),
-    signalIndex: v.number(),
+    signalId: v.string(),
     reviewedBy: v.optional(v.string()),
     reviewNote: v.optional(v.string()),
   },
@@ -457,14 +482,14 @@ export const markFraudSignalReviewed = internalMutation({
     }
 
     const fraudSignals: FraudSignal[] = affiliate.fraudSignals || [];
-
-    if (args.signalIndex < 0 || args.signalIndex >= fraudSignals.length) {
+    const found = findSignalBySignalId(fraudSignals, args.signalId);
+    if (!found) {
       return null;
     }
 
     const updatedSignals = [...fraudSignals];
-    updatedSignals[args.signalIndex] = {
-      ...updatedSignals[args.signalIndex],
+    updatedSignals[found.index] = {
+      ...updatedSignals[found.index],
       reviewedAt: Date.now(),
       reviewedBy: args.reviewedBy || "system",
       reviewNote: args.reviewNote,

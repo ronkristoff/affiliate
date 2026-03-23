@@ -77,9 +77,9 @@ export default function AffiliateDetailPage() {
   };
 
   // Fraud signal handlers
-  const handleDismissFraudSignal = async (signalIndex: number, note?: string) => {
+  const handleDismissFraudSignal = async (signalId: string, note?: string) => {
     try {
-      await dismissFraudSignal({ affiliateId, signalIndex, note });
+      await dismissFraudSignal({ affiliateId, signalId, note });
       toast.success("Fraud signal dismissed successfully");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to dismiss fraud signal");

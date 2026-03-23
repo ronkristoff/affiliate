@@ -648,3 +648,393 @@ describe("Audit Trail (Task 9)", () => {
     expect((entry.newValue as { triggeredByFraudSignal: boolean }).triggeredByFraudSignal).toBe(true);
   });
 });
+
+// ============================================================================
+// NEW TEST SUITES: Fraud Engine Hardening
+// ============================================================================
+
+/**
+ * Simulated constants matching fraudDetection.ts
+ */
+const SIGNAL_WEIGHTS: Record<string, number> = {
+  email_match: 3,
+  ip_match: 3,
+  ip_subnet_match: 1,
+  device_match: 2,
+  payment_method_match: 2,
+  payment_processor_match: 2,
+};
+
+const SELF_REFERRAL_THRESHOLD = 3;
+
+/**
+ * Simulates the weighted scoring logic from detectSelfReferral in fraudDetection.ts
+ */
+const calculateSelfReferralScore = (matchedIndicators: string[]) => {
+  const totalScore = matchedIndicators.reduce(
+    (sum, indicator) => sum + (SIGNAL_WEIGHTS[indicator] ?? 1),
+    0
+  );
+  const isSelfReferral = totalScore >= SELF_REFERRAL_THRESHOLD;
+  return { isSelfReferral, totalScore };
+};
+
+/**
+ * Simulates generateSignalId from fraudDetection.ts
+ */
+const generateSignalId = (): string => {
+  return `sig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+};
+
+/**
+ * Simulates findSignalBySignalId from fraudSignals.ts
+ */
+interface TestFraudSignal {
+  type: string;
+  severity: string;
+  timestamp: number;
+  signalId?: string;
+  commissionId?: string;
+}
+
+const findSignalBySignalId = (
+  signals: TestFraudSignal[],
+  signalId: string
+): { index: number; signal: TestFraudSignal } | null => {
+  for (let i = 0; i < signals.length; i++) {
+    if (signals[i].signalId === signalId) {
+      return { index: i, signal: signals[i] };
+    }
+  }
+  return null;
+};
+
+/**
+ * Simulates dedup guard from addSelfReferralFraudSignal in fraudDetection.ts
+ */
+const isDuplicateSelfReferralSignal = (
+  existingSignals: TestFraudSignal[],
+  commissionId: string | undefined
+): boolean => {
+  return existingSignals.some(
+    (s) => s.type === "selfReferral"
+      && s.commissionId === commissionId
+      && s.severity === "high"
+  );
+};
+
+/**
+ * Simulates backfillStats flagged counting from tenantStats.ts
+ */
+const countBackfillFlagged = (commissions: Array<{
+  fraudIndicators?: string[];
+  isSelfReferral?: boolean;
+}>): number => {
+  let count = 0;
+  for (const c of commissions) {
+    if ((c.fraudIndicators && c.fraudIndicators.length > 0) || c.isSelfReferral === true) {
+      count++;
+    }
+  }
+  return count;
+};
+
+/**
+ * Simulates backfillStats reversed counting from tenantStats.ts
+ */
+const countBackfillReversed = (
+  commissions: Array<{ status: string; _creationTime: number }>,
+  monthStart: number
+): number => {
+  let count = 0;
+  for (const c of commissions) {
+    if (c.status === "reversed" && c._creationTime >= monthStart) {
+      count++;
+    }
+  }
+  return count;
+};
+
+// ============================================================================
+// Suite 1: Weighted Scoring (AC 1, 2, 3, 17)
+// ============================================================================
+
+describe("Weighted Scoring (AC 1-3, 17)", () => {
+  it("AC1: email_match alone → score=3 → triggers", () => {
+    const result = calculateSelfReferralScore(["email_match"]);
+    expect(result.totalScore).toBe(3);
+    expect(result.isSelfReferral).toBe(true);
+  });
+
+  it("AC1: ip_match alone → score=3 → triggers", () => {
+    const result = calculateSelfReferralScore(["ip_match"]);
+    expect(result.totalScore).toBe(3);
+    expect(result.isSelfReferral).toBe(true);
+  });
+
+  it("AC2: ip_subnet_match alone → score=1 → does NOT trigger", () => {
+    const result = calculateSelfReferralScore(["ip_subnet_match"]);
+    expect(result.totalScore).toBe(1);
+    expect(result.isSelfReferral).toBe(false);
+  });
+
+  it("AC3: device_match alone → score=2 → does NOT trigger", () => {
+    const result = calculateSelfReferralScore(["device_match"]);
+    expect(result.totalScore).toBe(2);
+    expect(result.isSelfReferral).toBe(false);
+  });
+
+  it("AC3: ip_subnet_match + device_match → score=3 → triggers", () => {
+    const result = calculateSelfReferralScore(["ip_subnet_match", "device_match"]);
+    expect(result.totalScore).toBe(3);
+    expect(result.isSelfReferral).toBe(true);
+  });
+
+  it("ip_subnet_match + payment_method_match → score=3 → triggers", () => {
+    const result = calculateSelfReferralScore(["ip_subnet_match", "payment_method_match"]);
+    expect(result.totalScore).toBe(3);
+    expect(result.isSelfReferral).toBe(true);
+  });
+
+  it("empty indicators → score=0 → does NOT trigger", () => {
+    const result = calculateSelfReferralScore([]);
+    expect(result.totalScore).toBe(0);
+    expect(result.isSelfReferral).toBe(false);
+  });
+
+  it("all indicators → high score → triggers", () => {
+    const all = ["email_match", "ip_match", "ip_subnet_match", "device_match", "payment_method_match", "payment_processor_match"];
+    const result = calculateSelfReferralScore(all);
+    expect(result.totalScore).toBe(13);
+    expect(result.isSelfReferral).toBe(true);
+  });
+
+  it("payment_processor_match alone → score=2 → does NOT trigger", () => {
+    const result = calculateSelfReferralScore(["payment_processor_match"]);
+    expect(result.totalScore).toBe(2);
+    expect(result.isSelfReferral).toBe(false);
+  });
+
+  it("email_match + ip_subnet_match → score=4 → triggers", () => {
+    const result = calculateSelfReferralScore(["email_match", "ip_subnet_match"]);
+    expect(result.totalScore).toBe(4);
+    expect(result.isSelfReferral).toBe(true);
+  });
+});
+
+// ============================================================================
+// Suite 2: Dedup Guard (AC 4, 5)
+// ============================================================================
+
+describe("Dedup Guard (AC 4-5)", () => {
+  it("AC4: same type + commissionId + severity → skip (return true for duplicate)", () => {
+    const existing: TestFraudSignal[] = [
+      { type: "selfReferral", severity: "high", timestamp: 1000, commissionId: "comm_1", signalId: "sig_1" },
+    ];
+    expect(isDuplicateSelfReferralSignal(existing, "comm_1")).toBe(true);
+  });
+
+  it("AC5: same type + commissionId, different severity → allow (not duplicate)", () => {
+    const existing: TestFraudSignal[] = [
+      { type: "selfReferral", severity: "medium", timestamp: 1000, commissionId: "comm_1" },
+    ];
+    expect(isDuplicateSelfReferralSignal(existing, "comm_1")).toBe(false);
+  });
+
+  it("AC5: same type, different commissionId → allow (not duplicate)", () => {
+    const existing: TestFraudSignal[] = [
+      { type: "selfReferral", severity: "high", timestamp: 1000, commissionId: "comm_1", signalId: "sig_1" },
+    ];
+    expect(isDuplicateSelfReferralSignal(existing, "comm_2")).toBe(false);
+  });
+
+  it("AC5: empty existing signals → allow (not duplicate)", () => {
+    expect(isDuplicateSelfReferralSignal([], "comm_1")).toBe(false);
+  });
+
+  it("AC5: different type entirely → allow (not duplicate)", () => {
+    const existing: TestFraudSignal[] = [
+      { type: "botTraffic", severity: "high", timestamp: 1000, commissionId: "comm_1" },
+    ];
+    expect(isDuplicateSelfReferralSignal(existing, "comm_1")).toBe(false);
+  });
+});
+
+// ============================================================================
+// Suite 3: Signal ID Generation (AC 8)
+// ============================================================================
+
+describe("Signal ID Generation (AC 8)", () => {
+  it("generates non-empty string prefixed with sig_", () => {
+    const id = generateSignalId();
+    expect(typeof id).toBe("string");
+    expect(id.length).toBeGreaterThan(4);
+    expect(id.startsWith("sig_")).toBe(true);
+  });
+
+  it("generates unique values across 1000 iterations", () => {
+    const ids = new Set<string>();
+    for (let i = 0; i < 1000; i++) {
+      ids.add(generateSignalId());
+    }
+    expect(ids.size).toBe(1000);
+  });
+
+  it("format matches sig_timestamp_randomstring pattern", () => {
+    const id = generateSignalId();
+    // Format: sig_{digits}_{alphanumeric}
+    const match = id.match(/^sig_\d+_[a-z0-9]+$/);
+    expect(match).not.toBeNull();
+  });
+});
+
+// ============================================================================
+// Suite 4: Signal ID Lookup (AC 6, 7)
+// ============================================================================
+
+describe("Signal ID Lookup (AC 6-7)", () => {
+  const signals: TestFraudSignal[] = [
+    { type: "selfReferral", severity: "high", timestamp: 1000, signalId: "sig_abc123" },
+    { type: "botTraffic", severity: "medium", timestamp: 2000, signalId: "sig_def456" },
+    { type: "ipAnomaly", severity: "low", timestamp: 3000, signalId: "sig_ghi789" },
+  ];
+
+  it("AC6: finds signal by signalId, returns correct index and signal", () => {
+    const result = findSignalBySignalId(signals, "sig_def456");
+    expect(result).not.toBeNull();
+    expect(result!.index).toBe(1);
+    expect(result!.signal.type).toBe("botTraffic");
+    expect(result!.signal.severity).toBe("medium");
+  });
+
+  it("AC7: returns null for non-existent signalId", () => {
+    const result = findSignalBySignalId(signals, "sig_nonexistent");
+    expect(result).toBeNull();
+  });
+
+  it("returns null for empty signals array", () => {
+    const result = findSignalBySignalId([], "sig_abc123");
+    expect(result).toBeNull();
+  });
+
+  it("handles signals without signalId (returns null — not matched)", () => {
+    const mixedSignals: TestFraudSignal[] = [
+      { type: "selfReferral", severity: "high", timestamp: 1000 }, // no signalId
+      { type: "botTraffic", severity: "medium", timestamp: 2000, signalId: "sig_def456" },
+    ];
+    const result = findSignalBySignalId(mixedSignals, "sig_abc123");
+    expect(result).toBeNull();
+  });
+
+  it("AC6: finds first signal by signalId", () => {
+    const result = findSignalBySignalId(signals, "sig_abc123");
+    expect(result).not.toBeNull();
+    expect(result!.index).toBe(0);
+    expect(result!.signal.type).toBe("selfReferral");
+  });
+});
+
+// ============================================================================
+// Suite 5: Backfill Counting (AC 12)
+// ============================================================================
+
+describe("Backfill Counting (AC 12)", () => {
+  it("AC12: commission with fraudIndicators only → counts 1", () => {
+    const commissions = [
+      { fraudIndicators: ["email_match"], isSelfReferral: undefined },
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(1);
+  });
+
+  it("AC12: commission with isSelfReferral only → counts 1", () => {
+    const commissions = [
+      { fraudIndicators: undefined, isSelfReferral: true },
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(1);
+  });
+
+  it("AC12: commission with BOTH → counts 1 (not 2)", () => {
+    const commissions = [
+      { fraudIndicators: ["email_match"], isSelfReferral: true },
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(1);
+  });
+
+  it("AC12: commission with neither → counts 0", () => {
+    const commissions = [
+      { fraudIndicators: undefined, isSelfReferral: undefined },
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(0);
+  });
+
+  it("AC12: empty fraudIndicators array does NOT count", () => {
+    const commissions = [
+      { fraudIndicators: [], isSelfReferral: false },
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(0);
+  });
+
+  it("AC12: mixed commissions count correctly", () => {
+    const commissions = [
+      { fraudIndicators: ["email_match"], isSelfReferral: false },    // counts 1
+      { fraudIndicators: [], isSelfReferral: true },                 // counts 1
+      { fraudIndicators: ["ip_match"], isSelfReferral: true },       // counts 1 (not 2)
+      { fraudIndicators: [], isSelfReferral: false },                // counts 0
+    ];
+    expect(countBackfillFlagged(commissions)).toBe(3);
+  });
+});
+
+// ============================================================================
+// Suite 6: Backfill Reversed Status (AC 13)
+// ============================================================================
+
+describe("Backfill Reversed Status (AC 13)", () => {
+  const monthStart = 1700000000000; // Nov 2023
+
+  it("AC13: status === 'reversed' within month → counts as reversed", () => {
+    const commissions = [
+      { status: "reversed", _creationTime: monthStart + 1000 },
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(1);
+  });
+
+  it("AC13: status === 'approved' within month → does NOT count as reversed", () => {
+    const commissions = [
+      { status: "approved", _creationTime: monthStart + 1000 },
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(0);
+  });
+
+  it("AC13: status === 'reversed' outside month → does NOT count", () => {
+    const commissions = [
+      { status: "reversed", _creationTime: monthStart - 1000 },
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(0);
+  });
+
+  it("AC13: status === 'pending' → does NOT count as reversed", () => {
+    const commissions = [
+      { status: "pending", _creationTime: monthStart + 1000 },
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(0);
+  });
+
+  it("AC13: status === 'declined' → does NOT count as reversed", () => {
+    const commissions = [
+      { status: "declined", _creationTime: monthStart + 1000 },
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(0);
+  });
+
+  it("AC13: mixed statuses count correctly", () => {
+    const commissions = [
+      { status: "reversed", _creationTime: monthStart + 1000 },      // counts
+      { status: "approved", _creationTime: monthStart + 2000 },      // does NOT count
+      { status: "reversed", _creationTime: monthStart - 1000 },      // outside month
+      { status: "reversed", _creationTime: monthStart + 3000 },      // counts
+      { status: "pending", _creationTime: monthStart + 4000 },       // does NOT count
+    ];
+    expect(countBackfillReversed(commissions, monthStart)).toBe(2);
+  });
+});

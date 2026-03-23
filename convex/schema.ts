@@ -197,6 +197,7 @@ export default defineSchema({
       reviewedBy: v.optional(v.string()),
       reviewNote: v.optional(v.string()),
       commissionId: v.optional(v.id("commissions")),  // Link to related commission (Story 7.4)
+      signalId: v.optional(v.string()),  // Stable ID for signal lookup (fraud engine hardening)
     }))),
     commissionOverrides: v.optional(v.array(v.object({
       campaignId: v.id("campaigns"),
