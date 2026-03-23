@@ -86,7 +86,23 @@ export function AnimatedCount({
     return animate();
   }, [animate]);
 
-  const display = format ? format(current) : current.toLocaleString();
+  let display: string | React.ReactNode = format
+    ? format(current)
+    : current.toLocaleString();
+
+  // Add a thin space between currency symbol and number (e.g. "₱12,500" → "₱ 12,500")
+  if (typeof display === "string" && /^[\p{Sc}]/u.test(display)) {
+    const parts = display.match(/^([\p{Sc}]+)(.*)$/u);
+    if (parts) {
+      display = (
+        <>
+          {parts[1]}
+          {"\u2009"}
+          {parts[2]}
+        </>
+      );
+    }
+  }
 
   return <span className={className}>{display}</span>;
 }

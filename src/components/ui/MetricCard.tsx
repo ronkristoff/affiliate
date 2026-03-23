@@ -140,7 +140,7 @@ export function MetricCard({
             delay={200}
           />
         ) : (
-          <>{prefix}{value}</>
+          <>{prefix}&thinsp;{value}</>
         )}
       </p>
 
