@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 
 export default function SignIn() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -104,8 +106,9 @@ export default function SignIn() {
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {
-              // Route to dashboard — (auth)/layout.tsx will redirect admins to /tenants
-              router.push("/dashboard");
+              // Redirect to the callback URL if present (e.g. /tenants for admins),
+              // otherwise fall back to /dashboard
+              router.push(callbackUrl || "/dashboard");
             }
           },
           onError: async (ctx) => {
