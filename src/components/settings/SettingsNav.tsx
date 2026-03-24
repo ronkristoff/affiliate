@@ -9,11 +9,8 @@ import {
   Code,
   CreditCard,
   Palette,
-  Globe,
   Mail,
 } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 
 // Available settings pages (only show implemented pages)
 const settingsLinks = [
@@ -29,8 +26,6 @@ const settingsLinks = [
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
   // Story 10.7 - Email Templates
   { href: "/settings/email-templates", label: "Email Templates", icon: Mail },
-  // Story 8.8 - Custom Domain (Scale tier only)
-  // Added dynamically based on tier
   // TODO: Enable when implemented - Future stories
   // { href: "/settings/notifications", label: "Notifications", icon: Bell },
   // { href: "/settings/api-keys", label: "API Keys", icon: Key },
@@ -43,21 +38,9 @@ interface SettingsNavProps {
 export function SettingsNav({ className }: SettingsNavProps) {
   const pathname = usePathname();
 
-  // Check if custom domain is enabled for the current tenant
-  const tierStatus = useQuery(api.tenants.getTierCustomDomainStatus);
-  const isCustomDomainEnabled = tierStatus?.isCustomDomainEnabled ?? false;
-  const isTierLoading = tierStatus === undefined;
-
-  // Build navigation items, conditionally including Domain
-  // Show Domain item in loading state until tier check completes
-  const navItems = [
-    ...settingsLinks,
-    ...(isTierLoading || isCustomDomainEnabled ? [{ href: "/settings/domain", label: "Custom Domain", icon: Globe }] : []),
-  ];
-
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
-      {navItems.map((link) => {
+      {settingsLinks.map((link) => {
         const isActive = pathname === link.href;
         const Icon = link.icon;
 

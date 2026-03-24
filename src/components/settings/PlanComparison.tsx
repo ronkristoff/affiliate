@@ -22,7 +22,7 @@ const PLAN_FEATURES = {
     campaigns: 3,
     teamMembers: 5,
     analytics: "basic",
-    customDomain: false,
+    advancedAnalytics: false,
     prioritySupport: false,
   },
   growth: {
@@ -30,7 +30,7 @@ const PLAN_FEATURES = {
     campaigns: 10,
     teamMembers: 20,
     analytics: "advanced",
-    customDomain: true,
+    advancedAnalytics: true,
     prioritySupport: false,
   },
   scale: {
@@ -38,7 +38,7 @@ const PLAN_FEATURES = {
     campaigns: "Unlimited",
     teamMembers: "Unlimited",
     analytics: "enterprise",
-    customDomain: true,
+    advancedAnalytics: true,
     prioritySupport: true,
   },
 };
@@ -48,7 +48,7 @@ const FEATURE_LABELS = {
   campaigns: "Campaigns",
   teamMembers: "Team Members",
   analytics: "Analytics",
-  customDomain: "Custom Domain",
+  advancedAnalytics: "Advanced Analytics",
   prioritySupport: "Priority Support",
 };
 
@@ -131,7 +131,7 @@ export function PlanComparison({
     "campaigns",
     "teamMembers",
     "analytics",
-    "customDomain",
+    "advancedAnalytics",
     "prioritySupport",
   ];
 

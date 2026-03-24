@@ -6,9 +6,12 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Target, UserCircle, DollarSign, Globe, BarChart3, Headphones, Building2, Edit } from "lucide-react";
+import { Loader2, Users, Target, UserCircle, DollarSign, Globe, BarChart3, Headphones, Building2, Edit, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EditTierConfigModal } from "./EditTierConfigModal";
+import { CreateTierConfigModal } from "./CreateTierConfigModal";
+import { toast } from "sonner";
+import { Id } from "@/convex/_generated/dataModel";
 
 // Tier badge color mapping
 const TIER_COLORS: Record<string, { badge: string; border: string; headerBg: string }> = {
@@ -29,6 +32,15 @@ const TIER_COLORS: Record<string, { badge: string; border: string; headerBg: str
   },
 };
 
+// Dynamic color for custom tiers
+function getTierColors(tierName: string) {
+  return TIER_COLORS[tierName] || {
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    border: "border-emerald-200",
+    headerBg: "bg-emerald-50",
+  };
+}
+
 // Limit display labels and icons
 const LIMIT_FIELDS = [
   { key: "maxAffiliates", label: "Max Affiliates", icon: Users },
@@ -38,9 +50,8 @@ const LIMIT_FIELDS = [
   { key: "maxApiCalls", label: "Max API Calls", icon: Globe },
 ] as const;
 
-// Feature gate display
+// Feature gate display (customDomain removed)
 const FEATURE_FIELDS = [
-  { key: "customDomain" as const, label: "Custom Domain", icon: Globe },
   { key: "advancedAnalytics" as const, label: "Advanced Analytics", icon: BarChart3 },
   { key: "prioritySupport" as const, label: "Priority Support", icon: Headphones },
 ] as const;
@@ -66,10 +77,14 @@ export function TierConfigClient() {
       prioritySupport: boolean;
     };
   } | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deletingTier, setDeletingTier] = useState<{ _id: Id<"tierConfigs">; tier: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const tierConfigs = useQuery(api.admin.tier_configs.getAdminTierConfigs);
+  const deleteMutation = useMutation(api.admin.tier_configs.deleteTierConfig);
 
-  // Subtask 5.7: Handle loading and error states
+  // Handle loading and error states
   if (tierConfigs === undefined) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -84,30 +99,59 @@ export function TierConfigClient() {
         <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-[#333333]">No tier configurations found</h2>
         <p className="text-sm text-[#6b7280] mt-1">
-          Tier configurations should be seeded. Please run the seed function.
+          Create your first tier to get started.
         </p>
+        <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Tier
+        </Button>
       </div>
     );
   }
 
+  const handleDelete = async (tierConfigId: Id<"tierConfigs">, tierName: string) => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteMutation({ tierConfigId });
+      if (result.success) {
+        toast.success(`${tierName.charAt(0).toUpperCase() + tierName.slice(1)} tier deleted successfully`);
+        setDeletingTier(null);
+      } else {
+        toast.error(
+          `Cannot delete: ${result.affectedTenants} tenant${result.affectedTenants !== 1 ? "s are" : " is"} currently on this tier. Reassign them first.`
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete tier");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#333333]">Tier Configuration</h1>
-        <p className="text-sm text-[#6b7280]">
-          Manage platform tier definitions, pricing, limits, and feature gates
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#333333]">Tier Configuration</h1>
+          <p className="text-sm text-[#6b7280]">
+            Manage platform tier definitions, pricing, limits, and feature gates
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Tier
+        </Button>
       </div>
 
-      {/* Subtask 5.3: Responsive card grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Responsive card grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tierConfigs.map((config) => {
-          const colors = TIER_COLORS[config.tier] || TIER_COLORS.starter;
+          const colors = getTierColors(config.tier);
 
           return (
             <Card key={config._id} className={cn("overflow-hidden", colors.border)}>
-              {/* Subtask 5.4: Tier name header with badge */}
+              {/* Tier name header with badge */}
               <CardHeader className={cn("pb-0", colors.headerBg)}>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
@@ -115,7 +159,7 @@ export function TierConfigClient() {
                       {config.tier.charAt(0).toUpperCase() + config.tier.slice(1)}
                     </Badge>
                   </CardTitle>
-                  {/* Subtask 5.6: Tenant count per tier */}
+                  {/* Tenant count per tier */}
                   <span className="text-xs text-muted-foreground">
                     {config.tenantCount} tenant{config.tenantCount !== 1 ? "s" : ""}
                   </span>
@@ -126,7 +170,7 @@ export function TierConfigClient() {
                 {/* Price */}
                 <div className="text-center py-2">
                   <span className="text-3xl font-bold text-[#10409a]">
-                    ${config.price}
+                    ₱{config.price.toLocaleString()}
                   </span>
                   <span className="text-sm text-muted-foreground">/month</span>
                 </div>
@@ -176,16 +220,25 @@ export function TierConfigClient() {
                 </div>
               </CardContent>
 
-              {/* Subtask 5.4: Edit button */}
-              <CardFooter className="pt-0">
+              {/* Edit & Delete buttons */}
+              <CardFooter className="pt-0 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="flex-1"
                   onClick={() => setEditingTier(config)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Configuration
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  onClick={() => setDeletingTier({ _id: config._id, tier: config.tier })}
+                  disabled={config.tenantCount > 0}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </CardFooter>
             </Card>
@@ -199,6 +252,52 @@ export function TierConfigClient() {
           tierConfig={editingTier}
           onClose={() => setEditingTier(null)}
         />
+      )}
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <CreateTierConfigModal
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingTier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-lg shadow-lg p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-semibold">Delete Tier</h3>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the{" "}
+              <strong>{deletingTier.tier.charAt(0).toUpperCase() + deletingTier.tier.slice(1)}</strong> tier?
+              This action cannot be undone.
+            </p>
+            {deletingTier && (
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeletingTier(null)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete(deletingTier._id, deletingTier.tier)}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

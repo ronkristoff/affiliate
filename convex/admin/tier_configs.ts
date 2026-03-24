@@ -12,15 +12,22 @@ import { requireAdmin } from "./_helpers";
 /** Maximum allowed value for any tier config field */
 const MAX_TIER_VALUE = 100000;
 
-/** Valid tier names (immutable identifiers) */
-const VALID_TIERS = ["starter", "growth", "scale"] as const;
-
-/** Tier sort order for consistent display */
-const TIER_ORDER: Record<string, number> = {
-  starter: 0,
-  growth: 1,
-  scale: 2,
-};
+/**
+ * Validate that the tier name is well-formed.
+ * Tier names must be lowercase alphanumeric with hyphens, 2-30 chars.
+ */
+export function validateTierName(tierName: string): string | undefined {
+  if (!tierName || tierName.trim().length === 0) {
+    return "Tier name is required";
+  }
+  if (tierName.length > 30) {
+    return "Tier name must be 30 characters or less";
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(tierName)) {
+    return 'Tier name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens';
+  }
+  return undefined;
+}
 
 // =============================================================================
 // Validators
@@ -109,17 +116,6 @@ export function validateTierConfigValues(values: {
   }
 
   return errors;
-}
-
-/**
- * Validate that the tier name is a known tier.
- * Tier names are immutable identifiers.
- */
-export function validateTierName(tierName: string): string | undefined {
-  if (!VALID_TIERS.includes(tierName as any)) {
-    return `Unknown tier: "${tierName}". Valid tiers are: ${VALID_TIERS.join(", ")}`;
-  }
-  return undefined;
 }
 
 /**
@@ -396,7 +392,163 @@ export const updateTierConfig = mutation({
 });
 
 // =============================================================================
-// Task 2: Admin Tier Config Query (AC: #1)
+// Task 2: Create & Delete Tier Config Mutations
+// =============================================================================
+
+/**
+ * Create a new tier configuration.
+ * Admin-only mutation that creates a new tier with pricing, limits, and feature gates.
+ */
+export const createTierConfig = mutation({
+  args: {
+    tier: v.string(),
+    price: v.number(),
+    maxAffiliates: v.number(),
+    maxCampaigns: v.number(),
+    maxTeamMembers: v.number(),
+    maxPayoutsPerMonth: v.number(),
+    maxApiCalls: v.number(),
+    features: featuresValidator,
+  },
+  returns: v.object({
+    success: v.boolean(),
+    tierConfigId: v.id("tierConfigs"),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    // Validate tier name format
+    const tierError = validateTierName(args.tier);
+    if (tierError) {
+      throw new Error(tierError);
+    }
+
+    // Check for duplicate tier name
+    const existing = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", args.tier))
+      .unique();
+
+    if (existing) {
+      throw new Error(`A tier with the name "${args.tier}" already exists`);
+    }
+
+    // Validate input values
+    const validationErrors = validateTierConfigValues({
+      price: args.price,
+      maxAffiliates: args.maxAffiliates,
+      maxCampaigns: args.maxCampaigns,
+      maxTeamMembers: args.maxTeamMembers,
+      maxPayoutsPerMonth: args.maxPayoutsPerMonth,
+      maxApiCalls: args.maxApiCalls,
+    });
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join("; "));
+    }
+
+    // Insert new tier config
+    const tierConfigId = await ctx.db.insert("tierConfigs", {
+      tier: args.tier,
+      price: args.price,
+      maxAffiliates: args.maxAffiliates,
+      maxCampaigns: args.maxCampaigns,
+      maxTeamMembers: args.maxTeamMembers,
+      maxPayoutsPerMonth: args.maxPayoutsPerMonth,
+      maxApiCalls: args.maxApiCalls,
+      features: args.features,
+    });
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: undefined,
+      action: "tier_config_created",
+      entityType: "tierConfigs",
+      entityId: tierConfigId,
+      actorId: admin.authId,
+      actorType: "admin",
+      metadata: {
+        adminId: admin._id,
+        adminEmail: admin.email,
+        tier: args.tier,
+        config: {
+          price: args.price,
+          maxAffiliates: args.maxAffiliates,
+          maxCampaigns: args.maxCampaigns,
+          maxTeamMembers: args.maxTeamMembers,
+          maxPayoutsPerMonth: args.maxPayoutsPerMonth,
+          maxApiCalls: args.maxApiCalls,
+          features: args.features,
+        },
+      },
+    });
+
+    return { success: true, tierConfigId };
+  },
+});
+
+/**
+ * Delete a tier configuration.
+ * Admin-only mutation that removes a tier. Cannot delete tiers with active tenants.
+ */
+export const deleteTierConfig = mutation({
+  args: {
+    tierConfigId: v.id("tierConfigs"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    affectedTenants: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    const config = await ctx.db.get(args.tierConfigId);
+    if (!config) {
+      throw new Error("Tier configuration not found");
+    }
+
+    // Check if any tenants are on this tier
+    const tenantsOnTier = await ctx.db
+      .query("tenants")
+      .filter((q) => q.eq(q.field("plan"), config.tier))
+      .collect();
+
+    if (tenantsOnTier.length > 0) {
+      return { success: false, affectedTenants: tenantsOnTier.length };
+    }
+
+    // Delete the tier config
+    await ctx.db.delete(args.tierConfigId);
+
+    // Create audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: undefined,
+      action: "tier_config_deleted",
+      entityType: "tierConfigs",
+      entityId: args.tierConfigId,
+      actorId: admin.authId,
+      actorType: "admin",
+      metadata: {
+        adminId: admin._id,
+        adminEmail: admin.email,
+        tier: config.tier,
+        deletedConfig: {
+          price: config.price,
+          maxAffiliates: config.maxAffiliates,
+          maxCampaigns: config.maxCampaigns,
+          maxTeamMembers: config.maxTeamMembers,
+          maxPayoutsPerMonth: config.maxPayoutsPerMonth,
+          maxApiCalls: config.maxApiCalls,
+          features: config.features,
+        },
+      },
+    });
+
+    return { success: true, affectedTenants: 0 };
+  },
+});
+
+// =============================================================================
+// Task 3: Admin Tier Config Query (AC: #1)
 // =============================================================================
 
 /**
@@ -435,9 +587,9 @@ export const getAdminTierConfigs = query({
       tenantCountsByTier[plan] = (tenantCountsByTier[plan] || 0) + 1;
     }
 
-    // Sort by tier order
+    // Sort by creation time (earliest first) for consistent display
     const sorted = allConfigs.sort(
-      (a, b) => (TIER_ORDER[a.tier] ?? 99) - (TIER_ORDER[b.tier] ?? 99)
+      (a, b) => a._creationTime - b._creationTime
     );
 
     return sorted.map((config) => ({

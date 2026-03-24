@@ -15,11 +15,12 @@ import { getAuthenticatedUser } from "./tenantContext";
 export const UNLIMITED = -1;
 
 // Default tier configurations (used for seeding and fallback)
+// Prices in Philippine Pesos (₱)
 export const DEFAULT_TIER_CONFIGS = {
   starter: {
     tier: "starter",
     price: 0,
-    maxAffiliates: 100,
+    maxAffiliates: 1000,
     maxCampaigns: 3,
     maxTeamMembers: 5,
     maxPayoutsPerMonth: 10,
@@ -32,28 +33,28 @@ export const DEFAULT_TIER_CONFIGS = {
   },
   growth: {
     tier: "growth",
-    price: 99,
+    price: 2499,
     maxAffiliates: 5000,
     maxCampaigns: 10,
     maxTeamMembers: 20,
     maxPayoutsPerMonth: 100,
     maxApiCalls: 10000,
     features: {
-      customDomain: true,
+      customDomain: false,
       advancedAnalytics: true,
       prioritySupport: false,
     },
   },
   scale: {
     tier: "scale",
-    price: 299,
+    price: 4999,
     maxAffiliates: UNLIMITED,
     maxCampaigns: UNLIMITED,
     maxTeamMembers: UNLIMITED,
     maxPayoutsPerMonth: UNLIMITED,
     maxApiCalls: UNLIMITED,
     features: {
-      customDomain: true,
+      customDomain: false,
       advancedAnalytics: true,
       prioritySupport: true,
     },
@@ -580,7 +581,8 @@ export const getAllLimits = query({
 
 /**
  * Internal mutation to seed default tier configurations.
- * Should be called during initial setup or when new tiers are added.
+ * Upserts: updates existing configs to match defaults, inserts new ones.
+ * Should be called during initial setup or when defaults change.
  */
 export const seedTierConfigs = internalMutation({
   args: {},
@@ -592,7 +594,18 @@ export const seedTierConfigs = internalMutation({
         .withIndex("by_tier", (q) => q.eq("tier", config.tier))
         .unique();
 
-      if (!existing) {
+      if (existing) {
+        // Update existing config to match defaults
+        await ctx.db.patch(existing._id, {
+          price: config.price,
+          maxAffiliates: config.maxAffiliates,
+          maxCampaigns: config.maxCampaigns,
+          maxTeamMembers: config.maxTeamMembers,
+          maxPayoutsPerMonth: config.maxPayoutsPerMonth,
+          maxApiCalls: config.maxApiCalls,
+          features: config.features,
+        });
+      } else {
         await ctx.db.insert("tierConfigs", {
           tier: config.tier,
           price: config.price,

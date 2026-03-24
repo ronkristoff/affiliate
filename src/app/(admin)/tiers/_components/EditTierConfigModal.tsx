@@ -27,8 +27,8 @@ const LIMIT_FIELDS = [
   { key: "maxApiCalls", label: "Max API Calls" },
 ] as const;
 
+// Feature gates (customDomain removed)
 const FEATURE_FIELDS = [
-  { key: "customDomain" as const, label: "Custom Domain" },
   { key: "advancedAnalytics" as const, label: "Advanced Analytics" },
   { key: "prioritySupport" as const, label: "Priority Support" },
 ] as const;
@@ -62,7 +62,10 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
     maxPayoutsPerMonth: String(tierConfig.maxPayoutsPerMonth),
     maxApiCalls: String(tierConfig.maxApiCalls),
   });
-  const [features, setFeatures] = useState(tierConfig.features);
+  const [features, setFeatures] = useState({
+    advancedAnalytics: tierConfig.features.advancedAnalytics,
+    prioritySupport: tierConfig.features.prioritySupport,
+  });
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,7 +115,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
     }
   }, [impactAssessment, impactQueryArgs]);
 
-  // Subtask 6.5: Client-side validation
+  // Client-side validation
   const validate = useCallback((): boolean => {
     const errors: string[] = [];
 
@@ -143,7 +146,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
     return errors.length === 0;
   }, [price, limits]);
 
-  // Subtask 6.6: On submit, first check impact
+  // On submit, first check impact
   const handleSubmit = async (forceApply = false) => {
     if (!validate()) return;
 
@@ -155,7 +158,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
         limitValues[field.key] = Number(limits[field.key]);
       }
 
-      // Subtask 6.8: Call mutation with forceApply
+      // Call mutation with forceApply
       const result = await updateMutation({
         tier: tierConfig.tier,
         price: priceNum,
@@ -164,28 +167,26 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
         maxTeamMembers: limitValues.maxTeamMembers,
         maxPayoutsPerMonth: limitValues.maxPayoutsPerMonth,
         maxApiCalls: limitValues.maxApiCalls,
-        features,
+        features: {
+          customDomain: false,
+          ...features,
+        },
         forceApply,
       });
 
       if (result.success) {
-        // Subtask 6.9: Success toast
         toast.success(`${tierConfig.tier.charAt(0).toUpperCase() + tierConfig.tier.slice(1)} tier updated successfully`);
         onClose();
       } else if (result.impactReport) {
-        // Subtask 6.7: Trigger impact assessment query to get detailed breakdown
-        // The useEffect will update impactWarning when data is available
         setImpactQueryArgs({
           tier: tierConfig.tier,
           proposedValues: limitValues,
         });
-        // Don't set isSubmitting to false here - wait for the query to complete
         return;
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update tier configuration");
     } finally {
-      // Only set submitting to false if we're not waiting for impact assessment
       if (!impactQueryArgs) {
         setIsSubmitting(false);
       }
@@ -207,7 +208,10 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
         maxTeamMembers: Number(limits.maxTeamMembers),
         maxPayoutsPerMonth: Number(limits.maxPayoutsPerMonth),
         maxApiCalls: Number(limits.maxApiCalls),
-        features,
+        features: {
+          customDomain: false,
+          ...features,
+        },
         forceApply: true,
       });
 
@@ -232,7 +236,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
               Edit {tierConfig.tier.charAt(0).toUpperCase() + tierConfig.tier.slice(1)} Tier
             </DialogTitle>
             <DialogDescription>
-              Modify pricing, limits, and feature gates for this tier. Changes take effect immediately.
+              Modify pricing, limits, and feature gates for this tier. Changes take effect immediately for all tenants.
             </DialogDescription>
           </DialogHeader>
 
@@ -256,7 +260,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
             <div>
               <h3 className="text-sm font-medium text-[#333333] mb-3">Pricing</h3>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">$</span>
+                <span className="text-sm text-muted-foreground">₱</span>
                 <Input
                   type="number"
                   min={0}
@@ -336,7 +340,7 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
         </DialogContent>
       </Dialog>
 
-      {/* Subtask 6.7: Impact Warning Modal */}
+      {/* Impact Warning Modal */}
       {impactWarning && (
         <ImpactWarningModal
           tierName={tierConfig.tier}

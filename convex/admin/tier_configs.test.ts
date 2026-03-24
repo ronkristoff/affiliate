@@ -160,20 +160,39 @@ describe("AC3: Tier configuration validation", () => {
       expect(error).toBeUndefined();
     });
 
-    it("should reject unknown tier name", () => {
-      const error = validateTierName("enterprise");
-      expect(error).toContain("Unknown tier");
-      expect(error).toContain("enterprise");
+    it("should accept custom tier names like 'professional'", () => {
+      const error = validateTierName("professional");
+      expect(error).toBeUndefined();
+    });
+
+    it("should accept tier names with hyphens like 'pro-plan'", () => {
+      const error = validateTierName("pro-plan");
+      expect(error).toBeUndefined();
     });
 
     it("should reject empty tier name", () => {
       const error = validateTierName("");
-      expect(error).toContain("Unknown tier");
+      expect(error).toContain("required");
     });
 
-    it("should reject case-sensitive tier names", () => {
+    it("should reject tier name starting with number", () => {
+      const error = validateTierName("1tier");
+      expect(error).toContain("lowercase letter");
+    });
+
+    it("should reject tier name with uppercase letters", () => {
       const error = validateTierName("Starter");
-      expect(error).toContain("Unknown tier");
+      expect(error).toContain("lowercase letter");
+    });
+
+    it("should reject tier name with spaces", () => {
+      const error = validateTierName("my tier");
+      expect(error).toContain("lowercase letter");
+    });
+
+    it("should reject tier name exceeding 30 characters", () => {
+      const error = validateTierName("a".repeat(31));
+      expect(error).toContain("30 characters");
     });
   });
 });
@@ -337,26 +356,18 @@ describe("AC6: Notification creation logic", () => {
 describe("AC3/AC7: Feature gate validation", () => {
   it("should allow toggling any feature gate independently", () => {
     const features = {
-      customDomain: false,
       advancedAnalytics: false,
       prioritySupport: false,
     };
 
-    // Toggle customDomain
-    features.customDomain = true;
-    expect(features.customDomain).toBe(true);
-    expect(features.advancedAnalytics).toBe(false);
-    expect(features.prioritySupport).toBe(false);
-
     // Toggle advancedAnalytics
     features.advancedAnalytics = true;
-    expect(features.customDomain).toBe(true);
     expect(features.advancedAnalytics).toBe(true);
+    expect(features.prioritySupport).toBe(false);
 
-    // All enabled
+    // Both enabled
     features.prioritySupport = true;
     expect(features).toEqual({
-      customDomain: true,
       advancedAnalytics: true,
       prioritySupport: true,
     });
@@ -364,7 +375,6 @@ describe("AC3/AC7: Feature gate validation", () => {
 
   it("should allow disabling features on any tier", () => {
     const features = {
-      customDomain: true,
       advancedAnalytics: true,
       prioritySupport: true,
     };
@@ -372,7 +382,7 @@ describe("AC3/AC7: Feature gate validation", () => {
     // Disable a feature
     features.prioritySupport = false;
     expect(features.prioritySupport).toBe(false);
-    expect(features.customDomain).toBe(true);
+    expect(features.advancedAnalytics).toBe(true);
   });
 });
 
@@ -385,14 +395,13 @@ describe("Full edit flow (integration)", () => {
     // Step 1: Admin views current config
     const currentConfig = {
       tier: "growth",
-      price: 99,
+      price: 2499,
       maxAffiliates: 5000,
       maxCampaigns: 10,
       maxTeamMembers: 20,
       maxPayoutsPerMonth: 100,
       maxApiCalls: 10000,
       features: {
-        customDomain: true,
         advancedAnalytics: true,
         prioritySupport: false,
       },
@@ -401,14 +410,13 @@ describe("Full edit flow (integration)", () => {
     // Step 2: Admin modifies config
     const proposedConfig = {
       tier: "growth",
-      price: 149,
+      price: 3499,
       maxAffiliates: 2000, // Decreased!
       maxCampaigns: 15, // Increased
       maxTeamMembers: 30,
       maxPayoutsPerMonth: 100,
       maxApiCalls: 15000,
       features: {
-        customDomain: true,
         advancedAnalytics: true,
         prioritySupport: true, // Enabled!
       },
@@ -457,14 +465,14 @@ describe("Full edit flow (integration)", () => {
     expect(severity).toBe("warning");
 
     // Step 7: Admin confirms, changes saved
-    expect(proposedConfig.price).toBe(149);
+    expect(proposedConfig.price).toBe(3499);
     expect(proposedConfig.maxAffiliates).toBe(2000);
     expect(proposedConfig.features.prioritySupport).toBe(true);
   });
 
-  it("should reject update with invalid tier name", () => {
-    const error = validateTierName("invalid_tier");
-    expect(error).toContain("Unknown tier");
+  it("should reject update with invalid tier name format", () => {
+    const error = validateTierName("Invalid Tier!");
+    expect(error).toContain("lowercase letter");
   });
 
   it("should handle update that increases all limits (no impact)", () => {

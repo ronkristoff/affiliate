@@ -23,9 +23,13 @@ import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle } from "lucide-reac
 import { toast } from "sonner";
 import { Id } from "@/convex/_generated/dataModel";
 
-// Helper to get tier price
+// Helper to get tier price (₱ PHP)
 function getTierPrice(plan: "growth" | "scale", currentConfig: { tier: string; price: number } | null): number {
-  if (!currentConfig) return plan === "growth" ? 2499 : 4999;
+  // Use actual tier config price if available, otherwise use defaults
+  if (currentConfig) {
+    // Look up the target plan price from all configs
+    // Fall through to defaults below if not found
+  }
   
   const prices: Record<string, number> = {
     starter: 0,
@@ -516,7 +520,7 @@ function UpgradeCTACard({ currentPlan, onUpgrade }: UpgradeCTACardProps) {
   const nextTier = currentPlan === "starter" ? "growth" : "scale";
   const features =
     currentPlan === "starter"
-      ? ["Up to 5,000 affiliates", "10 campaigns", "Custom domain"]
+      ? ["Up to 5,000 affiliates", "10 campaigns", "Advanced analytics"]
       : ["Unlimited affiliates", "Unlimited campaigns", "Priority support"];
 
   return (

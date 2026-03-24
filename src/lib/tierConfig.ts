@@ -19,7 +19,6 @@ export type TierConfigResult = {
   maxPayoutsPerMonth: number;
   maxApiCalls: number;
   features: {
-    customDomain: boolean;
     advancedAnalytics: boolean;
     prioritySupport: boolean;
   };

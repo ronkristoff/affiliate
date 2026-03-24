@@ -2,79 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Check, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-interface PricingTier {
-  name: string;
-  monthlyPrice: number;
-  description: string;
-  features: string[];
-  affiliateLimit: string;
-  campaignLimit: string;
-  highlighted?: boolean;
-  customDomain?: boolean;
-}
-
-const tiers: PricingTier[] = [
-  {
-    name: "Starter",
-    monthlyPrice: 1999,
-    description: "Perfect for small teams getting started with affiliate marketing.",
-    affiliateLimit: "1,000",
-    campaignLimit: "3",
-    features: [
-      "Up to 1,000 affiliates",
-      "3 campaigns",
-      "Native SaligPay integration",
-      "Basic reporting",
-      "Email support",
-      "14-day free trial",
-    ],
-  },
-  {
-    name: "Growth",
-    monthlyPrice: 4499,
-    description: "For growing businesses ready to scale their affiliate program.",
-    affiliateLimit: "5,000",
-    campaignLimit: "10",
-    highlighted: true,
-    features: [
-      "Up to 5,000 affiliates",
-      "10 campaigns",
-      "Everything in Starter",
-      "Advanced analytics",
-      "Priority support",
-      "Custom affiliate portal",
-      "A/B testing",
-      "API access",
-    ],
-  },
-  {
-    name: "Scale",
-    monthlyPrice: 8999,
-    description: "For enterprises with complex affiliate program needs.",
-    affiliateLimit: "Unlimited",
-    campaignLimit: "Unlimited",
-    customDomain: true,
-    features: [
-      "Unlimited affiliates",
-      "Unlimited campaigns",
-      "Everything in Growth",
-      "Custom domain",
-      "Dedicated account manager",
-      "SLA guarantee",
-      "Custom integrations",
-      "White-label options",
-    ],
-  },
-];
-
 export function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(false);
+  const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
 
   const getPrice = (monthlyPrice: number) => {
     if (isAnnual) {
@@ -83,6 +21,66 @@ export function PricingSection() {
     }
     return monthlyPrice;
   };
+
+  const formatLimit = (value: number): string => {
+    if (value === -1) return "Unlimited";
+    return value.toLocaleString();
+  };
+
+  // Generate feature list from tier config data
+  const generateFeatures = (tier: {
+    maxAffiliates: number;
+    maxCampaigns: number;
+    maxTeamMembers: number;
+    maxPayoutsPerMonth: number;
+    features: {
+      advancedAnalytics: boolean;
+      prioritySupport: boolean;
+    };
+  }): string[] => {
+    const features: string[] = [];
+    features.push(`Up to ${formatLimit(tier.maxAffiliates)} affiliates`);
+    features.push(`${formatLimit(tier.maxCampaigns)} campaign${tier.maxCampaigns !== 1 ? "s" : ""}`);
+    features.push(`${formatLimit(tier.maxTeamMembers)} team member${tier.maxTeamMembers !== 1 ? "s" : ""}`);
+    features.push(`${formatLimit(tier.maxPayoutsPerMonth)} payouts/month`);
+    if (tier.features.advancedAnalytics) {
+      features.push("Advanced analytics");
+    }
+    if (tier.features.prioritySupport) {
+      features.push("Priority support");
+    }
+    features.push("14-day free trial");
+    return features;
+  };
+
+  // Get description based on tier position
+  const getDescription = (index: number, total: number): string => {
+    if (total <= 1) return "Flexible affiliate marketing for your business.";
+    if (index === 0) return "Perfect for small teams getting started with affiliate marketing.";
+    if (index === total - 1) return "For enterprises with complex affiliate program needs.";
+    return "For growing businesses ready to scale their affiliate program.";
+  };
+
+  // Determine which tier to highlight (middle tier, or second-to-last)
+  const getHighlightedIndex = (total: number): number => {
+    if (total <= 1) return 0;
+    if (total === 2) return 1;
+    return Math.floor(total / 2);
+  };
+
+  if (allTiers === undefined) {
+    return (
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-primary)]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const highlightedIndex = getHighlightedIndex(allTiers.length);
 
   return (
     <section id="pricing" className="py-20 bg-white">
@@ -122,75 +120,91 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {tiers.map((tier) => (
-            <Card
-              key={tier.name}
-              className={`relative ${
-                tier.highlighted
-                  ? 'border-[var(--brand-primary)] shadow-lg scale-[1.04]'
-                  : 'border-[var(--border)]'
-              }`}
-            >
-              {tier.highlighted && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[var(--brand-primary)] text-white text-sm font-medium rounded-full">
-                  Most Popular
-                </div>
-              )}
-              <CardContent className="p-8">
-                <h3 className="font-semibold text-xl text-[var(--text-heading)] mb-2">
-                  {tier.name}
-                </h3>
-                <p className="text-sm text-[var(--text-muted)] mb-4">
-                  {tier.description}
-                </p>
+        <div className={cn(
+          "gap-8 max-w-5xl mx-auto",
+          allTiers.length <= 3 ? "grid md:grid-cols-3" : "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        )}>
+          {allTiers.map((tier, index) => {
+            const isHighlighted = index === highlightedIndex;
+            const features = generateFeatures(tier);
 
-                {/* Price */}
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-[var(--text-heading)]">
-                    ₱{getPrice(tier.monthlyPrice).toLocaleString()}
-                  </span>
-                  <span className="text-[var(--text-muted)]">/{isAnnual ? 'year' : 'month'}</span>
-                </div>
-
-                {/* Limits */}
-                <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                  <div>
-                    <span className="text-[var(--text-muted)]">Affiliates:</span>
-                    <span className="font-medium text-[var(--text-heading)] ml-1">{tier.affiliateLimit}</span>
+            return (
+              <Card
+                key={tier.tier}
+                className={`relative ${
+                  isHighlighted
+                    ? 'border-[var(--brand-primary)] shadow-lg scale-[1.04]'
+                    : 'border-[var(--border)]'
+                }`}
+              >
+                {isHighlighted && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[var(--brand-primary)] text-white text-sm font-medium rounded-full">
+                    Most Popular
                   </div>
-                  <div>
-                    <span className="text-[var(--text-muted)]">Campaigns:</span>
-                    <span className="font-medium text-[var(--text-heading)] ml-1">{tier.campaignLimit}</span>
+                )}
+                <CardContent className="p-8">
+                  <h3 className="font-semibold text-xl text-[var(--text-heading)] mb-2">
+                    {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)] mb-4">
+                    {getDescription(index, allTiers.length)}
+                  </p>
+
+                  {/* Price */}
+                  <div className="mb-6">
+                    {tier.price === 0 ? (
+                      <div>
+                        <span className="text-4xl font-bold text-[var(--text-heading)]">Free</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="text-4xl font-bold text-[var(--text-heading)]">
+                          ₱{getPrice(tier.price).toLocaleString()}
+                        </span>
+                        <span className="text-[var(--text-muted)]">/{isAnnual ? 'year' : 'month'}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Features */}
-                <ul className="space-y-3 mb-8">
-                  {tier.features.map((feature, featureIndex) => (
-                    <li key={`${tier.name}-${featureIndex}`} className="flex items-start gap-2 text-sm">
-                      <Check className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" />
-                      <span className="text-[var(--text-body)]">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  {/* Limits */}
+                  <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                    <div>
+                      <span className="text-[var(--text-muted)]">Affiliates:</span>
+                      <span className="font-medium text-[var(--text-heading)] ml-1">{formatLimit(tier.maxAffiliates)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--text-muted)]">Campaigns:</span>
+                      <span className="font-medium text-[var(--text-heading)] ml-1">{formatLimit(tier.maxCampaigns)}</span>
+                    </div>
+                  </div>
 
-                {/* CTA */}
-                <Link href="/sign-up" className="block">
-                  <Button 
-                    className={`w-full font-semibold min-h-[44px] ${
-                      tier.highlighted
-                        ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white'
-                        : 'bg-[var(--bg-page)] hover:bg-[var(--border)] text-[var(--text-heading)]'
-                    }`}
-                  >
-                    Start free trial
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Features */}
+                  <ul className="space-y-3 mb-8">
+                    {features.map((feature, featureIndex) => (
+                      <li key={`${tier.tier}-${featureIndex}`} className="flex items-start gap-2 text-sm">
+                        <Check className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" />
+                        <span className="text-[var(--text-body)]">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Link href="/sign-up" className="block">
+                    <Button 
+                      className={`w-full font-semibold min-h-[44px] ${
+                        isHighlighted
+                          ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white'
+                          : 'bg-[var(--bg-page)] hover:bg-[var(--border)] text-[var(--text-heading)]'
+                      }`}
+                    >
+                      {tier.price === 0 ? "Get Started Free" : "Start free trial"}
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Enterprise Callout */}

@@ -100,13 +100,7 @@ export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCa
                     <Check className="h-4 w-4 text-green-500" />
                     <span>{formatLimit(tier.maxTeamMembers)} team members</span>
                   </li>
-                  {tier.features.customDomain && (
-                    <li className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Custom domain</span>
-                    </li>
-                  )}
-                  {tier.features.advancedAnalytics && (
+                {tier.features.advancedAnalytics && (
                     <li className="flex items-center gap-2 text-sm">
                       <Check className="h-4 w-4 text-green-500" />
                       <span>Advanced analytics</span>
