@@ -17,12 +17,12 @@ export function EmptyState({
   activeFilter,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#e5e7eb] bg-[#f9fafb] py-16">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f4f6]">
-        <SearchX className="h-6 w-6 text-[#6b7280]" />
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-surface)] py-16">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
+        <SearchX className="h-6 w-6 text-[var(--text-muted)]" />
       </div>
-      <h3 className="text-sm font-semibold text-[#333333]">No tenants found</h3>
-      <p className="mt-1 max-w-sm text-center text-sm text-[#6b7280]">
+      <h3 className="text-sm font-semibold text-[var(--text-heading)]">No tenants found</h3>
+      <p className="mt-1 max-w-sm text-center text-sm text-[var(--text-muted)]">
         {hasActiveFilters
           ? `No tenants match your current filters${
               searchQuery ? ` for "${searchQuery}"` : ""

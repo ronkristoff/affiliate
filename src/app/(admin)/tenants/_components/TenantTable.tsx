@@ -1,23 +1,32 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+  DataTable,
+  type TableColumn,
+  type TableAction,
+  type ColumnFilter,
+  type FilterOption,
+  CurrencyCell,
+  DateCell,
+} from "@/components/ui/DataTable";
 import { TenantAvatar } from "./TenantAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { PlanBadge } from "./PlanBadge";
-import { Loader2 } from "lucide-react";
+import { Eye } from "lucide-react";
 
-export type SortField = "name" | "plan" | "status" | "affiliateCount" | "mrr" | "_creationTime";
-export type SortOrder = "asc" | "desc";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type TenantSortField =
+  | "name"
+  | "plan"
+  | "status"
+  | "affiliateCount"
+  | "mrr"
+  | "_creationTime";
 
 interface Tenant {
   _id: string;
@@ -37,73 +46,42 @@ interface TenantTableProps {
   tenants: Tenant[];
   isLoading: boolean;
   total?: number;
-  sortField?: SortField;
-  sortOrder?: SortOrder;
-  onSort?: (field: SortField) => void;
+  sortField?: TenantSortField;
+  sortOrder?: "asc" | "desc";
+  onSortChange?: (sortBy: string, sortOrder: "asc" | "desc") => void;
   onViewTenant?: (tenantId: string) => void;
+  /** Active column-level filters */
+  activeFilters?: ColumnFilter[];
+  /** Callback when column filters change */
+  onFilterChange?: (filters: ColumnFilter[]) => void;
+  /** Pagination state */
+  pagination?: { page: number; pageSize: number };
+  /** Total items for pagination */
+  totalItems?: number;
+  /** Pagination change callback */
+  onPaginationChange?: (pagination: { page: number; pageSize: number }) => void;
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(amount);
-}
+// ---------------------------------------------------------------------------
+// Filter options
+// ---------------------------------------------------------------------------
 
-function SkeletonRow() {
-  return (
-    <TableRow>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <TableCell key={i}>
-          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
+const statusFilterOptions: FilterOption[] = [
+  { value: "active", label: "Active" },
+  { value: "trial", label: "Trial" },
+  { value: "suspended", label: "Suspended" },
+];
 
-interface SortableHeaderProps {
-  field: SortField;
-  label: string;
-  currentSortField?: SortField;
-  currentSortOrder?: SortOrder;
-  onSort?: (field: SortField) => void;
-  align?: "left" | "right";
-}
+const planFilterOptions: FilterOption[] = [
+  { value: "starter", label: "Starter" },
+  { value: "growth", label: "Growth" },
+  { value: "scale", label: "Scale" },
+  { value: "pro", label: "Pro" },
+];
 
-function SortableHeader({
-  field,
-  label,
-  currentSortField,
-  currentSortOrder,
-  onSort,
-  align = "left",
-}: SortableHeaderProps) {
-  const isActive = currentSortField === field;
-
-  return (
-    <TableHead
-      className={cn(
-        "px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280] cursor-pointer select-none hover:bg-[#f3f4f6] transition-colors",
-        align === "right" && "text-right"
-      )}
-      onClick={() => onSort?.(field)}
-    >
-      <div className={cn("flex items-center gap-1", align === "right" && "justify-end")}>
-        {label}
-        {isActive ? (
-          currentSortOrder === "asc" ? (
-            <ArrowUp className="h-3 w-3 text-[#10409a]" />
-          ) : (
-            <ArrowDown className="h-3 w-3 text-[#10409a]" />
-          )
-        ) : (
-          <ArrowUpDown className="h-3 w-3 text-[#9ca3af] opacity-0 group-hover:opacity-100" />
-        )}
-      </div>
-    </TableHead>
-  );
-}
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function TenantTable({
   tenants,
@@ -111,132 +89,158 @@ export function TenantTable({
   total,
   sortField,
   sortOrder,
-  onSort,
+  onSortChange,
   onViewTenant,
+  activeFilters = [],
+  onFilterChange,
+  pagination,
+  totalItems,
+  onPaginationChange,
 }: TenantTableProps) {
+  const router = useRouter();
+
+  // ── Columns ──────────────────────────────────────────────────────────────
+  const columns: TableColumn<Tenant>[] = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Tenant",
+        sortable: true,
+        sortField: "name",
+        filterable: true,
+        filterType: "text",
+        filterLabel: "Tenant",
+        cell: (row) => (
+          <div className="flex items-center gap-3">
+            <TenantAvatar name={row.name} />
+            <div>
+              <div className="text-[13px] font-semibold text-[var(--text-heading)]">
+                {row.name}
+              </div>
+              <div className="text-[11px] text-[var(--text-muted)]">
+                {row.domain || row.slug}
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "plan",
+        header: "Plan",
+        sortable: true,
+        sortField: "plan",
+        filterable: true,
+        filterType: "select",
+        filterOptions: planFilterOptions,
+        filterLabel: "Plan",
+        cell: (row) => <PlanBadge plan={row.plan} />,
+      },
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        sortField: "status",
+        filterable: true,
+        filterType: "select",
+        filterOptions: statusFilterOptions,
+        filterLabel: "Status",
+        cell: (row) => (
+          <StatusBadge
+            status={
+              row.isFlagged
+                ? "flagged"
+                : (row.status as "active" | "trial" | "suspended")
+            }
+          />
+        ),
+      },
+      {
+        key: "affiliateCount",
+        header: "Affiliates",
+        sortable: true,
+        sortField: "affiliateCount",
+        filterable: true,
+        filterType: "number-range",
+        filterLabel: "Affiliates",
+        filterStep: 1,
+        align: "right",
+        cell: (row) => (
+          <span className="text-[12px] tabular-nums text-[var(--text-heading)]">
+            {row.affiliateCount}
+          </span>
+        ),
+      },
+      {
+        key: "mrr",
+        header: "MRR",
+        sortable: true,
+        sortField: "mrr",
+        filterable: true,
+        filterType: "number-range",
+        filterLabel: "MRR",
+        filterStep: 0.01,
+        align: "right",
+        cell: (row) => <CurrencyCell amount={row.mrr} />,
+      },
+      {
+        key: "created",
+        header: "Created",
+        sortable: true,
+        sortField: "_creationTime",
+        filterable: true,
+        filterType: "date-range",
+        filterLabel: "Created",
+        cell: (row) => <DateCell value={row._creationTime} format="short" />,
+      },
+    ],
+    []
+  );
+
+  // ── Row actions ──────────────────────────────────────────────────────────
+  const actions: TableAction<Tenant>[] = useMemo(
+    () => [
+      {
+        label: "View",
+        variant: "info",
+        icon: <Eye className="w-3.5 h-3.5" />,
+        onClick: (row) => {
+          if (onViewTenant) {
+            onViewTenant(row._id);
+          } else {
+            router.push(`/tenants/${row._id}`);
+          }
+        },
+      },
+    ],
+    [onViewTenant, router]
+  );
+
   return (
-    <div className="overflow-hidden rounded-xl border border-[#e5e7eb]">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-[#f9fafb] hover:bg-[#f9fafb] group">
-            <SortableHeader
-              field="name"
-              label="Tenant"
-              currentSortField={sortField}
-              currentSortOrder={sortOrder}
-              onSort={onSort}
-            />
-            <SortableHeader
-              field="plan"
-              label="Plan"
-              currentSortField={sortField}
-              currentSortOrder={sortOrder}
-              onSort={onSort}
-            />
-            <SortableHeader
-              field="status"
-              label="Status"
-              currentSortField={sortField}
-              currentSortOrder={sortOrder}
-              onSort={onSort}
-            />
-            <SortableHeader
-              field="affiliateCount"
-              label="Affiliates"
-              currentSortField={sortField}
-              currentSortOrder={sortOrder}
-              onSort={onSort}
-              align="right"
-            />
-            <SortableHeader
-              field="mrr"
-              label="MRR"
-              currentSortField={sortField}
-              currentSortOrder={sortOrder}
-              onSort={onSort}
-              align="right"
-            />
-            <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280] text-right">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading && (
-            Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-          )}
-          {!isLoading && tenants.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                No tenants found.
-              </TableCell>
-            </TableRow>
-          )}
-          {!isLoading && tenants.length > 0 && tenants.map((tenant) => (
-              <TableRow
-                key={tenant._id}
-                className={cn(
-                  "border-b border-[#e5e7eb] last:border-0",
-                  tenant.isFlagged && "bg-[#fefce8] hover:bg-[#fef9c3]"
-                )}
-              >
-                {/* Tenant Column */}
-                <TableCell className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <TenantAvatar name={tenant.name} />
-                    <div>
-                      <div className="text-sm font-medium text-[#333333]">
-                        {tenant.name}
-                      </div>
-                      <div className="text-xs text-[#6b7280]">
-                        {tenant.domain || tenant.slug}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-
-                {/* Plan */}
-                <TableCell className="px-4 py-3">
-                  <PlanBadge plan={tenant.plan} />
-                </TableCell>
-
-                {/* Status */}
-                <TableCell className="px-4 py-3">
-                  <StatusBadge
-                    status={
-                      tenant.isFlagged
-                        ? "flagged"
-                        : (tenant.status as "active" | "trial" | "suspended")
-                    }
-                  />
-                </TableCell>
-
-                {/* Affiliates */}
-                <TableCell className="px-4 py-3 text-right text-sm text-[#333333]">
-                  {tenant.affiliateCount}
-                </TableCell>
-
-                {/* MRR */}
-                <TableCell className="px-4 py-3 text-right text-sm font-medium text-[#333333]">
-                  {formatCurrency(tenant.mrr)}
-                </TableCell>
-
-                {/* Actions */}
-                <TableCell className="px-4 py-3 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-[#10409a] hover:bg-[#10409a]/10 hover:text-[#10409a]"
-                    onClick={() => onViewTenant?.(tenant._id)}
-                  >
-                    <Eye className="mr-1 h-3.5 w-3.5" />
-                    View
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable<Tenant>
+      columns={columns}
+      actions={actions}
+      data={tenants}
+      getRowId={(row) => row._id}
+      isLoading={isLoading}
+      emptyMessage="No tenants found"
+      sortBy={sortField}
+      sortOrder={sortOrder}
+      onSortChange={onSortChange}
+      activeFilters={activeFilters}
+      onFilterChange={onFilterChange}
+      rowClassName={(row) =>
+        row.isFlagged ? "!bg-[var(--warning-bg)]" : ""
+      }
+      onRowClick={(row) => {
+        if (onViewTenant) {
+          onViewTenant(row._id);
+        } else {
+          router.push(`/tenants/${row._id}`);
+        }
+      }}
+      pagination={pagination}
+      total={totalItems}
+      onPaginationChange={onPaginationChange}
+    />
   );
 }

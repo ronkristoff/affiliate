@@ -16,22 +16,22 @@ export function SearchInput({
 }: SearchInputProps) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7280]" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          "h-10 w-full rounded-lg border-[1.5px] border-[#e5e7eb] bg-white pl-10 pr-9 text-sm text-[#333333] placeholder:text-[#6b7280]",
-          "focus:border-[#10409a] focus:outline-none focus:ring-1 focus:ring-[#10409a]/20",
+          "h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] pl-10 pr-9 text-sm text-[var(--text-heading)] placeholder:text-[var(--text-muted)]",
+          "focus:border-[var(--brand-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]/20",
           "transition-colors"
         )}
       />
       {value && (
         <button
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#333333] transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-heading)] transition-colors"
         >
           <X className="h-4 w-4" />
         </button>

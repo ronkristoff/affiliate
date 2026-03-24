@@ -8,9 +8,9 @@ interface PlanBadgeProps {
 const PLAN_CONFIG: Record<string, { label: string; bg: string; text: string; border?: string }> = {
   starter: {
     label: "Starter",
-    bg: "bg-[#f3f4f6]",
-    text: "text-[#6b7280]",
-    border: "border border-[#e5e7eb]",
+    bg: "bg-[var(--bg-page)]",
+    text: "text-[var(--text-muted)]",
+    border: "border border-[var(--border)]",
   },
   growth: {
     label: "Growth",
@@ -19,13 +19,13 @@ const PLAN_CONFIG: Record<string, { label: string; bg: string; text: string; bor
   },
   scale: {
     label: "Scale",
-    bg: "bg-[#fef3c7]",
-    text: "text-[#92400e]",
+    bg: "bg-[var(--warning-bg)]",
+    text: "text-[var(--warning-text)]",
   },
   pro: {
     label: "Pro",
-    bg: "bg-[#fef3c7]",
-    text: "text-[#92400e]",
+    bg: "bg-[var(--warning-bg)]",
+    text: "text-[var(--warning-text)]",
   },
 };
 
@@ -33,8 +33,8 @@ function getPlanConfig(plan: string) {
   const normalizedPlan = plan.toLowerCase();
   return PLAN_CONFIG[normalizedPlan] ?? {
     label: plan,
-    bg: "bg-[#f3f4f6]",
-    text: "text-[#6b7280]",
+    bg: "bg-[var(--bg-page)]",
+    text: "text-[var(--text-muted)]",
   };
 }
 

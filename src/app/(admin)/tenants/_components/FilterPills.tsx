@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export const FILTERS = ["all", "active", "trial", "flagged", "suspended"] as const;
 export type Filter = (typeof FILTERS)[number];
@@ -47,28 +48,30 @@ export function FilterPills({
         const count = counts?.[FILTER_COUNTS[filter]] ?? 0;
 
         return (
-          <button
+          <Button
             key={filter}
+            variant={isActive ? "default" : "outline"}
+            size="sm"
             onClick={() => onFilterChange(filter)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "rounded-full",
               isActive
-                ? "border-transparent bg-[#10409a] text-white"
-                : "border-[#e5e7eb] bg-white text-[#6b7280] hover:border-[#10409a] hover:text-[#10409a]"
+                ? "bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary)]/90"
+                : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-heading)] hover:border-[var(--brand-primary)]"
             )}
           >
             {FILTER_LABELS[filter]}
             <span
               className={cn(
-                "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold",
+                "ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold",
                 isActive
                   ? "bg-white/20 text-white"
-                  : "bg-[#f3f4f6] text-[#6b7280]"
+                  : "bg-[var(--bg-page)] text-[var(--text-muted)]"
               )}
             >
               {isLoading ? "…" : count}
             </span>
-          </button>
+          </Button>
         );
       })}
     </div>

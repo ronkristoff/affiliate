@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
@@ -25,22 +26,20 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between px-1">
-      <p className="text-sm text-[#6b7280]">
+      <p className="text-sm text-[var(--text-muted)]">
         Showing {startItem}–{endItem}
         {total !== undefined && ` of ${total}`}
       </p>
       <div className="flex items-center gap-1">
-        <button
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#6b7280] transition-colors",
-            "hover:bg-[#f9fafb] hover:text-[#333333]",
-            "disabled:cursor-not-allowed disabled:opacity-40"
-          )}
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
+        </Button>
 
         {Array.from({ length: totalPages }, (_, i) => i + 1)
           .filter((page) => {
@@ -62,37 +61,37 @@ export function Pagination({
             item === "ellipsis" ? (
               <span
                 key={`ellipsis-${idx}`}
-                className="inline-flex h-8 w-8 items-center justify-center text-sm text-[#6b7280]"
+                className="inline-flex h-8 w-8 items-center justify-center text-sm text-[var(--text-muted)]"
               >
                 …
               </span>
             ) : (
-              <button
+              <Button
                 key={item}
-                onClick={() => onPageChange(item)}
+                variant={currentPage === item ? "default" : "outline"}
+                size="icon"
                 className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-medium transition-colors",
+                  "h-8 w-8 text-sm font-medium",
                   currentPage === item
-                    ? "border-[#10409a] bg-[#10409a] text-white"
-                    : "border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#333333]"
+                    ? "bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary)]/90"
+                    : ""
                 )}
+                onClick={() => onPageChange(item)}
               >
                 {item}
-              </button>
+              </Button>
             )
           )}
 
-        <button
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#6b7280] transition-colors",
-            "hover:bg-[#f9fafb] hover:text-[#333333]",
-            "disabled:cursor-not-allowed disabled:opacity-40"
-          )}
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -2,24 +2,49 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { StatsRow } from "./_components/StatsRow";
 import { SearchInput } from "./_components/SearchInput";
 import { FilterPills, type Filter } from "./_components/FilterPills";
-import { TenantTable, type SortField, type SortOrder } from "./_components/TenantTable";
-import { Pagination } from "./_components/Pagination";
+import { TenantTable, type TenantSortField } from "./_components/TenantTable";
 import { EmptyState } from "./_components/EmptyState";
+import { PageTopbar } from "@/components/ui/PageTopbar";
+import { FadeIn } from "@/components/ui/FadeIn";
+import { FilterChips } from "@/components/ui/FilterChips";
+import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
+import type { ColumnFilter, TableColumn } from "@/components/ui/DataTable";
 import { Loader2 } from "lucide-react";
+import { dateToStartTimestamp, dateToTimestamp, timestampToDateInput } from "@/lib/date-utils";
 
-const PAGE_SIZE = 10;
+// ---------------------------------------------------------------------------
+// Tenant type (matches Convex return shape)
+// ---------------------------------------------------------------------------
+
+interface Tenant {
+  _id: string;
+  _creationTime: number;
+  name: string;
+  slug: string;
+  domain: string | undefined;
+  plan: string;
+  status: string;
+  ownerEmail: string;
+  affiliateCount: number;
+  mrr: number;
+  isFlagged: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Content component (hooks live here, wrapped by Suspense)
+// ---------------------------------------------------------------------------
 
 function AdminTenantsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // URL state — read initial values from URL params
+  // ── URL-persisted state ──────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || ""
   );
@@ -29,174 +54,479 @@ function AdminTenantsContent() {
   const [page, setPage] = useState(
     Number(searchParams.get("page")) || 1
   );
-  const [sortField, setSortField] = useState<SortField>(
-    (searchParams.get("sort") as SortField) || "_creationTime"
+  const [pageSize, setPageSize] = useState(
+    Number(searchParams.get("pageSize")) || DEFAULT_PAGE_SIZE
   );
-  const [sortOrder, setSortOrder] = useState<SortOrder>(
-    (searchParams.get("order") as SortOrder) || "desc"
+  const [sortField, setSortField] = useState<TenantSortField>(
+    (searchParams.get("sort") as TenantSortField) || "_creationTime"
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
+    (searchParams.get("order") as "asc" | "desc") || "desc"
+  );
+
+  // ── Column-level filter state ────────────────────────────────────────────
+  const [tenantNameFilter, setTenantNameFilter] = useState(
+    searchParams.get("name") || ""
+  );
+  const [planFilter, setPlanFilter] = useState(
+    searchParams.get("plan") || ""
+  );
+  const [statusColFilter, setStatusColFilter] = useState(
+    searchParams.get("col_status") || ""
+  );
+  const [affiliateMin, setAffiliateMin] = useState(
+    searchParams.get("aff_min") || ""
+  );
+  const [affiliateMax, setAffiliateMax] = useState(
+    searchParams.get("aff_max") || ""
+  );
+  const [mrrMin, setMrrMin] = useState(
+    searchParams.get("mrr_min") || ""
+  );
+  const [mrrMax, setMrrMax] = useState(
+    searchParams.get("mrr_max") || ""
+  );
+  const [createdAfter, setCreatedAfter] = useState(
+    searchParams.get("created_after") || ""
+  );
+  const [createdBefore, setCreatedBefore] = useState(
+    searchParams.get("created_before") || ""
   );
 
   // Debounced search (500ms)
   const debouncedSearch = useDebounce(searchQuery, 500);
 
-  // Queries
+  // ── Convex query ─────────────────────────────────────────────────────────
   const stats = useQuery(api.admin.tenants.getPlatformStats);
   const result = useQuery(
     api.admin.tenants.searchTenants,
     {
       searchQuery: debouncedSearch || undefined,
       statusFilter: activeFilter === "all" ? undefined : activeFilter,
-      cursor: page > 1 ? String((page - 1) * PAGE_SIZE) : undefined,
-      numItems: PAGE_SIZE,
+      cursor: page > 1 ? String((page - 1) * pageSize) : undefined,
+      numItems: pageSize,
     }
   );
 
-  // Sync state to URL query params (Task 4)
+  // ── Sync state to URL query params ───────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (activeFilter !== "all") params.set("filter", activeFilter);
     if (page > 1) params.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize));
     if (sortField !== "_creationTime") params.set("sort", sortField);
     if (sortOrder !== "desc") params.set("order", sortOrder);
+    if (tenantNameFilter) params.set("name", tenantNameFilter);
+    if (planFilter) params.set("plan", planFilter);
+    if (statusColFilter) params.set("col_status", statusColFilter);
+    if (affiliateMin) params.set("aff_min", affiliateMin);
+    if (affiliateMax) params.set("aff_max", affiliateMax);
+    if (mrrMin) params.set("mrr_min", mrrMin);
+    if (mrrMax) params.set("mrr_max", mrrMax);
+    if (createdAfter) params.set("created_after", createdAfter);
+    if (createdBefore) params.set("created_before", createdBefore);
 
     const queryString = params.toString();
     router.replace(
       `/tenants${queryString ? `?${queryString}` : ""}`,
       { scroll: false }
     );
-  }, [debouncedSearch, activeFilter, page, sortField, sortOrder, router]);
+  }, [
+    debouncedSearch,
+    activeFilter,
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    tenantNameFilter,
+    planFilter,
+    statusColFilter,
+    affiliateMin,
+    affiliateMax,
+    mrrMin,
+    mrrMax,
+    createdAfter,
+    createdBefore,
+    router,
+  ]);
 
-  // Reset page when filter/search changes
+  // ── Reset page when filter/search changes ────────────────────────────────
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, activeFilter]);
+  }, [debouncedSearch, activeFilter, tenantNameFilter, planFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
 
-  // Handle sort toggle
-  const handleSort = useCallback((field: SortField) => {
-    if (sortField === field) {
-      // Toggle order if same field
-      setSortOrder(prev => prev === "asc" ? "desc" : "asc");
-    } else {
-      // New field, default to descending
-      setSortField(field);
-      setSortOrder("desc");
+  // ── Build activeFilters for DataTable & FilterChips ──────────────────────
+  const activeFilters = useMemo<ColumnFilter[]>(() => {
+    const filters: ColumnFilter[] = [];
+    if (tenantNameFilter.trim()) {
+      filters.push({ columnKey: "name", type: "text", value: tenantNameFilter.trim() });
     }
-  }, [sortField]);
+    if (planFilter) {
+      filters.push({ columnKey: "plan", type: "select", values: planFilter.split(",") });
+    }
+    if (statusColFilter) {
+      filters.push({ columnKey: "status", type: "select", values: statusColFilter.split(",") });
+    }
+    const parsedAffMin = affiliateMin ? parseFloat(affiliateMin) : undefined;
+    const parsedAffMax = affiliateMax ? parseFloat(affiliateMax) : undefined;
+    if (parsedAffMin != null || parsedAffMax != null) {
+      filters.push({
+        columnKey: "affiliateCount",
+        type: "number-range",
+        min: parsedAffMin ?? null,
+        max: parsedAffMax ?? null,
+      });
+    }
+    const parsedMrrMin = mrrMin ? parseFloat(mrrMin) : undefined;
+    const parsedMrrMax = mrrMax ? parseFloat(mrrMax) : undefined;
+    if (parsedMrrMin != null || parsedMrrMax != null) {
+      filters.push({
+        columnKey: "mrr",
+        type: "number-range",
+        min: parsedMrrMin ?? null,
+        max: parsedMrrMax ?? null,
+      });
+    }
+    const parsedCreatedAfter = createdAfter ? dateToStartTimestamp(createdAfter) : undefined;
+    const parsedCreatedBefore = createdBefore ? dateToTimestamp(createdBefore) : undefined;
+    if (parsedCreatedAfter != null || parsedCreatedBefore != null) {
+      filters.push({
+        columnKey: "created",
+        type: "date-range",
+        after: parsedCreatedAfter ?? null,
+        before: parsedCreatedBefore ?? null,
+      });
+    }
+    return filters;
+  }, [tenantNameFilter, planFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
 
-  // Clear all filters
-  const handleClearFilters = useCallback(() => {
+  // ── Column definitions (for FilterChips label resolution) ────────────────
+  // Only header + filterLabel needed for chip display; cell is required by type.
+  const columns = useMemo<TableColumn<Tenant>[]>(
+    () => [
+      { key: "name", header: "Tenant", filterLabel: "Tenant", cell: () => null },
+      { key: "plan", header: "Plan", filterLabel: "Plan", cell: () => null },
+      { key: "status", header: "Status", filterLabel: "Status", cell: () => null },
+      { key: "affiliateCount", header: "Affiliates", filterLabel: "Affiliates", cell: () => null },
+      { key: "mrr", header: "MRR", filterLabel: "MRR", cell: () => null },
+      { key: "created", header: "Created", filterLabel: "Created", cell: () => null },
+    ],
+    []
+  );
+
+  // ── Column filter change handler ─────────────────────────────────────────
+  const handleColumnFilterChange = useCallback(
+    (filters: ColumnFilter[]) => {
+      const activeKeys = new Set(filters.map((f) => f.columnKey));
+
+      for (const filter of filters) {
+        switch (filter.columnKey) {
+          case "name":
+            setTenantNameFilter((filter as any).value ?? "");
+            break;
+          case "plan":
+            setPlanFilter(filter.values?.length ? filter.values.join(",") : "");
+            break;
+          case "status":
+            setStatusColFilter(filter.values?.length ? filter.values.join(",") : "");
+            break;
+          case "affiliateCount":
+            setAffiliateMin(filter.min != null ? String(filter.min) : "");
+            setAffiliateMax(filter.max != null ? String(filter.max) : "");
+            break;
+          case "mrr":
+            setMrrMin(filter.min != null ? String(filter.min) : "");
+            setMrrMax(filter.max != null ? String(filter.max) : "");
+            break;
+          case "created":
+            setCreatedAfter(
+              filter.after != null ? timestampToDateInput(filter.after) : ""
+            );
+            setCreatedBefore(
+              filter.before != null ? timestampToDateInput(filter.before) : ""
+            );
+            break;
+        }
+      }
+
+      // Clear any filters that were removed
+      if (!activeKeys.has("name")) setTenantNameFilter("");
+      if (!activeKeys.has("plan")) setPlanFilter("");
+      if (!activeKeys.has("status")) setStatusColFilter("");
+      if (!activeKeys.has("affiliateCount")) {
+        setAffiliateMin("");
+        setAffiliateMax("");
+      }
+      if (!activeKeys.has("mrr")) {
+        setMrrMin("");
+        setMrrMax("");
+      }
+      if (!activeKeys.has("created")) {
+        setCreatedAfter("");
+        setCreatedBefore("");
+      }
+    },
+    []
+  );
+
+  // ── Handle individual filter removal (from FilterChips) ──────────────────
+  const handleRemoveFilter = useCallback((key: string) => {
+    switch (key) {
+      case "name": setTenantNameFilter(""); break;
+      case "plan": setPlanFilter(""); break;
+      case "status": setStatusColFilter(""); break;
+      case "affiliateCount": setAffiliateMin(""); setAffiliateMax(""); break;
+      case "mrr": setMrrMin(""); setMrrMax(""); break;
+      case "created": setCreatedAfter(""); setCreatedBefore(""); break;
+    }
+  }, []);
+
+  // ── Handle sort change ───────────────────────────────────────────────────
+  const handleSortChange = useCallback(
+    (sortBy: string, order: "asc" | "desc") => {
+      setSortField(sortBy as TenantSortField);
+      setSortOrder(order);
+      setPage(1);
+    },
+    []
+  );
+
+  // ── Clear all filters ────────────────────────────────────────────────────
+  const handleClearAllFilters = useCallback(() => {
     setSearchQuery("");
     setActiveFilter("all");
     setPage(1);
     setSortField("_creationTime");
     setSortOrder("desc");
+    setTenantNameFilter("");
+    setPlanFilter("");
+    setStatusColFilter("");
+    setAffiliateMin("");
+    setAffiliateMax("");
+    setMrrMin("");
+    setMrrMax("");
+    setCreatedAfter("");
+    setCreatedBefore("");
   }, []);
 
-  // Navigate to tenant detail
-  const handleViewTenant = useCallback((tenantId: string) => {
-    router.push(`/tenants/${tenantId}`);
-  }, [router]);
+  // ── Navigate to tenant detail ────────────────────────────────────────────
+  const handleViewTenant = useCallback(
+    (tenantId: string) => {
+      router.push(`/tenants/${tenantId}`);
+    },
+    [router]
+  );
 
+  // ── Pagination change ────────────────────────────────────────────────────
+  const handlePaginationChange = useCallback(
+    ({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
+      setPage(newPage);
+      if (newPageSize !== pageSize) {
+        setPageSize(newPageSize);
+      }
+    },
+    [pageSize]
+  );
+
+  // ── Derived data ─────────────────────────────────────────────────────────
   const hasActiveFilters =
-    searchQuery.trim() !== "" || activeFilter !== "all";
+    searchQuery.trim() !== "" ||
+    activeFilter !== "all" ||
+    activeFilters.length > 0;
 
   const isLoading = result === undefined;
   const tenants = result?.tenants ?? [];
   const totalResults = result?.total ?? 0;
-  const hasMore = result?.hasMore ?? false;
-  const totalPages = Math.ceil(totalResults / PAGE_SIZE);
 
-  // Client-side sorting (since backend returns unsorted for now)
-  const sortedTenants = [...tenants].sort((a, b) => {
-    let comparison = 0;
-    switch (sortField) {
-      case "name":
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case "plan":
-        comparison = a.plan.localeCompare(b.plan);
-        break;
-      case "status":
-        comparison = a.status.localeCompare(b.status);
-        break;
-      case "affiliateCount":
-        comparison = a.affiliateCount - b.affiliateCount;
-        break;
-      case "mrr":
-        comparison = a.mrr - b.mrr;
-        break;
-      case "_creationTime":
-      default:
-        comparison = a._creationTime - b._creationTime;
-        break;
+  // ── Client-side filtering (column-level filters applied on top of API data) ──
+  const filteredTenants = useMemo(() => {
+    let data = tenants;
+
+    // Tenant name filter
+    if (tenantNameFilter.trim()) {
+      const q = tenantNameFilter.toLowerCase().trim();
+      data = data.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.slug.toLowerCase().includes(q) ||
+          t.domain?.toLowerCase().includes(q) ||
+          t.ownerEmail.toLowerCase().includes(q)
+      );
     }
-    return sortOrder === "asc" ? comparison : -comparison;
-  });
+
+    // Plan filter
+    if (planFilter) {
+      const plans = planFilter.toLowerCase().split(",");
+      data = data.filter((t) => plans.includes(t.plan.toLowerCase()));
+    }
+
+    // Status column filter
+    if (statusColFilter) {
+      const statuses = statusColFilter.toLowerCase().split(",");
+      data = data.filter((t) => statuses.includes(t.status.toLowerCase()));
+    }
+
+    // Affiliate count range filter
+    const parsedAffMin = affiliateMin ? parseFloat(affiliateMin) : undefined;
+    const parsedAffMax = affiliateMax ? parseFloat(affiliateMax) : undefined;
+    if (parsedAffMin != null) {
+      data = data.filter((t) => t.affiliateCount >= parsedAffMin!);
+    }
+    if (parsedAffMax != null) {
+      data = data.filter((t) => t.affiliateCount <= parsedAffMax!);
+    }
+
+    // MRR range filter
+    const parsedMrrMin = mrrMin ? parseFloat(mrrMin) : undefined;
+    const parsedMrrMax = mrrMax ? parseFloat(mrrMax) : undefined;
+    if (parsedMrrMin != null) {
+      data = data.filter((t) => t.mrr >= parsedMrrMin!);
+    }
+    if (parsedMrrMax != null) {
+      data = data.filter((t) => t.mrr <= parsedMrrMax!);
+    }
+
+    // Created date range filter
+    const parsedCreatedAfter = createdAfter
+      ? dateToStartTimestamp(createdAfter)
+      : undefined;
+    const parsedCreatedBefore = createdBefore
+      ? dateToTimestamp(createdBefore)
+      : undefined;
+    if (parsedCreatedAfter != null) {
+      data = data.filter((t) => t._creationTime >= parsedCreatedAfter!);
+    }
+    if (parsedCreatedBefore != null) {
+      data = data.filter((t) => t._creationTime <= parsedCreatedBefore!);
+    }
+
+    return data;
+  }, [
+    tenants,
+    tenantNameFilter,
+    planFilter,
+    statusColFilter,
+    affiliateMin,
+    affiliateMax,
+    mrrMin,
+    mrrMax,
+    createdAfter,
+    createdBefore,
+  ]);
+
+  // ── Client-side sorting ──────────────────────────────────────────────────
+  const sortedTenants = useMemo(() => {
+    return [...filteredTenants].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "plan":
+          comparison = a.plan.localeCompare(b.plan);
+          break;
+        case "status":
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case "affiliateCount":
+          comparison = a.affiliateCount - b.affiliateCount;
+          break;
+        case "mrr":
+          comparison = a.mrr - b.mrr;
+          break;
+        case "_creationTime":
+        default:
+          comparison = a._creationTime - b._creationTime;
+          break;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+  }, [filteredTenants, sortField, sortOrder]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#333333]">Tenants</h1>
-        <p className="text-sm text-[#6b7280]">
-          Manage and monitor all tenant accounts
-        </p>
-      </div>
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Top Bar */}
+      <PageTopbar description="Manage and monitor all tenant accounts">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
+          Tenants
+        </h1>
+      </PageTopbar>
 
-      {/* Stats Row */}
-      <StatsRow stats={stats} isLoading={stats === undefined} />
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8">
+        <div className="space-y-6">
+          {/* Stats Row */}
+          <FadeIn delay={0}>
+            <StatsRow stats={stats} isLoading={stats === undefined} />
+          </FadeIn>
 
-      {/* Search + Filter Controls */}
-      <div className="space-y-4">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search by name, email, or domain..."
-        />
-        <FilterPills
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          counts={stats}
-          isLoading={stats === undefined}
-        />
-      </div>
+          {/* Search + Filter Controls */}
+          <FadeIn delay={80}>
+            <div className="space-y-4">
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search by name, email, or domain..."
+              />
+              <FilterPills
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                counts={stats}
+                isLoading={stats === undefined}
+              />
+            </div>
+          </FadeIn>
 
-      {/* Results */}
-      {!isLoading && tenants.length === 0 ? (
-        <EmptyState
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-          searchQuery={searchQuery}
-          activeFilter={activeFilter}
-        />
-      ) : (
-        <>
-          <TenantTable
-            tenants={sortedTenants}
-            isLoading={isLoading}
-            total={totalResults}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onViewTenant={handleViewTenant}
-          />
-
-          {/* Pagination */}
-          {!isLoading && tenants.length > 0 && (
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              total={totalResults}
-              pageSize={PAGE_SIZE}
-              onPageChange={setPage}
-            />
+          {/* Filter Chips (column-level filters) */}
+          {activeFilters.length > 0 && (
+            <FadeIn delay={120}>
+              <FilterChips<Tenant>
+                filters={activeFilters}
+                columns={columns}
+                onRemove={handleRemoveFilter}
+                onClearAll={handleClearAllFilters}
+              />
+            </FadeIn>
           )}
-        </>
-      )}
+
+          {/* Results */}
+          {!isLoading && sortedTenants.length === 0 ? (
+            <FadeIn delay={160}>
+              <EmptyState
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={handleClearAllFilters}
+                searchQuery={searchQuery}
+                activeFilter={activeFilter}
+              />
+            </FadeIn>
+          ) : (
+            <FadeIn delay={160}>
+              <TenantTable
+                tenants={sortedTenants}
+                isLoading={isLoading}
+                total={totalResults}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+                onViewTenant={handleViewTenant}
+                activeFilters={activeFilters}
+                onFilterChange={handleColumnFilterChange}
+                pagination={{ page, pageSize }}
+                totalItems={filteredTenants.length}
+                onPaginationChange={handlePaginationChange}
+              />
+            </FadeIn>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Page export (wrapped in Suspense)
+// ---------------------------------------------------------------------------
 
 export default function AdminTenantsPage() {
   return (

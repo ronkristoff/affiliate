@@ -8,27 +8,27 @@ interface StatusBadgeProps {
 const STATUS_CONFIG = {
   active: {
     label: "Active",
-    dotColor: "bg-emerald-500",
-    bg: "bg-[#d1fae5]",
-    text: "text-[#065f46]",
+    dotColor: "bg-[var(--success)]",
+    bg: "bg-[var(--success-bg)]",
+    text: "text-[var(--success-text)]",
   },
   trial: {
     label: "Trial",
-    dotColor: "bg-blue-500",
-    bg: "bg-[#dbeafe]",
-    text: "text-[#1e40af]",
+    dotColor: "bg-[var(--info)]",
+    bg: "bg-[var(--info-bg)]",
+    text: "text-[var(--info-text)]",
   },
   suspended: {
     label: "Suspended",
-    dotColor: "bg-red-500",
-    bg: "bg-[#fee2e2]",
-    text: "text-[#991b1b]",
+    dotColor: "bg-[var(--danger)]",
+    bg: "bg-[var(--danger-bg)]",
+    text: "text-[var(--danger-text)]",
   },
   flagged: {
     label: "Flagged",
-    dotColor: "bg-amber-500",
-    bg: "bg-[#fef3c7]",
-    text: "text-[#92400e]",
+    dotColor: "bg-[var(--warning)]",
+    bg: "bg-[var(--warning-bg)]",
+    text: "text-[var(--warning-text)]",
   },
 } as const;
 
