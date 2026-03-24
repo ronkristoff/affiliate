@@ -35,7 +35,7 @@ interface OverviewTabProps {
 export function OverviewTab({ tenant }: OverviewTabProps) {
   const commissions = useQuery(api.admin.tenants.getTenantCommissions, {
     tenantId: tenant._id,
-    limit: 10,
+    paginationOpts: { numItems: 10, cursor: null },
   });
 
   return (

@@ -30,7 +30,7 @@ export function PayoutsTab({ tenantId }: PayoutsTabProps) {
   const isLoading = batches === undefined;
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 0 }).format(amount);
+    new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
   const formatDate = (timestamp: number) =>
     new Date(timestamp * 1000).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 

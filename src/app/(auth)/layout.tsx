@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { Sidebar } from "@/components/shared/Sidebar";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { useQuery } from "convex/react";
@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 function LogoutButton() {
   const router = useRouter();
@@ -53,13 +53,20 @@ function AuthLayoutContent({
   const impersonationStatus = useQuery(api.admin.impersonation.getImpersonationStatus);
   const isImpersonating = !!impersonationStatus;
 
-  // Redirect platform admins to the admin panel via useEffect (React 19 / Next.js 16 requirement)
+  const pathname = usePathname();
   const isAdmin = user && user.role === "admin";
-  useEffect(() => {
-    if (isAdmin) {
+  const isOnAdminRoute = pathname.startsWith("/tenants") || pathname.startsWith("/tiers");
+
+  // Redirect platform admins to the admin panel (skip if already there)
+  const handleAdminRedirect = useCallback(() => {
+    if (isAdmin && !isOnAdminRoute) {
       router.replace("/tenants");
     }
-  }, [isAdmin, router]);
+  }, [isAdmin, isOnAdminRoute, router]);
+
+  useEffect(() => {
+    handleAdminRedirect();
+  }, [handleAdminRedirect]);
 
   if (isAdmin) {
     return (

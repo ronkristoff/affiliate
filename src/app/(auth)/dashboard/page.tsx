@@ -19,17 +19,9 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { downloadCsv } from "@/lib/utils";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { Loader2, Download, TrendingUp, Clock, Users, Wallet } from "lucide-react";
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 export default function DashboardPage() {
   // Use shared date range hook for global consistency

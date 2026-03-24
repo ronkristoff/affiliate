@@ -3,6 +3,7 @@
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { BarChart3, MousePointerClick, Target, DollarSign } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 interface CampaignMetricsSummaryProps {
   metrics?: {
@@ -20,15 +21,6 @@ interface CampaignMetricsSummaryProps {
   };
   isLoading?: boolean;
   canViewSensitiveData?: boolean;
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 function calculateDelta(current: number, previous: number): { value: number; isPositive: boolean } | undefined {

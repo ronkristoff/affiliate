@@ -6,7 +6,7 @@ import { TenantAvatar } from "@/app/(admin)/tenants/_components/TenantAvatar";
 import { StatusBadge } from "@/app/(admin)/tenants/_components/StatusBadge";
 import { PlanBadge } from "@/app/(admin)/tenants/_components/PlanBadge";
 import { Button } from "@/components/ui/button";
-import { Mail, UserCog, Globe, Users, DollarSign, Zap, Calendar } from "lucide-react";
+import { Mail, UserCog, Globe, Users, Wallet, Zap, Calendar } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { ImpersonateModal } from "./ImpersonateModal";
 
@@ -37,8 +37,6 @@ interface TenantHeaderProps {
 const phpFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
 });
 
 export function TenantHeader({ tenant }: TenantHeaderProps) {
@@ -85,7 +83,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
               </span>
 
               <span className="inline-flex items-center gap-1">
-                <DollarSign className="h-3 w-3" />
+                <Wallet className="h-3 w-3" />
                 {phpFormatter.format(tenant.totalCommissions)} commissions
               </span>
 

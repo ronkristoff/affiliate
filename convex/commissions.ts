@@ -1768,6 +1768,8 @@ export const getCommissionStats = query({
   returns: v.object({
     pendingCount: v.number(),
     pendingValue: v.number(),
+    approvedValue: v.number(),
+    approvedCount: v.number(),
     confirmedCountThisMonth: v.number(),
     confirmedValueThisMonth: v.number(),
     reversedCountThisMonth: v.number(),
@@ -1793,6 +1795,8 @@ export const getCommissionStats = query({
     return {
       pendingCount: stats?.commissionsPendingCount ?? 0,
       pendingValue: stats?.commissionsPendingValue ?? 0,
+      approvedValue: stats?.pendingPayoutTotal ?? 0,
+      approvedCount: stats?.pendingPayoutCount ?? 0,
       confirmedCountThisMonth: stale ? 0 : (stats?.commissionsConfirmedThisMonth ?? 0),
       confirmedValueThisMonth: stale ? 0 : (stats?.commissionsConfirmedValueThisMonth ?? 0),
       reversedCountThisMonth: stale ? 0 : (stats?.commissionsReversedThisMonth ?? 0),

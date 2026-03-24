@@ -34,8 +34,6 @@ export function PayoutHistory({ affiliateId }: PayoutHistoryProps) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'PHP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
     }).format(amount);
   };
 

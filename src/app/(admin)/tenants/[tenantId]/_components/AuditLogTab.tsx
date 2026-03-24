@@ -39,16 +39,16 @@ function formatActionName(action: string): string {
 }
 
 export function AuditLogTab({ tenantId }: AuditLogTabProps) {
-  const [showMore, setShowMore] = useState(false);
+  const [logCursor, setLogCursor] = useState<string | null>(null);
 
   const logResult = useQuery(api.admin.tenants.getTenantAuditLog, {
     tenantId,
-    limit: showMore ? 50 : 20,
+    paginationOpts: { numItems: 20, cursor: logCursor },
   });
 
   const isLoading = logResult === undefined;
   const entries = logResult?.entries ?? [];
-  const hasMore = logResult?.nextCursor !== undefined;
+  const hasNextPage = logResult?.hasNextPage ?? false;
 
   return (
     <div className="space-y-4">
@@ -103,13 +103,13 @@ export function AuditLogTab({ tenantId }: AuditLogTabProps) {
           </div>
         )}
 
-        {/* Load More */}
-        {hasMore && (
+        {/* Load More — uses true DB cursor pagination */}
+        {hasNextPage && logResult?.continueCursor && (
           <div className="border-t border-[#e5e7eb] p-3 text-center">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowMore(true)}
+              onClick={() => setLogCursor(logResult.continueCursor ?? null)}
               className="text-[#10409a] hover:bg-[#10409a]/10"
             >
               <ChevronDown className="mr-1 h-4 w-4" />

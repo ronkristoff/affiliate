@@ -2,6 +2,7 @@
 
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/format";
 
 interface CampaignPerformance {
   _id: Id<"campaigns">;
@@ -47,15 +48,6 @@ const statusStyles = {
 
 function formatNumber(num: number): string {
   return new Intl.NumberFormat("en-PH").format(num);
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 export function CampaignPerformanceTable({

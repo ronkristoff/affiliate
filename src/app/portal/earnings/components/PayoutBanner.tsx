@@ -21,8 +21,6 @@ export function PayoutBanner({ confirmedBalance, nextPayoutDate, isLoading = fal
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'PHP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
     }).format(amount);
   };
 

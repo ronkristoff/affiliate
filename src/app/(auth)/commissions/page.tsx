@@ -52,6 +52,7 @@ import {
   ShieldAlert,
   Loader2,
   Eye,
+  TrendingUp,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,8 @@ interface CommissionDetail extends EnrichedCommission {
 interface CommissionStats {
   pendingCount: number;
   pendingValue: number;
+  approvedValue: number;
+  approvedCount: number;
   confirmedCountThisMonth: number;
   confirmedValueThisMonth: number;
   reversedCountThisMonth: number;
@@ -132,14 +135,7 @@ const statusFilterOptions: FilterOption[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+import { formatCurrency } from "@/lib/format";
 
 function formatDetailDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString("en-US", {
@@ -682,7 +678,7 @@ function CommissionsContent() {
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
         {/* ── Metric Cards ─────────────────────────────────────────────── */}
-        <FadeIn className="grid grid-cols-4 gap-4 mb-8">
+        <FadeIn className="grid grid-cols-5 gap-4 mb-8">
           <MetricCard
             label="Pending Review"
             numericValue={stats?.pendingValue ?? 0}
@@ -693,13 +689,22 @@ function CommissionsContent() {
             icon={<Clock className="w-4 h-4" />}
           />
           <MetricCard
-            label="Confirmed (This Month)"
+            label="Approved (Ready to Pay)"
+            numericValue={stats?.approvedValue ?? 0}
+            formatValue={formatCurrency}
+            subtext={stats ? `${stats.approvedCount} commissions` : "—"}
+            variant="green"
+            isLoading={!stats}
+            icon={<CheckCircle2 className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Approved This Month"
             numericValue={stats?.confirmedValueThisMonth ?? 0}
             formatValue={formatCurrency}
             subtext={stats ? `${stats.confirmedCountThisMonth} commissions` : "—"}
             variant="green"
             isLoading={!stats}
-            icon={<CheckCircle2 className="w-4 h-4" />}
+            icon={<TrendingUp className="w-4 h-4" />}
           />
           <MetricCard
             label="Reversed (This Month)"

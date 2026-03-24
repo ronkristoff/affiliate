@@ -228,6 +228,11 @@ export const backfillStats = internalMutation({
       if (c.status === "pending") {
         commissionsPendingCount++;
         commissionsPendingValue += c.amount;
+      } else if (c.status === "approved") {
+        if (c._creationTime >= monthStart) {
+          commissionsConfirmedThisMonth++;
+          commissionsConfirmedValueThisMonth += c.amount;
+        }
       } else if (c.status === "reversed") {
         if (c._creationTime >= monthStart) {
           commissionsReversedThisMonth++;

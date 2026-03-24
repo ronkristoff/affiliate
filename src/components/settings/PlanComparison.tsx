@@ -86,7 +86,6 @@ export function PlanComparison({
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
-      minimumFractionDigits: 0,
     }).format(price);
   };
 

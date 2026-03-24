@@ -11,8 +11,10 @@ interface TenantStatsStripProps {
     pendingAffiliates: number;
     pendingCommissions: number;
     pendingCommissionsCount: number;
+    readyToPayTotal: number;
     openPayouts: number;
     openPayoutsTotal: number;
+    totalPaidOut: number;
   };
 }
 
@@ -23,7 +25,7 @@ const phpFormatter = new Intl.NumberFormat("en-PH", {
 
 export function TenantStatsStrip({ stats }: TenantStatsStripProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
       <StatCard label="MRR Influenced">
         <StatValue>{phpFormatter.format(stats.mrrInfluenced)}</StatValue>
         <StatDelta value={stats.mrrDelta} />
@@ -43,10 +45,24 @@ export function TenantStatsStrip({ stats }: TenantStatsStripProps) {
         </StatSubtitle>
       </StatCard>
 
-      <StatCard label="Open Payouts">
+      <StatCard label="Ready to Pay" variant="warning">
+        <StatValue>{phpFormatter.format(stats.readyToPayTotal)}</StatValue>
+        <StatSubtitle>
+          Approved, unbilled
+        </StatSubtitle>
+      </StatCard>
+
+      <StatCard label="Open Payout Batches">
         <StatValue>{stats.openPayouts.toLocaleString()}</StatValue>
         <StatSubtitle>
           ₱{stats.openPayoutsTotal.toLocaleString()} outstanding
+        </StatSubtitle>
+      </StatCard>
+
+      <StatCard label="Total Paid Out">
+        <StatValue>{phpFormatter.format(stats.totalPaidOut)}</StatValue>
+        <StatSubtitle>
+          All-time payouts
         </StatSubtitle>
       </StatCard>
     </div>

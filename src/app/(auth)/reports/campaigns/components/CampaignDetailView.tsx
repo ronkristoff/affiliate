@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CampaignTrendChart } from "./CampaignTrendChart";
+import { formatCurrency } from "@/lib/format";
 
 interface CampaignDetailData {
   campaign: {
@@ -70,15 +71,6 @@ const statusStyles = {
 
 function formatNumber(num: number): string {
   return new Intl.NumberFormat("en-PH").format(num);
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 function formatDate(timestamp: number): string {
