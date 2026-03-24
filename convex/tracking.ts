@@ -424,6 +424,7 @@ export const resolveReferralLinkInternal = internalQuery({
     campaignName: v.optional(v.string()),
     campaignStatus: v.optional(v.string()),
     destinationUrl: v.optional(v.string()),
+    tenantId: v.optional(v.id("tenants")),
   }),
   handler: async (ctx, args) => {
     // Find the referral link by code
@@ -438,6 +439,8 @@ export const resolveReferralLinkInternal = internalQuery({
         reason: "Referral link not found",
       };
     }
+
+    const tenantId = referralLink.tenantId;
 
     // Get affiliate details
     const affiliate = await ctx.db.get(referralLink.affiliateId);
@@ -458,6 +461,7 @@ export const resolveReferralLinkInternal = internalQuery({
         campaignName: undefined,
         campaignStatus: undefined,
         destinationUrl: "/", // Default destination
+        tenantId,
       };
     }
 
@@ -487,6 +491,7 @@ export const resolveReferralLinkInternal = internalQuery({
       campaignName: campaign.name,
       campaignStatus: campaign.status,
       destinationUrl: "/", // In production, this would be the actual landing page
+      tenantId,
     };
   },
 });

@@ -45,6 +45,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       pendingPayoutTotal: 0,
       pendingPayoutCount: 0,
       currentMonthStart: monthStart,
+      apiCallsThisMonth: 0,
     });
     return (await ctx.db.get(id))!;
   }
@@ -56,6 +57,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       commissionsReversedThisMonth: 0,
       commissionsReversedValueThisMonth: 0,
       currentMonthStart: monthStart,
+      apiCallsThisMonth: 0,
     });
     // Re-fetch after reset to avoid returning stale in-memory values
     return (await ctx.db.get(stats._id))!;
@@ -89,6 +91,7 @@ export const getStats = query({
     totalPaidOut: v.number(),
     pendingPayoutTotal: v.number(),
     pendingPayoutCount: v.number(),
+    apiCallsThisMonth: v.number(),
   }),
   handler: async (ctx, args) => {
     const stats = await ctx.db
@@ -114,6 +117,7 @@ export const getStats = query({
       totalPaidOut: stats?.totalPaidOut ?? 0,
       pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
       pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
+      apiCallsThisMonth: stale ? 0 : (stats?.apiCallsThisMonth ?? 0),
     };
   },
 });
@@ -180,6 +184,7 @@ export const seedStats = internalMutation({
       pendingPayoutTotal: 0,
       pendingPayoutCount: 0,
       currentMonthStart: getMonthStart(),
+      apiCallsThisMonth: 0,
     });
     return null;
   },
@@ -285,6 +290,7 @@ export const backfillStats = internalMutation({
       pendingPayoutTotal,
       pendingPayoutCount,
       currentMonthStart: monthStart,
+      apiCallsThisMonth: 0,
     };
 
     if (existing) {
@@ -533,6 +539,7 @@ export const getOrCreateStatsInternal = internalMutation({
         pendingPayoutTotal: 0,
         pendingPayoutCount: 0,
         currentMonthStart: getMonthStart(),
+        apiCallsThisMonth: 0,
       });
     }
 
@@ -545,9 +552,31 @@ export const getOrCreateStatsInternal = internalMutation({
         commissionsReversedThisMonth: 0,
         commissionsReversedValueThisMonth: 0,
         currentMonthStart: monthStart,
+        apiCallsThisMonth: 0,
       });
     }
 
+    return null;
+  },
+});
+
+// =============================================================================
+// Internal Mutation: Increment API Calls Counter
+// =============================================================================
+
+/**
+ * Increment the apiCallsThisMonth counter for a tenant.
+ * Called by HTTP action handlers to track API usage against tier limits.
+ * Uses getOrCreateStats to handle month boundary resets automatically.
+ */
+export const incrementApiCalls = internalMutation({
+  args: { tenantId: v.id("tenants"), count: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const stats = await getOrCreateStats(ctx, args.tenantId);
+    await ctx.db.patch(stats._id, {
+      apiCallsThisMonth: (stats.apiCallsThisMonth ?? 0) + args.count,
+    });
     return null;
   },
 });

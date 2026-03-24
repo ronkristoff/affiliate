@@ -326,6 +326,12 @@ http.route({
         },
       });
 
+      // Track API call (fire-and-forget)
+      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+        tenantId: tenant._id,
+        count: 1,
+      }).catch(() => {});
+
       // AC5: Performance monitoring
       const duration = Date.now() - startTime;
       if (duration > 3000) {
@@ -434,6 +440,18 @@ http.route({
         referrer,
         userAgent,
       });
+
+      // Track API call (fire-and-forget) — resolve tenantId from publicKey
+      ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
+        trackingKey: publicKey,
+      }).then((tenant) => {
+        if (tenant) {
+          return ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+            tenantId: tenant._id,
+            count: 1,
+          });
+        }
+      }).catch(() => {});
 
       return new Response(
         JSON.stringify(result),
@@ -715,6 +733,14 @@ http.route({
         );
       }
 
+      // Track API call (fire-and-forget) — only if tenantId is available
+      if (tenantIdStr) {
+        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+          tenantId: tenantIdStr as Id<"tenants">,
+          count: 1,
+        }).catch(() => {});
+      }
+
       // Use the webhookId returned from the atomic mutation
       const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
 
@@ -964,6 +990,12 @@ http.route({
           }
         );
       }
+
+      // Track API call (fire-and-forget)
+      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+        tenantId: user.tenantId,
+        count: 1,
+      }).catch(() => {});
 
       // Use the webhookId returned from the atomic mutation
       const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
@@ -1251,6 +1283,14 @@ http.route({
       }
 
       // Valid active referral link - redirect to destination with tracking
+      // Track API call (fire-and-forget)
+      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+        tenantId: result.tenantId,
+        count: 1,
+      }).catch(() => {
+        // Silently fail - don't break user experience
+      });
+
       // In production, this would redirect to the actual destination URL
       return new Response(
         JSON.stringify({
@@ -1461,6 +1501,14 @@ http.route({
         },
       }).catch(() => {
         // Silently fail - don't break user experience for metrics
+      });
+
+      // Track API call (fire-and-forget, don't await)
+      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+        tenantId,
+        count: 1,
+      }).catch(() => {
+        // Silently fail - don't break user experience
       });
 
       // AC5: Track timeout metrics when response time exceeds 3 seconds

@@ -77,7 +77,7 @@ export function ImpactWarningModal({
             <AlertTriangle
               className={cn(
                 "h-5 w-5",
-                isCritical ? "text-red-600" : "text-amber-600"
+                isCritical ? "text-[var(--danger)]" : "text-[var(--warning)]"
               )}
             />
             {isCritical ? "Critical Impact Detected" : "Impact Detected"}
@@ -93,22 +93,22 @@ export function ImpactWarningModal({
           className={cn(
             "rounded-lg p-4",
             isCritical
-              ? "bg-red-50 border border-red-200"
-              : "bg-amber-50 border border-amber-200"
+              ? "bg-[var(--danger-bg)] border border-[var(--danger)]/30"
+              : "bg-[var(--warning-bg)] border border-[var(--warning)]/30"
           )}
         >
           <div className="flex items-center gap-2 mb-3">
             <span
               className={cn(
                 "text-sm font-semibold",
-                isCritical ? "text-red-800" : "text-amber-800"
+                isCritical ? "text-[var(--danger-text)]" : "text-[var(--warning-text)]"
               )}
             >
               {affectedTenants} tenant{affectedTenants !== 1 ? "s" : ""} exceed new limits
             </span>
           </div>
 
-          {/* Subtask 7.3: Breakdown by limit type with affected count */}
+          {/* Breakdown by limit type with affected count */}
           <div className="space-y-2">
             {decreasedLimits.map(({ key, oldValue, newValue }) => {
               const fieldInfo = LIMIT_LABELS[key];
@@ -121,17 +121,17 @@ export function ImpactWarningModal({
                   key={key}
                   className="flex items-center gap-2 text-sm"
                 >
-                  <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                  <span className="text-muted-foreground">{fieldInfo.label}:</span>
-                  <span className="line-through text-red-500">
+                  <Icon className="h-3.5 w-3.5 text-[var(--text-muted)] flex-shrink-0" />
+                  <span className="text-[var(--text-muted)]">{fieldInfo.label}:</span>
+                  <span className="line-through text-[var(--danger)]">
                     {formatLimit(oldValue)}
                   </span>
-                  <span className="text-muted-foreground">→</span>
-                  <span className="font-medium text-[#333333]">
+                  <span className="text-[var(--text-muted)]">→</span>
+                  <span className="font-medium text-[var(--text-heading)]">
                     {formatLimit(newValue)}
                   </span>
                   {breakdown && breakdown.affectedCount > 0 && (
-                    <span className="text-xs text-red-600 ml-auto">
+                    <span className="text-xs text-[var(--danger)] ml-auto">
                       ({breakdown.affectedCount} affected)
                     </span>
                   )}
@@ -141,12 +141,12 @@ export function ImpactWarningModal({
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-[var(--text-muted)]">
           Affected tenants will be notified of these changes. They may need to upgrade their
           plan or reduce their usage to stay within the new limits.
         </p>
 
-        {/* Subtask 7.5: Proceed Anyway and Go Back buttons */}
+        {/* Proceed Anyway and Go Back buttons */}
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} disabled={isLoading}>
             Go Back

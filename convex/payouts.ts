@@ -112,6 +112,37 @@ export const generatePayoutBatch = mutation({
       throw new Error("NO_PENDING_PAYOUTS");
     }
 
+    // --- Tier limit enforcement: maxPayoutsPerMonth ---
+    const tenant = await ctx.db.get(tenantId);
+    if (tenant) {
+      const tierName = (tenant.plan || "starter") as string;
+      const tierConfig = await ctx.db
+        .query("tierConfigs")
+        .withIndex("by_tier", (q) => q.eq("tier", tierName))
+        .unique();
+
+      const maxPayouts = tierConfig?.maxPayoutsPerMonth ?? -1; // default to unlimited
+
+      if (maxPayouts !== -1) {
+        // Count existing payouts created this month
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        const existingPayouts = await ctx.db
+          .query("payouts")
+          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+          .collect();
+        const thisMonthCount = existingPayouts.filter(p => p._creationTime >= monthStart).length;
+        const newPayoutCount = affiliateCommissions.size;
+
+        if (thisMonthCount + newPayoutCount > maxPayouts) {
+          throw new Error(
+            `Payout limit reached for this month (${thisMonthCount}/${maxPayouts}). Please upgrade your plan or wait until next month.`
+          );
+        }
+      }
+    }
+    // --- End tier limit enforcement ---
+
     // Fetch affiliate details and build summary
     const affiliateIds = Array.from(affiliateCommissions.keys());
     const affiliateDetails = await Promise.all(

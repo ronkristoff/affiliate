@@ -272,11 +272,12 @@ async function getResourceCount(
         .collect();
       return payouts.length;
     case "apiCalls":
-      // API calls tracking requires a separate usage tracking mechanism
-      // This is a placeholder that should be implemented with a usageTracking table
-      throw new Error(
-        "API call tracking is not yet implemented. Please use a different resource type or implement usage tracking."
-      );
+      // Read from denormalized tenantStats counter (O(1) lookup)
+      const apiCallsStats = await ctx.db
+        .query("tenantStats")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .first();
+      return apiCallsStats?.apiCallsThisMonth ?? 0;
     default:
       return 0;
   }
@@ -519,6 +520,12 @@ export const getAllLimits = query({
       current: v.number(),
       limit: v.number(),
     }),
+    apiCalls: v.object({
+      status: v.union(v.literal("ok"), v.literal("warning"), v.literal("critical"), v.literal("blocked")),
+      percentage: v.number(),
+      current: v.number(),
+      limit: v.number(),
+    }),
     tierName: v.string(),
   }),
   handler: async (ctx, args) => {
@@ -536,11 +543,12 @@ export const getAllLimits = query({
     const config = tierConfig || DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
 
     // Get counts for each resource type
-    const [affiliatesCount, campaignsCount, teamMembersCount, payoutsCount] = await Promise.all([
+    const [affiliatesCount, campaignsCount, teamMembersCount, payoutsCount, apiCallsCount] = await Promise.all([
       getResourceCount(ctx, args.tenantId, "affiliates"),
       getResourceCount(ctx, args.tenantId, "campaigns"),
       getResourceCount(ctx, args.tenantId, "teamMembers"),
       getResourceCount(ctx, args.tenantId, "payouts"),
+      getResourceCount(ctx, args.tenantId, "apiCalls"),
     ]);
 
     // Calculate status for each resource
@@ -548,6 +556,7 @@ export const getAllLimits = query({
     const campaignsStatus = calculateLimitStatus(campaignsCount, config.maxCampaigns);
     const teamMembersStatus = calculateLimitStatus(teamMembersCount, config.maxTeamMembers);
     const payoutsStatus = calculateLimitStatus(payoutsCount, config.maxPayoutsPerMonth);
+    const apiCallsStatus = calculateLimitStatus(apiCallsCount, config.maxApiCalls);
 
     return {
       affiliates: {
@@ -573,6 +582,12 @@ export const getAllLimits = query({
         percentage: payoutsStatus.percentage,
         current: payoutsCount,
         limit: config.maxPayoutsPerMonth,
+      },
+      apiCalls: {
+        status: apiCallsStatus.status,
+        percentage: apiCallsStatus.percentage,
+        current: apiCallsCount,
+        limit: config.maxApiCalls,
       },
       tierName: config.tier,
     };

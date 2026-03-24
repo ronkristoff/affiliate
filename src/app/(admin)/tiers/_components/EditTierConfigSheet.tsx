@@ -4,17 +4,17 @@ import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, Layers, DollarSign, SlidersHorizontal, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { ImpactWarningModal } from "./ImpactWarningModal";
 
@@ -33,7 +33,7 @@ const FEATURE_FIELDS = [
   { key: "prioritySupport" as const, label: "Priority Support" },
 ] as const;
 
-interface EditTierConfigModalProps {
+interface EditTierConfigSheetProps {
   tierConfig: {
     _id: string;
     tier: string;
@@ -52,7 +52,7 @@ interface EditTierConfigModalProps {
   onClose: () => void;
 }
 
-export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModalProps) {
+export function EditTierConfigSheet({ tierConfig, onClose }: EditTierConfigSheetProps) {
   // Form state
   const [price, setPrice] = useState(String(tierConfig.price));
   const [limits, setLimits] = useState<Record<string, string>>({
@@ -227,106 +227,134 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
     }
   };
 
+  const tierLabel = tierConfig.tier.charAt(0).toUpperCase() + tierConfig.tier.slice(1);
+
   return (
     <>
-      <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Edit {tierConfig.tier.charAt(0).toUpperCase() + tierConfig.tier.slice(1)} Tier
-            </DialogTitle>
-            <DialogDescription>
-              Modify pricing, limits, and feature gates for this tier. Changes take effect immediately for all tenants.
-            </DialogDescription>
-          </DialogHeader>
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] p-0 flex flex-col">
+          <SheetHeader className="px-6 py-5 border-b border-[var(--border)]">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shrink-0">
+                <Layers className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <SheetTitle className="text-base font-bold text-[var(--text-heading)]">
+                  Edit {tierLabel} Tier
+                </SheetTitle>
+                <SheetDescription>
+                  Modify pricing, limits, and feature gates. Changes take effect immediately.
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
 
-          <div className="space-y-6">
-            {/* Validation errors */}
-            {validationErrors.length > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <div className="flex items-center gap-2 text-red-800 text-sm font-medium mb-1">
-                  <AlertTriangle className="h-4 w-4" />
-                  Validation Errors
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="space-y-6">
+              {/* Validation errors */}
+              {validationErrors.length > 0 && (
+                <div className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-bg)] p-3">
+                  <div className="flex items-center gap-2 text-[var(--danger-text)] text-sm font-medium mb-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    Validation Errors
+                  </div>
+                  <ul className="list-disc list-inside text-[var(--danger-text)] text-sm space-y-0.5">
+                    {validationErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="list-disc list-inside text-red-700 text-sm space-y-0.5">
-                  {validationErrors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              )}
 
-            {/* Pricing Section */}
-            <div>
-              <h3 className="text-sm font-medium text-[#333333] mb-3">Pricing</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">₱</span>
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="max-w-[120px]"
-                />
-                <span className="text-sm text-muted-foreground">/month</span>
+              {/* Pricing Section */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  Pricing
+                </Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[var(--text-muted)]">₱</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="max-w-[140px]"
+                    disabled={isSubmitting}
+                  />
+                  <span className="text-sm text-[var(--text-muted)]">/month</span>
+                </div>
               </div>
-            </div>
 
-            {/* Limits Section */}
-            <div>
-              <h3 className="text-sm font-medium text-[#333333] mb-3">Limits</h3>
+              {/* Limits Section */}
               <div className="space-y-3">
-                {LIMIT_FIELDS.map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
-                    <label className="text-sm text-muted-foreground min-w-[140px]">{label}</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={-1}
-                        step={1}
-                        value={limits[key]}
-                        onChange={(e) =>
-                          setLimits((prev) => ({ ...prev, [key]: e.target.value }))
-                        }
-                        className="w-[100px]"
-                      />
-                      {Number(limits[key]) === -1 && (
-                        <span className="text-xs text-green-600 whitespace-nowrap">Unlimited</span>
-                      )}
+                <Label className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  Limits
+                </Label>
+                <div className="space-y-3">
+                  {LIMIT_FIELDS.map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between gap-4">
+                      <label className="text-sm text-[var(--text-muted)] min-w-[140px]">{label}</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={-1}
+                          step={1}
+                          value={limits[key]}
+                          onChange={(e) =>
+                            setLimits((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                          className="w-[100px]"
+                          disabled={isSubmitting}
+                        />
+                        {Number(limits[key]) === -1 && (
+                          <span className="text-xs text-[var(--success)] whitespace-nowrap">Unlimited</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Enter -1 for unlimited
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Enter -1 for unlimited
-              </p>
-            </div>
 
-            {/* Feature Gates Section */}
-            <div>
-              <h3 className="text-sm font-medium text-[#333333] mb-3">Feature Gates</h3>
+              {/* Feature Gates Section */}
               <div className="space-y-3">
-                {FEATURE_FIELDS.map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{label}</span>
-                    <Switch
-                      checked={features[key]}
-                      onCheckedChange={(checked) =>
-                        setFeatures((prev) => ({ ...prev, [key]: checked }))
-                      }
-                    />
-                  </div>
-                ))}
+                <Label className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  Feature Gates
+                </Label>
+                <div className="space-y-3">
+                  {FEATURE_FIELDS.map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-[var(--text-muted)]">{label}</span>
+                      <Switch
+                        checked={features[key]}
+                        onCheckedChange={(checked) =>
+                          setFeatures((prev) => ({ ...prev, [key]: checked }))
+                        }
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <DialogFooter>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-[var(--border)] flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+            <Button
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)]"
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -336,9 +364,9 @@ export function EditTierConfigModal({ tierConfig, onClose }: EditTierConfigModal
                 "Save Changes"
               )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Impact Warning Modal */}
       {impactWarning && (
