@@ -1284,12 +1284,14 @@ http.route({
 
       // Valid active referral link - redirect to destination with tracking
       // Track API call (fire-and-forget)
-      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-        tenantId: result.tenantId,
-        count: 1,
-      }).catch(() => {
-        // Silently fail - don't break user experience
-      });
+      if (result.tenantId) {
+        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+          tenantId: result.tenantId,
+          count: 1,
+        }).catch(() => {
+          // Silently fail - don't break user experience
+        });
+      }
 
       // In production, this would redirect to the actual destination URL
       return new Response(
