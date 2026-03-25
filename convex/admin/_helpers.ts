@@ -22,6 +22,7 @@ export interface TenantStatsData {
   commissionsPendingValue: number;
   commissionsConfirmedThisMonth: number;
   commissionsConfirmedValueThisMonth: number;
+  commissionsConfirmedValueLastMonth: number;
   commissionsFlagged: number;
   totalPaidOut: number;
   pendingPayoutTotal: number | undefined;
@@ -51,6 +52,7 @@ export async function readTenantStats(
     commissionsPendingValue: stats?.commissionsPendingValue ?? 0,
     commissionsConfirmedThisMonth: stats?.commissionsConfirmedThisMonth ?? 0,
     commissionsConfirmedValueThisMonth: stats?.commissionsConfirmedValueThisMonth ?? 0,
+    commissionsConfirmedValueLastMonth: stats?.commissionsConfirmedValueLastMonth ?? 0,
     commissionsFlagged: stats?.commissionsFlagged ?? 0,
     totalPaidOut: stats?.totalPaidOut ?? 0,
     pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,

@@ -84,6 +84,7 @@ async function getTenantOwnerEmail(ctx: QueryCtx, tenantId: Id<"tenants">): Prom
 
 /**
  * Get total affiliate count for a tenant from denormalized tenantStats.
+ * O(1) — single indexed lookup.
  */
 async function getAffiliateCount(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<number> {
   const stats = await readTenantStats(ctx, tenantId);
@@ -94,43 +95,19 @@ async function getAffiliateCount(ctx: QueryCtx, tenantId: Id<"tenants">): Promis
 }
 
 /**
- * Get MRR influenced by affiliate commissions for a tenant.
- * Uses by_tenant_and_status index to fetch ONLY approved commissions,
- * then filters by date range in memory. Matches owner dashboard logic.
+ * Get MRR estimate for a tenant from denormalized tenantStats.
+ * Uses the sum of thisMonth + lastMonth confirmed commission values as a
+ * 2-month rolling approximation. This is O(1) — no commission table scan.
  *
- * NOTE: This still does a date-range filter in memory after the index fetch.
- * The by_tenant_and_status index narrows the scan to approved commissions only.
- * If a tenant has >1500 approved commissions (unlikely for PH/SEA market),
- * the oldest may be missed in the 30-day window. Matches the owner dashboard
- * which also caps at 1500.
+ * NOTE: This replaces the previous getTenantMRR() which did an expensive
+ * commission table scan with individual conversion lookups (N+1 per tenant).
+ * The approximation is sufficient for the admin tenant list; the detailed
+ * tenant view (getTenantStats) still computes exact MRR if needed.
  */
-async function getTenantMRR(ctx: QueryCtx, tenant: any): Promise<number> {
-  const now = Date.now();
-  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-
-  // Use by_tenant_and_status to fetch only approved commissions
-  const commissions = await ctx.db
-    .query("commissions")
-    .withIndex("by_tenant_and_status", (q: any) =>
-      q.eq("tenantId", tenant._id).eq("status", "approved")
-    )
-    .order("desc")
-    .take(1500);
-
-  // Sum conversion amounts (full subscription price), matching owner dashboard logic
-  let mrr = 0;
-  for (const commission of commissions) {
-    if (commission._creationTime < thirtyDaysAgo) continue;
-    if (commission.conversionId) {
-      const conversion = await ctx.db.get(commission.conversionId);
-      if (conversion) {
-        mrr += conversion.amount;
-        continue;
-      }
-    }
-    mrr += commission.amount;
-  }
-  return mrr;
+async function getTenantMRRLight(ctx: QueryCtx, tenantId: Id<"tenants">): Promise<number> {
+  const stats = await readTenantStats(ctx, tenantId);
+  return (stats.commissionsConfirmedValueThisMonth ?? 0)
+    + (stats.commissionsConfirmedValueLastMonth ?? 0);
 }
 
 /**
@@ -217,16 +194,47 @@ export const searchTenants = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const allTenants = await ctx.db.query("tenants").order("desc").collect();
+    // ── Step 1: Fetch a page of tenants via native pagination ──────────
+    // Use a generous page (3x requested) so we can filter in memory
+    // while still having enough items for the actual page size.
+    // Convex allows at most 1 paginated query per function.
+    const fetchSize = Math.min(args.numItems * 3, 100);
+    const paginationOpts = {
+      numItems: fetchSize,
+      cursor: args.cursor ?? null,
+    };
 
+    let baseQuery;
+    if (args.statusFilter && args.statusFilter !== "flagged") {
+      // Use the by_status index when filtering by a real status field
+      baseQuery = ctx.db
+        .query("tenants")
+        .withIndex("by_status", (q: any) => q.eq("status", args.statusFilter))
+        .order("desc");
+    } else {
+      // Default: all tenants, newest first
+      baseQuery = ctx.db.query("tenants").order("desc");
+    }
+
+    const page = await baseQuery.paginate(paginationOpts);
+
+    // ── Step 2: Enrich only the fetched page (not ALL tenants) ────────
+    // Each enrichment is O(1) via indexed lookups — no N+1 table scans.
     let enriched: TenantRow[] = [];
-    for (const tenant of allTenants) {
-      const [ownerEmail, affiliateCount, isFlagged, mrr] = await Promise.all([
-        getTenantOwnerEmail(ctx, tenant._id),
-        getAffiliateCount(ctx, tenant._id),
-        isTenantFlagged(ctx, tenant._id),
-        getTenantMRR(ctx, tenant),
-      ]);
+    for (const tenant of page.page) {
+      // Compute isFlagged once — combine with enrichment to avoid duplicate lookups
+      const now = Date.now() / 1000;
+      const saligPayExpired = tenant.saligPayCredentials?.expiresAt
+        ? tenant.saligPayCredentials.expiresAt < now
+        : false;
+      const stats = await readTenantStats(ctx, tenant._id);
+      const flagged = saligPayExpired || (stats.commissionsFlagged ?? 0) > 0;
+
+      // For "flagged" filter, skip non-flagged tenants
+      if (args.statusFilter === "flagged" && !flagged) continue;
+
+      // ownerEmail is the only remaining per-tenant lookup
+      const ownerEmail = await getTenantOwnerEmail(ctx, tenant._id);
 
       enriched.push({
         _id: tenant._id,
@@ -237,46 +245,56 @@ export const searchTenants = query({
         plan: tenant.plan,
         status: tenant.status,
         ownerEmail,
-        affiliateCount,
-        mrr,
-        isFlagged,
+        affiliateCount: stats.affiliatesPending
+          + stats.affiliatesActive
+          + stats.affiliatesSuspended
+          + stats.affiliatesRejected,
+        mrr: (stats.commissionsConfirmedValueThisMonth ?? 0)
+          + (stats.commissionsConfirmedValueLastMonth ?? 0),
+        isFlagged: flagged,
       });
     }
 
-    if (args.statusFilter) {
-      if (args.statusFilter === "flagged") {
-        enriched = enriched.filter((t) => t.isFlagged);
-      } else {
-        enriched = enriched.filter((t) => t.status === args.statusFilter);
-      }
-    }
-
+    // ── Step 3: Apply search filter (in-memory, on the small page) ────
     if (args.searchQuery && args.searchQuery.trim() !== "") {
-      const query = args.searchQuery.toLowerCase().trim();
+      const q = args.searchQuery.toLowerCase().trim();
       enriched = enriched.filter(
         (t) =>
-          t.name.toLowerCase().includes(query) ||
-          t.slug.toLowerCase().includes(query) ||
-          t.ownerEmail.toLowerCase().includes(query) ||
-          (t.domain && t.domain.toLowerCase().includes(query))
+          t.name.toLowerCase().includes(q) ||
+          t.slug.toLowerCase().includes(q) ||
+          t.ownerEmail.toLowerCase().includes(q) ||
+          (t.domain && t.domain.toLowerCase().includes(q))
       );
     }
 
-    enriched.sort((a, b) => b._creationTime - a._creationTime);
+    // ── Step 4: Slice to the requested page size ──────────────────────
+    const pagedTenants = enriched.slice(0, args.numItems);
+    const hasMore = enriched.length > args.numItems || page.continueCursor !== undefined;
+    const nextCursor = enriched.length > args.numItems
+      ? page.continueCursor
+      : (page.continueCursor !== undefined ? page.continueCursor : undefined);
 
-    const total = enriched.length;
-
-    let startIndex = 0;
-    if (args.cursor) {
-      startIndex = parseInt(args.cursor, 10);
+    // ── Step 5: Get total count (lightweight: capped .take() on index) ──
+    // Convex allows only 1 .paginate() per function, so we use .take() here.
+    // For status filter we use the index; for "flagged" or "all" we do a
+    // capped count. The exact count is best-effort for the list view.
+    let total: number;
+    if (args.statusFilter && args.statusFilter !== "flagged") {
+      const statusTenants = await ctx.db
+        .query("tenants")
+        .withIndex("by_status", (q: any) => q.eq("status", args.statusFilter))
+        .take(500);
+      total = statusTenants.length;
+    } else {
+      const allTenants = await ctx.db
+        .query("tenants")
+        .order("desc")
+        .take(500);
+      total = allTenants.length;
     }
 
-    const pageItems = enriched.slice(startIndex, startIndex + args.numItems);
-    const hasMore = startIndex + args.numItems < enriched.length;
-    const nextCursor = hasMore ? String(startIndex + args.numItems) : undefined;
-
     return {
-      tenants: pageItems,
+      tenants: pagedTenants,
       nextCursor,
       hasMore,
       total,
@@ -303,7 +321,7 @@ export const getPlatformStats = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const allTenants = await ctx.db.query("tenants").collect();
+    const allTenants = await ctx.db.query("tenants").take(500);
 
     let active = 0;
     let trial = 0;
@@ -316,7 +334,13 @@ export const getPlatformStats = query({
       if (tenant.status === "trial") trial++;
       if (tenant.status === "suspended") suspended++;
 
-      const tenantFlagged = await isTenantFlagged(ctx, tenant._id);
+      // Inline flag check — O(1) using tenant fields + tenantStats
+      const now = Date.now() / 1000;
+      const saligPayExpired = tenant.saligPayCredentials?.expiresAt
+        ? tenant.saligPayCredentials.expiresAt < now
+        : false;
+      const stats = await readTenantStats(ctx, tenant._id);
+      const tenantFlagged = saligPayExpired || (stats.commissionsFlagged ?? 0) > 0;
       if (tenantFlagged) flagged++;
     }
 

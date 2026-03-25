@@ -96,6 +96,9 @@ function AdminTenantsContent() {
   // Debounced search (500ms)
   const debouncedSearch = useDebounce(searchQuery, 500);
 
+  // ── Convex cursor state (opaque string from Convex pagination) ─────────
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+
   // ── Convex query ─────────────────────────────────────────────────────────
   const stats = useQuery(api.admin.tenants.getPlatformStats);
   const result = useQuery(
@@ -103,7 +106,7 @@ function AdminTenantsContent() {
     {
       searchQuery: debouncedSearch || undefined,
       statusFilter: activeFilter === "all" ? undefined : activeFilter,
-      cursor: page > 1 ? String((page - 1) * pageSize) : undefined,
+      cursor: page > 1 ? cursor : undefined,
       numItems: pageSize,
     }
   );
@@ -151,9 +154,17 @@ function AdminTenantsContent() {
     router,
   ]);
 
-  // ── Reset page when filter/search changes ────────────────────────────────
+  // ── Sync cursor from Convex response ────────────────────────────────────
+  useEffect(() => {
+    if (result?.nextCursor) {
+      setCursor(result.nextCursor);
+    }
+  }, [result?.nextCursor]);
+
+  // ── Reset page and cursor when filter/search changes ────────────────────
   useEffect(() => {
     setPage(1);
+    setCursor(undefined);
   }, [debouncedSearch, activeFilter, tenantNameFilter, planFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
 
   // ── Build activeFilters for DataTable & FilterChips ──────────────────────
