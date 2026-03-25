@@ -256,8 +256,8 @@ function DashboardContent() {
                     <Link href="/reports/commissions">View All</Link>
                   </Button>
                   {canManage && (stats?.pendingCommissionsCount ?? 0) > 0 && (
-                    <Button size="sm" className="bg-[var(--success)] text-white hover:bg-[#059669]">
-                      💸 Pay All Pending
+                    <Button size="sm" className="bg-[var(--success)] text-white hover:bg-[#059669]" asChild>
+                      <Link href="/payouts">💸 Pay All Pending</Link>
                     </Button>
                   )}
                 </div>
