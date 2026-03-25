@@ -48,22 +48,16 @@ export const exportOwnerDashboardCSV = action({
     const endDateStr = formatDate(endDate);
     const generatedDate = formatDate(now);
 
-    const stats = await ctx.runQuery(api.dashboard.getOwnerDashboardStats, {
+    const dashboardData = await ctx.runQuery(api.dashboard.getDashboardData, {
       tenantId: args.tenantId,
       dateRange: { start: startDate, end: endDate },
+      topAffiliatesLimit: 20,
+      recentCommissionsLimit: 50,
     });
 
-    const recentCommissions = await ctx.runQuery(api.dashboard.getRecentCommissions, {
-      tenantId: args.tenantId,
-      dateRange: { start: startDate, end: endDate },
-      limit: 50,
-    });
-
-    const topAffiliates = await ctx.runQuery(api.dashboard.getTopAffiliates, {
-      tenantId: args.tenantId,
-      dateRange: { start: startDate, end: endDate },
-      limit: 20,
-    });
+    const stats = dashboardData.stats;
+    const recentCommissions = dashboardData.recentCommissions;
+    const topAffiliates = dashboardData.topAffiliates;
 
     const rows: string[] = [];
 

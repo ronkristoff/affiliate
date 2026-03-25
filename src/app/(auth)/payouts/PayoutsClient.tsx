@@ -125,6 +125,7 @@ export function PayoutsContent() {
 
   // Queries
   const pendingTotal = useQuery(api.payouts.getPendingPayoutTotal, {});
+  const totalPaidOutData = useQuery(api.payouts.getTotalPaidOut, {});
   const affiliates = useQuery(api.payouts.getAffiliatesWithPendingPayouts, {});
   const batchesResult = useQuery(api.payouts.getPayoutBatches, {
     paginationOpts: { numItems: 10, cursor: null },
@@ -219,12 +220,8 @@ export function PayoutsContent() {
   const hasSelected = selectedAffiliates.size > 0;
 
   // Calculate batch metrics from historical batches
-  const totalPaidOut = (batches ?? [])
-    .filter((b) => b.status === "completed")
-    .reduce((sum, b) => sum + b.totalAmount, 0);
-  const completedBatchCount = (batches ?? []).filter(
-    (b) => b.status === "completed"
-  ).length;
+  const totalPaidOut = totalPaidOutData?.totalAmount ?? 0;
+  const completedBatchCount = totalPaidOutData?.completedBatchCount ?? 0;
   const processingBatches = (batches ?? []).filter(
     (b) => b.status === "processing" || b.status === "pending"
   );

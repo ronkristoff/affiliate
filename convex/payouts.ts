@@ -233,7 +233,6 @@ export const generatePayoutBatch = mutation({
       },
     });
 
-    // Return structured summary
     return {
       batchId,
       affiliateCount: validAffiliates.length,
@@ -242,12 +241,7 @@ export const generatePayoutBatch = mutation({
         affiliateId: a.affiliateId,
         name: a.name,
         email: a.email,
-        payoutMethod: a.payoutMethod
-          ? {
-              type: a.payoutMethod.type,
-              details: a.payoutMethod.details,
-            }
-          : undefined,
+        payoutMethod: a.payoutMethod,
         pendingAmount: a.pendingAmount,
         commissionCount: a.commissionCount,
       })),
@@ -356,6 +350,38 @@ export const getPendingPayoutTotal = query({
       totalAmount: stats?.pendingPayoutTotal ?? 0,
       affiliateCount: 0, // Per-affiliate count not available from tenantStats alone
       commissionCount: stats?.pendingPayoutCount ?? 0,
+    };
+  },
+});
+
+/**
+ * Get the total amount paid out across all completed payout batches.
+ * Single source of truth for "Total Paid Out" displayed on dashboard and payouts page.
+ */
+export const getTotalPaidOut = query({
+  args: {},
+  returns: v.object({
+    totalAmount: v.number(),
+    completedBatchCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    const tenantId = await requireTenantId(ctx);
+
+    const completedBatches = await ctx.db
+      .query("payoutBatches")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "completed")
+      )
+      .take(200);
+
+    let totalAmount = 0;
+    for (const batch of completedBatches) {
+      totalAmount += batch.totalAmount;
+    }
+
+    return {
+      totalAmount,
+      completedBatchCount: completedBatches.length,
     };
   },
 });

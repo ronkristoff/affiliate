@@ -99,12 +99,15 @@ const WelcomeSection = () => {
 
 // Client wrapper for dashboard
 export function DashboardClient({ children }: { children: React.ReactNode }) {
+  const user = useQuery(api.auth.getCurrentUser);
+  const trackingVerified = !!user?.tenant?.trackingVerifiedAt;
+
   return (
     <>
       <Header />
       <div className="space-y-8">
         <WelcomeSection />
-        <TrackingNotVerifiedBanner />
+        <TrackingNotVerifiedBanner isVerified={trackingVerified} />
         {children}
       </div>
       <Toaster />

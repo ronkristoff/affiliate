@@ -29,6 +29,7 @@ export const getCurrentUser = query({
         slug: v.string(),
         plan: v.string(),
         status: v.string(),
+        trackingVerifiedAt: v.optional(v.number()),
       }),
     }),
     v.null()
@@ -85,6 +86,7 @@ export const getCurrentUser = query({
         slug: tenant.slug,
         plan: tenant.plan,
         status: tenant.status,
+        trackingVerifiedAt: tenant.trackingVerifiedAt,
       },
     };
   },

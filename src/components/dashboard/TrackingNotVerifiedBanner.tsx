@@ -9,8 +9,16 @@ import { AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 /**
  * Tracking Not Verified Banner Component
  * AC5: Skip Option - Shows reminder on dashboard when tracking is not verified
+ *
+ * If `isVerified` is provided and true, the banner is skipped entirely
+ * without firing any query. Otherwise, falls back to checking via query.
  */
-export function TrackingNotVerifiedBanner() {
+export function TrackingNotVerifiedBanner({ isVerified }: { isVerified?: boolean }) {
+  // Short-circuit: if parent already knows tracking is verified, skip the query
+  if (isVerified) {
+    return null;
+  }
+
   const verificationStatus = useQuery(api.tracking.checkSnippetInstallation);
 
   // Show loading state while fetching verification status

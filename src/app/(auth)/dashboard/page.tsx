@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -10,30 +10,76 @@ import {
   ActivityFeed,
   PlanUsageWidget,
   AlertBanner,
-  DateRangeSelector,
 } from "./components";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
+import { Skeleton } from "@/components/ui/skeleton";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { Loader2, Download, TrendingUp, Clock, Users, Wallet } from "lucide-react";
 
-export default function DashboardPage() {
-  // Use shared date range hook for global consistency
-  const { dateRange } = useDateRange();
-  const queryDateRange = getQueryDateRange(dateRange);
+// ─── Skeleton fallback for Suspense boundary ─────────────────────────────
 
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Alert Banner skeleton */}
+      <div className="px-8 pt-4">
+        <Skeleton className="h-10 w-full rounded-lg" />
+      </div>
+
+      {/* Top Bar skeleton */}
+      <div className="px-8 pt-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-32" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-36" />
+          </div>
+        </div>
+      </div>
+
+      {/* Metric Cards skeleton */}
+      <div className="px-8 pt-6 pb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+
+        {/* Main Content Grid skeleton */}
+        <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px" }}>
+          {/* Left column */}
+          <div className="space-y-6">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+
+          {/* Right column */}
+          <div className="space-y-6">
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-40 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inner content component (hooks live here) ───────────────────────────
+
+function DashboardContent() {
   // Get current user to determine tenant and role
   const user = useQuery(api.auth.getCurrentUser);
   const tenantId = user?.tenantId;
 
   // RBAC: Determine if user can perform write actions (owner or manager)
-  // Viewers cannot see Pay All buttons or sensitive data
   const userRole = user?.role;
   const canManage = userRole === "owner" || userRole === "manager";
 
@@ -49,7 +95,6 @@ export default function DashboardPage() {
     try {
       const base64Data = await exportCSV({
         tenantId,
-        dateRange: queryDateRange,
       });
 
       downloadCsv(base64Data, "dashboard-report");
@@ -61,27 +106,28 @@ export default function DashboardPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [tenantId, queryDateRange, exportCSV]);
+  }, [tenantId, exportCSV]);
 
-  // Fetch all dashboard data
-  const stats = useQuery(
-    api.dashboard.getOwnerDashboardStats,
-    tenantId ? { tenantId, dateRange: queryDateRange } : "skip"
+  // ─── MERGED: Single query replaces 3 separate queries ────────────────
+  const dashboardData = useQuery(
+    api.dashboard.getDashboardData,
+    tenantId
+      ? {
+          tenantId,
+          topAffiliatesLimit: 10,
+          recentCommissionsLimit: 10,
+        }
+      : "skip"
   );
 
+  const stats = dashboardData?.stats;
+  const topAffiliates = dashboardData?.topAffiliates;
+  const recentCommissions = dashboardData?.recentCommissions;
+
+  // Remaining lightweight queries
   const activities = useQuery(
     api.dashboard.getRecentActivity,
-    tenantId ? { tenantId, dateRange: queryDateRange, limit: 20 } : "skip"
-  );
-
-  const topAffiliates = useQuery(
-    api.dashboard.getTopAffiliates,
-    tenantId ? { tenantId, dateRange: queryDateRange, limit: 10 } : "skip"
-  );
-
-  const recentCommissions = useQuery(
-    api.dashboard.getRecentCommissions,
-    tenantId ? { tenantId, dateRange: queryDateRange, limit: 10 } : "skip"
+    tenantId ? { tenantId, limit: 20 } : "skip"
   );
 
   const planUsage = useQuery(
@@ -94,10 +140,10 @@ export default function DashboardPage() {
     tenantId ? { tenantId } : "skip"
   );
 
-  const isLoading = !stats || !activities || !topAffiliates || !recentCommissions;
+  const isLoading = !dashboardData || !activities;
 
   // Calculate delta display values
-  const mrrDelta = stats ? {
+  const mrrDelta = stats && stats.mrrChangePercent !== 0 ? {
     value: Math.abs(stats.mrrChangePercent),
     isPositive: stats.mrrChangePercent >= 0,
     label: "vs last month"
@@ -124,7 +170,6 @@ export default function DashboardPage() {
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
         <div className="flex items-center gap-3">
-          <DateRangeSelector />
           <Button
             variant="outline"
             size="sm"
@@ -264,5 +309,15 @@ export default function DashboardPage() {
         onClose={() => setIsInviteSheetOpen(false)}
       />
     </div>
+  );
+}
+
+// ─── Page export with Suspense boundary ──────────────────────────────────
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
