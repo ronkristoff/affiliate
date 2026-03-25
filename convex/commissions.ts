@@ -606,8 +606,14 @@ export const getAffiliateCommissions = query({
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
       .order("desc");
 
+    // When a period or status filter is active, fetch more than the display limit
+    // so post-filtering still yields the expected number of results.
+    const effectiveLimit = periodRange || (args.status && args.status !== "all")
+      ? Math.min((args.limit ?? 50) * 5, 500)
+      : (args.limit ?? 50);
+
     // Collect all commissions (we need to filter after querying since Convex doesn't support date range filtering in index queries)
-    const allCommissions = await query.take(args.limit ?? 50);
+    const allCommissions = await query.take(effectiveLimit);
 
     // Filter by period and status
     let filteredCommissions = allCommissions;
@@ -635,36 +641,59 @@ export const getAffiliateCommissions = query({
       });
     }
 
-    // Populate campaign names and affiliate data
-    const commissionsWithCampaigns = [];
-    
-    for (const commission of filteredCommissions) {
-      const campaign = await ctx.db.get(commission.campaignId);
-      
-      // Get customer email from conversion if available
-      let customerEmail: string | undefined;
-      if (commission.conversionId) {
-        const conversion = await ctx.db.get(commission.conversionId);
-        customerEmail = conversion?.customerEmail;
-      }
+    // Trim to the requested limit after filtering
+    filteredCommissions = filteredCommissions.slice(0, args.limit ?? 50);
 
-      commissionsWithCampaigns.push({
-        _id: commission._id,
-        _creationTime: commission._creationTime,
-        affiliateId: commission.affiliateId,
-        campaignId: commission.campaignId,
-        conversionId: commission.conversionId,
-        amount: commission.amount,
-        status: commission.status,
-        campaignName: campaign?.name || "Unknown Campaign",
-        customerEmail,
-        createdAt: commission._creationTime,
-        referralCode, // Include for sharing (AC10)
-        // Self-referral fraud detection fields
-        isSelfReferral: commission.isSelfReferral,
-        fraudIndicators: commission.fraudIndicators,
-      });
+    // Batch-fetch campaign names and conversion emails to eliminate N+1 reads
+    const uniqueCampaignIds = [...new Set(filteredCommissions.map(c => c.campaignId.toString()))];
+    const uniqueConversionIds = [...new Set(
+      filteredCommissions
+        .filter(c => c.conversionId)
+        .map(c => c.conversionId!.toString())
+    )];
+
+    const [campaignDocs, conversionDocs] = await Promise.all([
+      uniqueCampaignIds.length > 0
+        ? Promise.all(uniqueCampaignIds.map(id => ctx.db.get(id as Id<"campaigns">)))
+        : Promise.resolve([]),
+      uniqueConversionIds.length > 0
+        ? Promise.all(uniqueConversionIds.map(id => ctx.db.get(id as Id<"conversions">)))
+        : Promise.resolve([]),
+    ]);
+
+    const campaignNameMap = new Map<string, string>();
+    for (const doc of campaignDocs) {
+      if (doc) {
+        campaignNameMap.set(doc._id.toString(), doc.name);
+      }
     }
+
+    const conversionEmailMap = new Map<string, string | undefined>();
+    for (const doc of conversionDocs) {
+      if (doc) {
+        conversionEmailMap.set(doc._id.toString(), doc.customerEmail);
+      }
+    }
+
+    // Build result array using batched lookups
+    const commissionsWithCampaigns = filteredCommissions.map(commission => ({
+      _id: commission._id,
+      _creationTime: commission._creationTime,
+      affiliateId: commission.affiliateId,
+      campaignId: commission.campaignId,
+      conversionId: commission.conversionId,
+      amount: commission.amount,
+      status: commission.status,
+      campaignName: campaignNameMap.get(commission.campaignId.toString()) ?? "Unknown Campaign",
+      customerEmail: commission.conversionId
+        ? conversionEmailMap.get(commission.conversionId.toString())
+        : undefined,
+      createdAt: commission._creationTime,
+      referralCode, // Include for sharing (AC10)
+      // Self-referral fraud detection fields
+      isSelfReferral: commission.isSelfReferral,
+      fraudIndicators: commission.fraudIndicators,
+    }));
 
     return commissionsWithCampaigns;
   },

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { SuspendDialog } from "@/components/affiliate/SuspendDialog";
 import { ReactivateDialog } from "@/components/affiliate/ReactivateDialog";
@@ -21,7 +22,41 @@ import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-export default function AffiliateDetailPage() {
+// ---------------------------------------------------------------------------
+// Skeleton fallback for Suspense boundary
+// ---------------------------------------------------------------------------
+
+function AffiliateDetailSkeleton() {
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <Skeleton className="h-9 w-40" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+        </div>
+        <div className="lg:col-span-2 space-y-6">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inner content (hooks live here, wrapped by Suspense)
+// ---------------------------------------------------------------------------
+
+function AffiliateDetailContent() {
   const params = useParams();
   const affiliateId = params.id as Id<"affiliates">;
 
@@ -240,5 +275,17 @@ export default function AffiliateDetailPage() {
         affiliateName={affiliate.name}
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Default export — wraps inner content in Suspense for Next.js 16 streaming
+// ---------------------------------------------------------------------------
+
+export default function AffiliateDetailPage() {
+  return (
+    <Suspense fallback={<AffiliateDetailSkeleton />}>
+      <AffiliateDetailContent />
+    </Suspense>
   );
 }

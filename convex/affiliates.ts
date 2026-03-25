@@ -241,7 +241,7 @@ export const getAffiliatesByTenant = query({
     return await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+      .take(500);
   },
 });
 
@@ -267,7 +267,6 @@ export const listAffiliatesByStatus = query({
       tenantId: v.id("tenants"),
       email: v.string(),
       name: v.string(),
-      passwordHash: v.optional(v.string()),
       uniqueCode: v.string(),
       status: v.string(),
       vanitySlug: v.optional(v.string()),
@@ -293,21 +292,22 @@ export const listAffiliatesByStatus = query({
   ),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
+    const MAX_AFFILIATES = 1000;
 
-    // Fetch all affiliates for the tenant
+    // Fetch affiliates for the tenant — capped to prevent unbounded reads
     let affiliates;
     if (args.status === "all") {
       affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
+        .take(MAX_AFFILIATES);
     } else {
       affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant_and_status", (q) =>
           q.eq("tenantId", tenantId).eq("status", args.status)
         )
-        .collect();
+        .take(MAX_AFFILIATES);
     }
 
     if (affiliates.length === 0) {
@@ -350,6 +350,7 @@ export const listAffiliatesByStatus = query({
     }
 
     // Fetch all commissions for the tenant and aggregate by affiliate
+    // Only count approved + pending commissions (match listAffiliatesFiltered logic)
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
@@ -357,13 +358,25 @@ export const listAffiliatesByStatus = query({
 
     for (const commission of allCommissions) {
       if (commissionTotals.has(commission.affiliateId)) {
-        commissionTotals.set(commission.affiliateId, (commissionTotals.get(commission.affiliateId) ?? 0) + commission.amount);
+        if (commission.status === "approved" || commission.status === "pending") {
+          commissionTotals.set(commission.affiliateId, (commissionTotals.get(commission.affiliateId) ?? 0) + commission.amount);
+        }
       }
     }
 
-    // Build results with aggregated stats
+    // Build results with aggregated stats — explicitly pick fields (never leak passwordHash)
     return affiliates.map(affiliate => ({
-      ...affiliate,
+      _id: affiliate._id,
+      _creationTime: affiliate._creationTime,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      vanitySlug: affiliate.vanitySlug,
+      promotionChannel: affiliate.promotionChannel,
+      payoutMethod: affiliate.payoutMethod,
+      fraudSignals: affiliate.fraudSignals,
       referralCount: conversionCounts.get(affiliate._id) ?? 0,
       clickCount: clickCounts.get(affiliate._id) ?? 0,
       totalEarnings: commissionTotals.get(affiliate._id) ?? 0,
@@ -390,8 +403,11 @@ type AffiliateDoc = {
 
 /**
  * Fetch per-affiliate stats using by_affiliate indexes.
- * Only fetches for the given affiliates (typically a page slice of 10-25),
+ * Only fetches for the given affiliates (typically a page slice of 10-100),
  * avoiding full-table scans of clicks/conversions/commissions.
+ * 
+ * Caps are kept modest since these are list-view counts, not exact totals.
+ * The detail page (getAffiliateStats) uses higher caps for accuracy.
  */
 async function fetchPerAffiliateStats(
   ctx: any,
@@ -415,9 +431,9 @@ async function fetchPerAffiliateStats(
 }>> {
   const statPromises = affiliates.map(async (affiliate) => {
     const [clicks, conversions, commissions] = await Promise.all([
-      ctx.db.query("clicks").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(500),
-      ctx.db.query("conversions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
-      ctx.db.query("commissions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
+      ctx.db.query("clicks").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
+      ctx.db.query("conversions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(100),
+      ctx.db.query("commissions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(100),
     ]);
 
     const clickCount = clicks.length;
@@ -577,11 +593,19 @@ export const listAffiliatesFiltered = query({
       args.earningsMin != null || args.earningsMax != null ||
       args.sortBy === "referralCount" || args.sortBy === "clickCount" || args.sortBy === "totalEarnings";
 
-    // ── Step 1: Fetch referralLinks for campaign filter and campaignName display ──
-    const allReferralLinks = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(5000);
+    // ── Step 1: Fetch referralLinks only when needed ──
+    // Only fetch the full tenant-wide set when a campaign filter is active.
+    // In the fast path (no campaign filter), campaign names are resolved lazily
+    // for the page slice using by_affiliate indexes (much smaller reads).
+    let allReferralLinks: Array<{ affiliateId: Id<"affiliates">; campaignId?: Id<"campaigns"> }> = [];
+    const needsCampaignFilter = campaignIds && campaignIds.length > 0;
+
+    if (needsCampaignFilter) {
+      allReferralLinks = await ctx.db
+        .query("referralLinks")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+        .take(5000);
+    }
 
     // Build campaign allowlist if campaign filter is active
     let campaignAllowlist: Set<Id<"affiliates">> | null = null;
@@ -692,9 +716,32 @@ export const listAffiliatesFiltered = query({
       }
 
       // Fetch stats ONLY for the page slice — by_affiliate indexes, bounded per affiliate
-      const campaignNameMap = await resolveCampaignNames(
-        ctx, pageAffiliates, allReferralLinks
-      );
+      // For campaign names: use pre-loaded allReferralLinks if available (campaign filter),
+      // otherwise fetch only the page-slice links via by_affiliate index (lazy load).
+      let campaignNameMap: Map<string, string>;
+      if (allReferralLinks.length > 0) {
+        campaignNameMap = await resolveCampaignNames(
+          ctx, pageAffiliates, allReferralLinks
+        );
+      } else {
+        // Lazy-load referral links for the page slice in PARALLEL (not sequential).
+        // Each affiliate typically has 1-5 links, so by_affiliate with take(50) is cheap.
+        const pageReferralLinks: Array<{ affiliateId: Id<"affiliates">; campaignId?: Id<"campaigns"> }> = [];
+        const linkBatches = await Promise.all(
+          pageAffiliates.map(affiliate =>
+            ctx.db
+              .query("referralLinks")
+              .withIndex("by_affiliate", (q) => q.eq("affiliateId", affiliate._id))
+              .take(50)
+          )
+        );
+        for (const batch of linkBatches) {
+          pageReferralLinks.push(...batch);
+        }
+        campaignNameMap = await resolveCampaignNames(
+          ctx, pageAffiliates, pageReferralLinks
+        );
+      }
 
       const pageWithStats = await fetchPerAffiliateStats(ctx, pageAffiliates, campaignNameMap);
       return { page: pageWithStats, total, hasMore };
