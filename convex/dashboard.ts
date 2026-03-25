@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser } from "./tenantContext";
 import { api, internal } from "./_generated/api";
+import { Doc, Id } from "./_generated/dataModel";
 
 /**
  * Dashboard Queries
@@ -508,52 +509,44 @@ export const getRecentCommissions = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // FIXED: Fetch all data upfront to avoid N+1
-    // Get all affiliates for lookup (capped)
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(50);
-    
-    const affiliateMap = new Map<string, typeof allAffiliates[0]>();
-    for (const affiliate of allAffiliates) {
-      affiliateMap.set(affiliate._id, affiliate);
-    }
-
-    // Get all campaigns for lookup (capped)
-    const allCampaigns = await ctx.db
-      .query("campaigns")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(50);
-    
-    const campaignMap = new Map<string, typeof allCampaigns[0]>();
-    for (const campaign of allCampaigns) {
-      campaignMap.set(campaign._id, campaign);
-    }
-
-    // Get all conversions for plan context lookup (capped)
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(50);
-    
-    const conversionMap = new Map<string, typeof allConversions[0]>();
-    for (const conversion of allConversions) {
-      conversionMap.set(conversion._id, conversion);
-    }
-
-    // Get all commissions for this tenant (capped)
+    // Get commissions for this tenant (capped), then filter by date range
     const commissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
       .order("desc")
-      .take(50);
+      .take(200);
 
     // Filter by date range and sort
     const filteredCommissions = commissions
       .filter(c => c._creationTime >= startDate && c._creationTime <= endDate)
-      .sort((a, b) => b._creationTime - a._creationTime)
       .slice(0, limit);
+
+    // Batch-fetch only the referenced affiliates, campaigns, and conversions
+    // (avoids the capped .take(50) table scan that misses affiliates beyond the cap)
+    const affiliateIds = [...new Set(filteredCommissions.map((c) => c.affiliateId))];
+    const campaignIds = [...new Set(filteredCommissions.map((c) => c.campaignId))];
+    const conversionIds = [...new Set(
+      filteredCommissions.map((c) => c.conversionId).filter((id): id is Id<"conversions"> => id !== undefined)
+    )];
+
+    const [affiliates, campaigns, conversions] = await Promise.all([
+      Promise.all(affiliateIds.map((id) => ctx.db.get(id))) as Promise<Array<Doc<"affiliates"> | null>>,
+      Promise.all(campaignIds.map((id) => ctx.db.get(id))) as Promise<Array<Doc<"campaigns"> | null>>,
+      Promise.all(conversionIds.map((id) => ctx.db.get(id))) as Promise<Array<Doc<"conversions"> | null>>,
+    ]);
+
+    const affiliateMap = new Map<Id<"affiliates">, Doc<"affiliates">>();
+    for (const a of affiliates) {
+      if (a) affiliateMap.set(a._id, a);
+    }
+    const campaignMap = new Map<Id<"campaigns">, Doc<"campaigns">>();
+    for (const c of campaigns) {
+      if (c) campaignMap.set(c._id, c);
+    }
+    const conversionMap = new Map<Id<"conversions">, Doc<"conversions">>();
+    for (const c of conversions) {
+      if (c) conversionMap.set(c._id, c);
+    }
 
     const enrichedCommissions = [];
 

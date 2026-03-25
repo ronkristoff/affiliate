@@ -77,6 +77,7 @@ import type * as reports_index from "../reports/index.js";
 import type * as reports_payouts from "../reports/payouts.js";
 import type * as reports_summary from "../reports/summary.js";
 import type * as reportsExport from "../reportsExport.js";
+import type * as seedBulkData from "../seedBulkData.js";
 import type * as sessions from "../sessions.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as teamInvitations from "../teamInvitations.js";
@@ -167,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "reports/payouts": typeof reports_payouts;
   "reports/summary": typeof reports_summary;
   reportsExport: typeof reportsExport;
+  seedBulkData: typeof seedBulkData;
   sessions: typeof sessions;
   subscriptions: typeof subscriptions;
   teamInvitations: typeof teamInvitations;
