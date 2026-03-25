@@ -21,6 +21,7 @@ import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { Loader2, Download, TrendingUp, Clock, Users, Wallet } from "lucide-react";
+import Link from "next/link";
 
 // ─── Skeleton fallback for Suspense boundary ─────────────────────────────
 
@@ -249,8 +250,8 @@ function DashboardContent() {
               <div className="card-header">
                 <h3 className="card-title">Recent Commissions</h3>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    View All
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/reports/commissions">View All</Link>
                   </Button>
                   {canManage && (stats?.pendingCommissionsCount ?? 0) > 0 && (
                     <Button size="sm" className="bg-[var(--success)] text-white hover:bg-[#059669]">
@@ -269,8 +270,8 @@ function DashboardContent() {
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Top Affiliates</h3>
-                <Button variant="outline" size="sm">
-                  View All
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/affiliates">View All</Link>
                 </Button>
               </div>
               <TopAffiliatesTable
