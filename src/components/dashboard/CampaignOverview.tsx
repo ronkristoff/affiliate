@@ -5,7 +5,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { CampaignCard } from "./CampaignCard";
-import { CreateCampaignModal } from "./CreateCampaignModal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryErrorBoundary } from "@/components/ui/QueryErrorBoundary";
@@ -17,7 +16,7 @@ import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
  * Query budget: 3 external + 1 internal round-trips (~290ms). ADR-3 compliant — no separate
  * getCampaignCardStats call from frontend; stats returned by getTopCampaigns internally.
  */
-export function CampaignOverview() {
+export function CampaignOverview({ onCreateCampaign }: { onCreateCampaign: () => void }) {
   return (
     <QueryErrorBoundary
       onError={(error) => {
@@ -30,12 +29,12 @@ export function CampaignOverview() {
         </div>
       }
     >
-      <CampaignOverviewInner />
+      <CampaignOverviewInner onCreateCampaign={onCreateCampaign} />
     </QueryErrorBoundary>
   );
 }
 
-function CampaignOverviewInner() {
+function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => void }) {
   const campaignStats = useQuery(api.campaigns.getCampaignStats);
   const topCampaignsData = useQuery(api.campaigns.getTopCampaigns);
   const attentionData = useQuery(api.campaigns.getAttentionCampaigns);
@@ -100,21 +99,20 @@ function CampaignOverviewInner() {
       {/* Empty state: 0 campaigns */}
       {campaignStats.total === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <CreateCampaignModal
-            trigger={
-              <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center gap-2.5 cursor-pointer min-h-[200px] transition-all hover:border-[#1659d6] hover:bg-blue-50/50">
-                <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-[#10409a] text-2xl">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div className="text-sm font-semibold text-[#10409a]">
-                  Create New Campaign
-                </div>
-                <div className="text-xs text-gray-500 text-center">
-                  Set commission rules and start recruiting affiliates
-                </div>
-              </div>
-            }
-          />
+          <div
+            onClick={onCreateCampaign}
+            className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center gap-2.5 cursor-pointer min-h-[200px] transition-all hover:border-[#1659d6] hover:bg-blue-50/50"
+          >
+            <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-[#10409a] text-2xl">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div className="text-sm font-semibold text-[#10409a]">
+              Create New Campaign
+            </div>
+            <div className="text-xs text-gray-500 text-center">
+              Set commission rules and start recruiting affiliates
+            </div>
+          </div>
         </div>
       )}
 
@@ -186,14 +184,10 @@ function CampaignOverviewInner() {
 
       {/* Quick Actions Row — button hierarchy (AC 24) */}
       <div className="flex items-center gap-3 pt-2">
-        <CreateCampaignModal
-          trigger={
-            <Button size="sm">
-              <Plus className="w-3.5 h-3.5" />
-              New Campaign
-            </Button>
-          }
-        />
+        <Button size="sm" onClick={onCreateCampaign}>
+          <Plus className="w-3.5 h-3.5" />
+          New Campaign
+        </Button>
         <Link
           href="/campaigns/all"
           className="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold border border-[#d1d5db] text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

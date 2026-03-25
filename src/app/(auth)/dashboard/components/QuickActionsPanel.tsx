@@ -22,12 +22,14 @@ interface QuickActionsPanelProps {
   pendingCount?: number;
   showPayAll?: boolean;
   onInvite?: () => void;
+  onCreateCampaign?: () => void;
 }
 
 export function QuickActionsPanel({
   pendingCount = 0,
   showPayAll = true,
   onInvite,
+  onCreateCampaign,
 }: QuickActionsPanelProps) {
   const actions: QuickAction[] = [
     {
@@ -49,7 +51,7 @@ export function QuickActionsPanel({
     {
       label: "New Campaign",
       subtext: "Set commissions",
-      href: "/campaigns/new",
+      ...(onCreateCampaign ? { onClick: onCreateCampaign } : { href: "/campaigns/new" }),
       emoji: "🎯",
     },
     {

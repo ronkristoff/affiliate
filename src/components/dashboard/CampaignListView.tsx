@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { CampaignCard } from "./CampaignCard";
-import { CreateCampaignModal } from "./CreateCampaignModal";
 import { type FilterState, type ViewMode } from "./CampaignFilters";
 import {
   DataTable,
@@ -22,13 +21,14 @@ import { usePaginationUrlState } from "@/hooks/useDataTableUrlState";
 interface CampaignListViewProps {
   viewMode?: ViewMode;
   filterState?: FilterState;
+  onCreateCampaign?: () => void;
 }
 
 /**
  * CampaignListView — paginated listing using page-based pagination.
  * Handles card grid and table view, client-side search, and server-side filters.
  */
-export function CampaignListView({ viewMode = "cards", filterState }: CampaignListViewProps) {
+export function CampaignListView({ viewMode = "cards", filterState, onCreateCampaign }: CampaignListViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -252,14 +252,10 @@ export function CampaignListView({ viewMode = "cards", filterState }: CampaignLi
           <p className="text-[14px] text-[#6b7280]">{emptyMessage}</p>
           {!filterState?.statusFilter && !debouncedSearch && (
             <div className="mt-4 flex justify-center">
-              <CreateCampaignModal
-                trigger={
-                  <Button>
-                    <Plus className="w-3.5 h-3.5" />
-                    Create Campaign
-                  </Button>
-                }
-              />
+              <Button onClick={onCreateCampaign}>
+                <Plus className="w-3.5 h-3.5" />
+                Create Campaign
+              </Button>
             </div>
           )}
         </div>

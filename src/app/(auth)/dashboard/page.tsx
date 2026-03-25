@@ -17,6 +17,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
+import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
@@ -87,6 +88,7 @@ function DashboardContent() {
   // Export CSV state and action
   const [isExporting, setIsExporting] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
+  const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
   const exportCSV = useAction(api.dashboardExport.exportOwnerDashboardCSV);
 
   const handleExport = useCallback(async () => {
@@ -288,6 +290,7 @@ function DashboardContent() {
               pendingCount={stats?.pendingCommissionsCount}
               showPayAll={canManage}
               onInvite={() => setIsInviteSheetOpen(true)}
+              onCreateCampaign={() => setIsCreateCampaignOpen(true)}
             />
 
             {/* Activity Feed */}
@@ -308,6 +311,12 @@ function DashboardContent() {
       <InviteAffiliateSheet
         isOpen={isInviteSheetOpen}
         onClose={() => setIsInviteSheetOpen(false)}
+      />
+
+      {/* Create Campaign Side Sheet */}
+      <CreateCampaignModal
+        isOpen={isCreateCampaignOpen}
+        onClose={() => setIsCreateCampaignOpen(false)}
       />
     </div>
   );

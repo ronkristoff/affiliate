@@ -11,7 +11,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, ArrowLeft } from "lucide-react";
 
-function CampaignListingContent() {
+function CampaignListingContent({ onCreateCampaign }: { onCreateCampaign: () => void }) {
   const searchParams = useSearchParams();
   const rawStatus = searchParams.get("status");
   const validStatuses = ["active", "paused", "archived"] as const;
@@ -40,7 +40,7 @@ function CampaignListingContent() {
         onFilterChange={handleFilterChange}
         onViewModeChange={handleViewModeChange}
       />
-      <CampaignListView viewMode={viewMode} filterState={filterState} />
+      <CampaignListView viewMode={viewMode} filterState={filterState} onCreateCampaign={onCreateCampaign} />
     </>
   );
 }
@@ -59,6 +59,8 @@ function CampaignListingSkeleton() {
 }
 
 export default function CampaignListingPage() {
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
@@ -75,23 +77,25 @@ export default function CampaignListingPage() {
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">All Campaigns</h1>
         </div>
         <div className="flex items-center gap-3">
-          <CreateCampaignModal
-            trigger={
-              <Button size="sm">
-                <Plus className="w-3.5 h-3.5" />
-                New Campaign
-              </Button>
-            }
-          />
+          <Button size="sm" onClick={() => setIsCreateSheetOpen(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            New Campaign
+          </Button>
         </div>
       </PageTopbar>
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
         <Suspense fallback={<CampaignListingSkeleton />}>
-          <CampaignListingContent />
+          <CampaignListingContent onCreateCampaign={() => setIsCreateSheetOpen(true)} />
         </Suspense>
       </div>
+
+      {/* Create Campaign Side Sheet */}
+      <CreateCampaignModal
+        isOpen={isCreateSheetOpen}
+        onClose={() => setIsCreateSheetOpen(false)}
+      />
     </div>
   );
 }
