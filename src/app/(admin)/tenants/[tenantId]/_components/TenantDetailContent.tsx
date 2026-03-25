@@ -16,6 +16,8 @@ import { PayoutsTab } from "./PayoutsTab";
 import { IntegrationsTab } from "./IntegrationsTab";
 import { NotesTab } from "./NotesTab";
 import { AuditLogTab } from "./AuditLogTab";
+import { PageTopbar } from "@/components/ui/PageTopbar";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { ChevronRight } from "lucide-react";
 
 const TABS = ["overview", "affiliates", "payouts", "integrations", "notes", "audit"] as const;
@@ -99,62 +101,83 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-1 text-sm text-[#6b7280]">
-        <Link
-          href="/tenants"
-          className="hover:text-[#10409a] transition-colors"
-        >
-          Tenants
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="font-medium text-[#333333]">{tenant.companyName}</span>
-      </nav>
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Top Bar with Breadcrumb */}
+      <PageTopbar description={`${tenant.plan.charAt(0).toUpperCase() + tenant.plan.slice(1)} plan · ${tenant.affiliateCount.total} affiliates`}>
+        <nav className="flex items-center gap-1 text-sm">
+          <Link
+            href="/tenants"
+            className="text-[var(--text-muted)] hover:text-[#10409a] transition-colors"
+          >
+            Tenants
+          </Link>
+          <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
+            {tenant.companyName}
+          </h1>
+        </nav>
+      </PageTopbar>
 
-      {/* Alert Inset for Issues */}
-      {alertIssues.length > 0 && (
-        <AlertInset
-          variant="danger"
-          title={alertIssues[0].message}
-          description={alertIssues[0].action}
-          actionText="View Details"
-          onAction={() => setTab("integrations")}
-        />
-      )}
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8">
+        <div className="space-y-6">
+          {/* Alert Inset for Issues */}
+          {alertIssues.length > 0 && (
+            <FadeIn delay={0}>
+              <AlertInset
+                variant="danger"
+                title={alertIssues[0].message}
+                description={alertIssues[0].action}
+                actionText="View Details"
+                onAction={() => setTab("integrations")}
+              />
+            </FadeIn>
+          )}
 
-      {/* Tenant Header */}
-      <TenantHeader tenant={tenant} />
+          {/* Tenant Header */}
+          <FadeIn delay={0}>
+            <TenantHeader tenant={tenant} />
+          </FadeIn>
 
-      {/* Stats Strip */}
-      {stats && <TenantStatsStrip stats={stats} />}
+          {/* Stats Strip */}
+          {stats && (
+            <FadeIn delay={80}>
+              <TenantStatsStrip stats={stats} />
+            </FadeIn>
+          )}
 
-      {/* Tabs */}
-      <TenantTabs
-        activeTab={activeTab}
-        onTabChange={setTab}
-        affiliatesCount={tenant.affiliateCount.total}
-        notesCount={notesResult?.length ?? 0}
-      />
+          {/* Tabs */}
+          <FadeIn delay={120}>
+            <TenantTabs
+              activeTab={activeTab}
+              onTabChange={setTab}
+              affiliatesCount={tenant.affiliateCount.total}
+              notesCount={notesResult?.length ?? 0}
+            />
+          </FadeIn>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === "overview" && <OverviewTab tenant={tenant} />}
-        {activeTab === "affiliates" && (
-          <AffiliatesTab tenantId={tenant._id} />
-        )}
-        {activeTab === "payouts" && (
-          <PayoutsTab tenantId={tenant._id} />
-        )}
-        {activeTab === "integrations" && (
-          <IntegrationsTab tenant={tenant} />
-        )}
-        {activeTab === "notes" && (
-          <NotesTab tenantId={tenant._id} />
-        )}
-        {activeTab === "audit" && (
-          <AuditLogTab tenantId={tenant._id} />
-        )}
+          {/* Tab Content */}
+          <FadeIn delay={160}>
+            <div>
+              {activeTab === "overview" && <OverviewTab tenant={tenant} />}
+              {activeTab === "affiliates" && (
+                <AffiliatesTab tenantId={tenant._id} />
+              )}
+              {activeTab === "payouts" && (
+                <PayoutsTab tenantId={tenant._id} />
+              )}
+              {activeTab === "integrations" && (
+                <IntegrationsTab tenant={tenant} />
+              )}
+              {activeTab === "notes" && (
+                <NotesTab tenantId={tenant._id} />
+              )}
+              {activeTab === "audit" && (
+                <AuditLogTab tenantId={tenant._id} />
+              )}
+            </div>
+          </FadeIn>
+        </div>
       </div>
     </div>
   );
