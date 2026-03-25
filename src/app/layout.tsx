@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Poppins, Passion_One } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/next-theme/theme-provider";
-import { Footer } from "@/components/footer";
 
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -46,7 +45,6 @@ export default function RootLayout({
                 <main className="flex-1 flex flex-col">
                   {children}
                 </main>
-                <Footer />
               </NuqsAdapter>
             </ConvexClientProvider>
           </ThemeProvider>

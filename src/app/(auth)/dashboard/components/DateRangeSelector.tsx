@@ -140,9 +140,9 @@ export function DateRangeSelector({ onChange, className }: DateRangeSelectorProp
     }
 
     // Validate not future dates (compare at midnight)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = today.getTime();
+    // Use Date.now() to avoid new Date() prerender warning
+    const todayMs = Date.now();
+    const todayTimestamp = todayMs - (todayMs % 86400000);
     if (startTimestamp > todayTimestamp || endTimestamp > todayTimestamp) {
       setCustomDateError("Cannot select future dates");
       return;
