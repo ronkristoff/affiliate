@@ -12,7 +12,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, AlertTriangle, Loader2, Clock, CheckCircle2, RotateCcw, Wallet, CreditCard, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { BarChart } from "@tremor/react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { downloadCsv } from "@/lib/utils";
@@ -73,27 +73,30 @@ function CommissionAgingChart({
     Paid: b.paid,
   }));
 
+  const hasData = buckets.some((b) => b.pending + b.confirmed + b.reversed + b.paid > 0);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Commission Aging</CardTitle>
       </CardHeader>
       <CardContent>
-        {buckets.every((b) => b.pending + b.confirmed + b.reversed + b.paid === 0) ? (
+        {!hasData ? (
           <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
             No commission data for the selected period
           </div>
         ) : (
-          <BarChart
-            className="mt-2"
-            data={chartData}
-            index="age"
-            categories={["Pending", "Confirmed", "Reversed", "Paid"]}
-            stack
-            colors={["#f59e0b", "#22c55e", "#ef4444", "#6b7280"]}
-            yAxisWidth={60}
-            valueFormatter={(value) => formatCurrency(value)}
-          />
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} stackOffset="sign">
+              <XAxis dataKey="age" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={60} tickFormatter={(value: number) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatCurrency(Number(value) || 0)} />
+              <Bar dataKey="Pending" stackId="a" fill="#f59e0b" />
+              <Bar dataKey="Confirmed" stackId="a" fill="#22c55e" />
+              <Bar dataKey="Reversed" stackId="a" fill="#ef4444" />
+              <Bar dataKey="Paid" stackId="a" fill="#6b7280" />
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>

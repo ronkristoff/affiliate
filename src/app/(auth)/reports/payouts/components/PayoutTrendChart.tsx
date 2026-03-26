@@ -1,6 +1,6 @@
 "use client";
 
-import { AreaChart } from "@tremor/react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/affiliate-segments";
@@ -34,11 +34,8 @@ export function PayoutTrendChart({
     );
   }
 
-  // Use unique month key (e.g. "2026-03") as index to prevent Tremor duplicate key warnings.
-  // Include monthLabel for tooltip display.
   const chartData = data.map((d) => ({
-    month: d.month,
-    monthLabel: d.monthLabel,
+    month: d.monthLabel,
     "Total Paid": canViewSensitiveData ? d.totalAmount : 0,
   }));
 
@@ -51,23 +48,17 @@ export function PayoutTrendChart({
       </CardHeader>
       <CardContent>
         {hasData ? (
-          <AreaChart
-            className="h-52"
-            data={chartData}
-            index="month"
-            categories={["Total Paid"]}
-            colors={["#10409a"]}
-            showGridLines
-            showLegend
-            showTooltip
-            showYAxis
-            showXAxis
-            yAxisWidth={60}
-            valueFormatter={(value) =>
-              canViewSensitiveData ? formatCurrency(value) : "—"
-            }
-            noDataText="No payout data"
-          />
+          <ResponsiveContainer width="100%" height={208}>
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={60} tickFormatter={(value: number) => `₱${(value/1000).toFixed(0)}k`} />
+              <Tooltip 
+                formatter={(value) => canViewSensitiveData ? formatCurrency(Number(value) || 0) : "—"} 
+              />
+              <Area type="monotone" dataKey="Total Paid" stroke="#10409a" fill="#10409a" fillOpacity={0.1} />
+            </AreaChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-52 flex items-center justify-center bg-gray-50 rounded-lg">
             <p className="text-sm text-muted-foreground">

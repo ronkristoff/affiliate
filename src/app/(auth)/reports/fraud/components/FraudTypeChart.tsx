@@ -1,12 +1,14 @@
 "use client";
 
-import { BarChart } from "@tremor/react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FraudTypeChartProps {
   data: { name: string; count: number }[];
 }
+
+const COLORS = ["#10409a", "#1659d6", "#3b82f6", "#60a5fa", "#93c5fd"];
 
 export function FraudTypeChart({ data }: FraudTypeChartProps) {
   const hasData = data.some((d) => d.count > 0);
@@ -18,20 +20,18 @@ export function FraudTypeChart({ data }: FraudTypeChartProps) {
       </CardHeader>
       <CardContent>
         {hasData ? (
-          <BarChart
-            className="mt-2 h-52"
-            data={data}
-            index="name"
-            categories={["count"]}
-            colors={["#10409a"]}
-            showGridLines
-            showLegend={false}
-            showTooltip
-            showYAxis
-            showXAxis
-            yAxisWidth={48}
-            valueFormatter={(value) => String(value)}
-          />
+          <ResponsiveContainer width="100%" height={208}>
+            <BarChart data={data}>
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={48} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#10409a">
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-52 flex items-center justify-center">
             <p className="text-sm text-muted-foreground">No fraud signals</p>

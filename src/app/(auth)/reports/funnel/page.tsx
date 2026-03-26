@@ -10,13 +10,13 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FunnelChart } from "@/components/ui/charts/FunnelChart";
 import {
-  ConversionFunnel,
   FunnelAffiliateTable,
   OrganicConversionsTable,
 } from "./components";
 import { CampaignFilterDropdown } from "@/app/(auth)/reports/campaigns/components/CampaignFilterDropdown";
-import { Download, AlertTriangle, Loader2, MousePointerClick, Target, BadgeCheck, Eye, Leaf } from "lucide-react";
+import { Download, AlertTriangle, Loader2, MousePointerClick, Target, BadgeCheck, Eye, Leaf, LayoutGrid, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
@@ -168,6 +168,7 @@ function FunnelPageContent() {
 
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
   const [isExporting, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "byAffiliate">("overview");
 
   // Fetch funnel data
   const funnelData = useQuery(
@@ -326,34 +327,78 @@ function FunnelPageContent() {
         />
       </FadeIn>
 
-      {/* Funnel Visualization */}
-      <ConversionFunnel
-        totalClicks={funnelData?.totalClicks ?? 0}
-        totalConversions={funnelData?.totalConversions ?? 0}
-        totalCommissions={funnelData?.totalCommissions ?? 0}
-        clickToConversionRate={funnelData?.clickToConversionRate ?? 0}
-        conversionToCommissionRate={funnelData?.conversionToCommissionRate ?? 0}
-        overallRate={funnelData?.overallRate ?? 0}
-        organicConversions={funnelData?.organicConversions ?? 0}
-        isLoading={isLoading}
-      />
+      {/* Tabs */}
+      <div className="border-b border-[var(--border)]">
+        <nav className="flex gap-6" aria-label="Funnel view tabs">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors -mb-px",
+              activeTab === "overview"
+                ? "border-[var(--brand-primary)] text-[var(--brand-primary)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-heading)]"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              Overview
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("byAffiliate")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors -mb-px",
+              activeTab === "byAffiliate"
+                ? "border-[var(--brand-primary)] text-[var(--brand-primary)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-heading)]"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              By Affiliate
+            </span>
+          </button>
+        </nav>
+      </div>
 
-      {/* By-Campaign Cards */}
-      {funnelData && funnelData.byCampaign.length > 0 && (
-        <CampaignFunnelCards
-          byCampaign={funnelData.byCampaign}
-          canViewSensitiveData={canViewSensitiveData}
-        />
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <FadeIn>
+          {/* Funnel Visualization with Recharts */}
+          <FunnelChart
+            totalClicks={funnelData?.totalClicks ?? 0}
+            totalConversions={funnelData?.totalConversions ?? 0}
+            totalCommissions={funnelData?.totalCommissions ?? 0}
+            clickToConversionRate={funnelData?.clickToConversionRate ?? 0}
+            conversionToCommissionRate={funnelData?.conversionToCommissionRate ?? 0}
+            overallRate={funnelData?.overallRate ?? 0}
+            organicConversions={funnelData?.organicConversions ?? 0}
+            isLoading={isLoading}
+            canViewSensitiveData={canViewSensitiveData}
+          />
+
+          {/* By-Campaign Cards */}
+          {funnelData && funnelData.byCampaign.length > 0 && (
+            <CampaignFunnelCards
+              byCampaign={funnelData.byCampaign}
+              canViewSensitiveData={canViewSensitiveData}
+            />
+          )}
+        </FadeIn>
       )}
 
-      {/* Per-Affiliate Table */}
-      <FunnelAffiliateTable
-        data={funnelData?.topAffiliates ?? []}
-        canViewSensitiveData={canViewSensitiveData}
-        isLoading={isLoading}
-      />
+      {activeTab === "byAffiliate" && (
+        <FadeIn>
+          {/* Per-Affiliate Table */}
+          <FunnelAffiliateTable
+            data={funnelData?.topAffiliates ?? []}
+            canViewSensitiveData={canViewSensitiveData}
+            isLoading={isLoading}
+          />
+        </FadeIn>
+      )}
 
-      {/* Organic Conversions List */}
+      {/* Organic Conversions List - Always visible below tabs */}
       <div className="card">
         <div className="card-header">
           <h3 className="card-title flex items-center gap-2">

@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PeriodToggle, type Period } from "@/components/ui/PeriodToggle";
+import { DateRangeSelector } from "./components/DateRangeSelector";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { downloadCsv } from "@/lib/utils";
@@ -89,6 +91,7 @@ function DashboardContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
+  const [period, setPeriod] = useState<Period>("daily");
   const exportCSV = useAction(api.dashboardExport.exportOwnerDashboardCSV);
 
   const handleExport = useCallback(async () => {
@@ -117,6 +120,7 @@ function DashboardContent() {
     tenantId
       ? {
           tenantId,
+          period,
           topAffiliatesLimit: 10,
           recentCommissionsLimit: 10,
         }
@@ -173,6 +177,8 @@ function DashboardContent() {
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
         <div className="flex items-center gap-3">
+          <PeriodToggle value={period} onChange={setPeriod} />
+          <DateRangeSelector />
           <Button
             variant="outline"
             size="sm"
@@ -211,6 +217,7 @@ function DashboardContent() {
             isLoading={!stats}
             variant="blue"
             icon={<TrendingUp className="w-4 h-4" />}
+            sparklineData={stats?.mrrSparkline}
           />
           <MetricCard
             label="Pending"
@@ -252,6 +259,7 @@ function DashboardContent() {
             isLoading={!stats}
             variant="blue"
             icon={<Leaf className="w-4 h-4" />}
+            sparklineData={stats?.conversionsSparkline}
           />
         </FadeIn>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { DonutChart, Legend } from "@tremor/react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Trophy, TrendingUp, AlertTriangle, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeAffiliateSegments, type AffiliateRow } from "@/lib/affiliate-segments";
@@ -16,7 +16,7 @@ const segmentConfig = [
   {
     key: "topPerformers" as const,
     label: "Top Performers",
-    color: "emerald",
+    color: "#10b981",
     icon: Trophy,
     description: "≥5% conversion rate",
     iconBg: "bg-emerald-50 text-emerald-600",
@@ -24,7 +24,7 @@ const segmentConfig = [
   {
     key: "risingStars" as const,
     label: "Rising Stars",
-    color: "blue",
+    color: "#3b82f6",
     icon: TrendingUp,
     description: "2–5% conversion rate",
     iconBg: "bg-blue-50 text-blue-600",
@@ -32,7 +32,7 @@ const segmentConfig = [
   {
     key: "needsAttention" as const,
     label: "Needs Attention",
-    color: "amber",
+    color: "#f59e0b",
     icon: AlertTriangle,
     description: "<1% rate, 100+ clicks",
     iconBg: "bg-amber-50 text-amber-600",
@@ -40,7 +40,7 @@ const segmentConfig = [
   {
     key: "inactive" as const,
     label: "Inactive",
-    color: "gray",
+    color: "#6b7280",
     icon: UserX,
     description: "No clicks recorded",
     iconBg: "bg-gray-100 text-gray-600",
@@ -55,11 +55,11 @@ export function AffiliateSegmentsOverview({ affiliates }: AffiliateSegmentsOverv
       segmentConfig.map((s) => ({
         name: s.label,
         value: segments[s.key],
+        color: s.color,
       })),
     [segments]
   );
 
-  const donutColors = segmentConfig.map((s) => s.color);
   const totalSegmented = segments.topPerformers + segments.risingStars + segments.needsAttention + segments.inactive;
 
   return (
@@ -111,21 +111,33 @@ export function AffiliateSegmentsOverview({ affiliates }: AffiliateSegmentsOverv
             <div className="flex flex-col items-center justify-center">
               {totalSegmented > 0 ? (
                 <>
-                  <DonutChart
-                    className="h-48"
-                    data={donutData}
-                    category="value"
-                    index="name"
-                    colors={donutColors}
-                    showLabel={false}
-                    showTooltip
-                    variant="donut"
-                  />
-                  <Legend
-                    className="mt-3"
-                    categories={segmentConfig.map((s) => s.label)}
-                    colors={donutColors}
-                  />
+                  <ResponsiveContainer width="100%" height={192}>
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {donutData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Legend */}
+                  <div className="flex flex-wrap justify-center gap-4 mt-2">
+                    {segmentConfig.map((s) => (
+                      <div key={s.key} className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                        <span className="text-xs text-muted-foreground">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </>
               ) : (
                 <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">

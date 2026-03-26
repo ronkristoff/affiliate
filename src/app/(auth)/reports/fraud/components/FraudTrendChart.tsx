@@ -1,6 +1,6 @@
 "use client";
 
-import { LineChart } from "@tremor/react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -18,22 +18,15 @@ export function FraudTrendChart({ data }: FraudTrendChartProps) {
       </CardHeader>
       <CardContent>
         {hasData ? (
-          <LineChart
-            className="h-52"
-            data={data}
-            index="date"
-            categories={["count"]}
-            colors={["#ef4444"]}
-            showGridLines
-            showLegend={false}
-            showTooltip
-            showYAxis
-            showXAxis
-            startEndOnly
-            yAxisWidth={48}
-            valueFormatter={(value) => String(value)}
-            connectNulls
-          />
+          <ResponsiveContainer width="100%" height={208}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={48} />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-52 flex items-center justify-center">
             <p className="text-sm text-muted-foreground">

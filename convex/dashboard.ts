@@ -22,6 +22,13 @@ const dateRangeValidator = v.optional(v.object({
   end: v.number(),
 }));
 
+// Period validator for sparkline granularity
+const periodValidator = v.optional(v.union(
+  v.literal("daily"),
+  v.literal("weekly"),
+  v.literal("monthly")
+));
+
 /**
  * MERGED: Get all core dashboard data in a single query.
  * Combines stats, top affiliates, and recent commissions to eliminate:
@@ -36,6 +43,7 @@ export const getDashboardData = query({
   args: {
     tenantId: v.id("tenants"),
     dateRange: dateRangeValidator,
+    period: periodValidator,
     topAffiliatesLimit: v.optional(v.number()),
     recentCommissionsLimit: v.optional(v.number()),
   },
@@ -52,6 +60,10 @@ export const getDashboardData = query({
         recentOrganicConversions: v.number(),
         previousPeriodMrr: v.number(),
         mrrChangePercent: v.number(),
+        // Sparkline data for trends
+        mrrSparkline: v.array(v.number()),
+        clicksSparkline: v.array(v.number()),
+        conversionsSparkline: v.array(v.number()),
       }),
       topAffiliates: v.array(v.object({
         _id: v.id("affiliates"),
@@ -198,6 +210,74 @@ export const getDashboardData = query({
       }
     }
 
+    // ==================== SPARKLINE DATA ====================
+    // Calculate time-bucketed data for sparkline charts based on period
+    const period = args.period ?? "daily";
+    const duration = endDate - startDate;
+
+    // Determine bucket size based on period
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    let bucketMs: number;
+    let numBuckets: number;
+
+    switch (period) {
+      case "weekly":
+        bucketMs = 7 * MS_PER_DAY;
+        numBuckets = Math.min(Math.ceil(duration / bucketMs), 12); // Max 12 weeks
+        break;
+      case "monthly":
+        bucketMs = 30 * MS_PER_DAY;
+        numBuckets = Math.min(Math.ceil(duration / bucketMs), 12); // Max 12 months
+        break;
+      case "daily":
+      default:
+        bucketMs = MS_PER_DAY;
+        numBuckets = Math.min(Math.ceil(duration / bucketMs), 30); // Max 30 days
+        break;
+    }
+
+    // Initialize bucket arrays
+    const mrrBuckets: number[] = new Array(numBuckets).fill(0);
+    const clicksBuckets: number[] = new Array(numBuckets).fill(0);
+    const conversionsBuckets: number[] = new Array(numBuckets).fill(0);
+
+    // Populate MRR buckets from approved commissions
+    for (const commission of commissions) {
+      if (commission.status !== "approved") continue;
+      if (commission._creationTime < startDate || commission._creationTime > endDate) continue;
+
+      const bucketIndex = Math.min(
+        Math.floor((commission._creationTime - startDate) / bucketMs),
+        numBuckets - 1
+      );
+      const conversion = commission.conversionId
+        ? conversionLookup.get(commission.conversionId)
+        : null;
+      mrrBuckets[bucketIndex] += conversion ? conversion.amount : commission.amount;
+    }
+
+    // Populate clicks buckets
+    for (const click of clicks) {
+      if (click._creationTime < startDate || click._creationTime > endDate) continue;
+
+      const bucketIndex = Math.min(
+        Math.floor((click._creationTime - startDate) / bucketMs),
+        numBuckets - 1
+      );
+      clicksBuckets[bucketIndex]++;
+    }
+
+    // Populate conversions buckets
+    for (const conversion of conversions) {
+      if (conversion._creationTime < startDate || conversion._creationTime > endDate) continue;
+
+      const bucketIndex = Math.min(
+        Math.floor((conversion._creationTime - startDate) / bucketMs),
+        numBuckets - 1
+      );
+      conversionsBuckets[bucketIndex]++;
+    }
+
     // ==================== TOP AFFILIATES ====================
     const affiliateStatsMap = new Map<string, { clicks: number; conversions: number; revenue: number }>();
     for (const affiliate of affiliates) {
@@ -304,6 +384,9 @@ export const getDashboardData = query({
         recentOrganicConversions,
         previousPeriodMrr,
         mrrChangePercent,
+        mrrSparkline: mrrBuckets,
+        clicksSparkline: clicksBuckets,
+        conversionsSparkline: conversionsBuckets,
       },
       topAffiliates: topAffiliatesResult,
       recentCommissions: recentCommissionsResult,

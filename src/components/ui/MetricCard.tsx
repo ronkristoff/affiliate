@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedCount } from "@/components/ui/AnimatedCount";
+import { SparklineChart } from "./charts/SparklineChart";
 
 interface MetricCardProps {
   label: string;
@@ -28,6 +29,10 @@ interface MetricCardProps {
   // ── Icon support ──
   /** Lucide icon or any ReactNode rendered top-right with a subtle breathing animation. Required for visual consistency. */
   icon: React.ReactNode;
+
+  // ── Sparkline trend support ──
+  /** Optional trend data for sparkline chart display */
+  sparklineData?: number[];
 }
 
 const variantStyles = {
@@ -56,6 +61,7 @@ export function MetricCard({
   numericValue,
   formatValue,
   icon,
+  sparklineData,
 }: MetricCardProps) {
   if (isLoading) {
     return (
@@ -147,6 +153,24 @@ export function MetricCard({
       {delta && <div className="mb-1">{getDeltaDisplay()}</div>}
       {subtext && (
         <p className="text-[11px] text-[var(--text-muted)]">{subtext}</p>
+      )}
+
+      {/* Sparkline trend chart */}
+      {sparklineData && sparklineData.length >= 2 && (
+        <div className="mt-2">
+          <SparklineChart
+            data={sparklineData}
+            color={
+              delta?.isPositive === false
+                ? "var(--danger)"
+                : delta?.isPositive === true
+                  ? "var(--success)"
+                  : "var(--brand-primary)"
+            }
+            height={32}
+            strokeWidth={1.5}
+          />
+        </div>
       )}
     </div>
   );

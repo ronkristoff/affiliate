@@ -32,10 +32,10 @@ export default function ReportsIndexPage() {
   const userRole = user?.role;
   const canExport = userRole === "owner" || userRole === "manager";
 
-  // Fetch summary metrics
+  // Fetch summary metrics - getProgramSummaryMetrics uses 'window' preset (thisMonth/lastMonth/last3Months)
   const summaryMetrics = useQuery(
     api.reports.getProgramSummaryMetrics,
-    tenantId ? { tenantId, dateRange: queryDateRange, campaignId: selectedCampaignId as Id<"campaigns"> | undefined } : "skip"
+    tenantId ? { tenantId } : "skip"
   );
 
   // Fetch top affiliates for the period
@@ -84,35 +84,6 @@ export default function ReportsIndexPage() {
 
   const isLoading = !summaryMetrics || !topAffiliates;
 
-  // Calculate deltas for display
-  const clicksDelta = summaryMetrics && summaryMetrics.previousTotalClicks > 0
-    ? {
-        value: Math.round(((summaryMetrics.totalClicks - summaryMetrics.previousTotalClicks) / summaryMetrics.previousTotalClicks) * 100),
-        isPositive: summaryMetrics.totalClicks >= summaryMetrics.previousTotalClicks,
-      }
-    : undefined;
-
-  const conversionsDelta = summaryMetrics && summaryMetrics.previousTotalConversions > 0
-    ? {
-        value: Math.round(((summaryMetrics.totalConversions - summaryMetrics.previousTotalConversions) / summaryMetrics.previousTotalConversions) * 100),
-        isPositive: summaryMetrics.totalConversions >= summaryMetrics.previousTotalConversions,
-      }
-    : undefined;
-
-  const commissionsDelta = summaryMetrics && summaryMetrics.previousTotalCommissions > 0
-    ? {
-        value: Math.round(((summaryMetrics.totalCommissions - summaryMetrics.previousTotalCommissions) / summaryMetrics.previousTotalCommissions) * 100),
-        isPositive: summaryMetrics.totalCommissions >= summaryMetrics.previousTotalCommissions,
-      }
-    : undefined;
-
-  const conversionRateDelta = summaryMetrics && summaryMetrics.previousAvgConversionRate > 0
-    ? {
-        value: Math.round(((summaryMetrics.avgConversionRate - summaryMetrics.previousAvgConversionRate) / summaryMetrics.previousAvgConversionRate) * 100),
-        isPositive: summaryMetrics.avgConversionRate >= summaryMetrics.previousAvgConversionRate,
-      }
-    : undefined;
-
   return (
     <>
       {/* Sticky Top Bar */}
@@ -157,7 +128,6 @@ export default function ReportsIndexPage() {
           label="MRR Influenced"
           numericValue={summaryMetrics?.mrrInfluenced ?? 0}
           formatValue={(n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          delta={commissionsDelta}
           variant="blue"
           isLoading={isLoading}
           icon={<TrendingUp className="w-4 h-4" />}
@@ -165,7 +135,6 @@ export default function ReportsIndexPage() {
         <MetricCard
           label="Total Clicks"
           numericValue={summaryMetrics?.totalClicks ?? 0}
-          delta={clicksDelta}
           variant="green"
           isLoading={isLoading}
           icon={<MousePointerClick className="w-4 h-4" />}
@@ -178,7 +147,6 @@ export default function ReportsIndexPage() {
               ? `${summaryMetrics.organicConversions} organic · ${Math.max(0, summaryMetrics.totalConversions - summaryMetrics.organicConversions)} attributed`
               : `${summaryMetrics?.avgConversionRate?.toFixed(1) ?? 0}% conversion rate`
           }
-          delta={conversionsDelta}
           variant="yellow"
           isLoading={isLoading}
           icon={<Target className="w-4 h-4" />}
@@ -187,7 +155,6 @@ export default function ReportsIndexPage() {
           label="Total Commissions"
           numericValue={summaryMetrics?.totalCommissions ?? 0}
           formatValue={(n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          delta={commissionsDelta}
           variant="gray"
           isLoading={isLoading}
           icon={<DollarSign className="w-4 h-4" />}

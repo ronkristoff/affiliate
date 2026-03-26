@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart } from "@tremor/react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { FadeIn } from "@/components/ui/FadeIn";
 
 interface CampaignRoiBarChartProps {
@@ -29,11 +29,11 @@ export function CampaignRoiBarChart({
     name: d.name,
     Clicks: d.clicks,
     Conversions: d.conversions,
-    ...(canViewSensitiveData && { "Cost/Conversion": d.costPerConversion }),
+    ...(canViewSensitiveData && { "Cost/Conv": d.costPerConversion }),
   }));
 
   const categories = canViewSensitiveData
-    ? ["Clicks", "Conversions", "Cost/Conversion"]
+    ? ["Clicks", "Conversions", "Cost/Conv"]
     : ["Clicks", "Conversions"];
 
   const colors = canViewSensitiveData
@@ -52,20 +52,17 @@ export function CampaignRoiBarChart({
               No data to compare
             </div>
           ) : (
-            <BarChart
-              className="h-64"
-              data={chartData}
-              index="name"
-              categories={categories}
-              colors={colors}
-              yAxisWidth={60}
-              showGridLines
-              showLegend
-              showTooltip
-              showYAxis
-              showXAxis
-              noDataText="No comparison data"
-            />
+            <ResponsiveContainer width="100%" height={256}>
+              <BarChart data={chartData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} width={60} />
+                <Tooltip />
+                {canViewSensitiveData && <Legend />}
+                <Bar dataKey="Clicks" fill={colors[0]} />
+                <Bar dataKey="Conversions" fill={colors[1]} />
+                {canViewSensitiveData && <Bar dataKey="Cost/Conv" fill={colors[2]} />}
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </CardContent>
       </Card>

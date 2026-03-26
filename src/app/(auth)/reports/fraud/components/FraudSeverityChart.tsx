@@ -1,12 +1,18 @@
 "use client";
 
-import { BarChart } from "@tremor/react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FraudSeverityChartProps {
   data: { name: string; count: number }[];
 }
+
+const SEVERITY_COLORS: Record<string, string> = {
+  low: "#16a34a",
+  medium: "#f59e0b",
+  high: "#ef4444",
+};
 
 export function FraudSeverityChart({ data }: FraudSeverityChartProps) {
   const hasData = data.some((d) => d.count > 0);
@@ -18,20 +24,18 @@ export function FraudSeverityChart({ data }: FraudSeverityChartProps) {
       </CardHeader>
       <CardContent>
         {hasData ? (
-          <BarChart
-            className="mt-2 h-52"
-            data={data}
-            index="name"
-            categories={["count"]}
-            colors={["#16a34a", "#f59e0b", "#ef4444"]}
-            showGridLines
-            showLegend={false}
-            showTooltip
-            showYAxis
-            showXAxis
-            yAxisWidth={48}
-            valueFormatter={(value) => String(value)}
-          />
+          <ResponsiveContainer width="100%" height={208}>
+            <BarChart data={data}>
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={48} />
+              <Tooltip />
+              <Bar dataKey="count">
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={SEVERITY_COLORS[entry.name.toLowerCase()] || "#10409a"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-52 flex items-center justify-center">
             <p className="text-sm text-muted-foreground">No fraud signals</p>
