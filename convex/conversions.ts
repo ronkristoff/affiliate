@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
+import { onOrganicConversionCreated, incrementTotalConversions } from "./tenantStats";
 
 /**
  * Internal: Get tenant by tracking public key
@@ -415,6 +416,9 @@ export const createOrganicConversion = internalMutation({
       metadata: args.metadata,
     });
 
+    // Increment organic + total conversion counters
+    await onOrganicConversionCreated(ctx, args.tenantId);
+
     // Log to audit trail
     await ctx.db.insert("auditLogs", {
       tenantId: args.tenantId,
@@ -561,6 +565,9 @@ export const createConversion = internalMutation({
     const conversionId = await ctx.db.insert("conversions", {
       ...args,
     });
+
+    // Increment total conversion counter (fixes pre-existing bug)
+    await incrementTotalConversions(ctx, args.tenantId);
 
     return conversionId;
   },
@@ -1119,5 +1126,48 @@ export const updateConversionSubscriptionStatusInternal = internalMutation({
     });
     
     return null;
+  },
+});
+
+/**
+ * Query: Get organic conversions for a tenant (no affiliate attribution).
+ * Uses .take() with overscan instead of .paginate() because post-filter
+ * after pagination is broken (cursor advances past filtered-out documents).
+ */
+export const getOrganicConversions = query({
+  args: {
+    tenantId: v.id("tenants"),
+    limit: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  returns: v.array(v.object({
+    _id: v.id("conversions"),
+    _creationTime: v.number(),
+    tenantId: v.id("tenants"),
+    customerEmail: v.optional(v.string()),
+    amount: v.number(),
+    status: v.optional(v.string()),
+    attributionSource: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  })),
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 50, 100);
+
+    const allConversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", q => q.eq("tenantId", args.tenantId))
+      .order("desc")
+      .take(limit * 5); // Overscan to account for attributed conversions being filtered out
+
+    const organic = allConversions
+      .filter(c => !c.affiliateId || c.attributionSource === "organic")
+      .filter(c => {
+        if (args.startDate && c._creationTime < args.startDate) return false;
+        if (args.endDate && c._creationTime > args.endDate) return false;
+        return true;
+      });
+
+    return organic.slice(0, limit);
   },
 });

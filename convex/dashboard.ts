@@ -48,6 +48,7 @@ export const getDashboardData = query({
       totalPaidOut: v.number(),
       recentClicks: v.number(),
       recentConversions: v.number(),
+      recentOrganicConversions: v.number(),
       previousPeriodMrr: v.number(),
       mrrChangePercent: v.number(),
     }),
@@ -183,8 +184,12 @@ export const getDashboardData = query({
     }
 
     let recentConversions = 0;
+    let recentOrganicConversions = 0;
     for (const conversion of conversions) {
-      if (conversion._creationTime >= startDate && conversion._creationTime <= endDate) recentConversions++;
+      if (conversion._creationTime >= startDate && conversion._creationTime <= endDate) {
+        recentConversions++;
+        if (!conversion.affiliateId || conversion.attributionSource === "organic") recentOrganicConversions++;
+      }
     }
 
     // ==================== TOP AFFILIATES ====================
@@ -289,6 +294,7 @@ export const getDashboardData = query({
         totalPaidOut: canViewSensitiveData ? totalPaidOut : 0,
         recentClicks,
         recentConversions,
+        recentOrganicConversions,
         previousPeriodMrr,
         mrrChangePercent,
       },

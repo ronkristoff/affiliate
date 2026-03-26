@@ -49,6 +49,7 @@ export const getProgramSummaryMetrics = query({
     pendingPayoutCount: v.number(),
     commissionsPendingCount: v.number(),
     commissionsPendingValue: v.number(),
+    organicConversions: v.number(),
   }),
   handler: async (ctx, args) => {
     const authUser = await getAuthenticatedUser(ctx);
@@ -80,6 +81,7 @@ export const getProgramSummaryMetrics = query({
         pendingPayoutCount: 0,
         commissionsPendingCount: 0,
         commissionsPendingValue: 0,
+        organicConversions: 0,
       };
     }
 
@@ -88,6 +90,7 @@ export const getProgramSummaryMetrics = query({
     let commissionsConfirmedCount: number;
     let totalClicks: number;
     let totalConversions: number;
+    let organicConversions: number;
 
     switch (window) {
       case "lastMonth":
@@ -95,12 +98,14 @@ export const getProgramSummaryMetrics = query({
         commissionsConfirmedCount = stats.commissionsConfirmedLastMonth ?? 0;
         totalClicks = stats.totalClicksLastMonth ?? 0;
         totalConversions = stats.totalConversionsLastMonth ?? 0;
+        organicConversions = stats.organicConversionsLastMonth ?? 0;
         break;
       case "last3Months":
         commissionsConfirmedValue = stats.commissionsConfirmedValueLast3Months ?? 0;
         commissionsConfirmedCount = stats.commissionsConfirmedLast3Months ?? 0;
         totalClicks = stats.totalClicksLast3Months ?? 0;
         totalConversions = stats.totalConversionsLast3Months ?? 0;
+        organicConversions = stats.organicConversionsLast3Months ?? 0;
         break;
       case "thisMonth":
       default:
@@ -108,6 +113,7 @@ export const getProgramSummaryMetrics = query({
         commissionsConfirmedCount = stats.commissionsConfirmedThisMonth;
         totalClicks = stats.totalClicksThisMonth ?? 0;
         totalConversions = stats.totalConversionsThisMonth ?? 0;
+        organicConversions = stats.organicConversionsThisMonth ?? 0;
         break;
     }
 
@@ -127,6 +133,7 @@ export const getProgramSummaryMetrics = query({
       pendingPayoutCount: stats.pendingPayoutCount ?? 0,
       commissionsPendingCount: canViewSensitiveData ? stats.commissionsPendingCount : 0,
       commissionsPendingValue: canViewSensitiveData ? stats.commissionsPendingValue : 0,
+      organicConversions,
     };
   },
 });

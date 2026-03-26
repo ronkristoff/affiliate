@@ -173,7 +173,11 @@ export default function ReportsIndexPage() {
         <MetricCard
           label="Total Conversions"
           numericValue={summaryMetrics?.totalConversions ?? 0}
-          subtext={`${summaryMetrics?.avgConversionRate?.toFixed(1) ?? 0}% conversion rate`}
+          subtext={
+            summaryMetrics && summaryMetrics.totalConversions > 0
+              ? `${summaryMetrics.organicConversions} organic · ${Math.max(0, summaryMetrics.totalConversions - summaryMetrics.organicConversions)} attributed`
+              : `${summaryMetrics?.avgConversionRate?.toFixed(1) ?? 0}% conversion rate`
+          }
           delta={conversionsDelta}
           variant="yellow"
           isLoading={isLoading}

@@ -21,7 +21,7 @@ import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal"
 import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
-import { Loader2, Download, TrendingUp, Clock, Users, Wallet } from "lucide-react";
+import { Loader2, Download, TrendingUp, Clock, Users, Wallet, Leaf } from "lucide-react";
 import Link from "next/link";
 
 // ─── Skeleton fallback for Suspense boundary ─────────────────────────────
@@ -201,7 +201,7 @@ function DashboardContent() {
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
         {/* Metric Cards Grid - 4 columns */}
-        <FadeIn className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <FadeIn className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <MetricCard
             label="MRR Influenced"
             numericValue={stats?.mrrInfluenced ?? 0}
@@ -240,6 +240,18 @@ function DashboardContent() {
             isLoading={!stats}
             variant="gray"
             icon={<Wallet className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Organic Sales"
+            numericValue={stats?.recentOrganicConversions ?? 0}
+            subtext={
+              stats && stats.recentConversions > 0
+                ? `${Math.round(((stats.recentOrganicConversions ?? 0) / stats.recentConversions) * 100)}% of all conversions`
+                : undefined
+            }
+            isLoading={!stats}
+            variant="blue"
+            icon={<Leaf className="w-4 h-4" />}
           />
         </FadeIn>
 

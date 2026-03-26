@@ -38,6 +38,7 @@ export const getConversionFunnel = query({
       commissions: v.number(),
       funnelRate: v.number(),
     })),
+    organicConversions: v.number(),
     totalEstimated: v.number(),
   }),
   handler: async (ctx, args) => {
@@ -101,6 +102,7 @@ export const getConversionFunnel = query({
     // 10. Compute totalEstimated for truncation warning
     const totalClicks = filteredClicks.length;
     const totalConversions = filteredConversions.length;
+    const organicConversions = filteredConversions.filter(c => !c.affiliateId || c.attributionSource === "organic").length;
     const totalCommissions = canViewSensitiveData
       ? filteredCommissions.reduce((sum, c) => sum + c.amount, 0)
       : 0;
@@ -289,6 +291,7 @@ export const getConversionFunnel = query({
       overallRate,
       topAffiliates: topAffiliatesResult,
       byCampaign,
+      organicConversions,
       totalEstimated,
     };
   },

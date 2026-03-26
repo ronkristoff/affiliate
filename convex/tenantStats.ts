@@ -46,16 +46,27 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       pendingPayoutCount: 0,
       currentMonthStart: monthStart,
       apiCallsThisMonth: 0,
+      totalConversionsThisMonth: 0,
+      organicConversionsThisMonth: 0,
     });
     return (await ctx.db.get(id))!;
   }
 
   if (needsReset) {
     await ctx.db.patch(stats._id, {
+      // Copy ThisMonth → LastMonth BEFORE zeroing (fixes stale LastMonth gap)
+      commissionsConfirmedLastMonth: stats.commissionsConfirmedThisMonth,
+      commissionsConfirmedValueLastMonth: stats.commissionsConfirmedValueThisMonth,
+      totalClicksLastMonth: stats.totalClicksLastMonth ?? 0,
+      totalConversionsLastMonth: stats.totalConversionsThisMonth ?? 0,
+      organicConversionsLastMonth: stats.organicConversionsThisMonth ?? 0,
+      // Now zero ThisMonth fields
       commissionsConfirmedThisMonth: 0,
       commissionsConfirmedValueThisMonth: 0,
       commissionsReversedThisMonth: 0,
       commissionsReversedValueThisMonth: 0,
+      organicConversionsThisMonth: 0,
+      totalConversionsThisMonth: 0,
       currentMonthStart: monthStart,
       apiCallsThisMonth: 0,
     });
@@ -185,6 +196,8 @@ export const seedStats = internalMutation({
       pendingPayoutCount: 0,
       currentMonthStart: getMonthStart(),
       apiCallsThisMonth: 0,
+      totalConversionsThisMonth: 0,
+      organicConversionsThisMonth: 0,
     });
     return null;
   },
@@ -214,7 +227,20 @@ export const backfillStats = internalMutation({
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
       .take(5000);
 
+    const conversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .take(5000);
+
     const monthStart = getMonthStart();
+    const lastMonthStart = new Date(
+      new Date(monthStart).getFullYear(),
+      new Date(monthStart).getMonth() - 1, 1
+    ).getTime();
+    const threeMonthsAgoStart = new Date(
+      new Date(monthStart).getFullYear(),
+      new Date(monthStart).getMonth() - 2, 1
+    ).getTime();
 
     let affiliatesPending = 0, affiliatesActive = 0, affiliatesSuspended = 0, affiliatesRejected = 0;
     for (const a of affiliates) {
@@ -268,6 +294,24 @@ export const backfillStats = internalMutation({
       }
     }
 
+    // Compute total + organic conversion counters by time window
+    let totalConversionsThisMonth = 0, totalConversionsLastMonth = 0, totalConversionsLast3Months = 0;
+    let organicConversionsThisMonth = 0, organicConversionsLastMonth = 0, organicConversionsLast3Months = 0;
+    for (const conv of conversions) {
+      const isOrganic = !conv.affiliateId || conv.attributionSource === "organic";
+      if (conv._creationTime >= monthStart) {
+        totalConversionsThisMonth++;
+        if (isOrganic) organicConversionsThisMonth++;
+      } else if (conv._creationTime >= lastMonthStart) {
+        totalConversionsLastMonth++;
+        if (isOrganic) organicConversionsLastMonth++;
+      }
+      if (conv._creationTime >= threeMonthsAgoStart) {
+        totalConversionsLast3Months++;
+        if (isOrganic) organicConversionsLast3Months++;
+      }
+    }
+
     const existing = await ctx.db
       .query("tenantStats")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
@@ -291,6 +335,14 @@ export const backfillStats = internalMutation({
       pendingPayoutCount,
       currentMonthStart: monthStart,
       apiCallsThisMonth: 0,
+      // Conversion counters (fixes pre-existing bug: these were never computed)
+      totalConversionsThisMonth,
+      totalConversionsLastMonth,
+      totalConversionsLast3Months,
+      // Organic conversion counters
+      organicConversionsThisMonth,
+      organicConversionsLastMonth,
+      organicConversionsLast3Months,
     };
 
     if (existing) {
@@ -480,6 +532,39 @@ export async function incrementTotalPaidOut(
 }
 
 /**
+ * Called when an organic conversion is created (no affiliate attribution).
+ * Increments organic-specific counters AND totalConversionsThisMonth.
+ * Note: NOT idempotent — Convex retries on write conflict could double-count.
+ * The weekly backfillStats cron serves as a periodic correction mechanism.
+ */
+export async function onOrganicConversionCreated(
+  ctx: MutationCtx,
+  tenantId: Id<"tenants">,
+) {
+  const stats = await getOrCreateStats(ctx, tenantId);
+  await ctx.db.patch(stats._id, {
+    organicConversionsThisMonth: (stats.organicConversionsThisMonth ?? 0) + 1,
+    organicConversionsLast3Months: (stats.organicConversionsLast3Months ?? 0) + 1,
+    // Fix pre-existing bug: totalConversionsThisMonth was never incremented
+    totalConversionsThisMonth: (stats.totalConversionsThisMonth ?? 0) + 1,
+  });
+}
+
+/**
+ * Increment totalConversionsThisMonth for attributed conversions.
+ * Fixes the pre-existing bug where totalConversionsThisMonth was never incremented.
+ */
+export async function incrementTotalConversions(
+  ctx: MutationCtx,
+  tenantId: Id<"tenants">,
+) {
+  const stats = await getOrCreateStats(ctx, tenantId);
+  await ctx.db.patch(stats._id, {
+    totalConversionsThisMonth: (stats.totalConversionsThisMonth ?? 0) + 1,
+  });
+}
+
+/**
  * Called when a commission amount changes without a status change.
  * Adjusts the appropriate value counter based on current status.
  */
@@ -540,6 +625,8 @@ export const getOrCreateStatsInternal = internalMutation({
         pendingPayoutCount: 0,
         currentMonthStart: getMonthStart(),
         apiCallsThisMonth: 0,
+        totalConversionsThisMonth: 0,
+        organicConversionsThisMonth: 0,
       });
     }
 
@@ -547,10 +634,19 @@ export const getOrCreateStatsInternal = internalMutation({
     const monthStart = getMonthStart();
     if (stats && stats.currentMonthStart < monthStart) {
       await ctx.db.patch(stats._id, {
+        // Copy ThisMonth → LastMonth BEFORE zeroing (fixes stale LastMonth gap)
+        commissionsConfirmedLastMonth: stats.commissionsConfirmedThisMonth,
+        commissionsConfirmedValueLastMonth: stats.commissionsConfirmedValueThisMonth,
+        totalClicksLastMonth: stats.totalClicksLastMonth ?? 0,
+        totalConversionsLastMonth: stats.totalConversionsThisMonth ?? 0,
+        organicConversionsLastMonth: stats.organicConversionsThisMonth ?? 0,
+        // Now zero ThisMonth fields
         commissionsConfirmedThisMonth: 0,
         commissionsConfirmedValueThisMonth: 0,
         commissionsReversedThisMonth: 0,
         commissionsReversedValueThisMonth: 0,
+        organicConversionsThisMonth: 0,
+        totalConversionsThisMonth: 0,
         currentMonthStart: monthStart,
         apiCallsThisMonth: 0,
       });

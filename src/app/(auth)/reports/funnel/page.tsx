@@ -13,9 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ConversionFunnel,
   FunnelAffiliateTable,
+  OrganicConversionsTable,
 } from "./components";
 import { CampaignFilterDropdown } from "@/app/(auth)/reports/campaigns/components/CampaignFilterDropdown";
-import { Download, AlertTriangle, Loader2, MousePointerClick, Target, BadgeCheck, Eye } from "lucide-react";
+import { Download, AlertTriangle, Loader2, MousePointerClick, Target, BadgeCheck, Eye, Leaf } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
@@ -305,8 +306,8 @@ function FunnelPageContent() {
           variant="green"
           isLoading={isLoading}
           subtext={
-            funnelData && funnelData.totalClicks > 0
-              ? `${funnelData.clickToConversionRate.toFixed(1)}% conversion rate`
+            funnelData && funnelData.totalConversions > 0
+              ? `${funnelData.clickToConversionRate.toFixed(1)}% conversion rate · ${funnelData.organicConversions} organic`
               : undefined
           }
         />
@@ -333,6 +334,7 @@ function FunnelPageContent() {
         clickToConversionRate={funnelData?.clickToConversionRate ?? 0}
         conversionToCommissionRate={funnelData?.conversionToCommissionRate ?? 0}
         overallRate={funnelData?.overallRate ?? 0}
+        organicConversions={funnelData?.organicConversions ?? 0}
         isLoading={isLoading}
       />
 
@@ -350,6 +352,34 @@ function FunnelPageContent() {
         canViewSensitiveData={canViewSensitiveData}
         isLoading={isLoading}
       />
+
+      {/* Organic Conversions List */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <Leaf className="w-4 h-4" />
+            Organic Conversions
+          </h3>
+          <span className="text-xs text-[var(--text-muted)]">
+            Sales with no affiliate attribution
+          </span>
+        </div>
+        <Suspense fallback={
+          <div className="space-y-3 p-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        }>
+          {tenantId && (
+            <OrganicConversionsTable
+              tenantId={tenantId}
+              startDate={queryDateRange?.start}
+              endDate={queryDateRange?.end}
+            />
+          )}
+        </Suspense>
+      </div>
       </div>
     </>
   );

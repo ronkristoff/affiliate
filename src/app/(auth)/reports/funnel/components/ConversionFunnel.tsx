@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { MousePointerClick, Target, BadgeCheck, ArrowDown } from "lucide-react";
+import { MousePointerClick, Target, BadgeCheck, ArrowDown, Leaf } from "lucide-react";
 
 interface ConversionFunnelProps {
   totalClicks: number;
@@ -11,6 +11,7 @@ interface ConversionFunnelProps {
   clickToConversionRate: number;
   conversionToCommissionRate: number;
   overallRate: number;
+  organicConversions?: number;
   isLoading?: boolean;
 }
 
@@ -25,6 +26,7 @@ export function ConversionFunnel({
   clickToConversionRate,
   conversionToCommissionRate,
   overallRate,
+  organicConversions,
   isLoading = false,
 }: ConversionFunnelProps) {
   if (isLoading) {
@@ -163,6 +165,12 @@ export function ConversionFunnel({
                   {!isFirst && step.count > 0 && (
                     <span className="text-xs text-[var(--text-muted)] ml-1.5">
                       ({step.width.toFixed(1)}%)
+                    </span>
+                  )}
+                  {step.label === "Conversions" && organicConversions !== undefined && organicConversions > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                      <Leaf className="w-3 h-3" />
+                      {organicConversions} organic
                     </span>
                   )}
                 </div>

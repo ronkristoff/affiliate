@@ -581,6 +581,10 @@ export default defineSchema({
     // Current month click/conversion counters
     totalClicksThisMonth: v.optional(v.number()),
     totalConversionsThisMonth: v.optional(v.number()),
+    // Organic conversion counters (sales with no affiliate attribution)
+    organicConversionsThisMonth: v.optional(v.number()),
+    organicConversionsLastMonth: v.optional(v.number()),
+    organicConversionsLast3Months: v.optional(v.number()),
     // Current month API call counter (for tier limit enforcement)
     apiCallsThisMonth: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
