@@ -687,18 +687,24 @@ export const canCampaignEarnCommissions = internalQuery({
  */
 export const getCampaignCardStats = query({
   args: {},
-  returns: v.record(
-    v.string(),
-    v.object({
-      affiliates: v.number(),
-      conversions: v.number(),
-      paidOut: v.number(),
-    })
+  returns: v.union(
+    v.record(
+      v.string(),
+      v.object({
+        affiliates: v.number(),
+        conversions: v.number(),
+        paidOut: v.number(),
+      })
+    ),
+    v.null()
   ),
   handler: async (ctx, _args) => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
-      throw new Error("Unauthorized: Authentication required");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh. The query
+      // will automatically re-execute once the session is established.
+      return null;
     }
 
     const tenantId = user.tenantId;
