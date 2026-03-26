@@ -17,7 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Pencil, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Pencil, Pause, Play, Archive, EllipsisVertical } from "lucide-react";
 
 function formatPeso(amount: number): string {
   if (amount >= 1_000_000) {
@@ -168,7 +174,8 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
 
   return (
     <>
-      <div
+      <Link
+        href={`/campaigns/${campaign._id}`}
         className={`bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-3.5 transition-shadow cursor-pointer hover:shadow-md ${
           isArchived ? "opacity-65" : ""
         }`}
@@ -176,12 +183,11 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div>
-            <Link
-              href={`/campaigns/${campaign._id}`}
+            <span
               className="text-[15px] font-bold text-gray-800 hover:text-primary transition-colors"
             >
               {campaign.name}
-            </Link>
+            </span>
             <div className="text-xs text-gray-500 mt-0.5">{getTypeLabel()}</div>
           </div>
           {isActive && (
@@ -248,30 +254,63 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
           <div className="text-[11px] text-gray-500">
             Created {formatDate(campaign._creationTime)}
           </div>
-          <div className="flex gap-1.5">
-            <Link
-              href={`/campaigns/${campaign._id}`}
-              className="w-7 h-7 rounded-md border border-gray-200 bg-transparent flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors text-sm"
-              title="Edit"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </Link>
-            {campaign.status !== "archived" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleArchive();
-                }}
+                onClick={(e) => e.preventDefault()}
                 className="w-7 h-7 rounded-md border border-gray-200 bg-transparent flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors text-sm"
-                title="More"
+                aria-label="Campaign actions"
               >
-                <MoreHorizontal className="w-3.5 h-3.5" />
+                <EllipsisVertical className="w-4 h-4" />
               </button>
-            )}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem
+                onClick={(e) => e.preventDefault()}
+                className="gap-2 cursor-pointer"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit details
+              </DropdownMenuItem>
+              {!isArchived && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePauseResume();
+                  }}
+                  disabled={loading && actionType === "pause"}
+                  className="gap-2 cursor-pointer"
+                >
+                  {isActive ? (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Pause campaign
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Resume campaign
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+              {!isArchived && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleArchive();
+                  }}
+                  disabled={loading && actionType === "archive"}
+                  className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive campaign
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
+      </Link>
 
       {/* Pause Confirmation Dialog */}
       <AlertDialog open={showPauseConfirm} onOpenChange={setShowPauseConfirm}>

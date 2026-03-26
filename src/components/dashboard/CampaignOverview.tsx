@@ -13,8 +13,7 @@ import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
 /**
  * CampaignOverview — dashboard overview for the 80% case (5-20 campaigns).
  * Shows: status summary, top 5 active campaigns, "Needs Attention" section, quick actions.
- * Query budget: 3 external + 1 internal round-trips (~290ms). ADR-3 compliant — no separate
- * getCampaignCardStats call from frontend; stats returned by getTopCampaigns internally.
+ * Query budget: 4 external round-trips (~340ms).
  */
 export function CampaignOverview({ onCreateCampaign }: { onCreateCampaign: () => void }) {
   return (
@@ -38,6 +37,7 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
   const campaignStats = useQuery(api.campaigns.getCampaignStats);
   const topCampaignsData = useQuery(api.campaigns.getTopCampaigns);
   const attentionData = useQuery(api.campaigns.getAttentionCampaigns);
+  const cardStats = useQuery(api.campaigns.getCampaignCardStats);
 
   const isLoading = campaignStats === undefined || topCampaignsData === undefined || attentionData === undefined;
 
@@ -90,6 +90,11 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
               <CampaignCard
                 key={campaign._id}
                 campaign={campaign}
+                stats={{
+                  affiliates: cardStats?.[campaign._id]?.affiliates ?? 0,
+                  conversions: cardStats?.[campaign._id]?.conversions ?? 0,
+                  paidOut: cardStats?.[campaign._id]?.paidOut ?? 0,
+                }}
               />
             ))}
           </div>
