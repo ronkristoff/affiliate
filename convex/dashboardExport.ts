@@ -55,6 +55,10 @@ export const exportOwnerDashboardCSV = action({
       recentCommissionsLimit: 50,
     });
 
+    if (!dashboardData) {
+      throw new Error("Failed to load dashboard data for export");
+    }
+
     const stats = dashboardData.stats;
     const recentCommissions = dashboardData.recentCommissions;
     const topAffiliates = dashboardData.topAffiliates;
