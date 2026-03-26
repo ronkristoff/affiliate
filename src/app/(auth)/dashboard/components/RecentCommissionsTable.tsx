@@ -9,6 +9,7 @@ import {
   StatusBadgeCell,
   type TableColumn,
 } from "@/components/ui/DataTable";
+import { CopyableId } from "@/components/shared/CopyableId";
 
 interface Commission {
   _id: string;
@@ -64,6 +65,12 @@ export function RecentCommissionsTable({
   })();
 
   const columns: TableColumn<Commission>[] = [
+    {
+      key: "_id",
+      header: "ID",
+      cell: (row) => <CopyableId id={row._id} />,
+      width: 180,
+    },
     {
       key: "affiliate",
       header: "Affiliate",

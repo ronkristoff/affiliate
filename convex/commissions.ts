@@ -1,6 +1,6 @@
 import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
@@ -1522,13 +1522,35 @@ export const listCommissionsPaginated = query({
 
     const numItems = Math.min(args.numItems, 100);
 
-    // Fetch all commissions for the tenant (capped for safety)
-    const MAX_COMMISSIONS = 5000;
-    let commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
-      .order("desc")
-      .take(MAX_COMMISSIONS);
+    // Fetch commissions for the tenant (capped for safety).
+    // When a search query is active, raise the cap so older records are reachable.
+    // When a single status filter is provided, use the status index to reduce
+    // the working set before the cap.
+    const hasSearch = !!args.searchQuery || !!args.affiliateSearch || !!args.customerSearch || !!args.planEventSearch;
+    const MAX_COMMISSIONS = hasSearch ? 10000 : 5000;
+
+    let commissions: Doc<"commissions">[];
+
+    // Use status-specific index when filtering to a single known status
+    if (
+      args.statusFilter &&
+      args.statusFilter.length === 1 &&
+      ["pending", "approved", "paid", "reversed", "declined"].includes(args.statusFilter[0])
+    ) {
+      commissions = await ctx.db
+        .query("commissions")
+        .withIndex("by_tenant_and_status", (q) =>
+          q.eq("tenantId", user.tenantId).eq("status", args.statusFilter![0])
+        )
+        .order("desc")
+        .take(MAX_COMMISSIONS);
+    } else {
+      commissions = await ctx.db
+        .query("commissions")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .order("desc")
+        .take(MAX_COMMISSIONS);
+    }
 
     // Apply filters in memory
     if (args.statusFilter && args.statusFilter.length > 0) {

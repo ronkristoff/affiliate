@@ -12,6 +12,7 @@ import {
   CurrencyCell,
 } from "@/components/ui/DataTable";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
+import { CopyableId } from "@/components/shared/CopyableId";
 import { FadeIn } from "@/components/ui/FadeIn";
 import type { PaginationState } from "@/components/ui/DataTablePagination";
 
@@ -69,6 +70,12 @@ export function PayoutBatchTable({
 
   const columns: TableColumn<Batch>[] = useMemo(
     () => [
+      {
+        key: "_id",
+        header: "ID",
+        cell: (row) => <CopyableId id={row._id} />,
+        width: 180,
+      },
       {
         key: "batchCode",
         header: "Batch ID",

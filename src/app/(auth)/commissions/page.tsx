@@ -60,6 +60,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { SearchField } from "@/components/ui/SearchField";
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
+import { CopyableId } from "@/components/shared/CopyableId";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -546,6 +547,14 @@ function CommissionsContent() {
   // ── CSV Export ──────────────────────────────────────────────────────────
   const columns: TableColumn<EnrichedCommission>[] = useMemo(
     () => [
+      {
+        key: "_id",
+        header: "ID",
+        cell: (row) => (
+          <CopyableId id={row._id} />
+        ),
+        width: 180,
+      },
       {
         key: "date",
         header: "Date",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -18,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
+import { CopyableId } from "@/components/shared/CopyableId";
 import {
   DataTable,
   TableColumn,
@@ -90,6 +92,7 @@ interface AffiliatePendingPayout {
 // =============================================================================
 
 export function PayoutsContent() {
+  const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedAffiliates, setSelectedAffiliates] = useState<Set<Id<"affiliates">>>(new Set());
@@ -111,8 +114,7 @@ export function PayoutsContent() {
     }>;
   } | null>(null);
 
-  // Batch detail dialog state
-  const [selectedBatchId, setSelectedBatchId] = useState<Id<"payoutBatches"> | null>(null);
+  // Batch detail state for mark-paid dialogs
   const [markPaidDialogPayout, setMarkPaidDialogPayout] = useState<{
     payoutId: Id<"payouts">;
     affiliateName: string;
@@ -196,15 +198,7 @@ export function PayoutsContent() {
     setBatchesPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  // Batch detail queries and mutations
-  const batchPayoutDetails = useQuery(
-    api.payouts.getBatchPayouts,
-    selectedBatchId ? { batchId: selectedBatchId } : "skip"
-  );
-  const batchPayoutStatus = useQuery(
-    api.payouts.getBatchPayoutStatus,
-    selectedBatchId ? { batchId: selectedBatchId } : "skip"
-  );
+  // Mutations
   const markPayoutAsPaid = useMutation(api.payouts.markPayoutAsPaid);
   const markBatchAsPaid = useMutation(api.payouts.markBatchAsPaid);
 
@@ -530,7 +524,6 @@ export function PayoutsContent() {
         description: `${result.payoutsMarked} payout${result.payoutsMarked !== 1 ? "s" : ""} in ${markAllPaidBatch.batchCode}`,
       });
       setMarkAllPaidBatch(null);
-      setSelectedBatchId(null);
       setPaymentReference("");
     } catch (error) {
       if (error instanceof Error && error.message === "NO_PENDING_PAYOUTS") {
@@ -559,6 +552,12 @@ export function PayoutsContent() {
 
   const affiliateColumns: TableColumn<AffiliatePendingPayout>[] = useMemo(
     () => [
+      {
+        key: "affiliateId",
+        header: "ID",
+        cell: (row) => <CopyableId id={row.affiliateId} />,
+        width: 180,
+      },
       {
         key: "affiliate",
         header: "Affiliate",
@@ -623,6 +622,12 @@ export function PayoutsContent() {
   const batchColumns: TableColumn<Batch>[] = useMemo(
     () => [
       {
+        key: "_id",
+        header: "ID",
+        cell: (row) => <CopyableId id={row._id} />,
+        width: 180,
+      },
+      {
         key: "batchCode",
         header: "Batch ID",
         cell: (row) => (
@@ -683,7 +688,7 @@ export function PayoutsContent() {
         label: "View Details",
         variant: "info",
         icon: <Eye className="w-3.5 h-3.5" />,
-        onClick: (row) => setSelectedBatchId(row._id),
+        onClick: (row) => router.push(`/payouts/batches/${row._id}`),
       },
       {
         label: "Mark All Paid",
@@ -1356,173 +1361,6 @@ export function PayoutsContent() {
               Generate Batch
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Batch Detail Dialog */}
-      <Dialog open={!!selectedBatchId} onOpenChange={(open) => !open && setSelectedBatchId(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Batch Payout Details</DialogTitle>
-            <DialogDescription>
-              Individual payouts for this batch
-            </DialogDescription>
-          </DialogHeader>
-
-          {batchPayoutStatus && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] text-[var(--text-muted)]">Status:</span>
-                <BatchStatusBadge status={batchPayoutStatus.batchStatus} />
-              </div>
-              <div className="text-[12px] text-[var(--text-muted)]">
-                {batchPayoutStatus.paid} of {batchPayoutStatus.total} paid
-              </div>
-              {/* Progress bar */}
-              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-green-500 transition-all"
-                  style={{ width: `${batchPayoutStatus.total > 0 ? (batchPayoutStatus.paid / batchPayoutStatus.total) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto">
-            {batchPayoutDetails === undefined ? (
-              <div className="space-y-3 py-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div className="flex-1 space-y-1">
-                      <Skeleton className="h-4 w-36" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                ))}
-              </div>
-            ) : batchPayoutDetails.length === 0 ? (
-              <p className="py-8 text-center text-[13px] text-[var(--text-muted)]">
-                No payout records found for this batch.
-              </p>
-            ) : (
-              <DataTable
-                columns={[
-                  {
-                    key: "affiliate",
-                    header: "Affiliate",
-                    cell: (row: any) => (
-                      <AvatarCell name={row.name} email={row.email} />
-                    ),
-                  },
-                  {
-                    key: "payoutMethod",
-                    header: "Payout Method",
-                    cell: (row: any) =>
-                      row.payoutMethod ? (
-                        <Badge variant="outline" className="font-normal text-[12px]">
-                          {row.payoutMethod.type}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]">
-                          <AlertTriangle className="mr-1 h-3 w-3" />
-                          Not set
-                        </Badge>
-                      ),
-                  },
-                  {
-                    key: "amount",
-                    header: "Amount",
-                    align: "right",
-                    cell: (row: any) => <CurrencyCell amount={row.amount} />,
-                  },
-                  {
-                    key: "status",
-                    header: "Status",
-                    cell: (row: any) =>
-                      row.status === "paid" ? (
-                        <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-[12px]">
-                          <CheckCircle2 className="mr-1 h-3 w-3" />
-                          Paid
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[12px]">
-                          <Clock className="mr-1 h-3 w-3" />
-                          Pending
-                        </Badge>
-                      ),
-                  },
-                  {
-                    key: "action",
-                    header: "",
-                    align: "right",
-                    cell: (row: any) =>
-                      row.status === "pending" ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50 text-[12px]"
-                          onClick={() =>
-                            setMarkPaidDialogPayout({
-                              payoutId: row.payoutId,
-                              affiliateName: row.name,
-                              amount: row.amount,
-                            })
-                          }
-                        >
-                          <CheckCircle2 className="mr-1 h-3 w-3" />
-                          Mark Paid
-                        </Button>
-                      ) : null,
-                  },
-                ]}
-                data={batchPayoutDetails}
-                getRowId={(row: any) => row.payoutId}
-                isLoading={false}
-                emptyMessage="No payouts"
-              />
-            )}
-          </div>
-
-          {batchPayoutStatus && batchPayoutStatus.pending > 0 && (
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setSelectedBatchId(null)} className="text-[12px]">
-                Close
-              </Button>
-              <Button
-                className="bg-green-600 text-white hover:bg-green-700 text-[12px]"
-                disabled={isMarkingPaid}
-                onClick={() => {
-                  const batch = batches?.find((b: Batch) => b._id === selectedBatchId);
-                  if (batch) {
-                    setMarkAllPaidBatch({
-                      batchId: batch._id,
-                      batchCode: batch.batchCode,
-                      totalAmount: batch.totalAmount,
-                      affiliateCount: batch.affiliateCount,
-                      pendingCount: batchPayoutStatus.pending,
-                    });
-                  }
-                }}
-              >
-                {isMarkingPaid ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                )}
-                Mark All as Paid ({batchPayoutStatus.pending})
-              </Button>
-            </DialogFooter>
-          )}
-
-          {batchPayoutStatus && batchPayoutStatus.pending === 0 && (
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedBatchId(null)} className="text-[12px]">
-                Close
-              </Button>
-            </DialogFooter>
-          )}
         </DialogContent>
       </Dialog>
 

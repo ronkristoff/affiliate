@@ -326,6 +326,43 @@ export const getPayoutBatches = query({
 });
 
 /**
+ * Get a single payout batch by ID. Used by the batch detail page.
+ */
+export const getPayoutBatchById = query({
+  args: {
+    batchId: v.id("payoutBatches"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("payoutBatches"),
+      totalAmount: v.number(),
+      affiliateCount: v.number(),
+      status: v.string(),
+      generatedAt: v.number(),
+      completedAt: v.optional(v.number()),
+      batchCode: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const tenantId = await requireTenantId(ctx);
+    const batch = await ctx.db.get(args.batchId);
+    if (!batch || batch.tenantId !== tenantId) {
+      return null;
+    }
+    return {
+      _id: batch._id,
+      totalAmount: batch.totalAmount,
+      affiliateCount: batch.affiliateCount,
+      status: batch.status,
+      generatedAt: batch.generatedAt,
+      completedAt: batch.completedAt,
+      batchCode: `BATCH-${batch._id.slice(-8).toUpperCase()}`,
+    };
+  },
+});
+
+/**
  * Get the total pending payout amount for the current tenant.
  * Used by the hero banner to show "Ready to Pay" amount.
  * Only includes approved commissions that are not already part of a batch.
