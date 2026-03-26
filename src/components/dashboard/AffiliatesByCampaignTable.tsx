@@ -12,6 +12,11 @@ import {
   DateCell,
   type ColumnFilter,
 } from "@/components/ui/DataTable";
+import {
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_PAGE_SIZE_OPTIONS,
+  type PaginationState,
+} from "@/components/ui/DataTablePagination";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -75,8 +80,24 @@ export function AffiliatesByCampaignTable({
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | undefined>();
 
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+
   // Effective campaign ID (prop takes precedence)
   const effectiveCampaignId = propCampaignId ?? (selectedCampaignId as Id<"campaigns"> | undefined);
+
+  // Reset to page 1 when campaign changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [effectiveCampaignId]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [activeFilters]);
 
   // Fetch affiliates for effective campaign — skip if no campaign selected
   const affiliateData = useQuery(
@@ -239,6 +260,20 @@ export function AffiliatesByCampaignTable({
       return String(aVal).localeCompare(String(bVal)) * direction;
     });
   }, [filteredData, sortBy, sortOrder, columns]);
+
+  // ── Client-side pagination ─────────────────────────────────────────────
+  const totalItems = displayData.length;
+  const paginatedData = useMemo(() => {
+    const start = (pagination.page - 1) * pagination.pageSize;
+    return displayData.slice(start, start + pagination.pageSize);
+  }, [displayData, pagination]);
+
+  const handlePaginationChange = useCallback(
+    (newPagination: PaginationState) => {
+      setPagination(newPagination);
+    },
+    []
+  );
 
   // CSV Export — uses campaignName prop when embedded (F34 fix)
   const handleExportCsv = useCallback(() => {
@@ -407,7 +442,7 @@ export function AffiliatesByCampaignTable({
         <DataTable<AffiliateRow>
           key={effectiveCampaignId}
           columns={columns}
-          data={displayData}
+          data={paginatedData}
           getRowId={(row) => row.affiliateId}
           isLoading={!isEmbedded ? (campaigns === undefined || affiliateData === undefined) : (affiliateData === undefined)}
           emptyMessage={
@@ -423,6 +458,10 @@ export function AffiliatesByCampaignTable({
           }}
           activeFilters={activeFilters}
           onFilterChange={setActiveFilters}
+          pagination={pagination}
+          total={totalItems}
+          onPaginationChange={handlePaginationChange}
+          pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
           className="border-0 rounded-none"
         />
       </div>

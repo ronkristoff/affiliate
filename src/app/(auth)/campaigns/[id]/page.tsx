@@ -27,6 +27,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { CommissionPreview } from "@/components/dashboard/CommissionPreview";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -42,10 +50,8 @@ import {
   DollarSign,
   Users,
   Zap,
-  Clock,
   ShieldCheck,
   Settings,
-  X,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -441,36 +447,7 @@ function CampaignDetailContent() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-3 py-1.5 text-[12px] font-semibold bg-[var(--brand-primary)] text-white rounded-lg hover:bg-[var(--brand-secondary)] inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3 h-3" />
-                    Save
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(false)}
-                className="px-3 py-1.5 text-[12px] font-semibold"
-              >
-                <X className="w-3 h-3" />
-                Cancel
-              </Button>
-            </>
-          ) : campaign.status !== "archived" ? (
+          {campaign.status !== "archived" && (
             <>
               <Button
                 variant="outline"
@@ -509,7 +486,7 @@ function CampaignDetailContent() {
                 Archive
               </Button>
             </>
-          ) : null}
+          )}
         </div>
       </PageTopbar>
 
@@ -542,365 +519,31 @@ function CampaignDetailContent() {
         </FadeIn>
 
         {/* ── Campaign Details ───────────────────────────────────────────── */}
-        {isEditing ? (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Campaign Settings Card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#e5e7eb]">
-                <h3 className="text-[15px] font-bold text-[#1a1a1a]">Campaign Settings</h3>
-                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                  Update your campaign configuration
-                </p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Commission & Tracking Card */}
+          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-[#10409a]" />
               </div>
-              <div className="px-5 py-5 space-y-5">
-                {/* Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-[13px] font-medium text-[var(--text-heading)]">
-                    Campaign Name <span className="text-[var(--danger)]">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
-                    }}
-                    className={errors.name ? "border-red-500" : ""}
-                  />
-                  {errors.name ? (
-                    <p className="text-[11px] text-red-500">{errors.name}</p>
-                  ) : (
-                    <p className="text-[11px] text-[var(--text-muted)]">2-100 characters</p>
-                  )}
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="description" className="text-[13px] font-medium text-[var(--text-heading)]">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                {/* Commission Type */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="commissionType" className="text-[13px] font-medium text-[var(--text-heading)]">
-                    Commission Type
-                  </Label>
-                  <Select
-                    value={commissionType}
-                    onValueChange={(value: "percentage" | "flatFee") => {
-                      const newType = value;
-                      setCommissionType(newType);
-                      if (newType === "percentage") {
-                        const currentRate = Number(commissionRate);
-                        if (!commissionRate || currentRate > 100) {
-                          setCommissionRate("10");
-                        }
-                      }
-                      if (newType === "flatFee") {
-                        const currentRate = Number(commissionRate);
-                        if (!commissionRate || currentRate < 0) {
-                          setCommissionRate("50");
-                        }
-                      }
-                      if (errors.commissionRate) {
-                        setErrors((prev) => ({ ...prev, commissionRate: "" }));
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="commissionType">
-                      <SelectValue placeholder="Select commission type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="flatFee">Flat Fee</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {commissionType === "percentage"
-                      ? "Affiliates earn a percentage of each sale"
-                      : "Affiliates earn a fixed amount per conversion (regardless of sale value)"}
-                  </p>
-                </div>
-
-                {/* Commission Rate */}
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="commissionRate"
-                    className="text-[13px] font-medium text-[var(--text-heading)]"
-                  >
-                    {commissionType === "percentage"
-                      ? "Commission Percentage"
-                      : "Commission Amount"}{" "}
-                    <span className="text-[var(--danger)]">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="commissionRate"
-                      type="number"
-                      value={commissionRate}
-                      onChange={(e) => {
-                        setCommissionRate(e.target.value);
-                        if (errors.commissionRate) {
-                          setErrors((prev) => ({ ...prev, commissionRate: "" }));
-                        }
-                      }}
-                      className={errors.commissionRate ? "border-red-500 pr-10" : "pr-10"}
-                      min={commissionType === "percentage" ? 1 : 0}
-                      max={commissionType === "percentage" ? 100 : undefined}
-                      step={commissionType === "percentage" ? 0.01 : 1}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-[13px] pointer-events-none">
-                      {commissionType === "percentage" ? "%" : "₱"}
-                    </span>
-                  </div>
-                  {errors.commissionRate ? (
-                    <p className="text-[11px] text-red-500">{errors.commissionRate}</p>
-                  ) : (
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      {commissionType === "percentage"
-                        ? "Percentage of sale amount affiliates earn (1-100%)"
-                        : "Fixed PHP amount affiliates earn per conversion (₱0 - ₱10,000+)"}
-                    </p>
-                  )}
-                </div>
-
-                {/* Commission Preview */}
-                <CommissionPreview
-                  commissionType={commissionType}
-                  commissionRate={Number(commissionRate) || 0}
-                  recurringCommissions={recurringCommissions}
-                  recurringRateType={recurringRateType}
-                  recurringRate={recurringRate ? Number(recurringRate) : undefined}
-                />
-
-                {/* Cookie Duration */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="cookieDuration" className="text-[13px] font-medium text-[var(--text-heading)]">
-                    Cookie Duration (days)
-                  </Label>
-                  <Input
-                    id="cookieDuration"
-                    type="number"
-                    value={cookieDuration}
-                    onChange={(e) => {
-                      setCookieDuration(e.target.value);
-                      if (errors.cookieDuration) {
-                        setErrors((prev) => ({ ...prev, cookieDuration: "" }));
-                      }
-                    }}
-                    className={errors.cookieDuration ? "border-red-500" : ""}
-                    min={1}
-                    max={365}
-                  />
-                  {errors.cookieDuration ? (
-                    <p className="text-[11px] text-red-500">{errors.cookieDuration}</p>
-                  ) : (
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      How long to track referrals after a click (1-365 days)
-                    </p>
-                  )}
-                </div>
-              </div>
+              <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
+                Commission & Tracking
+              </h3>
             </div>
 
-            {/* Advanced Settings Card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#e5e7eb]">
-                <h3 className="text-[15px] font-bold text-[#1a1a1a]">Advanced Settings</h3>
-                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                  Configure recurring commissions and approval rules
-                </p>
+            {/* Commission rate highlight */}
+            <div className="bg-blue-50 rounded-lg px-3.5 py-3 mb-4">
+              <div className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
+                Commission Rate
               </div>
-              <div className="px-5 py-5 space-y-5">
-                {/* Recurring Commissions Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="recurringCommissions"
-                    className="text-[13px] font-medium text-[var(--text-heading)]"
-                  >
-                    Recurring Commissions
-                  </Label>
-                  <Switch
-                    id="recurringCommissions"
-                    checked={recurringCommissions}
-                    onCheckedChange={(checked) => {
-                      setRecurringCommissions(checked);
-                      if (!checked) {
-                        setRecurringRateType("same");
-                        setRecurringRate("");
-                      }
-                    }}
-                  />
-                </div>
-
-                {recurringCommissions && (
-                  <div className="space-y-4 pl-4 border-l-2 border-[var(--brand-light)]">
-                    {/* Rate Type Selector */}
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="recurringRateType"
-                        className="text-[13px] font-medium text-[var(--text-heading)]"
-                      >
-                        Recurring Rate Type
-                      </Label>
-                      <Select
-                        value={recurringRateType}
-                        onValueChange={(value: "same" | "reduced" | "custom") => {
-                          setRecurringRateType(value);
-                          if (value === "same") {
-                            setRecurringRate("");
-                          }
-                        }}
-                      >
-                        <SelectTrigger id="recurringRateType">
-                          <SelectValue placeholder="Select rate type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="same">Same as Initial</SelectItem>
-                          <SelectItem value="reduced">Reduced Rate</SelectItem>
-                          <SelectItem value="custom">Custom Rate</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        {recurringRateType === "same" &&
-                          "Recurring commission equals initial rate"}
-                        {recurringRateType === "reduced" &&
-                          "Recurring commission is reduced (default: 50% of initial)"}
-                        {recurringRateType === "custom" &&
-                          "Specify a custom recurring rate"}
-                      </p>
-                    </div>
-
-                    {/* Rate Input - Only show for reduced or custom */}
-                    {(recurringRateType === "reduced" || recurringRateType === "custom") && (
-                      <div className="space-y-1.5">
-                        <Label
-                          htmlFor="recurringRate"
-                          className="text-[13px] font-medium text-[var(--text-heading)]"
-                        >
-                          {recurringRateType === "reduced"
-                            ? "Reduced Rate (%)"
-                            : "Custom Rate (%)"}
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="recurringRate"
-                            type="number"
-                            placeholder={recurringRateType === "reduced" ? "5" : "10"}
-                            value={recurringRate}
-                            onChange={(e) => {
-                              setRecurringRate(e.target.value);
-                              if (errors.recurringRate) {
-                                setErrors((prev) => ({ ...prev, recurringRate: "" }));
-                              }
-                            }}
-                            className={errors.recurringRate ? "border-red-500 pr-8" : "pr-8"}
-                            min={1}
-                            max={100}
-                            step={0.01}
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-[13px] pointer-events-none">
-                            %
-                          </span>
-                        </div>
-                        {errors.recurringRate && (
-                          <p className="text-[11px] text-red-500">{errors.recurringRate}</p>
-                        )}
-                        {recurringRateType === "reduced" && !errors.recurringRate && (
-                          <p className="text-[11px] text-[var(--text-muted)]">
-                            Default: {DEFAULT_REDUCED_RATE_PERCENTAGE}% of initial rate ={" "}
-                            {(Number(commissionRate) * (DEFAULT_REDUCED_RATE_PERCENTAGE / 100)).toFixed(
-                              1
-                            )}
-                            % (initial: {commissionRate}%)
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Auto-approve Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="autoApproveCommissions"
-                    className="text-[13px] font-medium text-[var(--text-heading)]"
-                  >
-                    Auto-approve Commissions
-                  </Label>
-                  <Switch
-                    id="autoApproveCommissions"
-                    checked={autoApproveCommissions}
-                    onCheckedChange={setAutoApproveCommissions}
-                  />
-                </div>
-
-                {autoApproveCommissions && (
-                  <div className="space-y-1.5 pl-4 border-l-2 border-[var(--brand-light)]">
-                    <Label
-                      htmlFor="approvalThreshold"
-                      className="text-[13px] font-medium text-[var(--text-heading)]"
-                    >
-                      Approval Threshold (PHP)
-                    </Label>
-                    <Input
-                      id="approvalThreshold"
-                      type="number"
-                      value={approvalThreshold}
-                      onChange={(e) => {
-                        setApprovalThreshold(e.target.value);
-                        if (errors.approvalThreshold) {
-                          setErrors((prev) => ({ ...prev, approvalThreshold: "" }));
-                        }
-                      }}
-                      className={errors.approvalThreshold ? "border-red-500" : ""}
-                      min={0}
-                      max={10000000}
-                    />
-                    {errors.approvalThreshold ? (
-                      <p className="text-[11px] text-red-500">{errors.approvalThreshold}</p>
-                    ) : (
-                      <p className="text-[11px] text-[var(--text-muted)]">
-                        Leave empty for &quot;Auto-approve all&quot; mode
-                      </p>
-                    )}
-                  </div>
-                )}
+              <div className="text-[22px] font-bold text-[#10409a] mt-0.5 tabular-nums">
+                {formatCommission()}
               </div>
+              <div className="text-[11px] text-gray-500 mt-0.5">{getCommissionSub()}</div>
             </div>
-          </div>
-        ) : (
-          /* ── View Mode ──────────────────────────────────────────────────── */
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Commission Card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-[#10409a]" />
-                </div>
-                <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                  Commission
-                </h3>
-              </div>
 
-              {/* Commission rate highlight */}
-              <div className="bg-blue-50 rounded-lg px-3.5 py-3 mb-4">
-                <div className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
-                  Commission Rate
-                </div>
-                <div className="text-[22px] font-bold text-[#10409a] mt-0.5 tabular-nums">
-                  {formatCommission()}
-                </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">{getCommissionSub()}</div>
-              </div>
-
+            {/* Recurring + Cookie — side by side */}
+            <div className="grid grid-cols-2 gap-4">
               {campaign.recurringCommissions && (
                 <div>
                   <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
@@ -922,93 +565,90 @@ function CampaignDetailContent() {
                     )}
                 </div>
               )}
+
+              <div>
+                <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
+                  Cookie Duration
+                </p>
+                <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums">
+                  {campaign.cookieDuration || 30}
+                  <span className="text-[13px] font-normal text-[var(--text-muted)] ml-1">
+                    days
+                  </span>
+                </p>
+              </div>
             </div>
 
-            {/* Tracking Card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                </div>
-                <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                  Tracking
-                </h3>
-              </div>
-
-              <div className="space-y-3">
+            {/* Description (if present) */}
+            {campaign.description && (
+              <>
+                <div className="border-t border-[#e5e7eb] my-4" />
                 <div>
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide">
-                    Cookie Duration
+                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
+                    Description
                   </p>
-                  <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums mt-0.5">
-                    {campaign.cookieDuration || 30}
-                    <span className="text-[13px] font-normal text-[var(--text-muted)] ml-1">
-                      days
-                    </span>
+                  <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
+                    {campaign.description}
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Approval Card */}
-            <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                  <ShieldCheck className="w-4 h-4 text-green-600" />
-                </div>
-                <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                  Approval
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide">
-                    Auto-approve
-                  </p>
-                  <div className="mt-1">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                        campaign.autoApproveCommissions
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          campaign.autoApproveCommissions ? "bg-emerald-500" : "bg-gray-400"
-                        }`}
-                      />
-                      {campaign.autoApproveCommissions ? "Enabled" : "Disabled"}
-                    </span>
-                  </div>
-                </div>
-                {campaign.autoApproveCommissions && campaign.approvalThreshold && (
-                  <div>
-                    <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide">
-                      Threshold
-                    </p>
-                    <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums mt-0.5">
-                      ₱{campaign.approvalThreshold.toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
-        )}
 
-        {/* ── Description (View mode only) ──────────────────────────────── */}
-        {!isEditing && campaign.description && (
+          {/* Approval Card */}
           <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em] mb-2">
-              Description
-            </h3>
-            <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
-              {campaign.description}
-            </p>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+              </div>
+              <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
+                Approval
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                  Auto-approve
+                </p>
+                <div className="mt-1">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                      campaign.autoApproveCommissions
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        campaign.autoApproveCommissions ? "bg-emerald-500" : "bg-gray-400"
+                      }`}
+                    />
+                    {campaign.autoApproveCommissions ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1.5">
+                  {campaign.autoApproveCommissions
+                    ? "Commissions are approved automatically"
+                    : "Commissions require manual approval"}
+                </p>
+              </div>
+              {campaign.autoApproveCommissions && campaign.approvalThreshold && (
+                <div className="border-t border-[#e5e7eb] pt-4">
+                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
+                    Auto-approve Threshold
+                  </p>
+                  <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums">
+                    ₱{campaign.approvalThreshold.toLocaleString()}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                    Commissions above this amount require manual review
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
         {/* ── Affiliates Table ───────────────────────────────────────────── */}
         <AffiliatesByCampaignTable
@@ -1016,6 +656,374 @@ function CampaignDetailContent() {
           campaignName={campaign.name}
         />
       </div>
+
+      {/* ── Edit Campaign Sheet (Side Drawer) ─────────────────────────────── */}
+      <Sheet open={isEditing} onOpenChange={setIsEditing}>
+        <SheetContent
+          side="right"
+          className="sm:max-w-lg w-full flex flex-col p-0 overflow-hidden"
+        >
+          <SheetHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+            <SheetTitle className="text-[17px] font-bold text-[#1a1a1a]">
+              Edit Campaign
+            </SheetTitle>
+            <SheetDescription className="text-[13px] text-[var(--text-muted)]">
+              Update your campaign configuration
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* Scrollable form body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name" className="text-[13px] font-medium text-[var(--text-heading)]">
+                Campaign Name <span className="text-[var(--danger)]">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                className={errors.name ? "border-red-500" : ""}
+              />
+              {errors.name ? (
+                <p className="text-[11px] text-red-500">{errors.name}</p>
+              ) : (
+                <p className="text-[11px] text-[var(--text-muted)]">2-100 characters</p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-description" className="text-[13px] font-medium text-[var(--text-heading)]">
+                Description
+              </Label>
+              <Textarea
+                id="edit-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-[#e5e7eb]" />
+
+            {/* Commission Type */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-commissionType" className="text-[13px] font-medium text-[var(--text-heading)]">
+                Commission Type
+              </Label>
+              <Select
+                value={commissionType}
+                onValueChange={(value: "percentage" | "flatFee") => {
+                  const newType = value;
+                  setCommissionType(newType);
+                  if (newType === "percentage") {
+                    const currentRate = Number(commissionRate);
+                    if (!commissionRate || currentRate > 100) {
+                      setCommissionRate("10");
+                    }
+                  }
+                  if (newType === "flatFee") {
+                    const currentRate = Number(commissionRate);
+                    if (!commissionRate || currentRate < 0) {
+                      setCommissionRate("50");
+                    }
+                  }
+                  if (errors.commissionRate) {
+                    setErrors((prev) => ({ ...prev, commissionRate: "" }));
+                  }
+                }}
+              >
+                <SelectTrigger id="edit-commissionType">
+                  <SelectValue placeholder="Select commission type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Percentage</SelectItem>
+                  <SelectItem value="flatFee">Flat Fee</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                {commissionType === "percentage"
+                  ? "Affiliates earn a percentage of each sale"
+                  : "Affiliates earn a fixed amount per conversion (regardless of sale value)"}
+              </p>
+            </div>
+
+            {/* Commission Rate */}
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="edit-commissionRate"
+                className="text-[13px] font-medium text-[var(--text-heading)]"
+              >
+                {commissionType === "percentage"
+                  ? "Commission Percentage"
+                  : "Commission Amount"}{" "}
+                <span className="text-[var(--danger)]">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="edit-commissionRate"
+                  type="number"
+                  value={commissionRate}
+                  onChange={(e) => {
+                    setCommissionRate(e.target.value);
+                    if (errors.commissionRate) {
+                      setErrors((prev) => ({ ...prev, commissionRate: "" }));
+                    }
+                  }}
+                  className={errors.commissionRate ? "border-red-500 pr-10" : "pr-10"}
+                  min={commissionType === "percentage" ? 1 : 0}
+                  max={commissionType === "percentage" ? 100 : undefined}
+                  step={commissionType === "percentage" ? 0.01 : 1}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-[13px] pointer-events-none">
+                  {commissionType === "percentage" ? "%" : "₱"}
+                </span>
+              </div>
+              {errors.commissionRate ? (
+                <p className="text-[11px] text-red-500">{errors.commissionRate}</p>
+              ) : (
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {commissionType === "percentage"
+                    ? "Percentage of sale amount affiliates earn (1-100%)"
+                    : "Fixed PHP amount affiliates earn per conversion (₱0 - ₱10,000+)"}
+                </p>
+              )}
+            </div>
+
+            {/* Commission Preview */}
+            <CommissionPreview
+              commissionType={commissionType}
+              commissionRate={Number(commissionRate) || 0}
+              recurringCommissions={recurringCommissions}
+              recurringRateType={recurringRateType}
+              recurringRate={recurringRate ? Number(recurringRate) : undefined}
+            />
+
+            {/* Cookie Duration */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-cookieDuration" className="text-[13px] font-medium text-[var(--text-heading)]">
+                Cookie Duration (days)
+              </Label>
+              <Input
+                id="edit-cookieDuration"
+                type="number"
+                value={cookieDuration}
+                onChange={(e) => {
+                  setCookieDuration(e.target.value);
+                  if (errors.cookieDuration) {
+                    setErrors((prev) => ({ ...prev, cookieDuration: "" }));
+                  }
+                }}
+                className={errors.cookieDuration ? "border-red-500" : ""}
+                min={1}
+                max={365}
+              />
+              {errors.cookieDuration ? (
+                <p className="text-[11px] text-red-500">{errors.cookieDuration}</p>
+              ) : (
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  How long to track referrals after a click (1-365 days)
+                </p>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-[#e5e7eb]" />
+
+            {/* Recurring Commissions Toggle */}
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="edit-recurringCommissions"
+                className="text-[13px] font-medium text-[var(--text-heading)]"
+              >
+                Recurring Commissions
+              </Label>
+              <Switch
+                id="edit-recurringCommissions"
+                checked={recurringCommissions}
+                onCheckedChange={(checked) => {
+                  setRecurringCommissions(checked);
+                  if (!checked) {
+                    setRecurringRateType("same");
+                    setRecurringRate("");
+                  }
+                }}
+              />
+            </div>
+
+            {recurringCommissions && (
+              <div className="space-y-4 pl-4 border-l-2 border-[var(--brand-light)]">
+                {/* Rate Type Selector */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="edit-recurringRateType"
+                    className="text-[13px] font-medium text-[var(--text-heading)]"
+                  >
+                    Recurring Rate Type
+                  </Label>
+                  <Select
+                    value={recurringRateType}
+                    onValueChange={(value: "same" | "reduced" | "custom") => {
+                      setRecurringRateType(value);
+                      if (value === "same") {
+                        setRecurringRate("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="edit-recurringRateType">
+                      <SelectValue placeholder="Select rate type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="same">Same as Initial</SelectItem>
+                      <SelectItem value="reduced">Reduced Rate</SelectItem>
+                      <SelectItem value="custom">Custom Rate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {recurringRateType === "same" &&
+                      "Recurring commission equals initial rate"}
+                    {recurringRateType === "reduced" &&
+                      "Recurring commission is reduced (default: 50% of initial)"}
+                    {recurringRateType === "custom" &&
+                      "Specify a custom recurring rate"}
+                  </p>
+                </div>
+
+                {/* Rate Input - Only show for reduced or custom */}
+                {(recurringRateType === "reduced" || recurringRateType === "custom") && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="edit-recurringRate"
+                      className="text-[13px] font-medium text-[var(--text-heading)]"
+                    >
+                      {recurringRateType === "reduced"
+                        ? "Reduced Rate (%)"
+                        : "Custom Rate (%)"}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="edit-recurringRate"
+                        type="number"
+                        placeholder={recurringRateType === "reduced" ? "5" : "10"}
+                        value={recurringRate}
+                        onChange={(e) => {
+                          setRecurringRate(e.target.value);
+                          if (errors.recurringRate) {
+                            setErrors((prev) => ({ ...prev, recurringRate: "" }));
+                          }
+                        }}
+                        className={errors.recurringRate ? "border-red-500 pr-8" : "pr-8"}
+                        min={1}
+                        max={100}
+                        step={0.01}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-[13px] pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                    {errors.recurringRate && (
+                      <p className="text-[11px] text-red-500">{errors.recurringRate}</p>
+                    )}
+                    {recurringRateType === "reduced" && !errors.recurringRate && (
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        Default: {DEFAULT_REDUCED_RATE_PERCENTAGE}% of initial rate ={" "}
+                        {(Number(commissionRate) * (DEFAULT_REDUCED_RATE_PERCENTAGE / 100)).toFixed(
+                          1
+                        )}
+                        % (initial: {commissionRate}%)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="border-t border-[#e5e7eb]" />
+
+            {/* Auto-approve Toggle */}
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="edit-autoApproveCommissions"
+                className="text-[13px] font-medium text-[var(--text-heading)]"
+              >
+                Auto-approve Commissions
+              </Label>
+              <Switch
+                id="edit-autoApproveCommissions"
+                checked={autoApproveCommissions}
+                onCheckedChange={setAutoApproveCommissions}
+              />
+            </div>
+
+            {autoApproveCommissions && (
+              <div className="space-y-1.5 pl-4 border-l-2 border-[var(--brand-light)]">
+                <Label
+                  htmlFor="edit-approvalThreshold"
+                  className="text-[13px] font-medium text-[var(--text-heading)]"
+                >
+                  Approval Threshold (PHP)
+                </Label>
+                <Input
+                  id="edit-approvalThreshold"
+                  type="number"
+                  value={approvalThreshold}
+                  onChange={(e) => {
+                    setApprovalThreshold(e.target.value);
+                    if (errors.approvalThreshold) {
+                      setErrors((prev) => ({ ...prev, approvalThreshold: "" }));
+                    }
+                  }}
+                  className={errors.approvalThreshold ? "border-red-500" : ""}
+                  min={0}
+                  max={10000000}
+                />
+                {errors.approvalThreshold ? (
+                  <p className="text-[11px] text-red-500">{errors.approvalThreshold}</p>
+                ) : (
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Leave empty for &quot;Auto-approve all&quot; mode
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sticky footer with Save / Cancel */}
+          <SheetFooter className="px-6 py-4 border-t border-[#e5e7eb] flex-shrink-0 flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-secondary)]"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Dialogs ──────────────────────────────────────────────────────── */}
 
