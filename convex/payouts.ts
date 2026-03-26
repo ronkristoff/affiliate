@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalAction, internalQuery } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
@@ -1140,5 +1140,260 @@ export const getBatchPayoutStatus = query({
       pending,
       batchStatus: batch.status,
     };
+  },
+});
+
+// =============================================================================
+// DATA MIGRATION: Backfill Payout Audit Logs
+// =============================================================================
+
+/**
+ * One-time backfill action to create audit log entries for payout batches
+ * and individual payouts that were created without audit trails (e.g. via seed data).
+ *
+ * Creates the correct audit entries based on batch status:
+ *   - All batches: "payout_batch_generated"
+ *   - Completed batches: "batch_marked_paid" + "payout_marked_paid" for each payout
+ *   - Processing batches: "payout_batch_generated" only
+ *   - Pending batches: "payout_batch_generated" only
+ *
+ * Uses the first user found for each tenant as the actor.
+ * Skips entities that already have audit entries. Safe to run multiple times.
+ */
+export const backfillPayoutAuditLogs = internalAction({
+  args: {},
+  returns: v.object({
+    batchesProcessed: v.number(),
+    batchGeneratedCreated: v.number(),
+    batchCompletedCreated: v.number(),
+    payoutsCreated: v.number(),
+  }),
+  handler: async (ctx) => {
+    let batchesProcessed = 0;
+    let batchGeneratedCreated = 0;
+    let batchCompletedCreated = 0;
+    let payoutsCreated = 0;
+
+    // 1. Collect all batches
+    const allBatches = await ctx.runQuery(
+      internal.payouts._backfillListAllBatches
+    );
+
+    // 2. Build a cache of tenantId → actorId (first user per tenant)
+    const tenantActorCache = new Map<string, string>();
+    const seenTenants = new Set<string>();
+
+    for (const batch of allBatches) {
+      batchesProcessed++;
+
+      // Resolve actor for this tenant (lazy, cached)
+      if (!seenTenants.has(batch.tenantId)) {
+        seenTenants.add(batch.tenantId);
+        const owner = await ctx.runQuery(
+          internal.payouts._backfillGetFirstUserForTenant,
+          { tenantId: batch.tenantId }
+        );
+        if (owner) {
+          tenantActorCache.set(batch.tenantId, owner._id);
+        }
+      }
+      const actorId = tenantActorCache.get(batch.tenantId);
+
+      // 3. Create "payout_batch_generated" if missing
+      const hasBatchGenerated = await ctx.runQuery(
+        internal.payouts._backfillCheckAuditExistsByAction,
+        { entityType: "payoutBatches", entityId: batch._id, action: "payout_batch_generated" }
+      );
+      if (!hasBatchGenerated) {
+        await ctx.runMutation(internal.audit.logPayoutAuditEvent, {
+          tenantId: batch.tenantId,
+          action: "payout_batch_generated",
+          entityType: "payoutBatches",
+          entityId: batch._id,
+          actorId: actorId,
+          actorType: actorId ? "user" : "system",
+          metadata: {
+            affiliateCount: batch.affiliateCount,
+            totalAmount: batch.totalAmount,
+            batchStatus: batch.status,
+          },
+        });
+        batchGeneratedCreated++;
+      }
+
+      // 4. For completed batches, create "batch_marked_paid" + individual payout entries
+      if (batch.status === "completed") {
+        const hasBatchCompleted = await ctx.runQuery(
+          internal.payouts._backfillCheckAuditExistsByAction,
+          { entityType: "payoutBatches", entityId: batch._id, action: "batch_marked_paid" }
+        );
+        if (!hasBatchCompleted) {
+          // Get payouts for this batch
+          const batchPayouts = await ctx.runQuery(
+            internal.payouts._backfillListPayoutsByBatch,
+            { batchId: batch._id }
+          );
+
+          await ctx.runMutation(internal.audit.logPayoutAuditEvent, {
+            tenantId: batch.tenantId,
+            action: "batch_marked_paid",
+            entityType: "payoutBatches",
+            entityId: batch._id,
+            actorId: actorId,
+            actorType: actorId ? "user" : "system",
+            metadata: {
+              payoutsMarked: batchPayouts.length,
+              totalAmount: batch.totalAmount,
+              payoutIds: batchPayouts.map((p) => p._id),
+            },
+          });
+          batchCompletedCreated++;
+
+          // Create individual payout_marked_paid entries
+          for (const payout of batchPayouts) {
+            const hasPayoutPaid = await ctx.runQuery(
+              internal.payouts._backfillCheckAuditExistsByAction,
+              { entityType: "payouts", entityId: payout._id, action: "payout_marked_paid" }
+            );
+            if (!hasPayoutPaid) {
+              await ctx.runMutation(internal.audit.logPayoutAuditEvent, {
+                tenantId: batch.tenantId,
+                action: "payout_marked_paid",
+                entityType: "payouts",
+                entityId: payout._id,
+                actorId: actorId,
+                actorType: actorId ? "user" : "system",
+                targetId: batch._id,
+                metadata: {
+                  affiliateId: payout.affiliateId,
+                  amount: payout.amount,
+                  paymentReference: payout.paymentReference ?? null,
+                },
+              });
+              payoutsCreated++;
+            }
+          }
+        }
+      }
+    }
+
+    console.log(
+      `[backfill] Batches: ${batchesProcessed} processed | ` +
+      `Batch Generated: ${batchGeneratedCreated} | ` +
+      `Batch Completed: ${batchCompletedCreated} | ` +
+      `Payouts Paid: ${payoutsCreated}`
+    );
+
+    return {
+      batchesProcessed,
+      batchGeneratedCreated,
+      batchCompletedCreated,
+      payoutsCreated,
+    };
+  },
+});
+
+// ── Internal helpers for the backfill action ──────────────────────────────────
+
+export const _backfillListAllBatches = internalQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("payoutBatches"),
+      tenantId: v.id("tenants"),
+      affiliateCount: v.number(),
+      totalAmount: v.number(),
+      status: v.string(),
+    })
+  ),
+  handler: async (ctx) => {
+    const batches = await ctx.db.query("payoutBatches").take(500);
+    return batches.map((b) => ({
+      _id: b._id,
+      tenantId: b.tenantId,
+      affiliateCount: b.affiliateCount,
+      totalAmount: b.totalAmount,
+      status: b.status,
+    }));
+  },
+});
+
+export const _backfillListPayoutsByBatch = internalQuery({
+  args: { batchId: v.id("payoutBatches") },
+  returns: v.array(
+    v.object({
+      _id: v.id("payouts"),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      batchId: v.id("payoutBatches"),
+      amount: v.number(),
+      paymentReference: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const payouts = await ctx.db
+      .query("payouts")
+      .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
+      .take(200);
+    return payouts.map((p) => ({
+      _id: p._id,
+      tenantId: p.tenantId,
+      affiliateId: p.affiliateId,
+      batchId: p.batchId,
+      amount: p.amount,
+      paymentReference: p.paymentReference,
+    }));
+  },
+});
+
+export const _backfillGetFirstUserForTenant = internalQuery({
+  args: { tenantId: v.id("tenants") },
+  returns: v.union(
+    v.object({ _id: v.id("users") }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .first();
+    if (!user) return null;
+    return { _id: user._id };
+  },
+});
+
+export const _backfillCheckAuditExistsByAction = internalQuery({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+    action: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", args.entityType).eq("entityId", args.entityId)
+      )
+      .filter((q) => q.eq(q.field("action"), args.action))
+      .first();
+    return !!existing;
+  },
+});
+
+export const _backfillCheckAuditExists = internalQuery({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", args.entityType).eq("entityId", args.entityId)
+      )
+      .first();
+    return !!existing;
   },
 });

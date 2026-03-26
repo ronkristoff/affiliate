@@ -1005,7 +1005,10 @@ export function PayoutsContent() {
               },
             ]}
             activeTab={auditActionFilter ?? "all"}
-            onTabChange={(key) => setAuditActionFilter(key === "all" ? undefined : key)}
+            onTabChange={(key) => {
+              setAuditPaginationCursor(undefined);
+              setAuditActionFilter(key === "all" ? undefined : key);
+            }}
           />
 
           {/* Loading State */}
@@ -1027,10 +1030,10 @@ export function PayoutsContent() {
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
                 <History className="h-6 w-6 text-[var(--text-muted)]" />
               </div>
-              <p className="text-[13px] font-medium text-[var(--text-muted)]">
-                No audit log entries yet
-              </p>
-              <p className="text-[12px] text-[var(--text-muted)] mt-1">
+              <h3 className="text-[13px] font-semibold text-[var(--text-heading)]">
+                No Audit Log Entries
+              </h3>
+              <p className="mt-1 text-[12px] text-[var(--text-muted)] max-w-sm mx-auto">
                 Payout actions will appear here as they're performed
               </p>
             </div>
@@ -1102,10 +1105,8 @@ export function PayoutsContent() {
                       <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
                         {log.actorName ? (
                           <span>by <span className="font-medium text-[var(--text-heading)]">{log.actorName}</span></span>
-                        ) : log.actorId ? (
-                          <span>by System</span>
                         ) : (
-                          <span>by Unknown</span>
+                          <span>by System</span>
                         )}
                       </div>
 
