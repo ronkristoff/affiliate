@@ -521,6 +521,9 @@ export const seedTenantBulkData = internalMutation({
     // -------------------------------------------------------------------------
     const paidCommissionIds: Id<"commissions">[] = [];
     const approvedCommissionIds: Id<"commissions">[] = [];
+    // Track commissions grouped by affiliate for consistent payout generation
+    const paidCommissionsByAffiliate = new Map<Id<"affiliates">, { ids: Id<"commissions">[]; total: number }>();
+    const approvedCommissionsByAffiliate = new Map<Id<"affiliates">, { ids: Id<"commissions">[]; total: number }>();
 
     for (let i = 0; i < args.commissionCount; i++) {
       if (activeAffiliateIds.length === 0) break;
@@ -572,9 +575,17 @@ export const seedTenantBulkData = internalMutation({
 
         if (status === "paid") {
           paidCommissionIds.push(commissionId);
+          const paidEntry = paidCommissionsByAffiliate.get(affiliateId) ?? { ids: [], total: 0 };
+          paidEntry.ids.push(commissionId);
+          paidEntry.total += commissionAmount;
+          paidCommissionsByAffiliate.set(affiliateId, paidEntry);
         }
         if (status === "approved") {
           approvedCommissionIds.push(commissionId);
+          const approvedEntry = approvedCommissionsByAffiliate.get(affiliateId) ?? { ids: [], total: 0 };
+          approvedEntry.ids.push(commissionId);
+          approvedEntry.total += commissionAmount;
+          approvedCommissionsByAffiliate.set(affiliateId, approvedEntry);
         }
 
         if (hasFraudIndicators) breakdown.commissionsWithFraudSignals++;
@@ -588,59 +599,66 @@ export const seedTenantBulkData = internalMutation({
     // -------------------------------------------------------------------------
     // Step 9: Generate PAYOUT BATCHES and PAYOUTS
     // -------------------------------------------------------------------------
-    // NOTE: batchId is REQUIRED in the payouts schema, so we must create the
-    // batch FIRST, then insert payouts with the batch ID.
+    // Mirrors production generatePayoutBatch logic: group commissions by affiliate,
+    // create one payout per affiliate (amount = sum of their commissions), and
+    // link each commission to the correct batch so counts match in the UI.
     // -------------------------------------------------------------------------
     if (!isDryRun && args.payoutCount > 0) {
-      // Create multiple payout batches over different time periods
+      // --- Completed batches from paid commissions ---
+      const paidAffiliateGroups = Array.from(paidCommissionsByAffiliate.entries());
+      // Shuffle to randomize which affiliates appear in which batch
+      for (let i = paidAffiliateGroups.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [paidAffiliateGroups[i], paidAffiliateGroups[j]] = [paidAffiliateGroups[j], paidAffiliateGroups[i]];
+      }
+
       const batchesToCreate = Math.max(1, Math.floor(args.payoutCount / 20));
       let payoutsCreated = 0;
+      let groupIdx = 0;
 
-      for (let b = 0; b < batchesToCreate && payoutsCreated < args.payoutCount; b++) {
+      for (let b = 0; b < batchesToCreate && payoutsCreated < args.payoutCount && groupIdx < paidAffiliateGroups.length; b++) {
         const generatedAt = randomTimestamp(rng, 7, 60);
         const batchStatus = pickRandom(PAYOUT_STATUSES, rng);
 
-        // Pre-calculate how many payouts this batch will have
+        // Pick how many affiliates go into this batch
         const payoutsPerBatch = Math.max(1, Math.floor(args.payoutCount / batchesToCreate));
-        const batchPayoutCount = Math.min(payoutsPerBatch, args.payoutCount - payoutsCreated);
-
+        const batchPayoutCount = Math.min(payoutsPerBatch, args.payoutCount - payoutsCreated, paidAffiliateGroups.length - groupIdx);
         if (batchPayoutCount <= 0) break;
 
-        // Calculate batch total upfront
         let batchTotal = 0;
-        const batchPayoutAmounts: number[] = [];
-        for (let p = 0; p < batchPayoutCount; p++) {
-          const amt = Math.round((5 + rng() * 500) * 100) / 100;
-          batchPayoutAmounts.push(amt);
+        const batchEntries: Array<{ affiliateId: Id<"affiliates">; amount: number; commissionIds: Id<"commissions">[] }> = [];
+
+        for (let p = 0; p < batchPayoutCount && groupIdx < paidAffiliateGroups.length; p++, groupIdx++) {
+          const [affiliateId, group] = paidAffiliateGroups[groupIdx];
+          const amt = Math.round(group.total * 100) / 100;
           batchTotal += amt;
+          batchEntries.push({ affiliateId, amount: amt, commissionIds: group.ids });
         }
 
-        // Create payout batch FIRST (batchId is required for payouts)
+        // Create payout batch
         const batchId = await ctx.db.insert("payoutBatches", {
           tenantId,
           totalAmount: Math.round(batchTotal * 100) / 100,
-          affiliateCount: batchPayoutCount,
+          affiliateCount: batchEntries.length,
           status: batchStatus,
           generatedAt,
           completedAt: batchStatus === "completed" ? generatedAt + 86400000 * 2 : undefined,
-          manualCount: Math.floor(rng() * batchPayoutCount),
-          saligPayCount: batchPayoutCount - Math.floor(rng() * batchPayoutCount),
+          manualCount: Math.floor(rng() * batchEntries.length),
+          saligPayCount: batchEntries.length - Math.floor(rng() * batchEntries.length),
         });
-
         stats.payoutBatchesCreated++;
 
-        // Now create individual payout records linked to this batch
-        for (let p = 0; p < batchPayoutCount; p++) {
-          const affiliateId = activeAffiliateIds[Math.floor(rng() * activeAffiliateIds.length)];
+        // Create one payout per affiliate and link their commissions to this batch
+        for (const entry of batchEntries) {
           const payoutStatus = batchStatus === "completed"
             ? (rng() > 0.1 ? "completed" : "pending")
             : batchStatus;
 
           await ctx.db.insert("payouts", {
             tenantId,
-            affiliateId,
+            affiliateId: entry.affiliateId,
             batchId,
-            amount: batchPayoutAmounts[p],
+            amount: entry.amount,
             status: payoutStatus,
             paymentReference: payoutStatus === "completed" ? generatePaymentReference() : undefined,
             paidAt: payoutStatus === "completed" ? generatedAt + 86400000 : undefined,
@@ -648,60 +666,67 @@ export const seedTenantBulkData = internalMutation({
           });
           payoutsCreated++;
 
+          // Link commissions to this batch — affiliate IDs match so counts are correct
+          for (const cId of entry.commissionIds) {
+            await ctx.db.patch(cId, { batchId });
+          }
+
           if (payoutStatus === "completed") breakdown.payoutsByStatus.completed++;
           else if (payoutStatus === "pending") breakdown.payoutsByStatus.pending++;
           else breakdown.payoutsByStatus.processing++;
         }
-
-        // Link some paid commissions to this batch
-        const commissionsPerBatch = Math.max(1, Math.floor(paidCommissionIds.length / batchesToCreate));
-        const startIdx = b * commissionsPerBatch;
-        const endIdx = Math.min(startIdx + commissionsPerBatch, paidCommissionIds.length);
-        for (let c = startIdx; c < endIdx; c++) {
-          await ctx.db.patch(paidCommissionIds[c], { batchId });
-        }
       }
 
-      // Also create a "pending" batch for approved commissions (not yet paid out)
+      // --- Pending batch from approved commissions ---
       if (approvedCommissionIds.length > 0) {
+        const approvedAffiliateGroups = Array.from(approvedCommissionsByAffiliate.entries());
+        // Shuffle
+        for (let i = approvedAffiliateGroups.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [approvedAffiliateGroups[i], approvedAffiliateGroups[j]] = [approvedAffiliateGroups[j], approvedAffiliateGroups[i]];
+        }
+
         const pendingBatchGeneratedAt = randomTimestamp(rng, 0, 3);
         const pendingPayoutCount = Math.min(
           Math.floor(args.payoutCount * 0.3),
-          approvedCommissionIds.length,
+          approvedAffiliateGroups.length,
           50
         );
 
         let pendingBatchTotal = 0;
+        const pendingEntries: Array<{ affiliateId: Id<"affiliates">; amount: number; commissionIds: Id<"commissions">[] }> = [];
+
         for (let p = 0; p < pendingPayoutCount; p++) {
-          pendingBatchTotal += Math.round((5 + rng() * 300) * 100) / 100;
+          const [affiliateId, group] = approvedAffiliateGroups[p];
+          const amt = Math.round(group.total * 100) / 100;
+          pendingBatchTotal += amt;
+          pendingEntries.push({ affiliateId, amount: amt, commissionIds: group.ids });
         }
 
         const pendingBatchId = await ctx.db.insert("payoutBatches", {
           tenantId,
           totalAmount: Math.round(pendingBatchTotal * 100) / 100,
-          affiliateCount: pendingPayoutCount,
+          affiliateCount: pendingEntries.length,
           status: "pending",
           generatedAt: pendingBatchGeneratedAt,
         });
         stats.payoutBatchesCreated++;
 
-        for (let p = 0; p < pendingPayoutCount; p++) {
-          const affiliateId = activeAffiliateIds[Math.floor(rng() * activeAffiliateIds.length)];
+        for (const entry of pendingEntries) {
           await ctx.db.insert("payouts", {
             tenantId,
-            affiliateId,
+            affiliateId: entry.affiliateId,
             batchId: pendingBatchId,
-            amount: Math.round((5 + rng() * 300) * 100) / 100,
+            amount: entry.amount,
             status: "pending",
           });
-          stats.payoutsCreated++;
+          payoutsCreated++;
           breakdown.payoutsByStatus.pending++;
-        }
 
-        // Link approved commissions to the pending batch
-        const linkCount = Math.min(approvedCommissionIds.length, pendingPayoutCount);
-        for (let c = 0; c < linkCount; c++) {
-          await ctx.db.patch(approvedCommissionIds[c], { batchId: pendingBatchId });
+          // Link approved commissions to this batch
+          for (const cId of entry.commissionIds) {
+            await ctx.db.patch(cId, { batchId: pendingBatchId });
+          }
         }
       }
 
@@ -958,6 +983,9 @@ export const seedAllTenantsBulkData = internalMutation({
         const paidCommissionIds: Id<"commissions">[] = [];
         const approvedCommissionIds: Id<"commissions">[] = [];
         const conversionIdMap = new Map<number, Id<"conversions">>();
+        // Track commissions grouped by affiliate for consistent payout generation
+        const paidCommissionsByAffiliate = new Map<Id<"affiliates">, { ids: Id<"commissions">[]; total: number }>();
+        const approvedCommissionsByAffiliate = new Map<Id<"affiliates">, { ids: Id<"commissions">[]; total: number }>();
 
         for (let i = 0; i < tenantConfig.commissionCount; i++) {
           if (activeAffiliateIds.length === 0) break;
@@ -1016,68 +1044,85 @@ export const seedAllTenantsBulkData = internalMutation({
             reversalReason: status === "reversed" ? pickRandom(REVERSAL_REASONS, rng) : undefined,
           });
 
-          if (status === "paid") paidCommissionIds.push(commissionId);
-          if (status === "approved") approvedCommissionIds.push(commissionId);
+          if (status === "paid") {
+            paidCommissionIds.push(commissionId);
+            const paidEntry = paidCommissionsByAffiliate.get(affiliateId) ?? { ids: [], total: 0 };
+            paidEntry.ids.push(commissionId);
+            paidEntry.total += commissionAmount;
+            paidCommissionsByAffiliate.set(affiliateId, paidEntry);
+          }
+          if (status === "approved") {
+            approvedCommissionIds.push(commissionId);
+            const approvedEntry = approvedCommissionsByAffiliate.get(affiliateId) ?? { ids: [], total: 0 };
+            approvedEntry.ids.push(commissionId);
+            approvedEntry.total += commissionAmount;
+            approvedCommissionsByAffiliate.set(affiliateId, approvedEntry);
+          }
           stats.commissionsCreated++;
         }
 
-        // Create payouts — batchId is REQUIRED in schema, create batch first
+        // Create payouts — group commissions by affiliate, derive payouts from groups
         if (tenantConfig.payoutCount > 0 && paidCommissionIds.length > 0) {
+          const paidAffiliateGroups = Array.from(paidCommissionsByAffiliate.entries());
+          // Shuffle to randomize which affiliates appear in which batch
+          for (let i = paidAffiliateGroups.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [paidAffiliateGroups[i], paidAffiliateGroups[j]] = [paidAffiliateGroups[j], paidAffiliateGroups[i]];
+          }
+
           const batchesToCreate = Math.max(1, Math.floor(tenantConfig.payoutCount / 20));
           let payoutsCreated = 0;
+          let groupIdx = 0;
 
-          for (let b = 0; b < batchesToCreate && payoutsCreated < tenantConfig.payoutCount; b++) {
+          for (let b = 0; b < batchesToCreate && payoutsCreated < tenantConfig.payoutCount && groupIdx < paidAffiliateGroups.length; b++) {
             const generatedAt = randomTimestamp(rng, 7, 60);
             const batchStatus = pickRandom(PAYOUT_STATUSES, rng);
 
-            // Pre-calculate batch amounts
             const payoutsPerBatch = Math.max(1, Math.floor(tenantConfig.payoutCount / batchesToCreate));
-            const batchPayoutCount = Math.min(payoutsPerBatch, tenantConfig.payoutCount - payoutsCreated);
+            const batchPayoutCount = Math.min(payoutsPerBatch, tenantConfig.payoutCount - payoutsCreated, paidAffiliateGroups.length - groupIdx);
             if (batchPayoutCount <= 0) break;
 
             let batchTotal = 0;
-            const batchPayoutAmounts: number[] = [];
-            for (let p = 0; p < batchPayoutCount; p++) {
-              const amt = Math.round((5 + rng() * 500) * 100) / 100;
-              batchPayoutAmounts.push(amt);
+            const batchEntries: Array<{ affiliateId: Id<"affiliates">; amount: number; commissionIds: Id<"commissions">[] }> = [];
+
+            for (let p = 0; p < batchPayoutCount && groupIdx < paidAffiliateGroups.length; p++, groupIdx++) {
+              const [affiliateId, group] = paidAffiliateGroups[groupIdx];
+              const amt = Math.round(group.total * 100) / 100;
               batchTotal += amt;
+              batchEntries.push({ affiliateId, amount: amt, commissionIds: group.ids });
             }
 
             // Create batch FIRST
             const batchId = await ctx.db.insert("payoutBatches", {
               tenantId: tenant._id,
               totalAmount: Math.round(batchTotal * 100) / 100,
-              affiliateCount: batchPayoutCount,
+              affiliateCount: batchEntries.length,
               status: batchStatus,
               generatedAt,
               completedAt: batchStatus === "completed" ? generatedAt + 86400000 * 2 : undefined,
             });
             stats.payoutBatchesCreated++;
 
-            // Create payout records with the batch ID
-            for (let p = 0; p < batchPayoutCount; p++) {
-              const affiliateId = activeAffiliateIds[Math.floor(rng() * activeAffiliateIds.length)];
+            // Create one payout per affiliate and link their commissions to this batch
+            for (const entry of batchEntries) {
               const payoutStatus = batchStatus === "completed" ? (rng() > 0.1 ? "completed" : "pending") : batchStatus;
 
               await ctx.db.insert("payouts", {
                 tenantId: tenant._id,
-                affiliateId,
+                affiliateId: entry.affiliateId,
                 batchId,
-                amount: batchPayoutAmounts[p],
+                amount: entry.amount,
                 status: payoutStatus,
                 paymentReference: payoutStatus === "completed" ? generatePaymentReference() : undefined,
                 paidAt: payoutStatus === "completed" ? generatedAt + 86400000 : undefined,
                 paymentSource: rng() > 0.5 ? "saligpay" : "manual",
               });
               payoutsCreated++;
-            }
 
-            // Link paid commissions to this batch
-            const commissionsPerBatch = Math.max(1, Math.floor(paidCommissionIds.length / batchesToCreate));
-            const startIdx = b * commissionsPerBatch;
-            const endIdx = Math.min(startIdx + commissionsPerBatch, paidCommissionIds.length);
-            for (let c = startIdx; c < endIdx; c++) {
-              await ctx.db.patch(paidCommissionIds[c], { batchId });
+              // Link commissions to this batch — affiliate IDs match so counts are correct
+              for (const cId of entry.commissionIds) {
+                await ctx.db.patch(cId, { batchId });
+              }
             }
 
             stats.payoutsCreated = payoutsCreated;

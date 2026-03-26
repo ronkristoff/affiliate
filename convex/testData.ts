@@ -1268,9 +1268,10 @@ export const seedAllTestData = internalMutation({
                 .collect();
 
               if (paidCommissions.length > 0) {
+                const batchTotal = paidCommissions.reduce((sum, c) => sum + c.amount, 0);
                 const batchId = await ctx.db.insert("payoutBatches", {
                   tenantId,
-                  totalAmount: paidCommissions.reduce((sum, c) => sum + c.amount, 0),
+                  totalAmount: batchTotal,
                   affiliateCount: 1,
                   status: "completed",
                   generatedAt: now - 15 * 24 * 60 * 60 * 1000, // 15 days ago
@@ -1278,19 +1279,21 @@ export const seedAllTestData = internalMutation({
                 });
                 stats.payoutBatchesCreated++;
 
+                // Create one payout per affiliate (aggregating all their commissions)
+                await ctx.db.insert("payouts", {
+                  tenantId,
+                  affiliateId,
+                  batchId,
+                  amount: batchTotal,
+                  status: "completed",
+                  paymentReference: `PAY-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                  paidAt: now - 14 * 24 * 60 * 60 * 1000,
+                });
+                stats.payoutsCreated++;
+
+                // Link all commissions to this batch
                 for (const commission of paidCommissions) {
                   await ctx.db.patch(commission._id, { batchId });
-                  
-                  await ctx.db.insert("payouts", {
-                    tenantId,
-                    affiliateId,
-                    batchId,
-                    amount: commission.amount,
-                    status: "completed",
-                    paymentReference: `PAY-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-                    paidAt: now - 14 * 24 * 60 * 60 * 1000,
-                  });
-                  stats.payoutsCreated++;
                 }
               }
             }
