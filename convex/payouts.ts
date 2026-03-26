@@ -624,6 +624,97 @@ export const getBatchPayouts = query({
 });
 
 /**
+ * Get commission details for a specific affiliate within a payout batch.
+ * Used by the batch detail sheet to show the breakdown of commissions
+ * that make up an affiliate's payout.
+ */
+export const getBatchCommissionsForAffiliate = query({
+  args: {
+    batchId: v.id("payoutBatches"),
+    affiliateId: v.id("affiliates"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      amount: v.number(),
+      status: v.string(),
+      campaignName: v.string(),
+      customerEmail: v.optional(v.string()),
+      eventSource: v.optional(v.string()),
+      isSelfReferral: v.optional(v.boolean()),
+      reversalReason: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const tenantId = await requireTenantId(ctx);
+
+    // 1. Verify batch belongs to current tenant
+    const batch = await ctx.db.get(args.batchId);
+    if (!batch || batch.tenantId !== tenantId) {
+      throw new Error("Batch not found or access denied");
+    }
+
+    // 2. Fetch all commissions for this batch (by_batch index)
+    const allBatchCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
+      .collect();
+
+    // 3. Filter to this affiliate
+    const affiliateCommissions = allBatchCommissions.filter(
+      (c) => c.affiliateId === args.affiliateId
+    );
+
+    if (affiliateCommissions.length === 0) {
+      return [];
+    }
+
+    // 4. Batch-fetch campaign names and conversion customer emails
+    const uniqueCampaignIds = [...new Set(affiliateCommissions.map((c) => c.campaignId.toString()))];
+    const uniqueConversionIds = [
+      ...new Set(
+        affiliateCommissions
+          .filter((c) => c.conversionId)
+          .map((c) => c.conversionId!.toString())
+      ),
+    ];
+
+    const [campaignDocs, conversionDocs] = await Promise.all([
+      Promise.all(uniqueCampaignIds.map((id) => ctx.db.get(id as Id<"campaigns">))),
+      Promise.all(uniqueConversionIds.map((id) => ctx.db.get(id as Id<"conversions">))),
+    ]);
+
+    const campaignMap = new Map<string, string>();
+    for (const doc of campaignDocs) {
+      if (doc) campaignMap.set(doc._id.toString(), doc.name);
+    }
+
+    const conversionEmailMap = new Map<string, string | undefined>();
+    for (const doc of conversionDocs) {
+      if (doc) conversionEmailMap.set(doc._id.toString(), (doc as any).customerEmail);
+    }
+
+    // 5. Map to enriched result (sorted newest first)
+    return affiliateCommissions
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .map((c) => ({
+        _id: c._id,
+        _creationTime: c._creationTime,
+        amount: c.amount,
+        status: c.status,
+        campaignName: campaignMap.get(c.campaignId.toString()) ?? "Unknown",
+        customerEmail: c.conversionId
+          ? conversionEmailMap.get(c.conversionId.toString())
+          : undefined,
+        eventSource: c.eventMetadata?.source,
+        isSelfReferral: c.isSelfReferral,
+        reversalReason: c.reversalReason,
+      }));
+  },
+});
+
+/**
  * Get affiliates with pending (approved, unpaid) payout summaries.
  * AC#1: Each affiliate shows name, email, payout method, pending amount, commission count
  * AC#3: Payout method display with "Not configured" for missing methods
