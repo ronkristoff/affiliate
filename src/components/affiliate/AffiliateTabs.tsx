@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-type AffiliateStatus = "all" | "pending" | "active" | "suspended";
+type AffiliateStatus = "all" | "pending" | "active" | "suspended" | "rejected";
 
 interface AffiliateTabsProps {
   activeTab: AffiliateStatus;
@@ -21,6 +21,7 @@ const tabs: { key: AffiliateStatus; label: string }[] = [
   { key: "pending", label: "Pending Approval" },
   { key: "active", label: "Active" },
   { key: "suspended", label: "Suspended" },
+  { key: "rejected", label: "Rejected" },
 ];
 
 export function AffiliateTabs({ activeTab, onTabChange, counts }: AffiliateTabsProps) {
@@ -30,13 +31,15 @@ export function AffiliateTabs({ activeTab, onTabChange, counts }: AffiliateTabsP
         {tabs.map((tab) => {
           const count =
             tab.key === "all"
-              ? counts.pending + counts.active + counts.suspended
+              ? counts.total
               : tab.key === "pending"
               ? counts.pending
               : tab.key === "active"
               ? counts.active
               : tab.key === "suspended"
               ? counts.suspended
+              : tab.key === "rejected"
+              ? counts.rejected
               : 0;
 
           return (

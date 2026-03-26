@@ -278,7 +278,7 @@ function buildActiveColumns(
 
 const PAGE_SIZE = 20;
 
-type AffiliateTabStatus = "all" | "pending" | "active" | "suspended";
+type AffiliateTabStatus = "all" | "pending" | "active" | "suspended" | "rejected";
 
 // ---------------------------------------------------------------------------
 // Inner content (hooks live here, wrapped by Suspense)
@@ -288,7 +288,7 @@ function AffiliatesContent() {
   // ── URL state via nuqs ──────────────────────────────────────────────────
   const [tab, setTab] = useQueryState(
     "tab",
-    parseAsStringLiteral(["all", "pending", "active", "suspended"] as const).withDefault("all")
+    parseAsStringLiteral(["all", "pending", "active", "suspended", "rejected"] as const).withDefault("all")
   );
 
   const [search, setSearch] = useQueryState(
@@ -876,12 +876,12 @@ function AffiliatesContent() {
           </>
         )}
 
-        {/* Active / Suspended Tab Content */}
-        {(tab === "active" || tab === "suspended") && (
+        {/* Active / Suspended / Rejected Tab Content */}
+        {(tab === "active" || tab === "suspended" || tab === "rejected") && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[15px] font-bold text-[#333]">
-                {tab === "active" ? "All Active Affiliates" : "Suspended Affiliates"}
+                {tab === "active" ? "All Active Affiliates" : tab === "suspended" ? "Suspended Affiliates" : "Rejected Affiliates"}
               </h2>
             </div>
 
