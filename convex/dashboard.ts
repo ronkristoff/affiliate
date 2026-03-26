@@ -39,46 +39,52 @@ export const getDashboardData = query({
     topAffiliatesLimit: v.optional(v.number()),
     recentCommissionsLimit: v.optional(v.number()),
   },
-  returns: v.object({
-    stats: v.object({
-      mrrInfluenced: v.number(),
-      activeAffiliatesCount: v.number(),
-      pendingCommissionsCount: v.number(),
-      pendingCommissionsValue: v.number(),
-      totalPaidOut: v.number(),
-      recentClicks: v.number(),
-      recentConversions: v.number(),
-      recentOrganicConversions: v.number(),
-      previousPeriodMrr: v.number(),
-      mrrChangePercent: v.number(),
+  returns: v.union(
+    v.object({
+      stats: v.object({
+        mrrInfluenced: v.number(),
+        activeAffiliatesCount: v.number(),
+        pendingCommissionsCount: v.number(),
+        pendingCommissionsValue: v.number(),
+        totalPaidOut: v.number(),
+        recentClicks: v.number(),
+        recentConversions: v.number(),
+        recentOrganicConversions: v.number(),
+        previousPeriodMrr: v.number(),
+        mrrChangePercent: v.number(),
+      }),
+      topAffiliates: v.array(v.object({
+        _id: v.id("affiliates"),
+        name: v.string(),
+        email: v.string(),
+        handle: v.optional(v.string()),
+        clicks: v.number(),
+        conversions: v.number(),
+        revenue: v.number(),
+        status: v.string(),
+      })),
+      recentCommissions: v.array(v.object({
+        _id: v.id("commissions"),
+        affiliateId: v.id("affiliates"),
+        affiliateName: v.string(),
+        affiliateEmail: v.string(),
+        campaignName: v.string(),
+        amount: v.number(),
+        status: v.string(),
+        createdAt: v.number(),
+        planContext: v.optional(v.string()),
+      })),
     }),
-    topAffiliates: v.array(v.object({
-      _id: v.id("affiliates"),
-      name: v.string(),
-      email: v.string(),
-      handle: v.optional(v.string()),
-      clicks: v.number(),
-      conversions: v.number(),
-      revenue: v.number(),
-      status: v.string(),
-    })),
-    recentCommissions: v.array(v.object({
-      _id: v.id("commissions"),
-      affiliateId: v.id("affiliates"),
-      affiliateName: v.string(),
-      affiliateEmail: v.string(),
-      campaignName: v.string(),
-      amount: v.number(),
-      status: v.string(),
-      createdAt: v.number(),
-      planContext: v.optional(v.string()),
-    })),
-  }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     // 1. Auth check — ONCE
     const authUser = await getAuthenticatedUser(ctx);
     if (!authUser || authUser.tenantId !== args.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh. The query
+      // will automatically re-execute once the session is established.
+      return null;
     }
     const canViewSensitiveData = authUser.role === "owner" || authUser.role === "manager";
 
@@ -107,12 +113,12 @@ export const getDashboardData = query({
         .query("conversions")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
         .order("desc")
-        .take(800),
+        .take(1500),
       ctx.db
         .query("clicks")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
         .order("desc")
-        .take(1000),
+        .take(1500),
       ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
@@ -236,6 +242,7 @@ export const getDashboardData = query({
           status: a.status,
         };
       })
+      .filter((a) => a.clicks > 0 || a.conversions > 0 || a.revenue > 0)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, topAffiliatesLimit);
 
@@ -317,21 +324,26 @@ export const getRecentActivity = query({
     dateRange: dateRangeValidator,
     limit: v.optional(v.number()),
   },
-  returns: v.array(v.object({
-    _id: v.string(),
-    type: v.string(),
-    title: v.string(),
-    description: v.string(),
-    amount: v.optional(v.number()),
-    status: v.optional(v.string()),
-    timestamp: v.number(),
-    iconType: v.string(),
-  })),
+  returns: v.union(
+    v.array(v.object({
+      _id: v.string(),
+      type: v.string(),
+      title: v.string(),
+      description: v.string(),
+      amount: v.optional(v.number()),
+      status: v.optional(v.string()),
+      timestamp: v.number(),
+      iconType: v.string(),
+    })),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     // Verify user has access to this tenant
     const authUser = await getAuthenticatedUser(ctx);
     if (!authUser || authUser.tenantId !== args.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh.
+      return null;
     }
 
     // RBAC: Check role
@@ -485,22 +497,27 @@ export const getPlanUsage = query({
   args: {
     tenantId: v.id("tenants"),
   },
-  returns: v.object({
-    planName: v.string(),
-    affiliateCount: v.number(),
-    maxAffiliates: v.number(),
-    campaignCount: v.number(),
-    maxCampaigns: v.number(),
-    affiliateUsagePercent: v.number(),
-    campaignUsagePercent: v.number(),
-    affiliateWarning: v.optional(v.boolean()),
-    campaignWarning: v.optional(v.boolean()),
-  }),
+  returns: v.union(
+    v.object({
+      planName: v.string(),
+      affiliateCount: v.number(),
+      maxAffiliates: v.number(),
+      campaignCount: v.number(),
+      maxCampaigns: v.number(),
+      affiliateUsagePercent: v.number(),
+      campaignUsagePercent: v.number(),
+      affiliateWarning: v.optional(v.boolean()),
+      campaignWarning: v.optional(v.boolean()),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     // Verify user has access to this tenant
     const authUser = await getAuthenticatedUser(ctx);
     if (!authUser || authUser.tenantId !== args.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh.
+      return null;
     }
 
     // Get tenant + tier config + tenantStats in parallel
@@ -574,17 +591,22 @@ export const getSetupStatus = query({
   args: {
     tenantId: v.id("tenants"),
   },
-  returns: v.object({
-    trackingSnippetInstalled: v.boolean(),
-    saligPayConnected: v.boolean(),
-    firstCampaignCreated: v.boolean(),
-    firstAffiliateApproved: v.boolean(),
-  }),
+  returns: v.union(
+    v.object({
+      trackingSnippetInstalled: v.boolean(),
+      saligPayConnected: v.boolean(),
+      firstCampaignCreated: v.boolean(),
+      firstAffiliateApproved: v.boolean(),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     // Verify user has access to this tenant
     const authUser = await getAuthenticatedUser(ctx);
     if (!authUser || authUser.tenantId !== args.tenantId) {
-      throw new Error("Unauthorized: Access denied");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh.
+      return null;
     }
 
     // Get tenant + existence checks in parallel

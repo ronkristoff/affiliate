@@ -601,14 +601,17 @@ export const getCampaignStats = query({
  */
 export const checkCampaignLimit = query({
   args: {},
-  returns: v.object({
-    allowed: v.boolean(),
-    reason: v.optional(v.string()),
-    current: v.number(),
-    limit: v.number(),
-    percentage: v.number(),
-    status: v.union(v.literal("ok"), v.literal("warning"), v.literal("critical"), v.literal("blocked")),
-  }),
+  returns: v.union(
+    v.object({
+      allowed: v.boolean(),
+      reason: v.optional(v.string()),
+      current: v.number(),
+      limit: v.number(),
+      percentage: v.number(),
+      status: v.union(v.literal("ok"), v.literal("warning"), v.literal("critical"), v.literal("blocked")),
+    }),
+    v.null()
+  ),
   handler: async (ctx, _args): Promise<{
     allowed: boolean;
     reason?: string;
@@ -616,10 +619,13 @@ export const checkCampaignLimit = query({
     limit: number;
     percentage: number;
     status: "ok" | "warning" | "critical" | "blocked";
-  }> => {
+  } | null> => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
-      throw new Error("Unauthorized: Authentication required");
+      // Return null instead of throwing — the Convex client may not have
+      // the session identity yet during page navigation/refresh. The query
+      // will automatically re-execute once the session is established.
+      return null;
     }
 
     // Use the centralized tierConfig service

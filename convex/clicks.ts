@@ -49,6 +49,7 @@ export const trackClickInternal = internalMutation({
       tenantId: args.tenantId,
       referralLinkId: args.referralLinkId,
       affiliateId: args.affiliateId,
+      campaignId: args.campaignId,
       ipAddress: args.ipAddress,
       userAgent: args.userAgent,
       referrer: args.referrer,
