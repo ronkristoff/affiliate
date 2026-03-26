@@ -26,7 +26,12 @@ import {
   CurrencyCell,
   DateCell,
   NumberCell,
+  type ColumnFilter,
 } from "@/components/ui/DataTable";
+import {
+  type PaginationState,
+  DEFAULT_PAGE_SIZE,
+} from "@/components/ui/DataTablePagination";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
 import {
@@ -128,7 +133,7 @@ export function PayoutsContent() {
   const totalPaidOutData = useQuery(api.payouts.getTotalPaidOut, {});
   const affiliates = useQuery(api.payouts.getAffiliatesWithPendingPayouts, {});
   const batchesResult = useQuery(api.payouts.getPayoutBatches, {
-    paginationOpts: { numItems: 10, cursor: null },
+    paginationOpts: { numItems: 100, cursor: null },
   });
 
   // Extract batches array from paginated result
@@ -138,6 +143,58 @@ export function PayoutsContent() {
   const generateBatch = useMutation(api.payouts.generatePayoutBatch);
   const recalcStats = useMutation(api.payouts.recalcPendingPayoutStats);
   const [isRecalcing, setIsRecalcing] = useState(false);
+
+  // Pagination state for Affiliates Pending Payout table
+  const [affiliatesPagination, setAffiliatesPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+
+  // Pagination state for Recent Batches table
+  const [batchesPagination, setBatchesPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+
+  // Sort state for Affiliates Pending Payout table
+  const [affiliatesSortBy, setAffiliatesSortBy] = useState<string | undefined>(undefined);
+  const [affiliatesSortOrder, setAffiliatesSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Sort state for Recent Batches table
+  const [batchesSortBy, setBatchesSortBy] = useState<string | undefined>(undefined);
+  const [batchesSortOrder, setBatchesSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Column-level filter state for Affiliates Pending Payout table
+  const [affiliateFilters, setAffiliateFilters] = useState<ColumnFilter[]>([]);
+
+  // Column-level filter state for Recent Batches table
+  const [batchFilters, setBatchFilters] = useState<ColumnFilter[]>([]);
+
+  // Reset page when affiliate filters change
+  const handleAffiliateFilterChange = (filters: ColumnFilter[]) => {
+    setAffiliateFilters(filters);
+    setAffiliatesPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Reset page when batch filters change
+  const handleBatchFilterChange = (filters: ColumnFilter[]) => {
+    setBatchFilters(filters);
+    setBatchesPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Reset page when affiliate sort changes
+  const handleAffiliateSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
+    setAffiliatesSortBy(sortBy);
+    setAffiliatesSortOrder(sortOrder);
+    setAffiliatesPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Reset page when batch sort changes
+  const handleBatchSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
+    setBatchesSortBy(sortBy);
+    setBatchesSortOrder(sortOrder);
+    setBatchesPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   // Batch detail queries and mutations
   const batchPayoutDetails = useQuery(
@@ -228,6 +285,145 @@ export function PayoutsContent() {
   const processingTotal = processingBatches.reduce(
     (sum, b) => sum + b.totalAmount,
     0
+  );
+
+  // Filtered + sorted + paginated data for Affiliates Pending Payout table
+  const filteredAffiliates = useMemo(() => {
+    let data = affiliates ?? [];
+    for (const filter of affiliateFilters) {
+      switch (filter.columnKey) {
+        case "affiliate": {
+          const search = (filter.value ?? "").toLowerCase();
+          if (search) {
+            data = data.filter(
+              (a) =>
+                a.name.toLowerCase().includes(search) ||
+                (a.email && a.email.toLowerCase().includes(search))
+            );
+          }
+          break;
+        }
+        case "payoutMethod": {
+          const values = filter.values ?? [];
+          if (values.length > 0) {
+            if (values.includes("not_configured")) {
+              if (!values.includes("configured")) {
+                data = data.filter((a) => !a.payoutMethod);
+              } else {
+                // Both selected → show all
+              }
+            } else {
+              data = data.filter((a) => !!a.payoutMethod);
+            }
+          }
+          break;
+        }
+        case "commissions": {
+          if (filter.min != null) data = data.filter((a) => a.commissionCount >= filter.min!);
+          if (filter.max != null) data = data.filter((a) => a.commissionCount <= filter.max!);
+          break;
+        }
+        case "amount": {
+          if (filter.min != null) data = data.filter((a) => a.pendingAmount >= filter.min!);
+          if (filter.max != null) data = data.filter((a) => a.pendingAmount <= filter.max!);
+          break;
+        }
+      }
+    }
+    return data;
+  }, [affiliates, affiliateFilters]);
+
+  const sortedAffiliates = useMemo(() => {
+    if (!affiliatesSortBy) return filteredAffiliates;
+    const dir = affiliatesSortOrder === "asc" ? 1 : -1;
+    const field = affiliatesSortBy as keyof AffiliatePendingPayout;
+    return [...filteredAffiliates].sort((a, b) => {
+      const aVal = a[field];
+      const bVal = b[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return (aVal - bVal) * dir;
+      }
+      return String(aVal).localeCompare(String(bVal)) * dir;
+    });
+  }, [filteredAffiliates, affiliatesSortBy, affiliatesSortOrder]);
+
+  const affiliatesTotal = sortedAffiliates.length;
+  const paginatedAffiliates = useMemo(
+    () =>
+      sortedAffiliates.slice(
+        (affiliatesPagination.page - 1) * affiliatesPagination.pageSize,
+        affiliatesPagination.page * affiliatesPagination.pageSize
+      ),
+    [sortedAffiliates, affiliatesPagination]
+  );
+
+  // Filtered + sorted + paginated data for Recent Batches table
+  const filteredBatches = useMemo(() => {
+    let data = batches ?? [];
+    for (const filter of batchFilters) {
+      switch (filter.columnKey) {
+        case "batchCode": {
+          const search = (filter.value ?? "").toLowerCase();
+          if (search) {
+            data = data.filter((b) => b.batchCode.toLowerCase().includes(search));
+          }
+          break;
+        }
+        case "generatedAt": {
+          if (filter.after != null) data = data.filter((b) => b.generatedAt >= filter.after!);
+          if (filter.before != null) data = data.filter((b) => b.generatedAt <= filter.before!);
+          break;
+        }
+        case "affiliateCount": {
+          if (filter.min != null) data = data.filter((b) => b.affiliateCount >= filter.min!);
+          if (filter.max != null) data = data.filter((b) => b.affiliateCount <= filter.max!);
+          break;
+        }
+        case "totalAmount": {
+          if (filter.min != null) data = data.filter((b) => b.totalAmount >= filter.min!);
+          if (filter.max != null) data = data.filter((b) => b.totalAmount <= filter.max!);
+          break;
+        }
+        case "status": {
+          const values = filter.values ?? [];
+          if (values.length > 0) {
+            data = data.filter((b) => values.includes(b.status));
+          }
+          break;
+        }
+      }
+    }
+    return data;
+  }, [batches, batchFilters]);
+
+  const sortedBatches = useMemo(() => {
+    if (!batchesSortBy) return filteredBatches;
+    const dir = batchesSortOrder === "asc" ? 1 : -1;
+    const field = batchesSortBy as keyof Batch;
+    return [...filteredBatches].sort((a, b) => {
+      const aVal = a[field];
+      const bVal = b[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return (aVal - bVal) * dir;
+      }
+      return String(aVal).localeCompare(String(bVal)) * dir;
+    });
+  }, [filteredBatches, batchesSortBy, batchesSortOrder]);
+
+  const batchesTotal = sortedBatches.length;
+  const paginatedBatches = useMemo(
+    () =>
+      sortedBatches.slice(
+        (batchesPagination.page - 1) * batchesPagination.pageSize,
+        batchesPagination.page * batchesPagination.pageSize
+      ),
+    [sortedBatches, batchesPagination]
   );
 
   // Handle batch generation
@@ -367,6 +563,10 @@ export function PayoutsContent() {
         key: "affiliate",
         header: "Affiliate",
         cell: (row) => <AvatarCell name={row.name} email={row.email} />,
+        sortable: true,
+        sortField: "name",
+        filterable: true,
+        filterType: "text" as const,
       },
       {
         key: "payoutMethod",
@@ -385,6 +585,12 @@ export function PayoutsContent() {
               Not configured
             </Badge>
           ),
+        filterable: true,
+        filterType: "select" as const,
+        filterOptions: [
+          { value: "configured", label: "Configured" },
+          { value: "not_configured", label: "Not configured" },
+        ],
       },
       {
         key: "commissions",
@@ -395,12 +601,20 @@ export function PayoutsContent() {
             {row.commissionCount} commission{row.commissionCount !== 1 ? "s" : ""}
           </span>
         ),
+        sortable: true,
+        sortField: "commissionCount",
+        filterable: true,
+        filterType: "number-range" as const,
       },
       {
         key: "amount",
         header: "Amount Due",
         align: "right",
         cell: (row) => <CurrencyCell amount={row.pendingAmount} />,
+        sortable: true,
+        sortField: "pendingAmount",
+        filterable: true,
+        filterType: "number-range" as const,
       },
     ],
     []
@@ -416,28 +630,48 @@ export function PayoutsContent() {
             {row.batchCode}
           </code>
         ),
+        sortable: true,
+        filterable: true,
+        filterType: "text" as const,
       },
       {
         key: "generatedAt",
         header: "Date",
         cell: (row) => <DateCell value={row.generatedAt} format="short" />,
+        sortable: true,
+        filterable: true,
+        filterType: "date-range" as const,
       },
       {
         key: "affiliateCount",
         header: "Affiliates",
         align: "right",
         cell: (row) => <NumberCell value={row.affiliateCount} />,
+        sortable: true,
+        filterable: true,
+        filterType: "number-range" as const,
       },
       {
         key: "totalAmount",
         header: "Amount",
         align: "right",
         cell: (row) => <CurrencyCell amount={row.totalAmount} />,
+        sortable: true,
+        filterable: true,
+        filterType: "number-range" as const,
       },
       {
         key: "status",
         header: "Status",
         cell: (row) => <BatchStatusBadge status={row.status} />,
+        sortable: true,
+        filterable: true,
+        filterType: "select" as const,
+        filterOptions: [
+          { value: "pending", label: "Pending" },
+          { value: "processing", label: "Processing" },
+          { value: "completed", label: "Completed" },
+        ],
       },
     ],
     []
@@ -622,7 +856,7 @@ export function PayoutsContent() {
         <FadeIn delay={150}>
           <DataTable<AffiliatePendingPayout>
             columns={affiliateColumns}
-            data={affiliates ?? []}
+            data={paginatedAffiliates}
             getRowId={(row) => row.affiliateId}
             selectable
             selectedIds={selectedAffiliates as Set<string | number>}
@@ -633,7 +867,15 @@ export function PayoutsContent() {
               selectedAffiliates.has(row.affiliateId) ? "bg-[#eff6ff]" : ""
             }
             isLoading={false}
-            emptyMessage="No affiliates with pending payouts"
+            emptyMessage="No affiliates match your filters"
+            sortBy={affiliatesSortBy}
+            sortOrder={affiliatesSortOrder}
+            onSortChange={handleAffiliateSortChange}
+            activeFilters={affiliateFilters}
+            onFilterChange={handleAffiliateFilterChange}
+            pagination={affiliatesPagination}
+            total={affiliatesTotal}
+            onPaginationChange={setAffiliatesPagination}
           />
         </FadeIn>
       )}
@@ -648,7 +890,7 @@ export function PayoutsContent() {
                   Recent Batches
                 </h2>
                 <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                  Showing latest 10 batches
+                  {batchesTotal} total batch{batchesTotal !== 1 ? "es" : ""}
                 </p>
               </div>
               <Button
@@ -667,10 +909,18 @@ export function PayoutsContent() {
             <DataTable<Batch>
               columns={batchColumns}
               actions={batchActions}
-              data={batches}
+              data={paginatedBatches}
               getRowId={(row) => row._id}
               isLoading={false}
-              emptyMessage="No batches yet"
+              emptyMessage="No batches match your filters"
+              sortBy={batchesSortBy}
+              sortOrder={batchesSortOrder}
+              onSortChange={handleBatchSortChange}
+              activeFilters={batchFilters}
+              onFilterChange={handleBatchFilterChange}
+              pagination={batchesPagination}
+              total={batchesTotal}
+              onPaginationChange={setBatchesPagination}
             />
           </div>
         </FadeIn>
