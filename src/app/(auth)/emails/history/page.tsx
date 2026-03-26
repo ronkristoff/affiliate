@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/DataTable";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { EmailTabs } from "@/components/email/EmailTabs";
 import {
   useQueryState,
   parseAsString,
@@ -390,6 +391,11 @@ function BroadcastHistoryPage() {
         </Button>
       </PageTopbar>
 
+      {/* Tabs */}
+      <div className="px-8 pt-4">
+        <EmailTabs />
+      </div>
+
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8 space-y-6">
         {/* Filters */}
@@ -639,6 +645,9 @@ function PageSkeleton() {
   return (
     <>
       <div className="h-[60px] border-b" />
+      <div className="px-8 pt-4 pb-2">
+        <Skeleton className="h-9 w-48" />
+      </div>
       <div className="px-8 pt-6 pb-8 space-y-6">
         <Skeleton className="h-14 w-full rounded-xl" />
         <Skeleton className="h-[400px] w-full rounded-xl" />
