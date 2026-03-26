@@ -12,6 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Radix UI** - Accessible component primitives
 - **pnpm** - Package manager
 
+## 🧠 Core Engineering Principles
+Before writing any code, internalize these two non-negotiable rules:
+
+1.  **Solve the Root Cause**: Do not "punt" or implement "band-aid" solutions (e.g., adding a `setTimeout` to fix a race condition or a `!` to bypass a type error). Identify why the failure is happening at its source and fix the underlying logic.
+2.  **Search Before Creating**: Before building a new UI component, **search the codebase** (specifically `src/components/`) to see if a reusable component already exists. Always aim for design consistency by extending existing patterns rather than introducing one-off variations.
+
 ## Development Commands
 
 ### Starting the Application
