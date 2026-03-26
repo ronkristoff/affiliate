@@ -5,7 +5,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -134,12 +133,12 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <LinkIcon className="h-5 w-5" />
+    <div className="card">
+      <div className="card-header">
+        <h3 className="card-title flex items-center gap-2">
+          <LinkIcon className="h-4 w-4" />
           Referral Links
-        </CardTitle>
+        </h3>
         {canManage && (
           <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
             <DialogTrigger asChild>
@@ -203,13 +202,13 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
             </DialogContent>
           </Dialog>
         )}
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="px-5 pb-5">
         {referralLinks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <LinkIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">No referral links yet</p>
-            <p className="text-sm mb-4">Generate a referral link to start tracking clicks and conversions.</p>
+          <div className="text-center py-10 text-[var(--text-muted)]">
+            <LinkIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="text-[14px] font-medium mb-1">No referral links yet</p>
+            <p className="text-[12px] mb-4">Generate a referral link to start tracking clicks and conversions.</p>
             {canManage && (
               <Button onClick={() => setIsGenerateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -218,31 +217,31 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {referralLinks.map((link: ReferralLink) => (
-              <div key={link._id} className="border rounded-lg p-4">
+              <div key={link._id} className="border border-[var(--border-light)] rounded-lg p-4">
                 <div 
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setExpandedLinkId(expandedLinkId === link._id ? null : link._id)}
                 >
                   <div>
-                    <p className="font-mono text-sm">{link.code}</p>
+                    <p className="font-mono text-[13px] text-[var(--text-heading)]">{link.code}</p>
                     {link.campaignName && (
-                      <p className="text-xs text-muted-foreground">Campaign: {link.campaignName}</p>
+                      <p className="text-[11px] text-[var(--text-muted)]">Campaign: {link.campaignName}</p>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[11px] text-[var(--text-muted)]">
                     Created {formatDate(link._creationTime)}
                   </div>
                 </div>
 
                 {expandedLinkId === link._id && (
-                  <div className="mt-4 space-y-3 pt-4 border-t">
+                  <div className="mt-4 space-y-3 pt-4 border-t border-[var(--border-light)]">
                     {/* Short URL */}
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-1">Short URL</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block truncate">
+                        <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Short URL</p>
+                        <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
                           {link.shortUrl}
                         </code>
                       </div>
@@ -253,7 +252,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                         onClick={() => handleCopyUrl(link.shortUrl, `short-${link._id}`)}
                       >
                         {copiedUrl === `short-${link._id}` ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                          <Check className="h-4 w-4 text-[var(--success)]" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
@@ -263,8 +262,8 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                     {/* Full URL */}
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-1">Full URL</p>
-                        <code className="text-sm bg-muted px-2 py-1 rounded block truncate">
+                        <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Full URL</p>
+                        <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
                           {link.fullUrl}
                         </code>
                       </div>
@@ -275,7 +274,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                         onClick={() => handleCopyUrl(link.fullUrl, `full-${link._id}`)}
                       >
                         {copiedUrl === `full-${link._id}` ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                          <Check className="h-4 w-4 text-[var(--success)]" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
@@ -286,8 +285,8 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                     {link.campaignUrl && (
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <p className="text-xs text-muted-foreground mb-1">Campaign URL</p>
-                          <code className="text-sm bg-muted px-2 py-1 rounded block truncate">
+                          <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Campaign URL</p>
+                          <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
                             {link.campaignUrl}
                           </code>
                         </div>
@@ -298,7 +297,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                           onClick={() => handleCopyUrl(link.campaignUrl!, `campaign-${link._id}`)}
                         >
                           {copiedUrl === `campaign-${link._id}` ? (
-                            <Check className="h-4 w-4 text-green-500" />
+                            <Check className="h-4 w-4 text-[var(--success)]" />
                           ) : (
                             <Copy className="h-4 w-4" />
                           )}
@@ -310,8 +309,8 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                     {link.vanityUrl ? (
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <p className="text-xs text-muted-foreground mb-1">Vanity URL</p>
-                          <code className="text-sm bg-muted px-2 py-1 rounded block truncate">
+                          <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Vanity URL</p>
+                          <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
                             {link.vanityUrl}
                           </code>
                         </div>
@@ -322,7 +321,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                           onClick={() => handleCopyUrl(link.vanityUrl!, `vanity-${link._id}`)}
                         >
                           {copiedUrl === `vanity-${link._id}` ? (
-                            <Check className="h-4 w-4 text-green-500" />
+                            <Check className="h-4 w-4 text-[var(--success)]" />
                           ) : (
                             <Copy className="h-4 w-4" />
                           )}
@@ -331,7 +330,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                           <Button
                             variant="outline"
                             size="icon"
-                            className="shrink-0 text-destructive hover:text-destructive"
+                            className="shrink-0 text-[var(--danger)] hover:text-[var(--danger)]"
                             onClick={handleDeleteVanitySlug}
                             disabled={isDeletingVanity}
                           >
@@ -341,24 +340,24 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                       </div>
                     ) : (
                       <div className="pt-2">
-                        <p className="text-xs text-muted-foreground">No vanity URL set</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">No vanity URL set</p>
                       </div>
                     )}
 
                     {/* Stats */}
                     {link.clickCount !== undefined && (
-                      <div className="pt-2 flex gap-4 text-sm">
+                      <div className="pt-2 flex gap-4 text-[12px]">
                         <div>
-                          <span className="font-medium">{link.clickCount}</span>
-                          <span className="text-muted-foreground"> clicks</span>
+                          <span className="font-semibold text-[var(--text-heading)]">{link.clickCount}</span>
+                          <span className="text-[var(--text-muted)]"> clicks</span>
                         </div>
                         <div>
-                          <span className="font-medium">{link.conversionCount}</span>
-                          <span className="text-muted-foreground"> conversions</span>
+                          <span className="font-semibold text-[var(--text-heading)]">{link.conversionCount}</span>
+                          <span className="text-[var(--text-muted)]"> conversions</span>
                         </div>
                         <div>
-                          <span className="font-medium">{link.conversionRate}%</span>
-                          <span className="text-muted-foreground"> conversion rate</span>
+                          <span className="font-semibold text-[var(--text-heading)]">{link.conversionRate}%</span>
+                          <span className="text-[var(--text-muted)]"> conversion rate</span>
                         </div>
                       </div>
                     )}
@@ -368,7 +367,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

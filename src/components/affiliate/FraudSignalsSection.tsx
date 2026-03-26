@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -68,22 +67,22 @@ const signalTypeLabels: Record<string, string> = {
 
 const severityConfig = {
   high: {
-    badge: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200",
-    card: "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950",
+    badge: "bg-[var(--danger-bg)] text-[var(--danger-text)] border-[var(--danger)]",
+    card: "border-[var(--danger)] bg-[var(--danger-bg)]/30",
     icon: "🚨",
-    iconColor: "text-red-500",
+    iconColor: "text-[var(--danger)]",
   },
   medium: {
-    badge: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-200",
-    card: "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950",
+    badge: "bg-[var(--warning-bg)] text-[var(--warning-text)] border-[var(--warning)]",
+    card: "border-[var(--warning)] bg-[var(--warning-bg)]/30",
     icon: "⚠️",
-    iconColor: "text-amber-500",
+    iconColor: "text-[var(--warning)]",
   },
   low: {
-    badge: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200",
-    card: "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950",
+    badge: "bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--info)]",
+    card: "border-[var(--info)] bg-[var(--info-bg)]/30",
     icon: "ℹ️",
-    iconColor: "text-blue-500",
+    iconColor: "text-[var(--info)]",
   },
 };
 
@@ -228,38 +227,38 @@ export function FraudSignalsSection({
 
   if (!fraudSignals || fraudSignals.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5" />
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4" />
             Risk & Security Signals
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <ShieldAlert className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>No fraud signals detected for this affiliate</p>
-            <p className="text-sm mt-1">All activity appears normal</p>
+          </h3>
+        </div>
+        <div className="px-5 pb-5">
+          <div className="text-center py-10 text-[var(--text-muted)]">
+            <ShieldAlert className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="text-[13px]">No fraud signals detected for this affiliate</p>
+            <p className="text-[11px] mt-1">All activity appears normal</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5" />
+      <div className="card">
+        <div className="card-header flex-col !items-start gap-4">
+          <div className="flex items-center justify-between w-full">
+            <h3 className="card-title flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
               Risk & Security Signals
               {unreviewedCount > 0 && (
-                <Badge variant="destructive" className="ml-2">
+                <Badge variant="destructive" className="ml-1">
                   {unreviewedCount} unreviewed
                 </Badge>
               )}
-            </CardTitle>
+            </h3>
             <div className="flex items-center gap-2">
               {canManage && unreviewedCount > 0 && (
                 <Button
@@ -269,7 +268,7 @@ export function FraudSignalsSection({
                   disabled={isLoading}
                 >
                   <UserX className="h-4 w-4 mr-1" />
-                  Suspend Affiliate
+                  Suspend
                 </Button>
               )}
               <Button
@@ -278,15 +277,15 @@ export function FraudSignalsSection({
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="h-4 w-4 mr-1" />
-                {showFilters ? "Hide Filters" : "Filters"}
+                {showFilters ? "Hide" : "Filters"}
               </Button>
             </div>
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-[var(--border-light)] w-full">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Signal Type</Label>
+                <Label className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide">Signal Type</Label>
                 <Select value={signalTypeFilter} onValueChange={setSignalTypeFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
@@ -302,7 +301,7 @@ export function FraudSignalsSection({
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Severity</Label>
+                <Label className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide">Severity</Label>
                 <Select value={severityFilter} onValueChange={setSeverityFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All severities" />
@@ -317,7 +316,7 @@ export function FraudSignalsSection({
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Label className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide">Status</Label>
                 <Select value={reviewedFilter} onValueChange={setReviewedFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All statuses" />
@@ -331,7 +330,7 @@ export function FraudSignalsSection({
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Sort By</Label>
+                <Label className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide">Sort By</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger>
                     <ArrowUpDown className="h-3 w-3 mr-2" />
@@ -347,20 +346,20 @@ export function FraudSignalsSection({
             </div>
           )}
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+          <div className="flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
             <span>Total: {filteredSignals.length}</span>
             {filteredSignals.length !== (fraudSignals?.length || 0) && (
               <span>(filtered from {fraudSignals?.length})</span>
             )}
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent>
+        <div className="px-5 pb-5">
           <div className="space-y-3">
             {filteredSignals.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <EyeOff className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p>No signals match the selected filters</p>
+              <div className="text-center py-8 text-[var(--text-muted)]">
+                <EyeOff className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="text-[13px]">No signals match the selected filters</p>
               </div>
             ) : (
               filteredSignals.map((signal, originalIndex) => {
@@ -382,7 +381,7 @@ export function FraudSignalsSection({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium capitalize flex items-center gap-2">
+                          <span className="text-[13px] font-medium text-[var(--text-heading)] capitalize flex items-center gap-2">
                             {isSelfReferral && (
                               <AlertTriangle className={cn("h-4 w-4", config.iconColor)} />
                             )}
@@ -392,7 +391,7 @@ export function FraudSignalsSection({
                             {config.icon} {signal.severity}
                           </Badge>
                           {isReviewed && (
-                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                            <Badge variant="outline" className="bg-[var(--success-bg)] text-[var(--success-text)]">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Reviewed
                             </Badge>
@@ -406,7 +405,7 @@ export function FraudSignalsSection({
                               <Badge
                                 key={idx}
                                 variant="outline"
-                                className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                className="bg-[var(--danger-bg)] text-[var(--danger-text)]"
                               >
                                 <Link2 className="h-3 w-3 mr-1" />
                                 {formatIndicator(indicator)}
@@ -416,35 +415,35 @@ export function FraudSignalsSection({
                         )}
 
                         {signal.details && !isSelfReferral && (
-                          <p className="mt-2 text-sm text-muted-foreground">{signal.details}</p>
+                          <p className="mt-2 text-[12px] text-[var(--text-muted)]">{signal.details}</p>
                         )}
 
                         {/* Review information */}
                         {isReviewed && (
-                          <div className="mt-3 p-3 bg-white/50 dark:bg-black/20 rounded-md">
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="font-medium">Reviewed by {signal.reviewedByName || signal.reviewedBy}</span>
-                              <span className="text-muted-foreground">
+                          <div className="mt-3 p-3 bg-[var(--bg-surface)] rounded-md">
+                            <div className="flex items-center gap-2 text-[12px]">
+                              <CheckCircle className="h-4 w-4 text-[var(--success)]" />
+                              <span className="font-medium text-[var(--text-heading)]">Reviewed by {signal.reviewedByName || signal.reviewedBy}</span>
+                              <span className="text-[var(--text-muted)]">
                                 on {formatDate(signal.reviewedAt!)}
                               </span>
                             </div>
                             {signal.reviewNote && (
-                              <p className="mt-1 text-sm text-muted-foreground pl-6">
+                              <p className="mt-1 text-[12px] text-[var(--text-muted)] pl-6">
                                 Note: {signal.reviewNote}
                               </p>
                             )}
                           </div>
                         )}
 
-                        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="mt-3 flex items-center gap-4 text-[11px] text-[var(--text-muted)]">
                           <span>Detected: {formatDate(signal.timestamp)}</span>
                           
                           {/* Self-referral specific: Show link to commission */}
                           {isSelfReferral && commissionId && onViewCommission && (
                             <button
                               onClick={() => onViewCommission(commissionId)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                              className="text-[var(--danger)] hover:text-[var(--danger-text)] font-medium"
                             >
                               View Commission →
                             </button>
@@ -473,8 +472,8 @@ export function FraudSignalsSection({
               })
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Dismiss Dialog */}
       <Dialog open={dismissDialogOpen} onOpenChange={setDismissDialogOpen}>
@@ -491,12 +490,12 @@ export function FraudSignalsSection({
 
           <div className="space-y-4">
             {selectedSignal && (
-              <div className="p-3 rounded-md bg-muted">
+              <div className="p-3 rounded-md bg-[var(--bg-page)]">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className={severityConfig[selectedSignal.severity].badge}>
                     {severityConfig[selectedSignal.severity].icon} {selectedSignal.severity}
                   </Badge>
-                  <span className="font-medium">
+                  <span className="text-[13px] font-medium text-[var(--text-heading)]">
                     {signalTypeLabels[selectedSignal.type] || selectedSignal.type}
                   </span>
                 </div>
@@ -504,7 +503,7 @@ export function FraudSignalsSection({
             )}
 
             {selectedSignal?.severity === "high" && (
-              <div className="flex items-start gap-2 text-sm text-amber-600">
+              <div className="flex items-start gap-2 text-[13px] text-[var(--warning-text)]">
                 <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <span>A dismissal note is required for high-severity signals.</span>
               </div>
@@ -514,7 +513,7 @@ export function FraudSignalsSection({
               <Label htmlFor="dismiss-note">
                 Dismissal Note
                 {selectedSignal?.severity === "high" && (
-                  <span className="text-destructive"> *</span>
+                  <span className="text-[var(--danger)]"> *</span>
                 )}
               </Label>
               <Textarea
@@ -524,11 +523,12 @@ export function FraudSignalsSection({
                 onChange={(e) => setDismissNote(e.target.value)}
                 maxLength={500}
                 rows={3}
+                className="text-[13px]"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-[11px] text-[var(--text-muted)]">
                 <span>
                   {selectedSignal?.severity === "high" && !dismissNote.trim() && (
-                    <span className="text-destructive">Note is required</span>
+                    <span className="text-[var(--danger)]">Note is required</span>
                   )}
                 </span>
                 <span>{dismissNote.length}/500</span>
@@ -568,7 +568,7 @@ export function FraudSignalsSection({
       <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
+            <DialogTitle className="flex items-center gap-2 text-[var(--danger)]">
               <AlertTriangle className="h-5 w-5" />
               Suspend Affiliate
             </DialogTitle>
@@ -577,7 +577,7 @@ export function FraudSignalsSection({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 text-sm text-muted-foreground">
+          <div className="space-y-3 text-[13px] text-[var(--text-muted)]">
             <ul className="list-disc pl-4 space-y-1">
               <li>Prevent the affiliate from logging in to the portal</li>
               <li>Disable their referral links (return 404)</li>
@@ -589,7 +589,7 @@ export function FraudSignalsSection({
 
           <div className="space-y-2">
             <Label htmlFor="suspend-reason">
-              Suspension Reason <span className="text-muted-foreground">(optional)</span>
+              Suspension Reason <span className="text-[var(--text-muted)]">(optional)</span>
             </Label>
             <Textarea
               id="suspend-reason"
@@ -598,8 +598,9 @@ export function FraudSignalsSection({
               onChange={(e) => setSuspendReason(e.target.value)}
               maxLength={500}
               rows={3}
+              className="text-[13px]"
             />
-            <div className="text-xs text-muted-foreground text-right">
+            <div className="text-[11px] text-[var(--text-muted)] text-right">
               {suspendReason.length}/500
             </div>
           </div>

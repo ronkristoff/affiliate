@@ -295,12 +295,15 @@ export const listAffiliatesByStatus = query({
     const MAX_AFFILIATES = 1000;
 
     // Fetch affiliates for the tenant — capped to prevent unbounded reads
+    // Exclude system/internal records (e.g. organic traffic placeholder)
+    const STANDARD_STATUSES = new Set(["pending", "active", "suspended", "rejected"]);
     let affiliates;
     if (args.status === "all") {
-      affiliates = await ctx.db
+      const all = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
         .take(MAX_AFFILIATES);
+      affiliates = all.filter((a) => STANDARD_STATUSES.has(a.status));
     } else {
       affiliates = await ctx.db
         .query("affiliates")
@@ -350,7 +353,7 @@ export const listAffiliatesByStatus = query({
     }
 
     // Fetch all commissions for the tenant and aggregate by affiliate
-    // Only count approved + pending commissions (match listAffiliatesFiltered logic)
+    // Only count approved commissions as earnings
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
@@ -358,7 +361,7 @@ export const listAffiliatesByStatus = query({
 
     for (const commission of allCommissions) {
       if (commissionTotals.has(commission.affiliateId)) {
-        if (commission.status === "approved" || commission.status === "pending") {
+        if (commission.status === "approved") {
           commissionTotals.set(commission.affiliateId, (commissionTotals.get(commission.affiliateId) ?? 0) + commission.amount);
         }
       }
@@ -440,7 +443,7 @@ async function fetchPerAffiliateStats(
     const referralCount = conversions.length;
     let totalEarnings = 0;
     for (const comm of commissions) {
-      if (comm.status === "approved" || comm.status === "pending") {
+      if (comm.status === "approved") {
         totalEarnings += comm.amount;
       }
     }
@@ -620,12 +623,15 @@ export const listAffiliatesFiltered = query({
     }
 
     // ── Step 2: Fetch affiliates matching status filter — capped reads ──
+    const STANDARD_STATUSES = new Set(["pending", "active", "suspended", "rejected"]);
     let affiliates;
     if (status === "all") {
-      affiliates = await ctx.db
+      const all = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
         .take(MAX_AFFILIATES);
+      // Exclude system/internal records (e.g. organic traffic placeholder)
+      affiliates = all.filter((a) => STANDARD_STATUSES.has(a.status));
     } else {
       affiliates = await ctx.db
         .query("affiliates")
@@ -777,7 +783,7 @@ export const listAffiliatesFiltered = query({
       referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
     }
     for (const comm of allCommissions) {
-      if (comm.status === "approved" || comm.status === "pending") {
+      if (comm.status === "approved") {
         const key = comm.affiliateId.toString();
         earningsMap.set(key, (earningsMap.get(key) ?? 0) + comm.amount);
       }
@@ -898,7 +904,8 @@ export const listAffiliatesFiltered = query({
 
 /**
  * Get count of affiliates by status.
- * Used for displaying badge counts in the sidebar and tabs.
+ * Uses denormalized tenantStats counters for fast reads.
+ * These are maintained by updateAffiliateCount hooks on every status change.
  * @security Requires authentication. Results filtered by tenant. Returns zeros if not authenticated.
  */
 export const getAffiliateCountByStatus = query({
@@ -2245,7 +2252,9 @@ export const getAffiliateStats = query({
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
       .take(500);
 
-    const totalCommissions = commissions.reduce((sum, c) => sum + c.amount, 0);
+    const totalCommissions = commissions
+      .filter(c => c.status === "approved")
+      .reduce((sum, c) => sum + c.amount, 0);
     const pendingCommissions = commissions
       .filter(c => c.status === "pending")
       .reduce((sum, c) => sum + c.amount, 0);

@@ -6,8 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { SuspendDialog } from "@/components/affiliate/SuspendDialog";
 import { ReactivateDialog } from "@/components/affiliate/ReactivateDialog";
@@ -17,7 +17,6 @@ import { ReferralLinksSection } from "@/components/affiliate/ReferralLinksSectio
 import { CommissionHistoryList } from "@/components/affiliate/CommissionHistoryList";
 import { FraudSignalsSection } from "@/components/affiliate/FraudSignalsSection";
 import { InternalNotesTextarea } from "@/components/affiliate/InternalNotesTextarea";
-import { ProfileInformation } from "@/components/affiliate/ProfileInformation";
 import { toast } from "sonner";
 import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -28,24 +27,45 @@ import Link from "next/link";
 
 function AffiliateDetailSkeleton() {
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <Skeleton className="h-9 w-40" />
-      <Skeleton className="h-24 w-full rounded-xl" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Topbar skeleton */}
+      <div className="px-8 pt-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-48" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-28" />
+          </div>
         </div>
-        <div className="lg:col-span-2 space-y-6">
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
+      </div>
+
+      {/* Profile hero skeleton (includes profile info row) */}
+      <div className="px-8 pt-4">
+        <Skeleton className="h-28 w-full rounded-xl" />
+      </div>
+
+      {/* Metric cards skeleton */}
+      <div className="px-8 pt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+      </div>
+
+      {/* Main content grid skeleton */}
+      <div className="px-8 pt-6 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <Skeleton className="h-40 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
+          </div>
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-40 rounded-xl" />
+            <Skeleton className="h-40 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+          </div>
         </div>
       </div>
     </div>
@@ -142,15 +162,19 @@ function AffiliateDetailContent() {
   // Loading state
   if (affiliate === undefined) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="py-12">
-            <div className="flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              Loading affiliate details...
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-[var(--bg-page)]">
+        <PageTopbar description="Loading affiliate details...">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/affiliates">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+          <div />
+        </PageTopbar>
       </div>
     );
   }
@@ -158,24 +182,27 @@ function AffiliateDetailContent() {
   // Not found state
   if (affiliate === null) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Affiliate Not Found</h2>
-              <p className="text-muted-foreground mb-4">
+      <div className="min-h-screen bg-[var(--bg-page)]">
+        <PageTopbar description="Affiliate not found">
+          <div />
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/affiliates">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Affiliates
+            </Link>
+          </Button>
+        </PageTopbar>
+        <div className="px-8 pt-6">
+          <div className="card">
+            <div className="text-center py-16 px-6">
+              <AlertTriangle className="mx-auto h-12 w-12 text-[var(--danger)] mb-4" />
+              <h2 className="text-[17px] font-bold text-[var(--text-heading)] mb-2">Affiliate Not Found</h2>
+              <p className="text-[13px] text-[var(--text-muted)]">
                 The affiliate you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
               </p>
-              <Button asChild>
-                <Link href="/affiliates">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Affiliates
-                </Link>
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -184,78 +211,85 @@ function AffiliateDetailContent() {
   const isSuspended = affiliate.status === "suspended";
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Back button */}
-      <Button variant="ghost" asChild className="mb-2">
-        <Link href="/affiliates">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Affiliates
-        </Link>
-      </Button>
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      {/* Top Bar */}
+      <PageTopbar description={`${affiliate.name} · ${affiliate.email}`}>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/affiliates">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Affiliates
+            </Link>
+          </Button>
+          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">{affiliate.name}</h1>
+        </div>
+      </PageTopbar>
 
-      {/* Header Card */}
-      <AffiliateProfileHero
-        name={affiliate.name}
-        joinDate={affiliate._creationTime}
-        status={affiliate.status}
-        canManage={canManageAffiliates}
-        isActive={isActive}
-        isSuspended={isSuspended}
-        onSuspend={() => setShowSuspendDialog(true)}
-        onReactivate={() => setShowReactivateDialog(true)}
-      />
+      {/* Page Content */}
+      <div className="px-8 pt-6 pb-8">
+        {/* Profile Hero */}
+        <AffiliateProfileHero
+          name={affiliate.name}
+          email={affiliate.email}
+          uniqueCode={affiliate.uniqueCode}
+          joinDate={affiliate._creationTime}
+          status={affiliate.status}
+          payoutMethod={affiliate.payoutMethod}
+          canManage={canManageAffiliates}
+          isActive={isActive}
+          isSuspended={isSuspended}
+          onSuspend={() => setShowSuspendDialog(true)}
+          onReactivate={() => setShowReactivateDialog(true)}
+        />
 
-      {/* Stats Grid - Mobile Responsive */}
-      <ReferralMetricsGrid stats={stats} />
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile & Notes Column */}
-        <div className="space-y-6">
-          <ProfileInformation
-            email={affiliate.email}
-            uniqueCode={affiliate.uniqueCode}
-            payoutMethod={affiliate.payoutMethod}
-          />
-
-          <InternalNotesTextarea
-            note={affiliate.note}
-            onSave={handleSaveNote}
-            canManage={canManageAffiliates}
-          />
+        {/* Stats Grid */}
+        <div className="mt-6">
+          <ReferralMetricsGrid stats={stats} />
         </div>
 
-        {/* Commission History Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Referral Links Section */}
-          <ReferralLinksSection 
-            affiliateId={affiliateId}
-            canManage={canManageAffiliates}
-            affiliateName={affiliate.name}
-          />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Profile & Notes Column */}
+          <div className="space-y-6">
+            <InternalNotesTextarea
+              note={affiliate.note}
+              onSave={handleSaveNote}
+              canManage={canManageAffiliates}
+            />
+          </div>
 
-          {/* Fraud Signals Section - Positioned above commission history */}
-          <FraudSignalsSection 
-            fraudSignals={affiliate.fraudSignals as any}
-            affiliateId={affiliateId}
-            affiliateName={affiliate.name}
-            onViewCommission={handleViewCommission}
-            onDismissSignal={canManageAffiliates ? handleDismissFraudSignal : undefined}
-            onSuspendAffiliate={canManageAffiliates ? handleSuspendFromFraudSignal : undefined}
-            canManage={canManageAffiliates}
-          />
+          {/* Right Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Referral Links Section */}
+            <ReferralLinksSection 
+              affiliateId={affiliateId}
+              canManage={canManageAffiliates}
+              affiliateName={affiliate.name}
+            />
 
-          <CommissionHistoryList commissions={commissions} />
+            {/* Fraud Signals Section */}
+            <FraudSignalsSection 
+              fraudSignals={affiliate.fraudSignals as any}
+              affiliateId={affiliateId}
+              affiliateName={affiliate.name}
+              onViewCommission={handleViewCommission}
+              onDismissSignal={canManageAffiliates ? handleDismissFraudSignal : undefined}
+              onSuspendAffiliate={canManageAffiliates ? handleSuspendFromFraudSignal : undefined}
+              canManage={canManageAffiliates}
+            />
 
-          {/* Activity Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Activity Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ActivityTimeline activities={auditLog} />
-            </CardContent>
-          </Card>
+            <CommissionHistoryList commissions={commissions} />
+
+            {/* Activity Timeline */}
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">Activity Timeline</h3>
+              </div>
+              <div className="p-5">
+                <ActivityTimeline activities={auditLog} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

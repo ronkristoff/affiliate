@@ -1,14 +1,21 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, PauseCircle } from "lucide-react";
+import { CheckCircle, PauseCircle, Mail, Hash, CreditCard } from "lucide-react";
+
+interface PayoutMethod {
+  type: string;
+  details: string;
+}
 
 interface AffiliateProfileHeroProps {
   name: string;
+  email: string;
+  uniqueCode: string;
   joinDate: number;
   status: string;
+  payoutMethod?: PayoutMethod;
   canManage: boolean;
   isActive: boolean;
   isSuspended: boolean;
@@ -18,8 +25,11 @@ interface AffiliateProfileHeroProps {
 
 export function AffiliateProfileHero({
   name,
+  email,
+  uniqueCode,
   joinDate,
   status,
+  payoutMethod,
   canManage,
   isActive,
   isSuspended,
@@ -35,17 +45,18 @@ export function AffiliateProfileHero({
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <div className="card">
+      {/* Header row: avatar + name + status + actions */}
+      <div className="card-header">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-lg font-semibold text-primary">
+          <div className="h-12 w-12 rounded-full bg-[var(--brand-light)] flex items-center justify-center shrink-0">
+            <span className="text-lg font-semibold text-[var(--brand-primary)]">
               {name.charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{name}</CardTitle>
-            <p className="text-muted-foreground text-sm">
+            <h2 className="text-[17px] font-bold text-[var(--text-heading)]">{name}</h2>
+            <p className="text-[12px] text-[var(--text-muted)]">
               Joined {formatDate(joinDate)}
             </p>
           </div>
@@ -75,7 +86,47 @@ export function AffiliateProfileHero({
             </Button>
           )}
         </div>
-      </CardHeader>
-    </Card>
+      </div>
+
+      {/* Profile details row */}
+      <div className="px-5 pb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Email */}
+          <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-page)] px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-[var(--brand-light)] flex items-center justify-center shrink-0">
+              <Mail className="h-4 w-4 text-[var(--brand-primary)]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">Email</p>
+              <p className="text-[13px] text-[var(--text-heading)] truncate">{email}</p>
+            </div>
+          </div>
+
+          {/* Referral Code */}
+          <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-page)] px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0">
+              <Hash className="h-4 w-4 text-[var(--success-text)]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">Referral Code</p>
+              <code className="text-[13px] text-[var(--text-heading)] font-mono">{uniqueCode}</code>
+            </div>
+          </div>
+
+          {/* Payout Method */}
+          <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-page)] px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-[var(--warning-bg)] flex items-center justify-center shrink-0">
+              <CreditCard className="h-4 w-4 text-[var(--warning-text)]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">Payout Method</p>
+              <p className="text-[13px] text-[var(--text-heading)] capitalize">
+                {payoutMethod ? payoutMethod.type : "Not set"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

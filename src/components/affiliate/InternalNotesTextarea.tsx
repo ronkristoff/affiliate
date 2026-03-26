@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FileText, Save, Loader2 } from "lucide-react";
@@ -43,20 +42,20 @@ export function InternalNotesTextarea({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileText className="h-5 w-5" />
+    <div className="card">
+      <div className="card-header">
+        <h3 className="card-title flex items-center gap-2">
+          <FileText className="h-4 w-4" />
           Internal Notes
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+        </h3>
+      </div>
+      <div className="px-5 pb-5 space-y-3">
         <Textarea
           placeholder="Add a private note about this affiliate (not visible to them)..."
           value={noteValue}
           onChange={(e) => setNoteValue(e.target.value)}
           rows={4}
-          className="resize-none"
+          className="resize-none text-[13px]"
         />
         <Button
           size="sm"
@@ -70,7 +69,7 @@ export function InternalNotesTextarea({
           )}
           Save Note
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

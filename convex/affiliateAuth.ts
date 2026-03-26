@@ -952,7 +952,9 @@ export const getAffiliatePortalDashboardStats = query({
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
     
     for await (const commission of commissionsQuery) {
-      totalCommissions += commission.amount;
+      if (commission.status === "approved") {
+        totalCommissions += commission.amount;
+      }
       
       if (commission.status === "approved") {
         confirmedCommissions += commission.amount;
@@ -960,9 +962,9 @@ export const getAffiliatePortalDashboardStats = query({
         pendingCommissions += commission.amount;
       }
       
-      if (commission._creationTime >= thisMonthStart && commission._creationTime <= thisMonthEnd) {
+      if (commission._creationTime >= thisMonthStart && commission._creationTime <= thisMonthEnd && commission.status === "approved") {
         thisMonthEarnings += commission.amount;
-      } else if (commission._creationTime >= lastMonthStart && commission._creationTime <= lastMonthEnd) {
+      } else if (commission._creationTime >= lastMonthStart && commission._creationTime <= lastMonthEnd && commission.status === "approved") {
         lastMonthEarnings += commission.amount;
       }
     }
@@ -1171,7 +1173,9 @@ export const getAffiliateEarningsSummary = query({
     let totalCount = 0;
 
     for (const commission of commissions) {
-      totalEarnings += commission.amount;
+      if (commission.status === "approved") {
+        totalEarnings += commission.amount;
+      }
       totalCount += 1;
 
       if (commission.status === "approved") {

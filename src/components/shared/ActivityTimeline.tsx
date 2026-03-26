@@ -19,15 +19,15 @@ interface ActivityTimelineProps {
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
-  affiliate_approved: <UserCheck className="h-4 w-4 text-emerald-500" />,
-  affiliate_rejected: <UserX className="h-4 w-4 text-red-500" />,
-  affiliate_suspended: <ShieldAlert className="h-4 w-4 text-amber-500" />,
-  affiliate_reactivated: <UserCheck className="h-4 w-4 text-emerald-500" />,
-  affiliate_registered: <UserPlus className="h-4 w-4 text-blue-500" />,
-  affiliate_bulk_approved: <UserCheck className="h-4 w-4 text-emerald-500" />,
-  affiliate_bulk_rejected: <UserX className="h-4 w-4 text-red-500" />,
-  email_send_failed: <Mail className="h-4 w-4 text-red-400" />,
-  permission_denied: <ShieldAlert className="h-4 w-4 text-red-600" />,
+  affiliate_approved: <UserCheck className="h-4 w-4 text-[var(--success)]" />,
+  affiliate_rejected: <UserX className="h-4 w-4 text-[var(--danger)]" />,
+  affiliate_suspended: <ShieldAlert className="h-4 w-4 text-[var(--warning)]" />,
+  affiliate_reactivated: <UserCheck className="h-4 w-4 text-[var(--success)]" />,
+  affiliate_registered: <UserPlus className="h-4 w-4 text-[var(--info)]" />,
+  affiliate_bulk_approved: <UserCheck className="h-4 w-4 text-[var(--success)]" />,
+  affiliate_bulk_rejected: <UserX className="h-4 w-4 text-[var(--danger)]" />,
+  email_send_failed: <Mail className="h-4 w-4 text-[var(--danger)]" />,
+  permission_denied: <ShieldAlert className="h-4 w-4 text-[var(--danger)]" />,
 };
 
 const actionLabels: Record<string, string> = {
@@ -46,7 +46,7 @@ const actionLabels: Record<string, string> = {
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {
   if (activities.length === 0) {
     return (
-      <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-20 items-center justify-center text-[13px] text-[var(--text-muted)]">
         No activity recorded yet
       </div>
     );
@@ -65,7 +65,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
   return (
     <div className="space-y-4">
       {activities.map((activity, index) => {
-        const icon = actionIcons[activity.action] || <Clock className="h-4 w-4 text-gray-500" />;
+        const icon = actionIcons[activity.action] || <Clock className="h-4 w-4 text-[var(--text-muted)]" />;
         const label = actionLabels[activity.action] || activity.action.replace(/_/g, " ");
         const isLast = index === activities.length - 1;
 
@@ -73,7 +73,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
           <div key={activity._id} className="relative flex gap-4">
             {/* Timeline line */}
             {!isLast && (
-              <div className="absolute left-[7px] top-6 h-full w-px bg-border" />
+              <div className="absolute left-[7px] top-6 h-full w-px bg-[var(--border-light)]" />
             )}
 
             {/* Icon */}
@@ -85,11 +85,11 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
             <div className="flex-1 pb-6">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-[13px] font-medium text-[var(--text-heading)]">{label}</p>
                   
                   {/* Status change info */}
                   {activity.previousValue?.status && activity.newValue?.status && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-[var(--text-muted)]">
                       Status changed from{" "}
                       <span className="font-medium capitalize">
                         {activity.previousValue.status}
@@ -103,21 +103,21 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
 
                   {/* Rejection reason */}
                   {activity.newValue?.reason && (
-                    <div className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    <div className="mt-2 rounded-md bg-[var(--warning-bg)] p-2 text-[11px] text-[var(--warning-text)]">
                       <span className="font-medium">Reason:</span> {activity.newValue.reason}
                     </div>
                   )}
 
                   {/* Actor info */}
                   {activity.actorId && (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                       by {activity.actorType === "user" ? "Staff" : "System"}
                     </p>
                   )}
                 </div>
 
                 {/* Timestamp */}
-                <time className="shrink-0 text-xs text-muted-foreground">
+                <time className="shrink-0 text-[11px] text-[var(--text-muted)]">
                   {formatDate(activity._creationTime)}
                 </time>
               </div>
