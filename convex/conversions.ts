@@ -102,7 +102,7 @@ export const getReferralLinkByCodeInternal = internalQuery({
   returns: v.union(
     v.object({
       _id: v.id("referralLinks"),
-      affiliateId: v.id("affiliates"),
+      affiliateId: v.optional(v.id("affiliates")),
       campaignId: v.optional(v.id("campaigns")),
     }),
     v.null()
@@ -381,7 +381,8 @@ export const createConversionWithAttribution = internalMutation({
 
 /**
  * Internal: Create organic conversion (no affiliate attribution)
- * Stores conversions without affiliate credit for analytics
+ * Stores conversions without affiliate credit for analytics.
+ * No fake affiliate record is created — affiliateId is simply omitted.
  */
 export const createOrganicConversion = internalMutation({
   args: {
@@ -401,35 +402,9 @@ export const createOrganicConversion = internalMutation({
   },
   returns: v.id("conversions"),
   handler: async (ctx, args) => {
-    // Find or create a system "organic" affiliate for this tenant
-    // This affiliate represents organic (non-referred) conversions
-    let organicAffiliate = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant_and_code", (q) => 
-        q.eq("tenantId", args.tenantId).eq("uniqueCode", "__ORGANIC__")
-      )
-      .first();
-
-    // Create organic affiliate if it doesn't exist
-    if (!organicAffiliate) {
-      const organicAffiliateId = await ctx.db.insert("affiliates", {
-        tenantId: args.tenantId,
-        email: "organic@system.internal",
-        name: "Organic Traffic",
-        uniqueCode: "__ORGANIC__",
-        status: "system", // Special system status
-      });
-      organicAffiliate = await ctx.db.get(organicAffiliateId);
-    }
-
-    if (!organicAffiliate) {
-      throw new Error("Failed to create or find organic affiliate");
-    }
-
-    // Create conversion record with organic attribution
+    // Create conversion record without an affiliate — organic traffic
     const conversionId = await ctx.db.insert("conversions", {
       tenantId: args.tenantId,
-      affiliateId: organicAffiliate._id,
       customerEmail: args.customerEmail?.toLowerCase(),
       amount: args.amount,
       status: args.status || "pending",
@@ -524,7 +499,7 @@ export const listRecentWithAttribution = query({
       _id: v.id("conversions"),
       _creationTime: v.number(),
       tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
+      affiliateId: v.optional(v.id("affiliates")),
       referralLinkId: v.optional(v.id("referralLinks")),
       clickId: v.optional(v.id("clicks")),
       amount: v.number(),
@@ -751,7 +726,7 @@ export const getConversionsByAffiliate = query({
       _id: v.id("conversions"),
       _creationTime: v.number(),
       tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
+      affiliateId: v.optional(v.id("affiliates")),
       referralLinkId: v.optional(v.id("referralLinks")),
       clickId: v.optional(v.id("clicks")),
       campaignId: v.optional(v.id("campaigns")),
@@ -766,22 +741,26 @@ export const getConversionsByAffiliate = query({
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    // Use the by_affiliate index for efficient querying
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || !("tenantId" in affiliate)) {
+      throw new Error("Affiliate not found");
+    }
+    const tenantId = (affiliate as { tenantId: Id<"tenants"> }).tenantId;
+
     let query = ctx.db
       .query("conversions")
-      .withIndex("by_affiliate", (q) => 
-        q.eq("affiliateId", args.affiliateId)
+      .withIndex("by_tenant", (q) =>
+        q.eq("tenantId", tenantId)
       );
 
     const result = await query.order("desc").paginate(args.paginationOpts);
 
-    // Apply status filtering if provided
-    let filteredPage = result.page;
+    let filteredPage = result.page.filter(conv => conv.affiliateId === args.affiliateId);
+
     if (args.status) {
       filteredPage = filteredPage.filter(conv => conv.status === args.status);
     }
 
-    // Apply date range filtering if provided
     if (args.startDate || args.endDate) {
       filteredPage = filteredPage.filter(conv => {
         const timestamp = conv._creationTime;
@@ -817,7 +796,7 @@ export const getConversionsByTenant = query({
       _id: v.id("conversions"),
       _creationTime: v.number(),
       tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
+      affiliateId: v.optional(v.id("affiliates")),
       affiliateName: v.optional(v.string()),
       referralLinkId: v.optional(v.id("referralLinks")),
       clickId: v.optional(v.id("clicks")),
@@ -867,12 +846,12 @@ export const getConversionsByTenant = query({
     }
 
     // Enrich with affiliate and campaign names (batch fetch to avoid N+1)
-    const affiliateIds = [...new Set(filteredPage.map(c => c.affiliateId))];
+    const affiliateIds = [...new Set(filteredPage.map(c => c.affiliateId).filter((id): id is Id<"affiliates"> => !!id))];
     const affiliateMap: Record<string, { name: string }> = {};
     for (const id of affiliateIds) {
       const affiliate = await ctx.db.get(id);
-      if (affiliate) {
-        affiliateMap[id] = { name: affiliate.name };
+      if (affiliate && "name" in affiliate) {
+        affiliateMap[id] = { name: affiliate.name as string };
       }
     }
 
@@ -891,7 +870,7 @@ export const getConversionsByTenant = query({
 
     const enrichedPage = filteredPage.map(conv => ({
       ...conv,
-      affiliateName: affiliateMap[conv.affiliateId]?.name,
+      affiliateName: conv.affiliateId ? affiliateMap[conv.affiliateId]?.name : undefined,
       campaignName: conv.campaignId ? campaignMap[conv.campaignId]?.name : undefined,
     }));
 
@@ -926,7 +905,7 @@ export const getConversionStatsByTenant = query({
     selfReferralCount: v.number(),
     byAttributionSource: v.record(v.string(), v.number()),
     topAffiliates: v.array(v.object({
-      affiliateId: v.id("affiliates"),
+      affiliateId: v.optional(v.id("affiliates")),
       affiliateName: v.string(),
       count: v.number(),
       amount: v.number(),
@@ -994,6 +973,7 @@ export const getConversionStatsByTenant = query({
     const affiliateStats: Record<string, { name: string; count: number; amount: number }> = {};
     conversions.forEach(conv => {
       const aid = conv.affiliateId;
+      if (!aid) return;
       if (!affiliateStats[aid]) {
         affiliateStats[aid] = { name: "", count: 0, amount: 0 };
       }

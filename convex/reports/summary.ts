@@ -236,6 +236,7 @@ export const getTopAffiliatesByRevenue = query({
     }
 
     for (const conversion of filteredConversions) {
+      if (!conversion.affiliateId) continue;
       const stats = affiliateStats.get(conversion.affiliateId);
       if (stats) stats.conversions++;
     }

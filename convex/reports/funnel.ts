@@ -133,7 +133,7 @@ export const getConversionFunnel = query({
     // Collect unique affiliate IDs from all records
     const affiliateIds = new Set<string>();
     for (const click of filteredClicks) affiliateIds.add(click.affiliateId);
-    for (const conv of filteredConversions) affiliateIds.add(conv.affiliateId);
+    for (const conv of filteredConversions) { if (conv.affiliateId) affiliateIds.add(conv.affiliateId); }
     for (const comm of filteredCommissions) affiliateIds.add(comm.affiliateId);
 
     // Fetch affiliate names
@@ -157,6 +157,7 @@ export const getConversionFunnel = query({
     }
 
     for (const conv of filteredConversions) {
+      if (!conv.affiliateId) continue;
       const stats = affiliateStats.get(conv.affiliateId);
       if (stats) stats.conversions++;
     }
@@ -385,7 +386,7 @@ export const getFunnelExportData = query({
 
     const affiliateIds = new Set<string>();
     for (const click of filteredClicks) affiliateIds.add(click.affiliateId);
-    for (const conv of filteredConversions) affiliateIds.add(conv.affiliateId);
+    for (const conv of filteredConversions) { if (conv.affiliateId) affiliateIds.add(conv.affiliateId); }
     for (const comm of filteredCommissions) affiliateIds.add(comm.affiliateId);
 
     for (const affiliateId of affiliateIds) {
@@ -408,6 +409,7 @@ export const getFunnelExportData = query({
     }
 
     for (const conv of filteredConversions) {
+      if (!conv.affiliateId) continue;
       const stats = affiliateStats.get(conv.affiliateId);
       if (stats) stats.conversions++;
     }

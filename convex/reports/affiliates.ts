@@ -103,8 +103,10 @@ export const getAffiliatePerformanceList = query({
     }
 
     for (const conversion of filteredConversions) {
-      const count = conversionCounts.get(conversion.affiliateId) ?? 0;
-      conversionCounts.set(conversion.affiliateId, count + 1);
+      if (conversion.affiliateId) {
+        const count = conversionCounts.get(conversion.affiliateId) ?? 0;
+        conversionCounts.set(conversion.affiliateId, count + 1);
+      }
     }
 
     for (const commission of filteredCommissions) {
@@ -378,8 +380,9 @@ export const getAffiliatePerformanceDetails = query({
 
     const allConversions = await ctx.db
       .query("conversions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .take(5000);
+      .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
+      .take(5000)
+      .then(results => results.filter(c => c.affiliateId === args.affiliateId));
 
     const allCommissions = await ctx.db
       .query("commissions")
@@ -627,8 +630,10 @@ export const getAffiliateExportData = query({
       if (conversion._creationTime >= args.startDate &&
           conversion._creationTime <= args.endDate &&
           (!args.campaignId || conversion.campaignId === args.campaignId)) {
-        const data = affiliateData.get(conversion.affiliateId);
-        if (data) data.conversions++;
+        if (conversion.affiliateId) {
+          const data = affiliateData.get(conversion.affiliateId);
+          if (data) data.conversions++;
+        }
       }
     }
 

@@ -453,6 +453,7 @@ export const getCampaignPerformanceDetails = query({
     }
 
     for (const conversion of campaignConversions) {
+      if (!conversion.affiliateId) continue;
       const stats = affiliateStats.get(conversion.affiliateId);
       if (stats) stats.conversions++;
     }

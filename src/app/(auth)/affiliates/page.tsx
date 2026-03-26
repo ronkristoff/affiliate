@@ -762,7 +762,7 @@ function AffiliatesContent() {
             // Clear status multi-select when switching tabs
             if (t !== "all") setStatuses([]);
           }}
-          counts={{ ...counts, total }}
+          counts={counts}
         />
 
         {/* All Tab Content */}

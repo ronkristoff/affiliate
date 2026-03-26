@@ -484,8 +484,10 @@ export const getCampaignPerformanceDetails = query({
     }
 
     for (const conversion of campaignConversions) {
-      const stats = affiliateStats.get(conversion.affiliateId);
-      if (stats) stats.conversions++;
+      if (conversion.affiliateId) {
+        const stats = affiliateStats.get(conversion.affiliateId);
+        if (stats) stats.conversions++;
+      }
     }
 
     for (const commission of campaignCommissions) {
@@ -786,8 +788,10 @@ export const getAffiliatePerformanceList = query({
       if (conversion._creationTime >= startDate && 
           conversion._creationTime <= endDate &&
           (!args.campaignId || conversion.campaignId === args.campaignId)) {
-        const count = conversionCounts.get(conversion.affiliateId) ?? 0;
-        conversionCounts.set(conversion.affiliateId, count + 1);
+        if (conversion.affiliateId) {
+          const count = conversionCounts.get(conversion.affiliateId) ?? 0;
+          conversionCounts.set(conversion.affiliateId, count + 1);
+        }
       }
     }
 
@@ -1062,8 +1066,9 @@ export const getAffiliatePerformanceDetails = query({
 
     const allConversions = await ctx.db
       .query("conversions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
+      .collect()
+      .then(results => results.filter(c => c.affiliateId === args.affiliateId));
 
     const allCommissions = await ctx.db
       .query("commissions")
@@ -1300,8 +1305,10 @@ export const getAffiliateExportData = query({
       if (conversion._creationTime >= args.startDate && 
           conversion._creationTime <= args.endDate &&
           (!args.campaignId || conversion.campaignId === args.campaignId)) {
-        const data = affiliateData.get(conversion.affiliateId);
-        if (data) data.conversions++;
+        if (conversion.affiliateId) {
+          const data = affiliateData.get(conversion.affiliateId);
+          if (data) data.conversions++;
+        }
       }
     }
 
@@ -1544,8 +1551,10 @@ export const getTopAffiliatesByRevenue = query({
       if (conversion._creationTime >= startDate && 
           conversion._creationTime <= endDate &&
           (!args.campaignId || conversion.campaignId === args.campaignId)) {
-        const stats = affiliateStats.get(conversion.affiliateId);
-        if (stats) stats.conversions++;
+        if (conversion.affiliateId) {
+          const stats = affiliateStats.get(conversion.affiliateId);
+          if (stats) stats.conversions++;
+        }
       }
     }
 

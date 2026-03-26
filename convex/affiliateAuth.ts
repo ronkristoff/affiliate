@@ -929,11 +929,14 @@ export const getAffiliatePortalDashboardStats = query({
     let totalConversions = 0;
     let thisMonthConversions = 0;
     
-    const conversionsQuery = ctx.db
+    const allConversions = await ctx.db
       .query("conversions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+      .withIndex("by_tenant", (q) => q.eq("tenantId", affiliate.tenantId))
+      .collect();
+
+    const conversions = allConversions.filter(c => c.affiliateId === args.affiliateId);
     
-    for await (const conversion of conversionsQuery) {
+    for await (const conversion of conversions) {
       totalConversions++;
       if (conversion._creationTime >= thisMonthStart && conversion._creationTime <= thisMonthEnd) {
         thisMonthConversions++;

@@ -295,15 +295,12 @@ export const listAffiliatesByStatus = query({
     const MAX_AFFILIATES = 1000;
 
     // Fetch affiliates for the tenant — capped to prevent unbounded reads
-    // Exclude system/internal records (e.g. organic traffic placeholder)
-    const STANDARD_STATUSES = new Set(["pending", "active", "suspended", "rejected"]);
     let affiliates;
     if (args.status === "all") {
-      const all = await ctx.db
+      affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
         .take(MAX_AFFILIATES);
-      affiliates = all.filter((a) => STANDARD_STATUSES.has(a.status));
     } else {
       affiliates = await ctx.db
         .query("affiliates")
@@ -347,7 +344,7 @@ export const listAffiliatesByStatus = query({
       .take(500);
 
     for (const conversion of allConversions) {
-      if (conversionCounts.has(conversion.affiliateId)) {
+      if (conversion.affiliateId && conversionCounts.has(conversion.affiliateId)) {
         conversionCounts.set(conversion.affiliateId, (conversionCounts.get(conversion.affiliateId) ?? 0) + 1);
       }
     }
@@ -435,7 +432,7 @@ async function fetchPerAffiliateStats(
   const statPromises = affiliates.map(async (affiliate) => {
     const [clicks, conversions, commissions] = await Promise.all([
       ctx.db.query("clicks").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(200),
-      ctx.db.query("conversions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(100),
+      ctx.db.query("conversions").withIndex("by_tenant", (q: any) => q.eq("tenantId", affiliate.tenantId)).take(200).then((items: any[]) => items.filter((c: any) => c.affiliateId === affiliate._id)),
       ctx.db.query("commissions").withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id)).take(100),
     ]);
 
@@ -623,15 +620,12 @@ export const listAffiliatesFiltered = query({
     }
 
     // ── Step 2: Fetch affiliates matching status filter — capped reads ──
-    const STANDARD_STATUSES = new Set(["pending", "active", "suspended", "rejected"]);
     let affiliates;
     if (status === "all") {
-      const all = await ctx.db
+      affiliates = await ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
         .take(MAX_AFFILIATES);
-      // Exclude system/internal records (e.g. organic traffic placeholder)
-      affiliates = all.filter((a) => STANDARD_STATUSES.has(a.status));
     } else {
       affiliates = await ctx.db
         .query("affiliates")
@@ -779,8 +773,10 @@ export const listAffiliatesFiltered = query({
       clickCountMap.set(key, (clickCountMap.get(key) ?? 0) + 1);
     }
     for (const conv of allConversions) {
-      const key = conv.affiliateId.toString();
-      referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
+      if (conv.affiliateId) {
+        const key = conv.affiliateId.toString();
+        referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
+      }
     }
     for (const comm of allCommissions) {
       if (comm.status === "approved") {
@@ -2240,10 +2236,11 @@ export const getAffiliateStats = query({
     const totalClicks = clicks.length;
 
     // Get conversions count
-    const conversions = await ctx.db
+    const allConvs = await ctx.db
       .query("conversions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
       .take(500);
+    const conversions = allConvs.filter(c => c.affiliateId === args.affiliateId);
     const totalConversions = conversions.length;
 
     // Get commissions

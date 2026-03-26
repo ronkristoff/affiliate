@@ -202,6 +202,7 @@ export const getDashboardData = query({
 
     for (const conversion of conversions) {
       if (conversion._creationTime >= startDate && conversion._creationTime <= endDate) {
+        if (!conversion.affiliateId) continue;
         const stats = affiliateStatsMap.get(conversion.affiliateId);
         if (stats) stats.conversions++;
       }

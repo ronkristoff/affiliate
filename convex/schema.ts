@@ -266,7 +266,7 @@ export default defineSchema({
 
   conversions: defineTable({
     tenantId: v.id("tenants"),
-    affiliateId: v.id("affiliates"),
+    affiliateId: v.optional(v.id("affiliates")),
     referralLinkId: v.optional(v.id("referralLinks")),
     clickId: v.optional(v.id("clicks")),
     campaignId: v.optional(v.id("campaigns")),
@@ -294,7 +294,6 @@ export default defineSchema({
       previousAmount: v.optional(v.number()),
     })),
   }).index("by_tenant", ["tenantId"])
-    .index("by_affiliate", ["affiliateId"])
     .index("by_click", ["clickId"])
     .index("by_campaign", ["campaignId"]),
 
