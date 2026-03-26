@@ -1,6 +1,7 @@
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Star } from "lucide-react";
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Star, Quote } from "lucide-react";
 
 const testimonials = [
   {
@@ -22,85 +23,147 @@ const testimonials = [
 ];
 
 export function TestimonialsSection(): React.JSX.Element {
+  const [isVisible, setIsVisible] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+    return () => observer.disconnect();
+  }, [prefersReducedMotion]);
+
   return (
     <section
-      className="py-20 bg-[var(--bg-page)]"
+      ref={sectionRef}
+      className="py-24 bg-[#f8fafc] relative overflow-hidden"
       aria-labelledby="testimonials-heading"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[var(--brand-light)] text-[var(--brand-primary)] text-sm font-medium mb-4">
+      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#10409a]/[0.03] to-transparent pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div 
+          className="max-w-3xl mb-16"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+          }}
+        >
+          <span className="inline-block px-4 py-1.5 rounded-full bg-[#10409a]/10 text-[#10409a] text-sm font-bold mb-6">
             Testimonials
           </span>
           <h2
             id="testimonials-heading"
-            className="text-3xl sm:text-4xl font-bold text-[var(--text-heading)] mb-4"
+            className="text-4xl sm:text-5xl font-black text-[#10409a] mb-4 leading-[1.1]"
           >
             Loved by SaaS founders in{" "}
-            <span className="text-[var(--brand-primary)]">Southeast Asia</span>
+            <span className="text-[#022232]">Southeast Asia</span>
           </h2>
         </div>
 
-        {/* Testimonial Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl">
           {testimonials.length === 0 ? (
-            <p className="text-center text-[var(--text-muted)] col-span-2">
+            <p className="text-center text-[#6b7280] col-span-2">
               No testimonials available yet.
             </p>
           ) : (
-            testimonials.map((testimonial) => (
-              <Card
+            testimonials.map((testimonial, index) => (
+              <div
                 key={testimonial.id}
-                role="article"
-                className="border-[var(--border)] motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-md transition-shadow duration-200"
+                className={`relative bg-white rounded-2xl p-8 border border-[#e5e7eb] shadow-lg hover:shadow-xl transition-all duration-500 ${
+                  index === 1 ? 'md:transform md:-translate-y-4' : ''
+                }`}
+                style={{
+                  opacity: isVisible ? 1 : 0,
+                  transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+                  transition: `opacity 0.6s ease-out ${index * 150}ms, transform 0.6s ease-out ${index * 150}ms`,
+                }}
               >
-                <CardContent className="p-8">
-                  <figure>
-                    {/* Stars */}
-                    <div className="flex gap-1 mb-4" aria-label="5 out of 5 stars rating">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className="w-5 h-5 fill-amber-400 text-amber-400"
-                          aria-hidden="true"
-                        />
-                      ))}
-                    </div>
+                <div className="absolute -top-4 left-8 w-10 h-10 rounded-xl bg-[#10409a] flex items-center justify-center shadow-lg">
+                  <Quote className="w-5 h-5 text-white" />
+                </div>
+                
+                <div className="pt-6">
+                  <div className="flex gap-1 mb-6" aria-label="5 out of 5 stars rating">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className="w-5 h-5 fill-amber-400 text-amber-400"
+                        aria-hidden="true"
+                      />
+                    ))}
+                  </div>
 
-                  {/* Quote */}
-                  <blockquote className="text-lg text-[var(--text-body)] mb-6">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </blockquote>
+                <blockquote className="text-xl text-[#333333] mb-8 leading-relaxed font-medium">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </blockquote>
 
-                  {/* Author */}
-                  <figcaption className="flex items-center gap-4 not-italic">
-                    <div
-                      className="w-12 h-12 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center font-semibold shrink-0"
-                      aria-hidden="true"
-                    >
-                      {testimonial.initials}
+                <figcaption className="flex items-center gap-4 not-italic">
+                  <div
+                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#10409a] to-[#1659d6] text-white flex items-center justify-center font-bold text-lg shadow-lg"
+                    aria-hidden="true"
+                  >
+                    {testimonial.initials}
+                  </div>
+                  <div>
+                    <div className="font-bold text-[#333333] text-lg">
+                      {testimonial.name}
                     </div>
-                    <div>
-                      <div className="font-semibold text-[var(--text-heading)]">
-                        {testimonial.name}
-                      </div>
-                      <div className="text-sm text-[var(--text-muted)]">
-                        {testimonial.role}, {testimonial.location}
-                      </div>
+                    <div className="text-sm text-[#6b7280] font-medium">
+                      {testimonial.role} · {testimonial.location}
                     </div>
-                  </figcaption>
-                </figure>
-              </CardContent>
-            </Card>
-          ))
+                  </div>
+                </figcaption>
+                </div>
+              </div>
+            ))
           )}
         </div>
 
-        {/* Note */}
-        <p className="text-center text-sm text-[var(--text-muted)] mt-8">
-          * Replace with real quotes within 30 days of launch
-        </p>
+        <div 
+          className="mt-16 flex flex-wrap items-center justify-center gap-8 text-[#6b7280]"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 0.6s ease-out 0.5s, transform 0.6s ease-out 0.5s',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#10b981]" />
+            <span className="text-sm font-medium">50+ active affiliates</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#10b981]" />
+            <span className="text-sm font-medium">₱2M+ paid out</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#10b981]" />
+            <span className="text-sm font-medium">4.9/5 rating</span>
+          </div>
+        </div>
       </div>
     </section>
   );

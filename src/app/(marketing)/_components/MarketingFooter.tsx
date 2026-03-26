@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Shield, Lock } from "lucide-react";
+import { Shield, Lock, Zap } from "lucide-react";
 
 const footerLinks = {
   product: [
@@ -22,35 +22,40 @@ const footerLinks = {
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-[var(--brand-dark)] text-white py-16">
+    <footer className="bg-[#022232] text-white pt-20 pb-8 relative overflow-hidden">
+      {/* Background accent */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-16 mb-16">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center">
-                <span className="text-[var(--brand-primary)] font-bold text-lg font-display">S</span>
+            <Link href="/" className="inline-flex items-center gap-3 mb-6">
+              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg">
+                <span className="text-[#10409a] font-black text-xl">S</span>
               </div>
-              <span className="font-bold text-xl">saligaffiliate</span>
+              <span className="font-black text-2xl">salig<span className="text-[#22d3ee]">affiliate</span></span>
             </Link>
-            <p className="text-white/60 text-sm mb-4">
+            <p className="text-white/60 text-base mb-6 leading-relaxed">
               Launch, manage, and pay your affiliate program natively on SaligPay.
             </p>
-            <div className="flex items-center gap-2 text-sm text-white/60">
-              <Shield className="w-4 h-4" />
-              <span>Built on SaligPay</span>
+            <div className="flex items-center gap-4 text-sm text-white/50">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#22d3ee]" />
+                <span>Built on SaligPay</span>
+              </div>
             </div>
           </div>
 
           {/* Product Links */}
           <div>
-            <h4 className="font-semibold mb-4">Product</h4>
-            <ul className="space-y-3">
+            <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider">Product</h4>
+            <ul className="space-y-4">
               {footerLinks.product.map((link, index) => (
                 <li key={index}>
                   <Link 
                     href={link.href}
-                    className="text-white/60 hover:text-white transition-colors text-sm"
+                    className="text-white/60 hover:text-white transition-colors text-sm font-medium inline-block"
                   >
                     {link.label}
                   </Link>
@@ -61,13 +66,13 @@ export function MarketingFooter() {
 
           {/* Company Links */}
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-3">
+            <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider">Company</h4>
+            <ul className="space-y-4">
               {footerLinks.company.map((link, index) => (
                 <li key={index}>
                   <Link 
                     href={link.href}
-                    className="text-white/60 hover:text-white transition-colors text-sm"
+                    className="text-white/60 hover:text-white transition-colors text-sm font-medium inline-block"
                   >
                     {link.label}
                   </Link>
@@ -78,13 +83,13 @@ export function MarketingFooter() {
 
           {/* Legal Links */}
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
-            <ul className="space-y-3">
+            <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider">Legal</h4>
+            <ul className="space-y-4">
               {footerLinks.legal.map((link, index) => (
                 <li key={index}>
                   <Link 
                     href={link.href}
-                    className="text-white/60 hover:text-white transition-colors text-sm"
+                    className="text-white/60 hover:text-white transition-colors text-sm font-medium inline-block"
                   >
                     {link.label}
                   </Link>
@@ -95,18 +100,20 @@ export function MarketingFooter() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/40">
-            © {new Date().getFullYear()} salig-affiliate. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-white/40">
-              <Lock className="w-4 h-4" />
-              <span>Secure payments</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-white/40">
-              <Shield className="w-4 h-4" />
-              <span>SOC 2 Compliant</span>
+        <div className="pt-8 border-t border-white/10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <p className="text-sm text-white/40">
+              © {new Date().getFullYear()} salig-affiliate. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-sm text-white/40">
+                <Lock className="w-4 h-4" />
+                <span>Secure payments</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-white/40">
+                <Zap className="w-4 h-4 text-[#22d3ee]" />
+                <span>Powered by SaligPay</span>
+              </div>
             </div>
           </div>
         </div>

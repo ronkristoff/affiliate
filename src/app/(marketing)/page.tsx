@@ -154,7 +154,7 @@ export default function MarketingPage() {
       <MarketingNav />
 
       {/* Main Content */}
-      <div className="pt-[60px]">
+      <div>
         <HeroSection />
         <SocialProofBar />
         <ProblemSection />

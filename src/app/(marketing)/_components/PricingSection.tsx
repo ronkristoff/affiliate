@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Check, ArrowRight, Loader2 } from "lucide-react";
+import { Check, ArrowRight, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +15,6 @@ export function PricingSection() {
 
   const getPrice = (monthlyPrice: number) => {
     if (isAnnual) {
-      // Annual = monthly × 10 (2 months free)
       return Math.round(monthlyPrice * 10);
     }
     return monthlyPrice;
@@ -27,7 +25,6 @@ export function PricingSection() {
     return value.toLocaleString();
   };
 
-  // Generate feature list from tier config data
   const generateFeatures = (tier: {
     maxAffiliates: number;
     maxCampaigns: number;
@@ -53,7 +50,6 @@ export function PricingSection() {
     return features;
   };
 
-  // Get description based on tier position
   const getDescription = (index: number, total: number): string => {
     if (total <= 1) return "Flexible affiliate marketing for your business.";
     if (index === 0) return "Perfect for small teams getting started with affiliate marketing.";
@@ -61,7 +57,6 @@ export function PricingSection() {
     return "For growing businesses ready to scale their affiliate program.";
   };
 
-  // Determine which tier to highlight (middle tier, or second-to-last)
   const getHighlightedIndex = (total: number): number => {
     if (total <= 1) return 0;
     if (total === 2) return 1;
@@ -70,10 +65,10 @@ export function PricingSection() {
 
   if (allTiers === undefined) {
     return (
-      <section id="pricing" className="py-20 bg-white">
+      <section id="pricing" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--brand-primary)]" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
           </div>
         </div>
       </section>
@@ -83,140 +78,212 @@ export function PricingSection() {
   const highlightedIndex = getHighlightedIndex(allTiers.length);
 
   return (
-    <section id="pricing" className="py-20 bg-white">
+    <section id="pricing" className="py-24 bg-[#f8fafc] relative overflow-hidden">
+      {/* Background accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#10409a] to-transparent" />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[var(--brand-light)] text-[var(--brand-primary)] text-sm font-medium mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#10409a]/10 text-[#10409a] text-sm font-bold mb-6">
+            <Zap className="w-4 h-4" />
             Pricing
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-heading)] mb-4">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#10409a] mb-6 leading-[1.05]">
             Simple, transparent{" "}
-            <span className="text-[var(--brand-primary)]">pricing</span>
+            <span className="text-[#022232]">pricing</span>
           </h2>
-          <p className="text-lg text-[var(--text-body)]">
+          <p className="text-xl text-[#6b7280]">
             Start free, scale as you grow. No hidden fees, no surprises.
           </p>
         </div>
 
         {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={cn("text-sm font-medium", !isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]')}>
+        <div className="flex items-center justify-center gap-4 mb-16">
+          <span className={cn("text-sm font-bold", !isAnnual ? 'text-[#10409a]' : 'text-[#6b7280]')}>
             Monthly
           </span>
           <Switch
             checked={isAnnual}
             onCheckedChange={setIsAnnual}
             aria-label="Toggle annual billing"
+            className="data-[state=checked]:bg-[#10409a] data-[state=unchecked]:bg-[#e5e7eb]"
           />
-          <span className={cn("text-sm font-medium", isAnnual ? 'text-[var(--text-heading)]' : 'text-[var(--text-muted)]')}>
+          <span className={cn("text-sm font-bold", isAnnual ? 'text-[#10409a]' : 'text-[#6b7280]')}>
             Annual
           </span>
           {isAnnual && (
-            <span className="px-3 py-1 rounded-full bg-[var(--success-bg)] text-[var(--success-text)] text-xs font-medium">
+            <span className="px-3 py-1 rounded-full bg-[#10b981] text-white text-xs font-bold">
               Save 17%
             </span>
           )}
         </div>
 
         {/* Pricing Cards */}
-        <div className={cn(
-          "gap-8 max-w-5xl mx-auto",
-          allTiers.length <= 3 ? "grid md:grid-cols-3" : "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        )}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
           {allTiers.map((tier, index) => {
             const isHighlighted = index === highlightedIndex;
             const features = generateFeatures(tier);
 
             return (
-              <Card
+              <div
                 key={tier.tier}
-                className={`relative ${
-                  isHighlighted
-                    ? 'border-[var(--brand-primary)] shadow-lg scale-[1.04]'
-                    : 'border-[var(--border)]'
-                }`}
+                className="relative"
               >
+                {/* Featured badge */}
                 {isHighlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[var(--brand-primary)] text-white text-sm font-medium rounded-full">
-                    Most Popular
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                    <div className="px-4 py-1.5 bg-[#10409a] text-white text-xs font-bold rounded-full shadow-lg">
+                      Most Popular
+                    </div>
                   </div>
                 )}
-                <CardContent className="p-8">
-                  <h3 className="font-semibold text-xl text-[var(--text-heading)] mb-2">
-                    {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
-                  </h3>
-                  <p className="text-sm text-[var(--text-muted)] mb-4">
-                    {getDescription(index, allTiers.length)}
-                  </p>
 
-                  {/* Price */}
-                  <div className="mb-6">
-                    {tier.price === 0 ? (
-                      <div>
-                        <span className="text-4xl font-bold text-[var(--text-heading)]">Free</span>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="text-4xl font-bold text-[var(--text-heading)]">
-                          ₱{getPrice(tier.price).toLocaleString()}
-                        </span>
-                        <span className="text-[var(--text-muted)]">/{isAnnual ? 'year' : 'month'}</span>
-                      </div>
-                    )}
-                  </div>
+                {/* Card */}
+                <div 
+                  className={cn(
+                    "relative h-full rounded-3xl transition-all duration-500",
+                    isHighlighted 
+                      ? "bg-[#022232] text-white scale-[1.05] shadow-2xl shadow-[#022232]/20 animate-[glow_3s_ease-in-out_infinite]" 
+                      : "bg-white border-2 border-[#e5e7eb] hover:border-[#10409a]/30 hover:shadow-xl"
+                  )}
+                >
 
-                  {/* Limits */}
-                  <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-                    <div>
-                      <span className="text-[var(--text-muted)]">Affiliates:</span>
-                      <span className="font-medium text-[var(--text-heading)] ml-1">{formatLimit(tier.maxAffiliates)}</span>
+                  <div className={cn("p-8", isHighlighted ? "pt-12" : "")}>
+                    {/* Tier name */}
+                    <div className="mb-6">
+                      <h3 className={cn(
+                        "text-2xl font-black mb-2",
+                        isHighlighted ? "text-white" : "text-[#333333]"
+                      )}>
+                        {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+                      </h3>
+                      <p className={cn(
+                        "text-sm leading-relaxed",
+                        isHighlighted ? "text-white/70" : "text-[#6b7280]"
+                      )}>
+                        {getDescription(index, allTiers.length)}
+                      </p>
                     </div>
-                    <div>
-                      <span className="text-[var(--text-muted)]">Campaigns:</span>
-                      <span className="font-medium text-[var(--text-heading)] ml-1">{formatLimit(tier.maxCampaigns)}</span>
+
+                    {/* Price - dramatic display */}
+                    <div className="mb-8">
+                      {tier.price === 0 ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-black text-white">Free</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-black text-white">
+                            ₱{getPrice(tier.price).toLocaleString()}
+                          </span>
+                          <span className={cn(
+                            "text-sm font-medium",
+                            isHighlighted ? "text-white/60" : "text-[#6b7280]"
+                          )}>
+                            /{isAnnual ? 'year' : 'month'}
+                          </span>
+                        </div>
+                      )}
+                      {isAnnual && tier.price > 0 && (
+                        <p className="text-xs text-[#22d3ee] font-medium mt-1">
+                          2 months free
+                        </p>
+                      )}
                     </div>
+
+                    {/* Limits */}
+                    <div className={cn(
+                      "grid grid-cols-2 gap-3 mb-8 p-4 rounded-2xl",
+                      isHighlighted ? "bg-white/5" : "bg-[#f8fafc]"
+                    )}>
+                      <div>
+                        <div className={cn(
+                          "text-xs font-medium mb-1",
+                          isHighlighted ? "text-white/60" : "text-[#6b7280]"
+                        )}>
+                          Affiliates
+                        </div>
+                        <div className={cn(
+                          "text-lg font-black",
+                          isHighlighted ? "text-white" : "text-[#333333]"
+                        )}>
+                          {formatLimit(tier.maxAffiliates)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className={cn(
+                          "text-xs font-medium mb-1",
+                          isHighlighted ? "text-white/60" : "text-[#6b7280]"
+                        )}>
+                          Campaigns
+                        </div>
+                        <div className={cn(
+                          "text-lg font-black",
+                          isHighlighted ? "text-white" : "text-[#333333]"
+                        )}>
+                          {formatLimit(tier.maxCampaigns)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Features */}
+                    <ul className="space-y-3 mb-8">
+                      {features.map((feature, featureIndex) => (
+                        <li 
+                          key={`${tier.tier}-${featureIndex}`} 
+                          className="flex items-start gap-3"
+                        >
+                          <div className={cn(
+                            "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                            isHighlighted ? "bg-[#22d3ee]/20" : "bg-[#10b981]/10"
+                          )}>
+                            <Check className={cn(
+                              "w-3 h-3",
+                              isHighlighted ? "text-[#22d3ee]" : "text-[#10b981]"
+                            )} />
+                          </div>
+                          <span className={cn(
+                            "text-sm",
+                            isHighlighted ? "text-white/90" : "text-[#6b7280]"
+                          )}>
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <Link href="/sign-up" className="block">
+                      <Button 
+                        className={cn(
+                          "w-full font-bold min-h-[52px] text-base rounded-xl transition-all duration-300",
+                          isHighlighted
+                            ? "bg-white text-[#022232] hover:bg-white/90 shadow-lg"
+                            : "bg-[#10409a] text-white hover:bg-[#0c3280]"
+                        )}
+                      >
+                        {tier.price === 0 ? "Get Started Free" : "Start free trial"}
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                      </Button>
+                    </Link>
                   </div>
-
-                  {/* Features */}
-                  <ul className="space-y-3 mb-8">
-                    {features.map((feature, featureIndex) => (
-                      <li key={`${tier.tier}-${featureIndex}`} className="flex items-start gap-2 text-sm">
-                        <Check className="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5" />
-                        <span className="text-[var(--text-body)]">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA */}
-                  <Link href="/sign-up" className="block">
-                    <Button 
-                      className={`w-full font-semibold min-h-[44px] ${
-                        isHighlighted
-                          ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white'
-                          : 'bg-[var(--bg-page)] hover:bg-[var(--border)] text-[var(--text-heading)]'
-                      }`}
-                    >
-                      {tier.price === 0 ? "Get Started Free" : "Start free trial"}
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {/* Enterprise Callout */}
-        <div className="text-center mt-12">
-          <p className="text-[var(--text-muted)]">
+        <div className="text-center mt-16">
+          <p className="text-[#6b7280]">
             Need something custom?{" "}
-            <Link href="mailto:hello@saligaffiliate.com" className="text-[var(--brand-primary)] font-medium hover:underline">
+            <Link href="mailto:hello@saligaffiliate.com" className="text-[#10409a] font-bold hover:underline">
               Contact us
             </Link>{" "}
             for enterprise pricing.
           </p>
-          <p className="text-sm text-[var(--text-muted)] mt-2">
+          <p className="text-sm text-[#6b7280]/70 mt-2">
             All plans include 14-day free trial with full Scale tier access.
           </p>
         </div>

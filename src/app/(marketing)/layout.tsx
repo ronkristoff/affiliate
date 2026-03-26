@@ -113,7 +113,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="scroll-smooth">
+    <html lang="en" suppressHydrationWarning className={`scroll-smooth ${poppins.variable} ${passionOne.variable}`}>
       <head>
         {preconnectGoogleFonts.map((link) => (
           <link key={link.href} {...link} />
@@ -124,8 +124,8 @@ export default function MarketingLayout({
         <link rel="preload" as="image" href="/dashboard-preview.svg" type="image/svg+xml" />
       </head>
       <body
-        className={`${poppins.variable} ${passionOne.variable} min-h-screen flex flex-col bg-white text-[var(--text-body)] antialiased`}
-        style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
+        className="min-h-screen flex flex-col bg-white text-[var(--text-body)] antialiased"
+        style={{ fontFamily: 'var(--font-poppins)' }}
       >
         <main className="flex-1 flex flex-col">
           {children}
