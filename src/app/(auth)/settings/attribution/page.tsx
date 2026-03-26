@@ -5,6 +5,7 @@ import { AttributionVerifier } from "@/components/onboarding/AttributionVerifier
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,15 +28,12 @@ export default function AttributionSettingsPage() {
   const webhooks = useQuery(api.webhooks.listRecentWebhooks, { count: 5 });
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Attribution Settings</h1>
-          <p className="text-muted-foreground mt-2">
-            Configure and monitor how referral conversions are tracked and attributed
-          </p>
-        </div>
+    <div className="animate-fade-in">
+      <PageTopbar description="Configure and monitor how referral conversions are tracked and attributed">
+        <h1 className="text-lg font-semibold text-heading">Attribution Settings</h1>
+      </PageTopbar>
+      <div className="px-8 py-6">
+        <div className="max-w-4xl space-y-6">
 
         {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -199,6 +197,7 @@ export default function AttributionSettingsPage() {
 
         {/* Attribution Verifier */}
         <AttributionVerifier />
+        </div>
       </div>
     </div>
   );

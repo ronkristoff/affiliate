@@ -526,7 +526,7 @@ export const listRecentWithAttribution = query({
       .unique();
     
     if (!user) {
-      throw new Error("User not found");
+      return [];
     }
 
     // Query conversions for this tenant, ordered by creation time (descending)
@@ -692,7 +692,12 @@ export const getConversionStats = query({
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      return {
+        totalConversions: 0,
+        totalAmount: 0,
+        attributedConversions: 0,
+        organicConversions: 0,
+      };
     }
 
     // Get conversions for this tenant with a reasonable limit to avoid memory issues

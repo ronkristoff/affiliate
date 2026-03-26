@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,132 +132,132 @@ export default function BrandingSettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Portal Branding</h1>
-        <p className="text-muted-foreground mt-1">
-          Customize how your affiliate portal looks to your affiliates. This is a white-label feature - your affiliates will see your brand, not salig-affiliate's.
-        </p>
-      </div>
-      
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Branding Settings */}
-        <div className="space-y-6">
-          {/* Logo Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Logo
-              </CardTitle>
-              <CardDescription>
-                Upload your company logo to display on the affiliate portal
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LogoUpload 
-                value={logoUrl} 
-                onChange={setLogoUrl}
-                primaryColor={primaryColor}
-              />
-            </CardContent>
-          </Card>
-          
-          {/* Brand Color */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Brand Color
-              </CardTitle>
-              <CardDescription>
-                Choose your primary brand color. This will be used throughout the portal.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ColorPicker 
-                value={primaryColor}
-                onChange={setPrimaryColor}
-              />
-            </CardContent>
-          </Card>
-          
-          {/* Portal Name */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Portal Name</CardTitle>
-              <CardDescription>
-                The name displayed in the portal header
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PortalNameInput
-                value={portalName}
-                onChange={setPortalName}
-                defaultName={tenantContext.name}
-              />
-            </CardContent>
-          </Card>
-          
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-4">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={isSaving || isResetting}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset to Defaults
+    <div className="animate-fade-in">
+      <PageTopbar description="Customize how your affiliate portal looks to your affiliates">
+        <h1 className="text-lg font-semibold text-heading">Portal Branding</h1>
+      </PageTopbar>
+      <div className="px-8 py-6">
+        <div className="max-w-4xl space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Branding Settings */}
+            <div className="space-y-6">
+              {/* Logo Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Logo
+                  </CardTitle>
+                  <CardDescription>
+                    Upload your company logo to display on the affiliate portal
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LogoUpload 
+                    value={logoUrl} 
+                    onChange={setLogoUrl}
+                    primaryColor={primaryColor}
+                  />
+                </CardContent>
+              </Card>
+              
+              {/* Brand Color */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Brand Color
+                  </CardTitle>
+                  <CardDescription>
+                    Choose your primary brand color. This will be used throughout the portal.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ColorPicker 
+                    value={primaryColor}
+                    onChange={setPrimaryColor}
+                  />
+                </CardContent>
+              </Card>
+              
+              {/* Portal Name */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Portal Name</CardTitle>
+                  <CardDescription>
+                    The name displayed in the portal header
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PortalNameInput
+                    value={portalName}
+                    onChange={setPortalName}
+                    defaultName={tenantContext.name}
+                  />
+                </CardContent>
+              </Card>
+              
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-4">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={isSaving || isResetting}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset to Defaults
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset Branding?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear all your branding settings and restore the default salig-affiliate branding. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset} disabled={isResetting}>
+                        {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Reset Branding
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset Branding?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will clear all your branding settings and restore the default salig-affiliate branding. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReset} disabled={isResetting}>
-                    {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Reset Branding
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </div>
+            </div>
             
-            <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            {/* Live Preview */}
+            <div>
+              <Card className="sticky top-8">
+                <CardHeader>
+                  <CardTitle>Live Preview</CardTitle>
+                  <CardDescription>
+                    See how your portal will look to affiliates
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BrandingPreview
+                    logoUrl={logoUrl}
+                    primaryColor={primaryColor}
+                    portalName={portalName || tenantContext.name}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-        
-        {/* Live Preview */}
-        <div>
-          <Card className="sticky top-8">
-            <CardHeader>
-              <CardTitle>Live Preview</CardTitle>
-              <CardDescription>
-                See how your portal will look to affiliates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BrandingPreview
-                logoUrl={logoUrl}
-                primaryColor={primaryColor}
-                portalName={portalName || tenantContext.name}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

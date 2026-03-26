@@ -337,7 +337,7 @@ export const listRecentWebhooks = query({
       .unique();
     
     if (!user) {
-      throw new Error("User not found");
+      return [];
     }
 
     // Query webhooks for this tenant
@@ -382,7 +382,17 @@ export const getWebhookPayload = query({
       .unique();
     
     if (!user) {
-      throw new Error("User not found");
+      return {
+        _id: args.webhookId,
+        source: "unknown",
+        eventId: "unknown",
+        eventType: "unknown",
+        rawPayload: "{}",
+        status: "error",
+        signatureValid: false,
+        processedAt: undefined,
+        errorMessage: "User not found",
+      };
     }
 
     // Get the webhook

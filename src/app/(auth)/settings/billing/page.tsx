@@ -18,6 +18,7 @@ import { CancellationRetentionCard } from "@/components/settings/CancellationNot
 import { TrialWarningBanner, getTrialStatus } from "@/components/settings/TrialWarningBanner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -92,41 +93,39 @@ export default function BillingSettingsPage() {
   // Handle error state
   if (subscription === null) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold">Billing</h2>
-          <p className="text-muted-foreground">
-            Manage your subscription and billing information
-          </p>
+      <div className="animate-fade-in">
+        <PageTopbar description="Manage your subscription and billing information">
+          <h1 className="text-lg font-semibold text-heading">Billing</h1>
+        </PageTopbar>
+        <div className="px-8 py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error loading subscription</AlertTitle>
+            <AlertDescription>
+              Unable to load your subscription information. Please try refreshing the page or contact support if the problem persists.
+            </AlertDescription>
+          </Alert>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline"
+          >
+            Refresh Page
+          </Button>
         </div>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error loading subscription</AlertTitle>
-          <AlertDescription>
-            Unable to load your subscription information. Please try refreshing the page or contact support if the problem persists.
-          </AlertDescription>
-        </Alert>
-        <Button 
-          onClick={() => window.location.reload()} 
-          variant="outline"
-        >
-          Refresh Page
-        </Button>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold">Billing</h2>
-          <p className="text-muted-foreground">
-            Manage your subscription and billing information
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="animate-fade-in">
+        <PageTopbar description="Manage your subscription and billing information">
+          <h1 className="text-lg font-semibold text-heading">Billing</h1>
+        </PageTopbar>
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
         </div>
       </div>
     );
@@ -304,13 +303,11 @@ export default function BillingSettingsPage() {
   const showWarningBanner = showTrialWarning && (trialStatus === "warning" || trialStatus === "urgent");
 
   return (
-    <div className="space-y-6" key={refreshKey}>
-      <div>
-        <h2 className="text-2xl font-semibold">Billing</h2>
-        <p className="text-muted-foreground">
-          Manage your subscription and billing information
-        </p>
-      </div>
+    <div className="animate-fade-in" key={refreshKey}>
+      <PageTopbar description="Manage your subscription and billing information">
+        <h1 className="text-lg font-semibold text-heading">Billing</h1>
+      </PageTopbar>
+      <div className="px-8 py-6 space-y-6">
 
       {/* Trial Warning Banner - shown when trial is ending soon */}
       {showWarningBanner && subscription.trialEndsAt && (
@@ -507,6 +504,7 @@ export default function BillingSettingsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

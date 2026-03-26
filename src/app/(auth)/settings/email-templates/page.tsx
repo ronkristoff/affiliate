@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Mail, Pencil, AlertCircle } from "lucide-react";
@@ -52,17 +53,19 @@ export default function EmailTemplatesPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Email Templates</h1>
-        <p className="text-muted-foreground mt-1">
-          Customize the emails sent to your affiliates. Use template variables like{" "}
-          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{"{{affiliate_name}}"}</code>{" "}
-          to personalize content.
-        </p>
-      </div>
+    <div className="animate-fade-in">
+      <PageTopbar description="Customize the emails sent to your affiliates">
+        <h1 className="text-lg font-semibold text-heading">Email Templates</h1>
+      </PageTopbar>
+      <div className="px-8 py-6">
+        <div className="max-w-4xl">
+          <p className="text-sm text-muted-foreground mb-6">
+            Use template variables like{" "}
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{"{{affiliate_name}}"}</code>{" "}
+            to personalize content.
+          </p>
 
-      <div className="space-y-4">
+          <div className="space-y-4">
         {templates.map((template) => (
           <Card key={template.type}>
             <CardHeader className="pb-3">
@@ -116,6 +119,8 @@ export default function EmailTemplatesPage() {
             </CardContent>
           </Card>
         ))}
+        </div>
+        </div>
       </div>
     </div>
   );

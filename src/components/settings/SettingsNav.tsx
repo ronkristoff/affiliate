@@ -10,25 +10,18 @@ import {
   CreditCard,
   Palette,
   Mail,
+  GitBranch,
 } from "lucide-react";
 
 // Available settings pages (only show implemented pages)
 const settingsLinks = [
   { href: "/settings/profile", label: "Profile", icon: User },
-  // TODO: Enable when implemented - Story 2.3, 2.8
-  // { href: "/settings/saligpay", label: "SaligPay Integration", icon: CreditCard },
-  // Story 8.7 - Portal Branding
   { href: "/settings/branding", label: "Portal Branding", icon: Palette },
   { href: "/settings/team", label: "Team Members", icon: Users },
-  // Story 2.8 - Tracking Snippet
   { href: "/settings/tracking", label: "Tracking Code", icon: Code },
-  // Story 3.1 - Billing
+  { href: "/settings/attribution", label: "Attribution", icon: GitBranch },
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
-  // Story 10.7 - Email Templates
   { href: "/settings/email-templates", label: "Email Templates", icon: Mail },
-  // TODO: Enable when implemented - Future stories
-  // { href: "/settings/notifications", label: "Notifications", icon: Bell },
-  // { href: "/settings/api-keys", label: "API Keys", icon: Key },
 ];
 
 interface SettingsNavProps {

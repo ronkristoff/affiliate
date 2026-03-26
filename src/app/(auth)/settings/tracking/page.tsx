@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { TrackingSnippetInstaller } from "@/components/onboarding/TrackingSnippetInstaller";
+import { PageTopbar } from "@/components/ui/PageTopbar";
 
 export default function SettingsTrackingPage() {
   const router = useRouter();
@@ -18,22 +19,22 @@ export default function SettingsTrackingPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Tracking Code</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure and manage your website tracking snippet
-        </p>
+    <div className="animate-fade-in">
+      <PageTopbar description="Configure and manage your website tracking snippet">
+        <h1 className="text-lg font-semibold text-heading">Tracking Code</h1>
+      </PageTopbar>
+      <div className="px-8 py-6">
+        <div className="max-w-4xl">
+          <Suspense
+            fallback={<div className="animate-pulse h-16 bg-muted rounded-lg" />}
+          >
+            <TrackingSnippetInstaller
+              onComplete={handleComplete}
+              onSkip={handleSkip}
+            />
+          </Suspense>
+        </div>
       </div>
-
-      <Suspense
-        fallback={<div className="animate-pulse h-16 bg-muted rounded-lg" />}
-      >
-        <TrackingSnippetInstaller
-          onComplete={handleComplete}
-          onSkip={handleSkip}
-        />
-      </Suspense>
     </div>
   );
 }
