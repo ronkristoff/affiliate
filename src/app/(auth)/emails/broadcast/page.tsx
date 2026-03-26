@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { EmailTabs } from "@/components/email/EmailTabs";
 import {
   Send,
   Loader2,
@@ -305,11 +306,16 @@ export default function BroadcastPage() {
   return (
     <>
       {/* Top Bar */}
-      <PageTopbar description="Send an email to all active affiliates" className="top-[var(--sub-nav-h)]">
+      <PageTopbar description="Send an email to all active affiliates">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
           Broadcast Email
         </h1>
       </PageTopbar>
+
+      {/* Tabs */}
+      <div className="px-8 pt-4">
+        <EmailTabs />
+      </div>
 
       <Suspense fallback={<BroadcastSkeleton />}>
         <BroadcastContent />

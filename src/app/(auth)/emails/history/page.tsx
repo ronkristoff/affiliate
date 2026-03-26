@@ -378,7 +378,6 @@ function BroadcastHistoryPage() {
       {/* Top Bar */}
       <PageTopbar
         description="View previously sent broadcast emails with delivery tracking"
-        className="top-[var(--sub-nav-h)]"
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
           Broadcast History

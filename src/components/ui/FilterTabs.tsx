@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -9,7 +10,7 @@ import { cn } from "@/lib/utils";
 // Pill-shaped tab buttons inspired by the Payout Audit Log tab style.
 // Supports icons, per-tab active colors, count badges, and multiple sizes.
 //
-// Usage:
+// Usage (same-page filtering):
 //   <FilterTabs
 //     tabs={[
 //       { key: "all", label: "All" },
@@ -18,6 +19,16 @@ import { cn } from "@/lib/utils";
 //     ]}
 //     activeTab="all"
 //     onTabChange={setTab}
+//   />
+//
+// Usage (route navigation):
+//   <FilterTabs
+//     tabs={[
+//       { key: "broadcast", label: "Broadcast", href: "/emails/broadcast", icon: <Send className="w-3.5 h-3.5" /> },
+//       { key: "history", label: "History", href: "/emails/history", icon: <History className="w-3.5 h-3.5" /> },
+//     ]}
+//     activeTab="broadcast"
+//     onTabChange={(key) => router.push(tabs.find(t => t.key === key)?.href ?? "")}
 //   />
 //
 // With count badges:
@@ -53,6 +64,8 @@ export interface FilterTabItem {
   activeColor?: string;
   /** Optional active text color override. Defaults to "text-white" */
   activeTextColor?: string;
+  /** Optional href for route navigation. When provided, renders a Link instead of a button */
+  href?: string;
 }
 
 export type FilterTabsSize = "sm" | "md" | "lg";
@@ -106,19 +119,8 @@ export function FilterTabs({
         const activeBg = tab.activeColor ?? "bg-[var(--brand-primary)]";
         const activeText = tab.activeTextColor ?? "text-white";
 
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={cn(
-              "inline-flex items-center gap-1.5 font-medium rounded-lg transition-colors whitespace-nowrap",
-              sizeStyles[size],
-              isActive
-                ? cn(activeBg, activeText)
-                : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]",
-            )}
-          >
+        const tabContent = (
+          <>
             {tab.icon && (
               <span
                 className={cn(
@@ -144,6 +146,37 @@ export function FilterTabs({
                 {tab.count}
               </span>
             )}
+          </>
+        );
+
+        const tabClasses = cn(
+          "inline-flex items-center gap-1.5 font-medium rounded-lg transition-colors whitespace-nowrap",
+          sizeStyles[size],
+          isActive
+            ? cn(activeBg, activeText)
+            : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]",
+        );
+
+        if (tab.href) {
+          return (
+            <Link
+              key={tab.key}
+              href={tab.href}
+              className={tabClasses}
+            >
+              {tabContent}
+            </Link>
+          );
+        }
+
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onTabChange(tab.key)}
+            className={tabClasses}
+          >
+            {tabContent}
           </button>
         );
       })}
