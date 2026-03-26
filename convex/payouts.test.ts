@@ -1578,6 +1578,29 @@ describe("Story 13.1: Payout Batch Generation", () => {
           })
         ).rejects.toThrow("Batch not found or access denied");
       });
+
+      it("should treat all payouts as paid when batch is completed (data inconsistency guard)", async () => {
+        const t = convexTest(schema, testModules);
+        const { batchId } = await setupBatchWithPayouts(t);
+
+        // Simulate data inconsistency: batch completed but individual
+        // payout records still have status="pending"
+        await t.run(async (ctx) => {
+          await ctx.db.patch(batchId, {
+            status: "completed",
+            completedAt: Date.now(),
+          });
+        });
+
+        const status = await t.query(api.payouts.getBatchPayoutStatus, {
+          batchId,
+        });
+
+        expect(status.total).toBe(2);
+        expect(status.paid).toBe(2);
+        expect(status.pending).toBe(0);
+        expect(status.batchStatus).toBe("completed");
+      });
     });
   });
 });

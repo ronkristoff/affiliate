@@ -1033,8 +1033,15 @@ export const getBatchPayoutStatus = query({
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
       .collect();
 
-    const paid = payouts.filter((p) => p.status === "paid").length;
-    const pending = payouts.filter((p) => p.status === "pending").length;
+    // If the batch is completed, treat all payouts as paid regardless of
+    // individual record state (guards against stale data inconsistency where
+    // the batch was completed but individual payout records weren't updated).
+    const paid = batch.status === "completed"
+      ? payouts.length
+      : payouts.filter((p) => p.status === "paid").length;
+    const pending = batch.status === "completed"
+      ? 0
+      : payouts.filter((p) => p.status === "pending").length;
 
     return {
       total: payouts.length,
