@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import { ConvexHttpClient } from "convex/browser";
 
 export default function SignIn() {
   const router = useRouter();
@@ -106,9 +107,26 @@ export default function SignIn() {
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {
-              // Redirect to the callback URL if present (e.g. /tenants for admins),
-              // otherwise fall back to /dashboard
-              router.push(callbackUrl || "/dashboard");
+              // If callbackUrl is present, use it (e.g. /tenants when admin accessed it directly)
+              if (callbackUrl) {
+                router.push(callbackUrl);
+                return;
+              }
+              // Check if user is a platform admin - redirect to /tenants if so
+              // Use ConvexHttpClient to get role since Better Auth session doesn't include custom fields
+              const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || window.location.origin;
+              const convex = new ConvexHttpClient(convexUrl);
+              try {
+                const user = await convex.query(api.auth.getUserRole, {});
+                if (user?.role === "admin") {
+                  router.push("/tenants");
+                  return;
+                }
+              } catch (e) {
+                // If query fails, fall through to dashboard
+                console.error("Failed to get user role:", e);
+              }
+              router.push("/dashboard");
             }
           },
           onError: async (ctx) => {

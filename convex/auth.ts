@@ -195,3 +195,35 @@ export const getCurrentTenantId = query({
     return appUser.tenantId;
   },
 });
+
+/**
+ * Get the current user's role for client-side redirect logic.
+ * Returns "admin" for platform admins, or null if not authenticated.
+ */
+export const getUserRole = query({
+  args: {},
+  returns: v.union(v.object({ role: v.string() }), v.null()),
+  handler: async (ctx) => {
+    let betterAuthUser;
+    try {
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    } catch {
+      return null;
+    }
+
+    if (!betterAuthUser) {
+      return null;
+    }
+
+    const appUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .first();
+
+    if (!appUser || appUser.status === "removed") {
+      return null;
+    }
+
+    return { role: appUser.role };
+  },
+});
