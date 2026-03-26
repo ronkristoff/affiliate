@@ -728,27 +728,21 @@ export const getTenantDetails = query({
     // Affiliate counts from tenantStats — O(1), matches owner dashboard
     const stats = await readTenantStats(ctx, args.tenantId);
 
-    // Flagged count: paginated scan for unreviewed high-severity fraud signals
+    // Flagged count: capped scan for unreviewed high-severity fraud signals
+    // (Convex allows only one paginated query per function, so we use .take() instead)
     let flaggedAffiliateCount = 0;
-    let cursor: string | null = null;
-    let hasMore = true;
-    while (hasMore) {
-      const page = await ctx.db
-        .query("affiliates")
-        .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-        .paginate({ numItems: 200, cursor });
+    const affiliates = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
+      .take(200);
 
-      for (const affiliate of page.page) {
-        if (affiliate.fraudSignals?.some(
-          (s: { severity: string; reviewedAt?: number }) =>
-            s.severity === "high" && !s.reviewedAt
-        )) {
-          flaggedAffiliateCount++;
-        }
+    for (const affiliate of affiliates) {
+      if (affiliate.fraudSignals?.some(
+        (s: { severity: string; reviewedAt?: number }) =>
+          s.severity === "high" && !s.reviewedAt
+      )) {
+        flaggedAffiliateCount++;
       }
-
-      cursor = page.continueCursor;
-      hasMore = !page.isDone;
     }
 
     const affiliateCount = {
@@ -1018,30 +1012,24 @@ export const getTenantAffiliates = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    // Fetch all affiliates for this tenant (paginated to handle any volume)
-    let allAffiliates: any[] = [];
-    let cursor: string | null = null;
-    let hasMore = true;
-    while (hasMore) {
-      const page = await ctx.db
-        .query("affiliates")
-        .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .paginate({ numItems: 200, cursor });
-      allAffiliates = allAffiliates.concat(page.page);
-      cursor = page.continueCursor;
-      hasMore = !page.isDone;
-    }
+    // Fetch affiliates for this tenant (capped — Convex allows only one paginated query per function)
+    const allAffiliates = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
+      .order("desc")
+      .take(200);
 
     // Apply search filter
-    if (args.searchQuery && args.searchQuery.trim() !== "") {
-      const query = args.searchQuery.toLowerCase().trim();
-      allAffiliates = allAffiliates.filter(
-        (a: { name: string; email: string }) =>
-          a.name.toLowerCase().includes(query) ||
-          a.email.toLowerCase().includes(query)
-      );
-    }
+    const filteredAffiliates = args.searchQuery && args.searchQuery.trim() !== ""
+      ? (() => {
+          const q = args.searchQuery!.toLowerCase().trim();
+          return allAffiliates.filter(
+            (a: { name: string; email: string }) =>
+              a.name.toLowerCase().includes(q) ||
+              a.email.toLowerCase().includes(q)
+          );
+        })()
+      : allAffiliates;
 
     // Batch fetch: get ALL clicks and commissions for this tenant ONCE,
     // then build per-affiliate maps — eliminates N+1 queries
@@ -1075,7 +1063,7 @@ export const getTenantAffiliates = query({
     }
 
     // Enrich each affiliate
-    return allAffiliates.map((affiliate: any) => ({
+    return filteredAffiliates.map((affiliate: any) => ({
       _id: affiliate._id,
       name: affiliate.name,
       email: affiliate.email,
@@ -1114,20 +1102,12 @@ export const getTenantPayoutBatches = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    // Paginate through all batches
-    let allBatches: any[] = [];
-    let cursor: string | null = null;
-    let hasMore = true;
-    while (hasMore) {
-      const page = await ctx.db
-        .query("payoutBatches")
-        .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .paginate({ numItems: 200, cursor });
-      allBatches = allBatches.concat(page.page);
-      cursor = page.continueCursor;
-      hasMore = !page.isDone;
-    }
+    // Fetch batches (capped — Convex allows only one paginated query per function)
+    const allBatches = await ctx.db
+      .query("payoutBatches")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
+      .order("desc")
+      .take(200);
 
     const now = Date.now() / 1000;
     const STALL_THRESHOLD_HOURS = 48;
@@ -1277,20 +1257,12 @@ export const getTenantAdminNotes = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    // Paginate through all notes
-    let allNotes: any[] = [];
-    let cursor: string | null = null;
-    let hasMore = true;
-    while (hasMore) {
-      const page = await ctx.db
-        .query("adminNotes")
-        .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .paginate({ numItems: 100, cursor });
-      allNotes = allNotes.concat(page.page);
-      cursor = page.continueCursor;
-      hasMore = !page.isDone;
-    }
+    // Fetch notes (capped — Convex allows only one paginated query per function)
+    const allNotes = await ctx.db
+      .query("adminNotes")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
+      .order("desc")
+      .take(100);
 
     // Batch-enrich with author names
     const authorIds = [...new Set(allNotes.map((n: any) => n.authorId))];

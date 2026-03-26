@@ -7,14 +7,47 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Search, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+  DataTable,
+  type TableColumn,
+  CurrencyCell,
+  DateCell,
+  StatusBadgeCell,
+} from "@/components/ui/DataTable";
+import { Search } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface Affiliate {
+  _id: string;
+  name: string;
+  email: string;
+  referralCount: number;
+  totalEarned: number;
+  status: string;
+  createdAt: number;
+  isFlagged: boolean;
+}
 
 interface AffiliatesTabProps {
   tenantId: Id<"tenants">;
 }
+
+// ---------------------------------------------------------------------------
+// Status config for affiliates (extends the default in StatusBadgeCell)
+// ---------------------------------------------------------------------------
+
+const affiliateStatusConfig = {
+  active: { label: "Active", dotColor: "#10b981", bgClass: "bg-[#d1fae5]", textClass: "text-[#065f46]" },
+  pending: { label: "Pending", dotColor: "#f59e0b", bgClass: "bg-[#fef3c7]", textClass: "text-[#92400e]" },
+  suspended: { label: "Suspended", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
+  rejected: { label: "Rejected", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function AffiliatesTab({ tenantId }: AffiliatesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,16 +58,73 @@ export function AffiliatesTab({ tenantId }: AffiliatesTabProps) {
 
   const isLoading = affiliates === undefined;
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
-  const formatDate = (timestamp: number) =>
-    new Date(timestamp * 1000).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
-
-  const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
-    active: { label: "Active", bg: "bg-[#d1fae5]", text: "text-[#065f46]" },
-    pending: { label: "Pending", bg: "bg-[#fef3c7]", text: "text-[#92400e]" },
-    suspended: { label: "Suspended", bg: "bg-[#fee2e2]", text: "text-[#991b1b]" },
-  };
+  // ── Columns ──────────────────────────────────────────────────────────────
+  const columns: TableColumn<Affiliate>[] = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Affiliate",
+        sortable: true,
+        sortField: "name",
+        cell: (row) => (
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-[#333]">{row.name}</span>
+            {row.isFlagged && (
+              <Badge variant="outline" className="border-[#f59e0b] bg-[#fffbeb] text-[#92400e] text-[10px]">
+                Flagged
+              </Badge>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: "email",
+        header: "Email",
+        sortable: true,
+        sortField: "email",
+        cell: (row) => (
+          <span className="text-[12px] text-[#6b7280]">{row.email}</span>
+        ),
+      },
+      {
+        key: "referralCount",
+        header: "Referrals",
+        sortable: true,
+        sortField: "referralCount",
+        align: "right",
+        cell: (row) => (
+          <span className="text-[12px] tabular-nums text-[#474747]">
+            {row.referralCount}
+          </span>
+        ),
+      },
+      {
+        key: "totalEarned",
+        header: "Total Earned",
+        sortable: true,
+        sortField: "totalEarned",
+        align: "right",
+        cell: (row) => <CurrencyCell amount={row.totalEarned} />,
+      },
+      {
+        key: "status",
+        header: "Status",
+        sortable: true,
+        sortField: "status",
+        cell: (row) => (
+          <StatusBadgeCell status={row.status} statusConfig={affiliateStatusConfig} />
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "Joined",
+        sortable: true,
+        sortField: "createdAt",
+        cell: (row) => <DateCell value={row.createdAt * 1000} format="short" />,
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-4">
@@ -48,68 +138,16 @@ export function AffiliatesTab({ tenantId }: AffiliatesTabProps) {
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#f9fafb] hover:bg-[#f9fafb]">
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280]">Name</TableHead>
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280]">Email</TableHead>
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280] text-right">Referrals</TableHead>
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280] text-right">Total Earned</TableHead>
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280]">Status</TableHead>
-              <TableHead className="px-4 py-3 text-[11px] font-bold uppercase text-[#6b7280]">Joined</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
-                    <TableCell key={j}>
-                      <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : !affiliates || affiliates.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-[#6b7280]">
-                  No affiliates found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              affiliates.map((affiliate) => {
-                const config = statusConfig[affiliate.status] ?? statusConfig.pending;
-                return (
-                  <TableRow
-                    key={affiliate._id}
-                    className={cn(
-                      "border-b border-[#e5e7eb] last:border-0",
-                      affiliate.isFlagged && "bg-[#fefce8] hover:bg-[#fef9c3]"
-                    )}
-                  >
-                    <TableCell className="px-4 py-3 text-sm font-medium text-[#333333]">
-                      {affiliate.name}
-                      {affiliate.isFlagged && (
-                        <Badge variant="outline" className="ml-2 border-[#f59e0b] bg-[#fffbeb] text-[#92400e] text-[10px]">Flagged</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#6b7280]">{affiliate.email}</TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm text-[#333333]">{affiliate.referralCount}</TableCell>
-                    <TableCell className="px-4 py-3 text-right text-sm font-medium text-[#333333]">{formatCurrency(affiliate.totalEarned)}</TableCell>
-                    <TableCell className="px-4 py-3">
-                      <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold", config.bg, config.text)}>
-                        {config.label}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#6b7280]">{formatDate(affiliate.createdAt)}</TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable<Affiliate>
+        columns={columns}
+        data={affiliates ?? []}
+        getRowId={(row) => row._id}
+        isLoading={isLoading}
+        emptyMessage="No affiliates found."
+        rowClassName={(row) =>
+          row.isFlagged ? "!bg-[#fffbeb] hover:!bg-[#fef9c3]" : ""
+        }
+      />
     </div>
   );
 }
