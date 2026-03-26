@@ -76,6 +76,14 @@ function AuthLayoutContent({
     );
   }
 
+  // ── Auth gate: don't render children until the session is confirmed ──
+  // Prevents child queries from firing before the auth session is ready,
+  // which would cause "Unauthorized" errors from requireTenantId().
+  // Show the layout skeleton directly (no white flash) while the session loads.
+  if (user === undefined) {
+    return <AuthLayoutSkeleton />;
+  }
+
   return (
     <div className={`flex min-h-screen ${isImpersonating ? "pt-11" : ""}`}>
       {/* Impersonation Banner — fixed at top, offsets all content */}
