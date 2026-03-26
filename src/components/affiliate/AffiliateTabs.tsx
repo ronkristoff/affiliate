@@ -30,7 +30,7 @@ export function AffiliateTabs({ activeTab, onTabChange, counts }: AffiliateTabsP
         {tabs.map((tab) => {
           const count =
             tab.key === "all"
-              ? counts.total
+              ? counts.pending + counts.active + counts.suspended
               : tab.key === "pending"
               ? counts.pending
               : tab.key === "active"
