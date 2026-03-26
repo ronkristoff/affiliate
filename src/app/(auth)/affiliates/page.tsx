@@ -76,6 +76,8 @@ function buildPendingColumns(
     {
       key: "applicant",
       header: "Applicant",
+      sortable: true,
+      sortField: "name",
       cell: (row) => (
         <AvatarCell name={row.name} email={row.email} />
       ),
@@ -83,6 +85,8 @@ function buildPendingColumns(
     {
       key: "applied",
       header: "Applied",
+      sortable: true,
+      sortField: "_creationTime",
       filterable: true,
       filterType: "date-range",
       filterLabel: "Applied",
@@ -102,6 +106,8 @@ function buildPendingColumns(
     {
       key: "campaign",
       header: "Campaign",
+      sortable: true,
+      sortField: "campaignName",
       filterable: true,
       filterType: "select",
       filterOptions: campaignOptions,
@@ -517,53 +523,38 @@ function AffiliatesContent() {
     setCampaigns([]);
   };
 
-  // ── Main query (non-pending tabs use paginated filtered query) ──────────
-  const isPendingTab = tab === "pending";
-
-  // For pending tab, use legacy query (no pagination — keeps bulk action compatibility)
-  const legacyResult = useQuery(
-    api.affiliates.listAffiliatesByStatus,
-    isPendingTab ? { status: "pending" as const } : "skip"
-  );
-
-  // For non-pending tabs, use paginated filtered query with server-side filters
+  // ── Main query — all tabs use paginated filtered query ──────────────────
   // NOTE: On first render during loading, `page` is used directly. Once data loads,
   // maxPage stabilizes and pagination buttons work correctly.
   const paginatedResult = useQuery(
     api.affiliates.listAffiliatesFiltered,
-    !isPendingTab
-      ? {
-          status: effectiveStatus,
-          statuses: statuses.length > 0 ? statuses : undefined,
-          campaignIds,
-          page,
-          numItems: pageSize,
-          // Server-side filters
-          searchQuery: search.trim() || undefined,
-          referralMin: parsedReferralMin,
-          referralMax: parsedReferralMax,
-          clickMin: parsedClickMin,
-          clickMax: parsedClickMax,
-          earningsMin: parsedEarningsMin,
-          earningsMax: parsedEarningsMax,
-          joinedAfter: parsedJoinedAfter,
-          joinedBefore: parsedJoinedBefore,
-          // Server-side sort
-          sortBy: sortBy ? (sortBy as "name" | "status" | "campaignName" | "referralCount" | "clickCount" | "totalEarnings" | "_creationTime") : undefined,
-          sortOrder: sortBy ? sortOrder : undefined,
-        }
-      : "skip"
+    {
+      status: effectiveStatus,
+      statuses: statuses.length > 0 ? statuses : undefined,
+      campaignIds,
+      page,
+      numItems: pageSize,
+      // Server-side filters
+      searchQuery: search.trim() || undefined,
+      referralMin: parsedReferralMin,
+      referralMax: parsedReferralMax,
+      clickMin: parsedClickMin,
+      clickMax: parsedClickMax,
+      earningsMin: parsedEarningsMin,
+      earningsMax: parsedEarningsMax,
+      joinedAfter: parsedJoinedAfter,
+      joinedBefore: parsedJoinedBefore,
+      // Server-side sort
+      sortBy: sortBy ? (sortBy as "name" | "status" | "campaignName" | "referralCount" | "clickCount" | "totalEarnings" | "_creationTime") : undefined,
+      sortOrder: sortBy ? sortOrder : undefined,
+    }
   );
 
-  const isLoading = isPendingTab
-    ? legacyResult === undefined
-    : paginatedResult === undefined;
+  const isLoading = paginatedResult === undefined;
 
-  const total = isPendingTab
-    ? (legacyResult?.length ?? 0)
-    : (paginatedResult?.total ?? 0);
+  const total = paginatedResult?.total ?? 0;
 
-  const hasMore = isPendingTab ? false : (paginatedResult?.hasMore ?? false);
+  const hasMore = paginatedResult?.hasMore ?? false;
 
   // Stable maxPage — during loading, preserve the user's requested page so
   // pagination buttons stay enabled while data refetches.
@@ -627,7 +618,7 @@ function AffiliatesContent() {
   };
 
   // ── Use server-side filtered/sorted data directly ───────────────────────
-  const allAffiliates = isPendingTab ? (legacyResult ?? []) : (paginatedResult?.page ?? []);
+  const allAffiliates = paginatedResult?.page ?? [];
 
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -837,6 +828,18 @@ function AffiliatesContent() {
               </div>
             )}
 
+            <AffiliateToolbar
+              searchQuery={search}
+              onSearchChange={setSearch}
+            />
+
+            <FilterChips<Affiliate>
+              filters={activeFilters}
+              columns={pendingCols.columns}
+              onRemove={clearFilterForColumn}
+              onClearAll={handleClearAllFilters}
+            />
+
             <DataTable<Affiliate>
               columns={pendingCols.columns}
               actions={pendingCols.actions}
@@ -850,6 +853,25 @@ function AffiliatesContent() {
               rowClassName={(row) =>
                 selectedAffiliates.has(row._id) ? "bg-[#fffbeb]" : ""
               }
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={(field, order) => {
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+              pagination={{ page, pageSize }}
+              total={total}
+              onPaginationChange={({ page: newPage, pageSize: newPageSize }) => {
+                setPage(newPage);
+                if (newPageSize !== pageSize) {
+                  handlePageSizeChange(newPageSize);
+                }
+                // Clear selection when changing pages since bulk actions
+                // only operate on currently visible rows
+                setSelectedAffiliates(new Set());
+              }}
             />
           </>
         )}
