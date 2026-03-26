@@ -63,6 +63,7 @@ import {
   downloadCsvFromString,
 } from "@/lib/csv-utils";
 import { PAYOUT_AUDIT_ACTIONS } from "@/lib/audit-constants";
+import { FilterChips } from "@/components/ui/FilterChips";
 
 // =============================================================================
 // Types
@@ -196,6 +197,26 @@ export function PayoutsContent() {
     setBatchesSortBy(sortBy);
     setBatchesSortOrder(sortOrder);
     setBatchesPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Remove a single affiliate filter
+  const handleRemoveAffiliateFilter = (columnKey: string) => {
+    handleAffiliateFilterChange(affiliateFilters.filter((f) => f.columnKey !== columnKey));
+  };
+
+  // Clear all affiliate filters
+  const handleClearAllAffiliateFilters = () => {
+    handleAffiliateFilterChange([]);
+  };
+
+  // Remove a single batch filter
+  const handleRemoveBatchFilter = (columnKey: string) => {
+    handleBatchFilterChange(batchFilters.filter((f) => f.columnKey !== columnKey));
+  };
+
+  // Clear all batch filters
+  const handleClearAllBatchFilters = () => {
+    handleBatchFilterChange([]);
   };
 
   // Mutations
@@ -859,6 +880,12 @@ export function PayoutsContent() {
         </FadeIn>
       ) : (
         <FadeIn delay={150}>
+          <FilterChips<AffiliatePendingPayout>
+            filters={affiliateFilters}
+            columns={affiliateColumns}
+            onRemove={handleRemoveAffiliateFilter}
+            onClearAll={handleClearAllAffiliateFilters}
+          />
           <DataTable<AffiliatePendingPayout>
             columns={affiliateColumns}
             data={paginatedAffiliates}
@@ -910,6 +937,13 @@ export function PayoutsContent() {
                 View Full History
               </Button>
             </div>
+
+            <FilterChips<Batch>
+              filters={batchFilters}
+              columns={batchColumns}
+              onRemove={handleRemoveBatchFilter}
+              onClearAll={handleClearAllBatchFilters}
+            />
 
             <DataTable<Batch>
               columns={batchColumns}
