@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FilterTabs } from "@/components/ui/FilterTabs";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
 import { CopyableId } from "@/components/shared/CopyableId";
 import {
@@ -21,6 +21,8 @@ import {
 import { FadeIn } from "@/components/ui/FadeIn";
 import {
   Eye,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import {
   useQueryState,
@@ -163,16 +165,15 @@ export function PayoutHistoryClient() {
     <div className="space-y-6">
       {/* Status Filter Tabs */}
       <FadeIn>
-        <Tabs
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as "all" | "processing" | "completed")}
-        >
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="processing">Processing</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <FilterTabs
+          tabs={[
+            { key: "all", label: "All" },
+            { key: "processing", label: "Processing", icon: <Clock className="h-3.5 w-3.5" /> },
+            { key: "completed", label: "Completed", icon: <CheckCircle2 className="h-3.5 w-3.5" />, activeColor: "bg-green-600" },
+          ]}
+          activeTab={statusFilter}
+          onTabChange={(value) => setStatusFilter(value as "all" | "processing" | "completed")}
+        />
       </FadeIn>
 
       {/* Batches Table */}

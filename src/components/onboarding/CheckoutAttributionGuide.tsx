@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -218,23 +218,23 @@ export function CheckoutAttributionGuide() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              {codeExamples.map((example) => (
-                <TabsTrigger 
-                  key={example.id} 
-                  value={example.id}
-                  className="flex items-center gap-2"
-                >
-                  {example.icon}
-                  <span className="hidden sm:inline">{example.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="w-full space-y-4">
+            <FilterTabs
+              tabs={codeExamples.map((example) => ({
+                key: example.id,
+                label: example.label,
+                icon: <span className="hidden sm:inline">{example.icon}</span>,
+              }))}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              size="md"
+              className="w-full"
+            />
             
-            {codeExamples.map((example) => (
-              <TabsContent key={example.id} value={example.id} className="mt-4">
-                <div className="space-y-4">
+            {codeExamples
+              .filter((example) => example.id === activeTab)
+              .map((example) => (
+                <div key={example.id} className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     {example.description}
                   </p>
@@ -256,9 +256,8 @@ export function CheckoutAttributionGuide() {
                     </Button>
                   </div>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              ))}
+          </div>
         </CardContent>
       </Card>
 

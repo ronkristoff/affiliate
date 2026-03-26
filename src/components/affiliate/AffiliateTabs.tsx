@@ -1,6 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
+import { Clock, UserCheck, UserX, ShieldAlert } from "lucide-react";
 
 type AffiliateStatus = "all" | "pending" | "active" | "suspended" | "rejected";
 
@@ -16,55 +17,49 @@ interface AffiliateTabsProps {
   };
 }
 
-const tabs: { key: AffiliateStatus; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "pending", label: "Pending Approval" },
-  { key: "active", label: "Active" },
-  { key: "suspended", label: "Suspended" },
-  { key: "rejected", label: "Rejected" },
-];
+function buildTabs(counts: AffiliateTabsProps["counts"]): FilterTabItem[] {
+  return [
+    { key: "all", label: "All", count: counts.total },
+    {
+      key: "pending",
+      label: "Pending",
+      count: counts.pending,
+      icon: <Clock className="h-3.5 w-3.5" />,
+      activeColor: "bg-amber-500",
+    },
+    {
+      key: "active",
+      label: "Active",
+      count: counts.active,
+      icon: <UserCheck className="h-3.5 w-3.5" />,
+      activeColor: "bg-green-600",
+    },
+    {
+      key: "suspended",
+      label: "Suspended",
+      count: counts.suspended,
+      icon: <ShieldAlert className="h-3.5 w-3.5" />,
+      activeColor: "bg-red-600",
+    },
+    {
+      key: "rejected",
+      label: "Rejected",
+      count: counts.rejected,
+      icon: <UserX className="h-3.5 w-3.5" />,
+      activeColor: "bg-gray-500",
+    },
+  ];
+}
 
 export function AffiliateTabs({ activeTab, onTabChange, counts }: AffiliateTabsProps) {
   return (
-    <div className="border-b-2 border-[#e5e7eb] mb-6">
-      <div className="flex gap-0">
-        {tabs.map((tab) => {
-          const count =
-            tab.key === "all"
-              ? counts.total
-              : tab.key === "pending"
-              ? counts.pending
-              : tab.key === "active"
-              ? counts.active
-              : tab.key === "suspended"
-              ? counts.suspended
-              : tab.key === "rejected"
-              ? counts.rejected
-              : 0;
-
-          return (
-            <button
-              key={tab.key}
-              onClick={() => onTabChange(tab.key)}
-              className={cn(
-                "px-5 py-2.5 text-[13.5px] font-medium transition-all border-b-2 -mb-[2px]",
-                activeTab === tab.key
-                  ? "text-[#10409a] font-bold border-b-[#10409a]"
-                  : "text-[#6b7280] border-b-transparent hover:text-[#333]"
-              )}
-            >
-              {tab.label}
-              {tab.key === "pending" && counts.pending > 0 ? (
-                <span className="ml-1.5 inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#f59e0b] text-white text-[10px] font-bold">
-                  {counts.pending}
-                </span>
-              ) : (
-                <span className="ml-1 text-[#6b7280]">({count})</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+    <div className="mb-6">
+      <FilterTabs
+        tabs={buildTabs(counts)}
+        activeTab={activeTab}
+        onTabChange={(key) => onTabChange(key as AffiliateStatus)}
+        size="md"
+      />
     </div>
   );
 }

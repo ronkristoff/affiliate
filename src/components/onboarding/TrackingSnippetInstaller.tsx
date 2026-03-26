@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
 import { Copy, Check, RefreshCw, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 
@@ -329,20 +329,21 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs
-            value={selectedPlatform}
-            onValueChange={(v: string) => setSelectedPlatform(v as keyof typeof platformGuides)}
-          >
-            <TabsList className="w-full justify-start overflow-x-auto">
-              {Object.entries(platformGuides).map(([key, platform]) => (
-                <TabsTrigger key={key} value={key} className="capitalize">
-                  {platform.title}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="w-full space-y-4">
+            <FilterTabs
+              tabs={Object.entries(platformGuides).map(([key, platform]) => ({
+                key,
+                label: platform.title,
+              }))}
+              activeTab={selectedPlatform}
+              onTabChange={(v) => setSelectedPlatform(v as keyof typeof platformGuides)}
+              size="md"
+              className="w-full justify-start overflow-x-auto"
+            />
 
-            {Object.entries(platformGuides).map(([key, platform]) => (
-              <TabsContent key={key} value={key} className="mt-4">
+            {(() => {
+              const platform = platformGuides[selectedPlatform];
+              return (
                 <div className="space-y-4">
                   <h4 className="font-medium">{platform.title} Installation</h4>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
@@ -358,9 +359,9 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
                     </Button>
                   )}
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              );
+            })()}
+          </div>
         </CardContent>
       </Card>
 

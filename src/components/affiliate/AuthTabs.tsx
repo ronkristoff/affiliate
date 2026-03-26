@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AffiliateSignInForm } from "./AffiliateSignInForm";
 import { AffiliateSignUpForm } from "./AffiliateSignUpForm";
 import { ReCaptchaWrapper } from "@/components/ui/ReCaptchaWrapper";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
 
 interface AuthTabsProps {
   tenantSlug: string;
@@ -13,33 +14,20 @@ interface AuthTabsProps {
 export function AuthTabs({ tenantSlug, primaryColor }: AuthTabsProps) {
   const [activeTab, setActiveTab] = useState<"signin" | "register">("signin");
 
+  const tabs: FilterTabItem[] = [
+    { key: "signin", label: "Sign In", activeColor: `bg-[${primaryColor}]` },
+    { key: "register", label: "Join Program", activeColor: `bg-[${primaryColor}]` },
+  ];
+
   return (
     <div className="w-full">
       {/* Tabs */}
-      <div className="grid grid-cols-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab("signin")}
-          className={`py-3.5 text-sm font-semibold text-center transition-colors ${
-            activeTab === "signin"
-              ? `text-[${primaryColor}] border-b-2 border-[${primaryColor}]`
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-          style={activeTab === "signin" ? { borderBottomColor: primaryColor, color: primaryColor } : {}}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => setActiveTab("register")}
-          className={`py-3.5 text-sm font-semibold text-center transition-colors ${
-            activeTab === "register"
-              ? `text-[${primaryColor}] border-b-2 border-[${primaryColor}]`
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-          style={activeTab === "register" ? { borderBottomColor: primaryColor, color: primaryColor } : {}}
-        >
-          Join Program
-        </button>
-      </div>
+      <FilterTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(key) => setActiveTab(key as "signin" | "register")}
+        size="lg"
+      />
 
       {/* Form Area */}
       <div className="p-6">

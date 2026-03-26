@@ -64,6 +64,7 @@ import {
 } from "@/lib/csv-utils";
 import { PAYOUT_AUDIT_ACTIONS } from "@/lib/audit-constants";
 import { FilterChips } from "@/components/ui/FilterChips";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
 
 // =============================================================================
 // Types
@@ -982,51 +983,30 @@ export function PayoutsContent() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAuditActionFilter(undefined)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors ${
-                auditActionFilter === undefined
-                  ? "bg-[var(--brand-primary)] text-white"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.BATCH_GENERATED)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-                auditActionFilter === PAYOUT_AUDIT_ACTIONS.BATCH_GENERATED
-                  ? "bg-[#10409a] text-white"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
-              }`}
-            >
-              <PackagePlus className="h-3 w-3" />
-              Batch Generated
-            </button>
-            <button
-              onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.PAYOUT_MARKED_PAID)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-                auditActionFilter === PAYOUT_AUDIT_ACTIONS.PAYOUT_MARKED_PAID
-                  ? "bg-green-600 text-white"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
-              }`}
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              Payout Paid
-            </button>
-            <button
-              onClick={() => setAuditActionFilter(PAYOUT_AUDIT_ACTIONS.BATCH_MARKED_PAID)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-                auditActionFilter === PAYOUT_AUDIT_ACTIONS.BATCH_MARKED_PAID
-                  ? "bg-green-600 text-white"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
-              }`}
-            >
-              <CheckCheck className="h-3 w-3" />
-              Batch Completed
-            </button>
-          </div>
+          <FilterTabs
+            tabs={[
+              { key: "all", label: "All" },
+              {
+                key: PAYOUT_AUDIT_ACTIONS.BATCH_GENERATED,
+                label: "Batch Generated",
+                icon: <PackagePlus className="h-3 w-3" />,
+              },
+              {
+                key: PAYOUT_AUDIT_ACTIONS.PAYOUT_MARKED_PAID,
+                label: "Payout Paid",
+                icon: <CheckCircle2 className="h-3 w-3" />,
+                activeColor: "bg-green-600",
+              },
+              {
+                key: PAYOUT_AUDIT_ACTIONS.BATCH_MARKED_PAID,
+                label: "Batch Completed",
+                icon: <CheckCheck className="h-3 w-3" />,
+                activeColor: "bg-green-600",
+              },
+            ]}
+            activeTab={auditActionFilter ?? "all"}
+            onTabChange={(key) => setAuditActionFilter(key === "all" ? undefined : key)}
+          />
 
           {/* Loading State */}
           {auditLogsResult === undefined ? (
