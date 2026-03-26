@@ -10,7 +10,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +26,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +57,7 @@ import {
   Zap,
   ShieldCheck,
   Settings,
+  MoreHorizontal,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,8 +102,9 @@ function CampaignDetailSkeleton() {
           <Skeleton className="h-4 w-48" />
         </div>
         <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-16 rounded-lg" />
           <Skeleton className="h-8 w-20 rounded-lg" />
-          <Skeleton className="h-8 w-20 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
         </div>
       </PageTopbar>
 
@@ -446,48 +453,68 @@ function CampaignDetailContent() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          {campaign.status !== "archived" && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
-              >
-                <Settings className="w-3 h-3" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePauseResume}
-                className="px-3 py-1.5 text-[12px] font-semibold inline-flex items-center gap-1.5"
-              >
-                {campaign.status === "active" ? (
-                  <>
-                    <Pause className="w-3 h-3" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3 h-3" />
-                    Resume
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowArchiveConfirm(true)}
-                className="px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)]"
-              >
-                <Archive className="w-3 h-3" />
-                Archive
-              </Button>
-            </>
-          )}
-        </div>
+        {campaign.status !== "archived" ? (
+          <div className="flex items-center gap-2">
+            {/* Edit — primary action */}
+            <Button
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="gap-1.5 bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-secondary)]"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Edit
+            </Button>
+
+            {/* Pause / Resume — status toggle pill */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePauseResume}
+              className={
+                campaign.status === "active"
+                  ? "gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                  : "gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              }
+            >
+              {campaign.status === "active" ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" />
+                  Resume
+                </>
+              )}
+            </Button>
+
+            {/* More actions dropdown — keeps destructive action accessible but not prominent */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="size-8 text-[var(--text-muted)]">
+                  <MoreHorizontal className="w-4 h-4" />
+                  <span className="sr-only">More actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={() => setShowArchiveConfirm(true)}
+                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive campaign
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-medium text-[var(--text-muted)] px-2.5 py-1 rounded-full bg-gray-100">
+              Archived
+            </span>
+          </div>
+        )}
       </PageTopbar>
 
       {/* ── Page Content ─────────────────────────────────────────────────── */}
