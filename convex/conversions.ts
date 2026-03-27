@@ -234,7 +234,8 @@ export const createConversionWithAttribution = internalMutation({
     attributionSource: v.union(
       v.literal("cookie"),
       v.literal("webhook"),
-      v.literal("organic")
+      v.literal("organic"),
+      v.literal("body")
     ),
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),

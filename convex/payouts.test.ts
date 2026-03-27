@@ -19,15 +19,16 @@ import { api, internal } from "./_generated/api";
  */
 
 // Test modules for auth mocking
-const testModules = {
-  auth: {
-    betterAuthComponent: {
-      getAuthUser: vi.fn(async (_ctx: any) => ({
-        email: "owner@test.com",
-        id: "auth_user_123",
-      })),
-    },
-  },
+const testModules: Record<string, () => Promise<any>> = {
+  auth: () =>
+    Promise.resolve({
+      betterAuthComponent: {
+        getAuthUser: vi.fn(async (_ctx: any) => ({
+          email: "owner@test.com",
+          id: "auth_user_123",
+        })),
+      },
+    }),
 };
 
 describe("Story 13.1: Payout Batch Generation", () => {
@@ -184,9 +185,9 @@ describe("Story 13.1: Payout Batch Generation", () => {
         (a: any) => a.name === "Jamie Cruz"
       );
       expect(affiliate1).toBeDefined();
-      expect(affiliate1.pendingAmount).toBe(8000);
-      expect(affiliate1.commissionCount).toBe(2);
-      expect(affiliate1.payoutMethod).toEqual({
+      expect(affiliate1!.pendingAmount).toBe(8000);
+      expect(affiliate1!.commissionCount).toBe(2);
+      expect(affiliate1!.payoutMethod).toEqual({
         type: "GCash",
         details: "0917 123 4567",
       });
@@ -196,9 +197,9 @@ describe("Story 13.1: Payout Batch Generation", () => {
         (a: any) => a.name === "Ramon Santos"
       );
       expect(affiliate2).toBeDefined();
-      expect(affiliate2.pendingAmount).toBe(2500);
-      expect(affiliate2.commissionCount).toBe(1);
-      expect(affiliate2.payoutMethod).toBeUndefined();
+      expect(affiliate2!.pendingAmount).toBe(2500);
+      expect(affiliate2!.commissionCount).toBe(1);
+      expect(affiliate2!.payoutMethod).toBeUndefined();
 
       // Verify commissions were updated to "paid" status and linked to batch
       const updatedCommission1 = await t.run(async (ctx) => {
@@ -337,7 +338,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         (log: any) => log.entityType === "payoutBatches"
       );
       expect(batchLog).toBeDefined();
-      expect(batchLog.entityType).toBe("payoutBatches");
+      expect(batchLog!.entityType).toBe("payoutBatches");
     });
 
     it("should prevent regeneration of batches for already-paid commissions", async () => {
@@ -932,21 +933,21 @@ describe("Story 13.1: Payout Batch Generation", () => {
       // Verify affiliate1 (Jamie Cruz) with 2 commissions
       const payout1 = payouts.find((p: any) => p.name === "Jamie Cruz");
       expect(payout1).toBeDefined();
-      expect(payout1.email).toBe("jamie@test.com");
-      expect(payout1.amount).toBe(8000);
-      expect(payout1.commissionCount).toBe(2);
-      expect(payout1.payoutMethod).toEqual({
+      expect(payout1!.email).toBe("jamie@test.com");
+      expect(payout1!.amount).toBe(8000);
+      expect(payout1!.commissionCount).toBe(2);
+      expect(payout1!.payoutMethod).toEqual({
         type: "GCash",
         details: "0917 123 4567",
       });
-      expect(payout1.status).toBe("pending");
+      expect(payout1!.status).toBe("pending");
 
       // Verify affiliate2 (Ramon Santos) with 1 commission, no payout method
       const payout2 = payouts.find((p: any) => p.name === "Ramon Santos");
       expect(payout2).toBeDefined();
-      expect(payout2.amount).toBe(2500);
-      expect(payout2.commissionCount).toBe(1);
-      expect(payout2.payoutMethod).toBeUndefined();
+      expect(payout2!.amount).toBe(2500);
+      expect(payout2!.commissionCount).toBe(1);
+      expect(payout2!.payoutMethod).toBeUndefined();
     });
 
     it("should throw error for batch belonging to different tenant", async () => {
@@ -972,15 +973,16 @@ describe("Story 13.1: Payout Batch Generation", () => {
 
       // Try to access batch from other tenant — should fail
       // We need to mock the auth to return the other tenant's user
-      const otherTestModules = {
-        auth: {
-          betterAuthComponent: {
-            getAuthUser: vi.fn(async (_ctx: any) => ({
-              email: "other@test.com",
-              id: "auth_other_user",
-            })),
-          },
-        },
+      const otherTestModules: Record<string, () => Promise<any>> = {
+        auth: () =>
+          Promise.resolve({
+            betterAuthComponent: {
+              getAuthUser: vi.fn(async (_ctx: any) => ({
+                email: "other@test.com",
+                id: "auth_other_user",
+              })),
+            },
+          }),
       };
 
       // Create a user under the other tenant for auth mock
@@ -1216,9 +1218,9 @@ describe("Story 13.1: Payout Batch Generation", () => {
 
       // Get the payout IDs
       const payouts = await t.run(async (ctx) => {
-        return await ctx.db
+        return await (ctx.db as any)
           .query("payouts")
-          .withIndex("by_batch", (q) => q.eq("batchId", batchResult.batchId))
+          .withIndex("by_batch", (q: any) => q.eq("batchId", batchResult.batchId))
           .collect();
       });
 
@@ -1252,7 +1254,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(result.payoutId).toBe(jamiePayoutId);
 
         // Verify payout was updated
-        const updatedPayout = await t.run(async (ctx) => {
+        const updatedPayout: any = await t.run(async (ctx) => {
           return await ctx.db.get(jamiePayoutId);
         });
         expect(updatedPayout?.status).toBe("paid");
@@ -1269,7 +1271,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
           paymentReference: "BPI Transfer #12345",
         });
 
-        const updatedPayout = await t.run(async (ctx) => {
+        const updatedPayout: any = await t.run(async (ctx) => {
           return await ctx.db.get(jamiePayoutId);
         });
         expect(updatedPayout?.paymentReference).toBe("BPI Transfer #12345");
@@ -1391,10 +1393,10 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(auditLogs.length).toBeGreaterThanOrEqual(1);
         const log = auditLogs.find((l: any) => l.entityId === jamiePayoutId);
         expect(log).toBeDefined();
-        expect(log.entityType).toBe("payouts");
-        expect(log.targetId).toBe(batchId);
-        expect(log.metadata.paymentReference).toBe("REF-001");
-        expect(log.metadata.amount).toBe(8000);
+        expect(log!.entityType).toBe("payouts");
+        expect(log!.targetId).toBe(batchId);
+        expect(log!.metadata.paymentReference).toBe("REF-001");
+        expect(log!.metadata.amount).toBe(8000);
       });
     });
 
@@ -1412,13 +1414,13 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(result.payoutsMarked).toBe(2);
 
         // Verify both payouts were updated
-        const jamiePayout = await t.run(async (ctx) => {
+        const jamiePayout: any = await t.run(async (ctx) => {
           return await ctx.db.get(jamiePayoutId);
         });
         expect(jamiePayout?.status).toBe("paid");
         expect(jamiePayout?.paidAt).toBeGreaterThan(0);
 
-        const ramonPayout = await t.run(async (ctx) => {
+        const ramonPayout: any = await t.run(async (ctx) => {
           return await ctx.db.get(ramonPayoutId);
         });
         expect(ramonPayout?.status).toBe("paid");
@@ -1494,12 +1496,12 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(auditLogs.length).toBeGreaterThanOrEqual(1);
         const log = auditLogs.find((l: any) => l.entityId === batchId);
         expect(log).toBeDefined();
-        expect(log.entityType).toBe("payoutBatches");
-        expect(log.metadata.payoutsMarked).toBe(2);
-        expect(log.metadata.totalAmount).toBe(8000);
-        expect(log.metadata.paymentReference).toBe("BATCH-REF-001");
-        expect(log.metadata.payoutIds).toBeDefined();
-        expect(log.metadata.payoutIds.length).toBe(2);
+        expect(log!.entityType).toBe("payoutBatches");
+        expect(log!.metadata.payoutsMarked).toBe(2);
+        expect(log!.metadata.totalAmount).toBe(8000);
+        expect(log!.metadata.paymentReference).toBe("BATCH-REF-001");
+        expect(log!.metadata.payoutIds).toBeDefined();
+        expect(log!.metadata.payoutIds.length).toBe(2);
       });
 
       it("should handle batch with mix of already-paid and pending payouts", async () => {
@@ -1701,9 +1703,9 @@ describe("Story 13.4: Payout Notification Email", () => {
 
     // Get payout IDs
     const payouts = await t.run(async (ctx) => {
-      return await ctx.db
+      return await (ctx.db as any)
         .query("payouts")
-        .withIndex("by_batch", (q) => q.eq("batchId", batchResult.batchId))
+        .withIndex("by_batch", (q: any) => q.eq("batchId", batchResult.batchId))
         .collect();
     });
 
@@ -1737,7 +1739,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       vi.runAllTimers();
 
       // Verify the payout was updated to paid
-      const updatedPayout = await t.run(async (ctx) => {
+      const updatedPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
       expect(updatedPayout?.status).toBe("paid");
@@ -1812,7 +1814,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       vi.runAllTimers();
 
       // Verify mutation succeeded — branding data was fetched internally
-      const updatedPayout = await t.run(async (ctx) => {
+      const updatedPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
       expect(updatedPayout?.status).toBe("paid");
@@ -1898,7 +1900,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       expect(result.payoutId).toBe(jamiePayoutId);
       expect(result.remainingPending).toBe(1);
 
-      const updatedPayout = await t.run(async (ctx) => {
+      const updatedPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
       expect(updatedPayout?.status).toBe("paid");
@@ -1915,7 +1917,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       });
 
       // Verify paidAt was set to the frozen timestamp
-      const updatedPayout = await t.run(async (ctx) => {
+      const updatedPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
       expect(updatedPayout?.paidAt).toBe(1700000000000);
@@ -1958,7 +1960,7 @@ describe("Story 13.4: Payout Notification Email", () => {
 
       expect(result.payoutId).toBe(payoutId);
 
-      const updatedPayout = await t.run(async (ctx) => {
+      const updatedPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(payoutId);
       });
       expect(updatedPayout?.status).toBe("paid");
@@ -1981,10 +1983,10 @@ describe("Story 13.4: Payout Notification Email", () => {
       // Both payouts should be marked as paid
       expect(result.payoutsMarked).toBe(2);
 
-      const jamiePayout = await t.run(async (ctx) => {
+      const jamiePayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
-      const ramonPayout = await t.run(async (ctx) => {
+      const ramonPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(ramonPayoutId);
       });
 
@@ -2028,12 +2030,12 @@ describe("Story 13.4: Payout Notification Email", () => {
 
       const log = auditLogs.find((l: any) => l.entityId === batchId);
       expect(log).toBeDefined();
-      expect(log.metadata.emailsScheduled).toBeDefined();
-      expect(typeof log.metadata.emailsScheduled).toBe("number");
-      expect(log.metadata.emailScheduleFailures).toBeDefined();
-      expect(typeof log.metadata.emailScheduleFailures).toBe("number");
-      expect(log.metadata.payoutsMarked).toBe(2);
-      expect(log.metadata.paymentReference).toBe("BATCH-REF-001");
+      expect(log!.metadata.emailsScheduled).toBeDefined();
+      expect(typeof log!.metadata.emailsScheduled).toBe("number");
+      expect(log!.metadata.emailScheduleFailures).toBeDefined();
+      expect(typeof log!.metadata.emailScheduleFailures).toBe("number");
+      expect(log!.metadata.payoutsMarked).toBe(2);
+      expect(log!.metadata.paymentReference).toBe("BATCH-REF-001");
     });
 
     it("should succeed even if individual email schedulings fail", async () => {
@@ -2077,10 +2079,10 @@ describe("Story 13.4: Payout Notification Email", () => {
       await t.mutation(api.payouts.markBatchAsPaid, { batchId });
 
       // All payouts should have the same frozen timestamp
-      const jamiePayout = await t.run(async (ctx) => {
+      const jamiePayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(jamiePayoutId);
       });
-      const ramonPayout = await t.run(async (ctx) => {
+      const ramonPayout: any = await t.run(async (ctx) => {
         return await ctx.db.get(ramonPayoutId);
       });
 
@@ -2381,6 +2383,7 @@ describe("Story 13.6: Payout Audit Log", () => {
           slug: "other-saas-co",
           plan: "starter",
           status: "active",
+          domain: "other-test.example.com",
         });
       });
 
@@ -2633,8 +2636,8 @@ describe("Story 13.6: Payout Audit Log", () => {
         (log: any) => log.entityType === "payoutBatches"
       );
       expect(batchLog).toBeDefined();
-      expect(batchLog.metadata.affiliateCount).toBe(1);
-      expect(batchLog.metadata.totalAmount).toBe(5000);
+      expect(batchLog!.metadata.affiliateCount).toBe(1);
+      expect(batchLog!.metadata.totalAmount).toBe(5000);
     });
 
     it("markPayoutAsPaid should create audit entry via centralized function", async () => {
@@ -2680,8 +2683,8 @@ describe("Story 13.6: Payout Audit Log", () => {
         (log: any) => log.entityType === "payouts"
       );
       expect(payoutLog).toBeDefined();
-      expect(payoutLog.metadata.amount).toBe(5000);
-      expect(payoutLog.metadata.paymentReference).toBe("TEST-REF-123");
+      expect(payoutLog!.metadata.amount).toBe(5000);
+      expect(payoutLog!.metadata.paymentReference).toBe("TEST-REF-123");
     });
 
     it("markBatchAsPaid should create audit entry via centralized function", async () => {
@@ -2720,8 +2723,8 @@ describe("Story 13.6: Payout Audit Log", () => {
         (log: any) => log.entityType === "payoutBatches"
       );
       expect(batchLog).toBeDefined();
-      expect(batchLog.metadata.payoutsMarked).toBe(1);
-      expect(batchLog.metadata.paymentReference).toBe("BATCH-REF-456");
+      expect(batchLog!.metadata.payoutsMarked).toBe(1);
+      expect(batchLog!.metadata.paymentReference).toBe("BATCH-REF-456");
     });
   });
 });

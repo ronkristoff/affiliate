@@ -271,7 +271,7 @@ export function CreateCampaignModal({
 
   // ─── Limit checks ───────────────────────────────────────────────
 
-  const isLimitReached = campaignLimit && !campaignLimit.allowed;
+  const isLimitReached = campaignLimit?.allowed === false;
   const isCritical = campaignLimit && campaignLimit.status === "critical";
 
   // ─── Render ──────────────────────────────────────────────────────

@@ -1359,6 +1359,7 @@ export const getProgramSummaryMetrics = query({
     totalConversions: v.number(),
     totalCommissions: v.number(),
     avgConversionRate: v.number(),
+    organicConversions: v.number(),
     previousTotalClicks: v.number(),
     previousTotalConversions: v.number(),
     previousTotalCommissions: v.number(),
@@ -1410,6 +1411,13 @@ export const getProgramSummaryMetrics = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     ).length;
 
+    const organicConversions = allConversions.filter(c =>
+      c._creationTime >= startDate &&
+      c._creationTime <= endDate &&
+      !c.referralLinkId &&
+      (!args.campaignId || c.campaignId === args.campaignId)
+    ).length;
+
     const currentCommissions = allCommissions
       .filter(c => 
         c._creationTime >= startDate && 
@@ -1456,6 +1464,7 @@ export const getProgramSummaryMetrics = query({
       totalConversions: currentConversions,
       totalCommissions: canViewSensitiveData ? currentCommissions : 0,
       avgConversionRate,
+      organicConversions,
       previousTotalClicks: previousClicks,
       previousTotalConversions: previousConversions,
       previousTotalCommissions: canViewSensitiveData ? previousCommissions : 0,

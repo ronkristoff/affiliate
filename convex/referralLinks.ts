@@ -418,9 +418,15 @@ export const getReferralLinks = query({
       const enrichedPage = await Promise.all(result.page.map(async (link) => {
         const affiliate = await ctx.db.get(link.affiliateId);
         const affiliateName = affiliate?.name || "Unknown";
-        const shortUrl = buildShortUrl(domain, link.code);
-        
-        let campaignUrl: string | undefined;
+      const shortUrl = buildShortUrl(domain, link.code);
+      const fullUrl = shortUrl;
+
+      let vanityUrl: string | undefined;
+      if (affiliate?.vanitySlug) {
+        vanityUrl = `https://${domain}/ref/${affiliate.vanitySlug}`;
+      }
+      
+      let campaignUrl: string | undefined;
         if (campaign) {
           const campaignSlug = campaign.name.toLowerCase().replace(/\s+/g, "-");
           campaignUrl = buildCampaignUrl(domain, link.code, campaignSlug);
@@ -499,6 +505,8 @@ export const getAffiliatePortalLinks = query({
     code: v.string(),
     campaignName: v.optional(v.string()),
     shortUrl: v.string(),
+    fullUrl: v.string(),
+    vanityUrl: v.optional(v.string()),
     campaignUrl: v.optional(v.string()),
     clickCount: v.number(),
     conversionCount: v.number(),
@@ -544,6 +552,12 @@ export const getAffiliatePortalLinks = query({
       }
 
       const shortUrl = buildShortUrl(domain, link.code);
+      const fullUrl = shortUrl;
+
+      let vanityUrl: string | undefined;
+      if (affiliate?.vanitySlug) {
+        vanityUrl = `https://${domain}/ref/${affiliate.vanitySlug}`;
+      }
       
       let campaignUrl: string | undefined;
       if (link.campaignId && campaignName) {
@@ -574,6 +588,8 @@ export const getAffiliatePortalLinks = query({
         ...link,
         campaignName,
         shortUrl,
+        fullUrl,
+        vanityUrl,
         campaignUrl,
         clickCount,
         conversionCount,
@@ -663,5 +679,63 @@ export const getAffiliateDailyClicks = query({
     }
 
     return result;
+  },
+});
+
+export const updateVanitySlug = mutation({
+  args: {
+    affiliateId: v.id("affiliates"),
+    vanitySlug: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    vanityUrl: v.string(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const tenantId = await requireTenantId(ctx);
+
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || affiliate.tenantId !== tenantId) {
+      throw new Error("Affiliate not found or access denied");
+    }
+
+    if (!/^[a-zA-Z0-9_-]{3,50}$/.test(args.vanitySlug)) {
+      return {
+        success: false,
+        vanityUrl: "",
+        message: "Invalid slug format. Use 3-50 alphanumeric characters, hyphens, or underscores.",
+      };
+    }
+
+    const existing = await ctx.db
+      .query("affiliates")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("tenantId"), tenantId),
+          q.eq(q.field("vanitySlug"), args.vanitySlug),
+        )
+      )
+      .first();
+
+    if (existing && existing._id !== args.affiliateId) {
+      return {
+        success: false,
+        vanityUrl: "",
+        message: "This vanity slug is already taken.",
+      };
+    }
+
+    await ctx.db.patch(args.affiliateId, { vanitySlug: args.vanitySlug });
+
+    const tenant = await ctx.db.get(tenantId);
+    const domain = tenant?.domain || "";
+    const vanityUrl = `https://${domain}/ref/${args.vanitySlug}`;
+
+    return {
+      success: true,
+      vanityUrl,
+      message: "Vanity link updated successfully!",
+    };
   },
 });

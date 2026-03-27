@@ -32,7 +32,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-approve",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -56,7 +56,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           recurringCommission: false,
           autoApproveCommissions: false, // Manual approval required
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -68,7 +67,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -135,7 +133,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-decline",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -149,7 +147,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           recurringCommission: false,
           autoApproveCommissions: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -161,7 +158,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF2",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -220,7 +216,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-reason-privacy",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -233,7 +229,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -245,7 +240,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF3",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -294,7 +288,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-status-validate",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -307,7 +301,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -319,7 +312,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF4",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -352,7 +344,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-decline-status",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -365,7 +357,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -377,7 +368,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF5",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -411,7 +401,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-status-msg",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -424,7 +414,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -436,7 +425,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF6",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -475,7 +463,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-empty-reason",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -488,7 +476,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -500,7 +487,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF11",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -548,7 +534,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-review-nonpending",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -561,7 +547,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -573,7 +558,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF12",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -608,7 +592,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "tenant-1",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -618,7 +602,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "tenant-2",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -641,7 +625,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -653,7 +636,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF7",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -712,7 +694,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-list",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -725,7 +707,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -737,7 +718,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF8",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -797,7 +777,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-fraud",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -810,7 +790,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -822,7 +801,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF9",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -862,7 +840,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
           slug: "test-tenant-detail",
           plan: "starter",
           status: "active" as const,
-        domain: "test.example.com",
+          domain: "test.example.com",
         });
       });
 
@@ -875,7 +853,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 
@@ -887,7 +864,6 @@ describe("Story 7.7: Manual Commission Approval", () => {
           name: "Test Affiliate",
           uniqueCode: "TESTAFF10",
           status: "active" as const,
-        domain: "test.example.com",
         });
       });
 

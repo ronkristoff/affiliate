@@ -40,6 +40,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
           slug: "test-tenant",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -140,6 +141,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
           slug: "test-tenant-org",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -198,6 +200,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
           slug: "test-tenant-invalid",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -269,6 +272,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
           slug: "test-tenant-dup",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -336,6 +340,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
           slug: "test-tenant-campaign",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -454,6 +459,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
           slug: "test-tenant-sub",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -566,6 +572,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
           slug: "test-tenant-renewal",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -668,6 +675,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
           slug: "test-tenant-cancel",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -730,6 +738,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
           slug: "test-tenant-dup-sub",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -844,6 +853,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
           slug: "test-tenant-no-recurring",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -964,6 +974,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-failed",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1080,6 +1091,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-pending",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1193,6 +1205,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-completed",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1295,6 +1308,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-sub-pending",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1397,6 +1411,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-sub-failed",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1501,6 +1516,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
           slug: "test-tenant-audit",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1627,6 +1643,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-refund",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1780,6 +1797,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-no-commission",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -1861,6 +1879,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-chargeback",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2010,6 +2029,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-declined",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2142,6 +2162,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-duplicate",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2303,6 +2324,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
           slug: "test-tenant-already-reversed",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2443,6 +2465,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           slug: "test-tenant-concurrent",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2506,6 +2529,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           slug: "test-tenant-dup-commission",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2518,7 +2542,6 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
-        domain: "test.example.com",
         });
       });
 
@@ -2529,7 +2552,6 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           name: "Test Affiliate",
           uniqueCode: "AFF123",
           status: "active",
-        domain: "test.example.com",
         });
       });
 
@@ -2615,6 +2637,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           slug: "test-tenant-all-types",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2668,6 +2691,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           slug: "test-tenant-audit",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 
@@ -2731,6 +2755,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           slug: "test-tenant-perf",
           plan: "starter",
           status: "active" as const,
+          domain: "test.example.com",
         });
       });
 

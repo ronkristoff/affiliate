@@ -21,7 +21,7 @@ const testModules = {
 };
 
 describe("Commission Confirmed Email Tests", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   describe("email logging", () => {
     it("should track email sent successfully", async () => {
@@ -32,7 +32,7 @@ describe("Commission Confirmed Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Test trackEmailSent mutation
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -64,7 +64,7 @@ describe("Commission Confirmed Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Test trackEmailSent mutation with failure
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -123,8 +123,7 @@ describe("Commission Confirmed Email Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
-        domain: "test.example.com",
-        });
+          });
         
         // Create a commission with all email-related fields
         const commissionId = await ctx.db.insert("commissions", {
@@ -159,7 +158,7 @@ describe("Commission Confirmed Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Create affiliate
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -178,8 +177,7 @@ describe("Commission Confirmed Email Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
-        domain: "test.example.com",
-        });
+          });
         
         // Create conversion WITHOUT optional metadata (Subtask 4.2)
         const conversionId = await ctx.db.insert("conversions", {
@@ -205,7 +203,7 @@ describe("Commission Confirmed Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
         
         // Track multiple email attempts (simulating retry scenario)
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -250,7 +248,7 @@ describe("Commission Confirmed Email Tests", () => {
 });
 
 describe("Payout Sent Email Tests (Story 10.3)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   describe("email template rendering", () => {
     it("should render PayoutSentEmail template with all props", async () => {
@@ -322,7 +320,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Test trackEmailSent mutation for payout_sent
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -354,7 +352,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Test trackEmailSent mutation with failure
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -444,7 +442,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         // Create affiliate
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -492,7 +490,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -517,7 +515,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
         
         // Track multiple email attempts (simulating retry scenario)
         await ctx.runMutation(internal.emails.trackEmailSent, {
@@ -569,7 +567,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -607,7 +605,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         } as any;
 
         // Call the action with force-fail scenario (no Resend in test env)
-        const result = await ctx.runAction(internal.emails.sendPayoutSentEmail, {
+        const result = await (ctx as any).runAction(internal.emails.sendPayoutSentEmail, {
           tenantId,
           payoutId,
           affiliateId,
@@ -643,7 +641,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -681,7 +679,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         } as any;
 
         // Call with attempt 0 (should schedule retry with 5s delay)
-        await ctx.runAction(internal.emails.sendPayoutSentEmail, {
+        await (ctx as any).runAction(internal.emails.sendPayoutSentEmail, {
           tenantId,
           payoutId,
           affiliateId,
@@ -707,7 +705,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -735,7 +733,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         });
 
         // Call with attempt 3 (maxRetries is 3, so this should fail without retry)
-        const result = await ctx.runAction(internal.emails.sendPayoutSentEmail, {
+        const result = await (ctx as any).runAction(internal.emails.sendPayoutSentEmail, {
           tenantId,
           payoutId,
           affiliateId,
@@ -803,6 +801,8 @@ describe("CommissionConfirmedEmail Template Tests", () => {
 import NewReferralAlertEmail from "./emails/NewReferralAlertEmail";
 
 describe("New Referral Alert Email Tests", () => {
+  const t = convexTest(schema, testModules as any);
+
   describe("email rendering", () => {
     it("should render email with all required fields", async () => {
       const html = await render(
@@ -919,7 +919,7 @@ describe("New Referral Alert Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -937,7 +937,7 @@ describe("New Referral Alert Email Tests", () => {
         });
 
         // Call the action with force-fail scenario (no Resend in test env)
-        const result = await ctx.runAction(internal.emails.sendNewReferralAlertEmail, {
+        const result = await (ctx as any).runAction(internal.emails.sendNewReferralAlertEmail, {
           tenantId,
           conversionId,
           affiliateId,
@@ -975,7 +975,7 @@ describe("New Referral Alert Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -1003,7 +1003,7 @@ describe("New Referral Alert Email Tests", () => {
         } as any;
 
         // Call with attempt 0 (should schedule retry with 5s delay)
-        await ctx.runAction(internal.emails.sendNewReferralAlertEmail, {
+        await (ctx as any).runAction(internal.emails.sendNewReferralAlertEmail, {
           tenantId,
           conversionId,
           affiliateId,
@@ -1031,7 +1031,7 @@ describe("New Referral Alert Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -1049,7 +1049,7 @@ describe("New Referral Alert Email Tests", () => {
         });
 
         // Call with attempt 3 (maxRetries is 3, so this should fail without retry)
-        const result = await ctx.runAction(internal.emails.sendNewReferralAlertEmail, {
+        const result = await (ctx as any).runAction(internal.emails.sendNewReferralAlertEmail, {
           tenantId,
           conversionId,
           affiliateId,
@@ -1077,7 +1077,7 @@ describe("New Referral Alert Email Tests", () => {
           plan: "Growth",
           status: "active",
         domain: "test.example.com",
-        });
+          });
 
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
@@ -1095,7 +1095,7 @@ describe("New Referral Alert Email Tests", () => {
         });
 
         // Call action with ownerName
-        await ctx.runAction(internal.emails.sendNewReferralAlertEmail, {
+        await (ctx as any).runAction(internal.emails.sendNewReferralAlertEmail, {
           tenantId,
           conversionId,
           affiliateId,

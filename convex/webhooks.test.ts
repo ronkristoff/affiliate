@@ -342,7 +342,6 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
-        domain: "test.example.com",
       });
 
       const campaignId = await ctx.db.insert("campaigns", {
@@ -352,7 +351,6 @@ describe("Webhook Processing to Conversion", () => {
         commissionValue: 10,
         recurringCommission: false,
         status: "active",
-        domain: "test.example.com",
       });
 
       const referralLinkId = await ctx.db.insert("referralLinks", {
@@ -499,7 +497,6 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
-        domain: "test.example.com",
       });
     });
 
@@ -570,7 +567,6 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
-        domain: "test.example.com",
       });
     });
 
@@ -815,7 +811,6 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
-        domain: "test.example.com",
       });
 
       await ctx.db.insert("referralLinks", {

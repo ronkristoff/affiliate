@@ -17,7 +17,7 @@ const testModules = {
 };
 
 describe("Webhook Event Handler Tests (Story 10.6)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   describe("updateEmailDeliveryStatus", () => {
     it("should update email delivery status to 'delivered'", async () => {
@@ -483,7 +483,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
 });
 
 describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   it("should calculate correct stats for a broadcast with mixed statuses", async () => {
     await t.run(async (ctx) => {
@@ -626,7 +626,7 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
 });
 
 describe("Recipient List Query Tests (Story 10.6)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   it("should return emails by broadcastId from by_broadcast index", async () => {
     await t.run(async (ctx) => {
@@ -733,7 +733,7 @@ describe("Recipient List Query Tests (Story 10.6)", () => {
 });
 
 describe("Email Tracking with broadcastId/affiliateId (Story 10.6)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   it("should store broadcastId and affiliateId when tracking email", async () => {
     await t.run(async (ctx) => {
@@ -837,7 +837,7 @@ describe("CSV Export Format Tests (Story 10.6)", () => {
   });
 
   it("should handle empty CSV fields", () => {
-    const value = "";
+    const value: string = "";
     const escaped = !value ? '""' : value.includes(",") ? `"${value.replace(/"/g, '""')}"` : value;
     expect(escaped).toBe('""');
   });
@@ -852,7 +852,7 @@ describe("CSV Export Format Tests (Story 10.6)", () => {
 });
 
 describe("Sequential webhook events for same email (Story 10.6)", () => {
-  const t = convexTest(schema, testModules);
+  const t = convexTest(schema, testModules as any);
 
   it("should update email through lifecycle: sent -> delivered -> opened -> clicked", async () => {
     await t.run(async (ctx) => {
