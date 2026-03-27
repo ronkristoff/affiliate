@@ -662,12 +662,8 @@ function CommissionsContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Sticky Top Bar */}
-      <PageTopbar
-        description="Review, approve, and manage all affiliate commission payouts"
-        breadcrumbs={[{ label: "Commissions" }]}
-      >
+      <PageTopbar description="Review, approve, and manage all affiliate commission payouts">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
-        <ExportButton onClick={handleExportCSV} isExporting={isExporting} />
       </PageTopbar>
 
       {/* Page Content */}
@@ -727,19 +723,22 @@ function CommissionsContent() {
             value={searchQuery}
             onChange={handleSearchChange}
             placeholder="Search affiliate, customer, or TX ID..."
-            className="w-full max-w-md"
+            className="flex-1 min-w-0"
           />
 
-          {/* Approve All Pending */}
-          {canManage && (stats?.pendingCount ?? 0) > 0 && (
-            <Button
-              size="sm"
-              onClick={() => setShowApproveAllDialog(true)}
-              className="text-[12px]"
-            >
-              Approve All Pending
-            </Button>
-          )}
+          {/* Actions */}
+          <div className="flex items-center gap-3 shrink-0">
+            <ExportButton onClick={handleExportCSV} isExporting={isExporting} />
+            {canManage && (stats?.pendingCount ?? 0) > 0 && (
+              <Button
+                size="sm"
+                onClick={() => setShowApproveAllDialog(true)}
+                className="text-[12px]"
+              >
+                Approve All Pending
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* ── Filter Chips ─────────────────────────────────────────────── */}
