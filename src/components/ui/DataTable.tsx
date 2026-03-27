@@ -432,7 +432,7 @@ export function DataTable<T>({
       <div className={cn("bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm", className)}>
         <table className="w-full">
           <thead>
-            <tr>
+            <tr className="border-b border-[var(--border-light)]">
               {selectable && (
                 <th className="w-10 px-4 py-2 text-left">
                   <Skeleton className="h-4 w-4" />
@@ -507,7 +507,7 @@ export function DataTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr>
+            <tr className="border-b border-[var(--border-light)]">
               {selectable && (
                 <th className="w-10 px-4 py-2 text-left">
                   {/* Checkbox header: no bg/border per AffiliateTable styling reference */}

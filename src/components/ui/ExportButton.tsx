@@ -2,6 +2,7 @@
 
 import { Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ExportButtonProps {
   onClick: () => void;
@@ -25,7 +26,7 @@ export function ExportButton({
       size="sm"
       onClick={onClick}
       disabled={isExporting}
-      className={className}
+      className={cn("text-[12px]", className)}
     >
       {isExporting ? (
         <>

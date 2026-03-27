@@ -255,16 +255,16 @@ export const listCampaigns = query({
       approvalThreshold: v.optional(v.number()),
       status: v.string(),
       slug: v.optional(v.string()),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const user = await getAuthenticatedUser(ctx);
-    if (!user) {
-      throw new Error("Unauthorized: Authentication required");
-    }
+     })
+   ),
+   handler: async (ctx, args) => {
+     const user = await getAuthenticatedUser(ctx);
+     if (!user) {
+       return [];
+     }
 
-    const tenantId = user.tenantId;
-    const includeArchived = args.includeArchived ?? false;
+     const tenantId = user.tenantId;
+     const includeArchived = args.includeArchived ?? false;
 
     // OPTIMIZED: Use compound index for better performance
     // If not including archived, we can efficiently query only active and paused
