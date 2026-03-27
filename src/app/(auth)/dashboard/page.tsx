@@ -14,7 +14,6 @@ import {
   CommissionsSummary,
   PendingActions,
 } from "./components";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -276,7 +275,7 @@ function DashboardContent() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Left Column - Large Chart */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-0">
             <FadeIn delay={100}>
               <OverviewChart 
                 data={stats ? {
@@ -287,17 +286,25 @@ function DashboardContent() {
                 isLoading={!stats}
               />
             </FadeIn>
+            <FadeIn delay={200}>
+              <PendingActions 
+                pendingCommissions={stats?.pendingCommissionsCount}
+                pendingPromoters={0}
+                pendingReferrals={0}
+                isLoading={!stats}
+              />
+            </FadeIn>
           </div>
 
           {/* Right Column - Trendings & Commissions */}
           <div className="space-y-6">
-            <FadeIn delay={200}>
+            <FadeIn delay={300}>
               <TrendingSection 
                 topAffiliates={topAffiliates}
                 isLoading={!topAffiliates}
               />
             </FadeIn>
-            <FadeIn delay={300}>
+            <FadeIn delay={400}>
               <CommissionsSummary 
                 totalEarned={stats?.mrrInfluenced}
                 isLoading={!stats}
@@ -305,16 +312,6 @@ function DashboardContent() {
             </FadeIn>
           </div>
         </div>
-
-        {/* Bottom Section - Pending Actions */}
-        <FadeIn delay={400}>
-          <PendingActions 
-            pendingCommissions={stats?.pendingCommissionsCount}
-            pendingPromoters={0} // Not available in stats yet
-            pendingReferrals={0} // Not available in stats yet
-            isLoading={!stats}
-          />
-        </FadeIn>
       </div>
 
       {/* Invite Affiliate Sheet */}
