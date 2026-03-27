@@ -749,7 +749,7 @@ function AffiliatesContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <AffiliateTopbar onExport={handleExportCSV} isExporting={isExporting} onInvite={() => setIsInviteSheetOpen(true)} />
+      <AffiliateTopbar />
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
@@ -775,6 +775,9 @@ function AffiliatesContent() {
             <AffiliateToolbar
               searchQuery={search}
               onSearchChange={setSearch}
+              onExport={handleExportCSV}
+              isExporting={isExporting}
+              onInvite={() => setIsInviteSheetOpen(true)}
             />
 
             <FilterChips<Affiliate>
@@ -831,6 +834,9 @@ function AffiliatesContent() {
             <AffiliateToolbar
               searchQuery={search}
               onSearchChange={setSearch}
+              onExport={handleExportCSV}
+              isExporting={isExporting}
+              onInvite={() => setIsInviteSheetOpen(true)}
             />
 
             <FilterChips<Affiliate>
@@ -888,6 +894,9 @@ function AffiliatesContent() {
             <AffiliateToolbar
               searchQuery={search}
               onSearchChange={setSearch}
+              onExport={handleExportCSV}
+              isExporting={isExporting}
+              onInvite={() => setIsInviteSheetOpen(true)}
             />
 
             <FilterChips<Affiliate>
