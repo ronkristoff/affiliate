@@ -132,9 +132,9 @@ export function DataTablePagination({
   }
   
   return (
-    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-5 border-t border-[var(--border-light)]", className)}>
+    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-2 py-2 px-4 border-t border-[var(--border-light)]", className)}>
       {/* Left side: Items per page selector */}
-      <div className="flex items-center gap-3 text-[12px] text-[var(--text-muted)]">
+      <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
         {showPageSizeSelector && (
           <>
             <span className="whitespace-nowrap font-medium">{itemsPerPageLabel}</span>
@@ -143,12 +143,12 @@ export function DataTablePagination({
               onValueChange={(value) => handlePageSizeChange(Number(value))}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-8 w-[70px] text-[12px] border-[var(--border)] bg-white">
+              <SelectTrigger className="h-6 w-[52px] text-[10px] border-[var(--border)] bg-white px-1.5">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent side="top" className="shadow-lg">
                 {pageSizeOptions.map((size) => (
-                  <SelectItem key={size} value={String(size)}>
+                  <SelectItem key={size} value={String(size)} className="text-[11px] py-1 px-2">
                     {size}
                   </SelectItem>
                 ))}
@@ -159,27 +159,27 @@ export function DataTablePagination({
       </div>
       
       {/* Center: Showing X to Y of Z */}
-      <div className="text-[12px] text-[var(--text-muted)] font-medium">
+      <div className="text-[11px] text-[var(--text-muted)] font-medium">
         {showingLabel} <span className="text-[var(--text-body)] font-semibold">{startItem}–{endItem}</span> {ofLabel} <span className="text-[var(--text-body)] font-semibold">{total}</span> {total === 1 ? "item" : "items"}
       </div>
       
       {/* Right side: Page navigation */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {/* First page button */}
           <button
             type="button"
             onClick={() => handlePageChange(1)}
             disabled={page <= 1 || isLoading}
             className={cn(
-              "inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[var(--border)] transition-all duration-150",
+              "inline-flex items-center justify-center h-7 w-7 rounded-md border border-[var(--border)] transition-all duration-150",
               "hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]/30",
               "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] disabled:hover:bg-transparent",
               "text-[var(--text-muted)]"
             )}
             aria-label="Go to first page"
           >
-            <ChevronsLeft className="h-3.5 w-3.5" />
+            <ChevronsLeft className="h-3 w-3" />
           </button>
           
           {/* Previous page button */}
@@ -188,24 +188,24 @@ export function DataTablePagination({
             onClick={() => handlePageChange(page - 1)}
             disabled={page <= 1 || isLoading}
             className={cn(
-              "inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[var(--border)] transition-all duration-150",
+              "inline-flex items-center justify-center h-7 w-7 rounded-md border border-[var(--border)] transition-all duration-150",
               "hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]/30",
               "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] disabled:hover:bg-transparent",
               "text-[var(--text-muted)]"
             )}
             aria-label="Go to previous page"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className="h-3 w-3" />
           </button>
           
           {/* Page numbers */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {pageNumbers.map((pageNum, index) => {
               if (pageNum === "ellipsis") {
                 return (
                   <span
                     key={`ellipsis-${index}`}
-                    className="inline-flex items-center justify-center h-8 w-8 text-[12px] text-[var(--text-muted)]"
+                    className="inline-flex items-center justify-center h-7 w-7 text-[11px] text-[var(--text-muted)]"
                   >
                     …
                   </span>
@@ -220,7 +220,7 @@ export function DataTablePagination({
                   onClick={() => handlePageChange(pageNum)}
                   disabled={isLoading}
                   className={cn(
-                    "inline-flex items-center justify-center h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150",
+                    "inline-flex items-center justify-center h-7 w-7 rounded-md text-[11px] font-semibold transition-all duration-150",
                     isActive
                       ? "bg-[var(--brand-primary)] text-white shadow-md shadow-[var(--brand-primary)]/20"
                       : "border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]/30",
@@ -241,14 +241,14 @@ export function DataTablePagination({
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages || isLoading}
             className={cn(
-              "inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[var(--border)] transition-all duration-150",
+              "inline-flex items-center justify-center h-7 w-7 rounded-md border border-[var(--border)] transition-all duration-150",
               "hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]/30",
               "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] disabled:hover:bg-transparent",
               "text-[var(--text-muted)]"
             )}
             aria-label="Go to next page"
           >
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3 w-3" />
           </button>
           
           {/* Last page button */}
@@ -257,14 +257,14 @@ export function DataTablePagination({
             onClick={() => handlePageChange(totalPages)}
             disabled={page >= totalPages || isLoading}
             className={cn(
-              "inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[var(--border)] transition-all duration-150",
+              "inline-flex items-center justify-center h-7 w-7 rounded-md border border-[var(--border)] transition-all duration-150",
               "hover:border-[var(--brand-primary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]/30",
               "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] disabled:hover:bg-transparent",
               "text-[var(--text-muted)]"
             )}
             aria-label="Go to last page"
           >
-            <ChevronsRight className="h-3.5 w-3.5" />
+            <ChevronsRight className="h-3 w-3" />
           </button>
         </div>
       )}
