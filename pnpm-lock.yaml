@@ -74,6 +74,9 @@ importers:
       convex-helpers:
         specifier: ^0.1.104
         version: 0.1.114(@standard-schema/spec@1.1.0)(convex@1.32.0(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6)
+      convex-saligpay:
+        specifier: ^1.2.0
+        version: 1.2.0(convex@1.32.0(react@19.2.3))
       convex.config:
         specifier: link:@convex-dev/resend/convex.config
         version: link:@convex-dev/resend/convex.config
@@ -2697,6 +2700,12 @@ packages:
         optional: true
       zod:
         optional: true
+
+  convex-saligpay@1.2.0:
+    resolution: {integrity: sha512-iekcdPwKVW0CwOvzRumv32RIXbCR+j9SdLkU6QSwcHgkiUJQTp1uacnKUa0gG5wBsC/mOFj0YsWpSwUhxR/tTA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      convex: ^1.33.1
 
   convex-test@0.0.41:
     resolution: {integrity: sha512-GPHeYFOi70n7UtW0eCEQFVhzl/+m8PvbWkDCbKpHLybI1MrScf4sVpGeM0cC2qmtxiduxa2nLPbehPalhh9oyQ==}
@@ -7034,6 +7043,10 @@ snapshots:
       react: 19.2.3
       typescript: 5.9.3
       zod: 4.3.6
+
+  convex-saligpay@1.2.0(convex@1.32.0(react@19.2.3)):
+    dependencies:
+      convex: 1.32.0(react@19.2.3)
 
   convex-test@0.0.41(convex@1.32.0(react@19.2.3)):
     dependencies:

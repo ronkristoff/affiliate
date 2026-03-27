@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Salig Affiliate</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand: #10409a;
+  --brand-secondary: #1659d6;
+  --brand-dark: #022232;
+  --brand-light: #eff6ff;
+  --bg-page: #f2f2f2;
+  --bg-surface: #ffffff;
+  --text-heading: #333333;
+  --text-body: #474747;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --success-bg: #d1fae5;
+  --success-text: #065f46;
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --info-bg: #dbeafe;
+  --info-text: #1e40af;
+  --radius: 12px;
+  --sidebar-w: 240px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Poppins',system-ui,-apple-system,sans-serif; background:var(--bg-page); color:var(--text-body); -webkit-font-smoothing:antialiased; }
+
+/* ── Sidebar ── */
+.sidebar { position:fixed; left:0; top:0; width:var(--sidebar-w); height:100vh; background:var(--brand-dark); display:flex; flex-direction:column; z-index:50; overflow-y:auto; }
+.sidebar-logo { padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,0.08); }
+.sidebar-logo .brand { font-size:22px; font-weight:700; color:#fff; letter-spacing:1px; }
+.sidebar-logo .sub { font-size:11px; color:rgba(255,255,255,0.5); font-weight:400; letter-spacing:0.5px; }
+.sidebar-nav { flex:1; padding:12px 8px; }
+.sidebar-nav a { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; color:rgba(255,255,255,0.65); text-decoration:none; font-size:13px; font-weight:400; transition:all 0.15s; margin-bottom:2px; }
+.sidebar-nav a:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.9); }
+.sidebar-nav a.active { background:var(--brand); color:#fff; font-weight:500; }
+.sidebar-nav a svg { width:18px; height:18px; opacity:0.8; flex-shrink:0; }
+.sidebar-nav a.active svg { opacity:1; }
+.sidebar-footer { padding:16px; border-top:1px solid rgba(255,255,255,0.08); }
+.sidebar-user { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; cursor:pointer; transition:background 0.15s; }
+.sidebar-user:hover { background:rgba(255,255,255,0.06); }
+.sidebar-avatar { width:34px; height:34px; border-radius:50%; background:var(--brand); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:600; flex-shrink:0; }
+.sidebar-user-info { flex:1; min-width:0; }
+.sidebar-user-name { font-size:12px; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sidebar-user-role { font-size:10px; color:rgba(255,255,255,0.45); }
+.sidebar-signout { display:flex; align-items:center; gap:8px; padding:8px 14px; margin-top:8px; border-radius:8px; color:rgba(255,255,255,0.5); font-size:12px; cursor:pointer; border:none; background:none; width:100%; text-align:left; transition:all 0.15s; }
+.sidebar-signout:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.8); }
+
+/* ── Main ── */
+.main { margin-left:var(--sidebar-w); min-height:100vh; }
+.topbar { position:sticky; top:0; z-index:40; background:var(--bg-surface); border-bottom:1px solid var(--border); padding:14px 32px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.topbar-left { display:flex; flex-direction:column; gap:2px; }
+.topbar-title { font-size:17px; font-weight:700; color:var(--text-heading); }
+.topbar-desc { font-size:12px; color:var(--text-muted); }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-body); transition:all 0.15s; white-space:nowrap; }
+.btn:hover { background:var(--bg-page); border-color:#d1d5db; }
+.btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+.btn-primary:hover { background:#0d3580; }
+.btn svg { width:14px; height:14px; }
+.filter-tabs { display:flex; background:var(--bg-page); border-radius:8px; padding:3px; }
+.filter-tab { padding:5px 14px; border-radius:6px; font-size:12px; font-weight:500; color:var(--text-muted); cursor:pointer; border:none; background:none; font-family:inherit; transition:all 0.15s; }
+.filter-tab.active { background:var(--bg-surface); color:var(--text-heading); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+.content { padding:24px 32px; }
+
+/* ── Metric Cards ── */
+.metrics-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:24px; }
+.metric-card { background:var(--bg-surface); border-radius:var(--radius); padding:20px; position:relative; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); transition:box-shadow 0.2s, transform 0.2s; }
+.metric-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.1); transform:translateY(-1px); }
+.metric-card::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; }
+.metric-card.blue::before { background:var(--brand-secondary); }
+.metric-card.green::before { background:var(--success); }
+.metric-card.yellow::before { background:var(--warning); }
+.metric-card.gray::before { background:var(--text-muted); }
+.metric-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+.metric-icon.blue { background:var(--info-bg); color:var(--info); }
+.metric-icon.green { background:var(--success-bg); color:var(--success); }
+.metric-icon.yellow { background:var(--warning-bg); color:var(--warning); }
+.metric-icon.gray { background:#f3f4f6; color:var(--text-muted); }
+.metric-icon svg { width:16px; height:16px; }
+.metric-label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+.metric-value { font-size:26px; font-weight:700; color:var(--text-heading); font-variant-numeric:tabular-nums; line-height:1.2; }
+.metric-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
+.metric-delta { display:inline-flex; align-items:center; gap:3px; margin-top:6px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+.metric-delta.up { background:var(--success-bg); color:var(--success-text); }
+.metric-delta.down { background:var(--danger-bg); color:var(--danger-text); }
+.metric-delta svg { width:12px; height:12px; }
+
+/* ── Sparkline ── */
+.sparkline { position:absolute; bottom:0; right:0; width:80px; height:36px; opacity:0.3; }
+
+/* ── Content Grid ── */
+.content-grid { display:grid; grid-template-columns:1fr 340px; gap:24px; }
+
+/* ── Card ── */
+.card { background:var(--bg-surface); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.card-header { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+.card-title { font-size:13px; font-weight:700; color:var(--text-heading); }
+.card-body { padding:0; }
+
+/* ── Table ── */
+table { width:100%; border-collapse:collapse; }
+th { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; padding:10px 16px; text-align:left; background:var(--bg-page); border-bottom:1px solid var(--border); }
+td { padding:12px 16px; font-size:12px; border-bottom:1px solid #f3f4f6; color:var(--text-body); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#fafbfc; }
+.avatar-cell { display:flex; align-items:center; gap:10px; }
+.avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fff; flex-shrink:0; }
+.avatar-name { font-weight:500; color:var(--text-heading); font-size:12px; }
+.avatar-email { font-size:10px; color:var(--text-muted); }
+.currency { font-variant-numeric:tabular-nums; font-weight:500; }
+.status-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+.status-badge .dot { width:6px; height:6px; border-radius:50%; }
+.status-badge.pending { background:var(--warning-bg); color:var(--warning-text); }
+.status-badge.pending .dot { background:var(--warning); }
+.status-badge.approved { background:var(--success-bg); color:var(--success-text); }
+.status-badge.approved .dot { background:var(--success); }
+.status-badge.paid { background:#f3f4f6; color:#374151; }
+.status-badge.paid .dot { background:var(--text-muted); }
+.status-badge.reversed { background:var(--danger-bg); color:var(--danger-text); }
+.status-badge.reversed .dot { background:var(--danger); }
+.status-badge.active { background:var(--success-bg); color:var(--success-text); }
+.status-badge.active .dot { background:var(--success); }
+
+/* ── Sidebar Widgets ── */
+.widget { background:var(--bg-surface); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.widget-header { padding:16px 20px; border-bottom:1px solid var(--border); }
+.widget-title { font-size:13px; font-weight:700; color:var(--text-heading); }
+.widget-body { padding:16px 20px; }
+.quick-actions { display:flex; flex-direction:column; gap:8px; }
+.quick-action { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; border:1px solid var(--border); cursor:pointer; transition:all 0.15s; background:none; font-family:inherit; text-align:left; width:100%; }
+.quick-action:hover { border-color:var(--brand); background:var(--brand-light); }
+.quick-action-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.quick-action-icon.blue { background:var(--info-bg); color:var(--info); }
+.quick-action-icon.green { background:var(--success-bg); color:var(--success); }
+.quick-action-icon.purple { background:#ede9fe; color:#7c3aed; }
+.quick-action-icon svg { width:16px; height:16px; }
+.quick-action-text { font-size:12px; font-weight:500; color:var(--text-heading); }
+.quick-action-desc { font-size:10px; color:var(--text-muted); }
+
+/* ── Activity Feed ── */
+.activity-list { display:flex; flex-direction:column; }
+.activity-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid #f3f4f6; }
+.activity-item:last-child { border-bottom:none; }
+.activity-dot { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.activity-dot.green { background:var(--success); }
+.activity-dot.yellow { background:var(--warning); }
+.activity-dot.blue { background:var(--info); }
+.activity-dot.red { background:var(--danger); }
+.activity-text { font-size:12px; color:var(--text-body); line-height:1.5; }
+.activity-text strong { color:var(--text-heading); font-weight:500; }
+.activity-time { font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+/* ── Plan Usage ── */
+.usage-item { margin-bottom:16px; }
+.usage-item:last-child { margin-bottom:0; }
+.usage-header { display:flex; justify-content:space-between; margin-bottom:6px; }
+.usage-label { font-size:12px; color:var(--text-body); font-weight:500; }
+.usage-count { font-size:12px; color:var(--text-muted); }
+.usage-bar { height:6px; background:#f3f4f6; border-radius:3px; overflow:hidden; }
+.usage-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+.usage-fill.blue { background:var(--brand); }
+.usage-fill.green { background:var(--success); }
+
+/* ── Responsive ── */
+@media (max-width:1200px) { .metrics-grid { grid-template-columns:repeat(3,1fr); } .content-grid { grid-template-columns:1fr; } }
+@media (max-width:768px) { .metrics-grid { grid-template-columns:repeat(2,1fr); } .sidebar { display:none; } .main { margin-left:0; } }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">SALIG</div>
+    <div class="sub">affiliate</div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Affiliates
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Campaigns
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+      Commissions
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Payouts
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Reports
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Emails
+    </a>
+    <a href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">AR</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">Alex Reyes</div>
+        <div class="sidebar-user-role">Owner</div>
+      </div>
+    </div>
+    <button class="sidebar-signout">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </button>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Overview</div>
+      <div class="topbar-desc">Track your affiliate program performance and key metrics</div>
+    </div>
+    <div class="topbar-right">
+      <div class="filter-tabs">
+        <button class="filter-tab active">Daily</button>
+        <button class="filter-tab">Weekly</button>
+        <button class="filter-tab">Monthly</button>
+      </div>
+      <button class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Date Range
+      </button>
+      <button class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+      <button class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Invite Affiliate
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Metric Cards -->
+    <div class="metrics-grid">
+      <div class="metric-card blue">
+        <div class="metric-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="metric-label">MRR Influenced</div>
+        <div class="metric-value">₱24,500</div>
+        <div class="metric-sub">from 32 active affiliates</div>
+        <div class="metric-delta up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          12% vs last month
+        </div>
+        <svg class="sparkline" viewBox="0 0 80 36"><polyline points="0,30 10,25 20,28 30,20 40,22 50,15 60,18 70,10 80,12" fill="none" stroke="#1659d6" stroke-width="2"/></svg>
+      </div>
+      <div class="metric-card yellow">
+        <div class="metric-icon yellow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="metric-label">Pending</div>
+        <div class="metric-value">₱8,200</div>
+        <div class="metric-sub">15 pending commissions</div>
+        <div class="metric-delta up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          0% vs last week
+        </div>
+      </div>
+      <div class="metric-card green">
+        <div class="metric-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="metric-label">Affiliates</div>
+        <div class="metric-value">47</div>
+        <div class="metric-sub">3 pending approval</div>
+        <div class="metric-delta up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          8 this month
+        </div>
+      </div>
+      <div class="metric-card gray">
+        <div class="metric-icon gray">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <div class="metric-label">Total Paid Out</div>
+        <div class="metric-value">₱156,300</div>
+        <div class="metric-sub">47 affiliates across all campaigns</div>
+        <div class="metric-delta up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          22% all time
+        </div>
+      </div>
+      <div class="metric-card blue">
+        <div class="metric-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="metric-label">Organic Sales</div>
+        <div class="metric-value">23</div>
+        <div class="metric-sub">38% of all conversions</div>
+        <svg class="sparkline" viewBox="0 0 80 36"><polyline points="0,28 10,22 20,25 30,18 40,20 50,12 60,15 70,8 80,10" fill="none" stroke="#1659d6" stroke-width="2"/></svg>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- Left Column -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <!-- Recent Commissions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Commissions</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" style="font-size:11px;">View All</button>
+              <button class="btn btn-primary" style="font-size:11px;">Pay All Pending</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Date</th><th>Affiliate</th><th>Campaign</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Mar 27, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#10409a;">MS</div><div><div class="avatar-name">Maria Santos</div><div class="avatar-email">maria@email.com</div></div></div></td>
+                  <td>Standard Program</td>
+                  <td class="currency">₱1,200.00</td>
+                  <td><span class="status-badge pending"><span class="dot"></span>Pending</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 26, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#7c3aed;">JD</div><div><div class="avatar-name">Juan Dela Cruz</div><div class="avatar-email">juan@email.com</div></div></div></td>
+                  <td>Premium Partners</td>
+                  <td class="currency">₱2,500.00</td>
+                  <td><span class="status-badge approved"><span class="dot"></span>Approved</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 25, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#059669;">AR</div><div><div class="avatar-name">Ana Reyes</div><div class="avatar-email">ana@email.com</div></div></div></td>
+                  <td>Standard Program</td>
+                  <td class="currency">₱800.00</td>
+                  <td><span class="status-badge paid"><span class="dot"></span>Paid</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 25, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#dc2626;">PC</div><div><div class="avatar-name">Pedro Cruz</div><div class="avatar-email">pedro@email.com</div></div></div></td>
+                  <td>Holiday Promo</td>
+                  <td class="currency">₱1,500.00</td>
+                  <td><span class="status-badge reversed"><span class="dot"></span>Reversed</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 24, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#0891b2;">LG</div><div><div class="avatar-name">Lisa Garcia</div><div class="avatar-email">lisa@email.com</div></div></div></td>
+                  <td>Standard Program</td>
+                  <td class="currency">₱950.00</td>
+                  <td><span class="status-badge pending"><span class="dot"></span>Pending</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 24, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#d97706;">RV</div><div><div class="avatar-name">Ramon Villanueva</div><div class="avatar-email">ramon@email.com</div></div></div></td>
+                  <td>Premium Partners</td>
+                  <td class="currency">₱3,200.00</td>
+                  <td><span class="status-badge approved"><span class="dot"></span>Approved</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 23, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#4f46e5;">CM</div><div><div class="avatar-name">Carla Mendoza</div><div class="avatar-email">carla@email.com</div></div></div></td>
+                  <td>Standard Program</td>
+                  <td class="currency">₱600.00</td>
+                  <td><span class="status-badge paid"><span class="dot"></span>Paid</span></td>
+                </tr>
+                <tr>
+                  <td>Mar 22, 2026</td>
+                  <td><div class="avatar-cell"><div class="avatar" style="background:#be185d;">BT</div><div><div class="avatar-name">Ben Torres</div><div class="avatar-email">ben@email.com</div></div></div></td>
+                  <td>Holiday Promo</td>
+                  <td class="currency">₱1,800.00</td>
+                  <td><span class="status-badge pending"><span class="dot"></span>Pending</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top Affiliates -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top Affiliates</span>
+            <button class="btn" style="font-size:11px;">View All</button>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>#</th><th>Affiliate</th><th>Clicks</th><th>Conversions</th><th>Earnings</th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600;color:var(--brand);">1</td><td><div class="avatar-cell"><div class="avatar" style="background:#059669;">AR</div><div class="avatar-name">Ana Reyes</div></div></td><td>2,100</td><td>45</td><td class="currency">₱24,500</td></tr>
+                <tr><td style="font-weight:600;color:var(--brand);">2</td><td><div class="avatar-cell"><div class="avatar" style="background:#10409a;">MS</div><div class="avatar-name">Maria Santos</div></div></td><td>1,245</td><td>23</td><td class="currency">₱12,300</td></tr>
+                <tr><td style="font-weight:600;color:var(--brand);">3</td><td><div class="avatar-cell"><div class="avatar" style="background:#d97706;">RV</div><div class="avatar-name">Ramon Villanueva</div></div></td><td>980</td><td>18</td><td class="currency">₱9,800</td></tr>
+                <tr><td style="font-weight:600;color:#9ca3af;">4</td><td><div class="avatar-cell"><div class="avatar" style="background:#7c3aed;">JD</div><div class="avatar-name">Juan Dela Cruz</div></div></td><td>870</td><td>15</td><td class="currency">₱8,200</td></tr>
+                <tr><td style="font-weight:600;color:#9ca3af;">5</td><td><div class="avatar-cell"><div class="avatar" style="background:#0891b2;">LG</div><div class="avatar-name">Lisa Garcia</div></div></td><td>756</td><td>12</td><td class="currency">₱6,400</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <!-- Quick Actions -->
+        <div class="widget">
+          <div class="widget-header"><span class="widget-title">Quick Actions</span></div>
+          <div class="widget-body">
+            <div class="quick-actions">
+              <button class="quick-action">
+                <div class="quick-action-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+                <div><div class="quick-action-text">Invite Affiliate</div><div class="quick-action-desc">Send an invitation link</div></div>
+              </button>
+              <button class="quick-action">
+                <div class="quick-action-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <div><div class="quick-action-text">Create Campaign</div><div class="quick-action-desc">Set up a new campaign</div></div>
+              </button>
+              <button class="quick-action">
+                <div class="quick-action-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                <div><div class="quick-action-text">View Reports</div><div class="quick-action-desc">Download performance data</div></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="widget">
+          <div class="widget-header"><span class="widget-title">Recent Activity</span></div>
+          <div class="widget-body">
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot green"></div>
+                <div>
+                  <div class="activity-text"><strong>Maria Santos</strong> earned ₱1,200 commission from Standard Program</div>
+                  <div class="activity-time">2 hours ago</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot blue"></div>
+                <div>
+                  <div class="activity-text"><strong>Juan Dela Cruz</strong> was approved for Premium Partners</div>
+                  <div class="activity-time">5 hours ago</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot yellow"></div>
+                <div>
+                  <div class="activity-text"><strong>Batch #47</strong> payout of ₱24,500 processed for 12 affiliates</div>
+                  <div class="activity-time">1 day ago</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div>
+                  <div class="activity-text"><strong>Pedro Cruz</strong> commission reversed — refund detected</div>
+                  <div class="activity-time">1 day ago</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot green"></div>
+                <div>
+                  <div class="activity-text"><strong>Ana Reyes</strong> reached ₱24,500 total earnings</div>
+                  <div class="activity-time">2 days ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Usage -->
+        <div class="widget">
+          <div class="widget-header"><span class="widget-title">Plan Usage</span></div>
+          <div class="widget-body">
+            <div class="usage-item">
+              <div class="usage-header"><span class="usage-label">Affiliates</span><span class="usage-count">47 / 100</span></div>
+              <div class="usage-bar"><div class="usage-fill blue" style="width:47%;"></div></div>
+            </div>
+            <div class="usage-item">
+              <div class="usage-header"><span class="usage-label">Campaigns</span><span class="usage-count">3 / 5</span></div>
+              <div class="usage-bar"><div class="usage-fill green" style="width:60%;"></div></div>
+            </div>
+            <div class="usage-item">
+              <div class="usage-header"><span class="usage-label">Team Members</span><span class="usage-count">2 / 3</span></div>
+              <div class="usage-bar"><div class="usage-fill blue" style="width:66%;"></div></div>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f3f4f6;">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Current Plan: <strong style="color:var(--brand);">Growth</strong></div>
+              <button class="btn" style="width:100%;justify-content:center;font-size:11px;">Upgrade Plan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

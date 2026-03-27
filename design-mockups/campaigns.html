@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaigns - Salig Affiliate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #10409a;
+      --secondary: #1659d6;
+      --dark: #022232;
+      --page-bg: #f2f2f2;
+      --surface: #ffffff;
+      --text-heading: #333333;
+      --text-body: #474747;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+      --shadow-hover: 0 4px 12px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--page-bg);
+      color: var(--text-body);
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--dark);
+      padding: 24px 16px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon svg {
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+
+    .logo-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .nav-section {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.35);
+      padding: 16px 16px 8px;
+    }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      padding: 32px 40px;
+      max-width: 1400px;
+    }
+
+    /* Top Bar */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .page-title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 4px;
+    }
+
+    .page-title p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--secondary);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .stat-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .stat-pill.active .dot { background: var(--success); }
+    .stat-pill.paused .dot { background: var(--warning); }
+    .stat-pill.completed .dot { background: var(--text-muted); }
+
+    .stat-pill .count {
+      font-weight: 700;
+      color: var(--text-heading);
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 16px;
+    }
+
+    /* Campaign Cards Grid */
+    .campaigns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .campaign-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: all 0.25s ease;
+      border: 1px solid transparent;
+    }
+
+    .campaign-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-3px);
+      border-color: var(--border);
+    }
+
+    .campaign-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .campaign-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-heading);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.active {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+
+    .status-badge.completed {
+      background: rgba(107, 114, 128, 0.12);
+      color: var(--text-muted);
+    }
+
+    .campaign-commission {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .campaign-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 12px 8px;
+      background: var(--page-bg);
+      border-radius: 8px;
+    }
+
+    .metric-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 2px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .metric-value.currency {
+      color: var(--success);
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-body);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(16, 64, 154, 0.04);
+    }
+
+    /* Needs Attention */
+    .attention-list {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .attention-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+
+    .attention-item:last-child {
+      border-bottom: none;
+    }
+
+    .attention-item:hover {
+      background: rgba(16, 64, 154, 0.02);
+    }
+
+    .attention-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .attention-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .attention-icon.warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+    }
+
+    .attention-icon.info {
+      background: rgba(22, 89, 214, 0.12);
+      color: var(--secondary);
+    }
+
+    .attention-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .attention-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-heading);
+    }
+
+    .attention-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .attention-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 16px;
+    }
+
+    .attention-status.paused {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .attention-status.pending {
+      background: rgba(22, 89, 214, 0.1);
+      color: var(--secondary);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .quick-actions .btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-body);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .quick-actions .btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .quick-actions .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 72px;
+        padding: 24px 12px;
+      }
+      .logo-text, .nav-item span, .nav-section {
+        display: none;
+      }
+      .nav-item {
+        justify-content: center;
+        padding: 12px;
+      }
+      .main {
+        margin-left: 72px;
+        padding: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .stats-bar {
+        flex-wrap: wrap;
+      }
+      .campaigns-grid {
+        grid-template-columns: 1fr;
+      }
+      .quick-actions {
+        flex-direction: column;
+      }
+      .quick-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+        <span class="logo-text">Salig Affiliate</span>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item active">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+          </svg>
+          <span>Campaigns</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <span>Affiliates</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Commissions</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+          </svg>
+          <span>Payouts</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span>Reports</span>
+        </a>
+
+        <div class="nav-section">Settings</div>
+
+        <a href="#" class="nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div class="page-title">
+          <h1>Campaigns</h1>
+          <p>Manage your affiliate programs and track performance</p>
+        </div>
+        <button class="btn btn-primary">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          New Campaign
+        </button>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-pill active">
+          <span class="dot"></span>
+          <span class="count">3</span> Active
+        </div>
+        <div class="stat-pill paused">
+          <span class="dot"></span>
+          <span class="count">1</span> Paused
+        </div>
+        <div class="stat-pill completed">
+          <span class="dot"></span>
+          <span class="count">2</span> Completed
+        </div>
+      </div>
+
+      <!-- Top Campaigns -->
+      <div class="section">
+        <h2 class="section-title">Top Performing Campaigns</h2>
+        <div class="campaigns-grid">
+          <!-- Card 1 -->
+          <div class="campaign-card">
+            <div class="campaign-header">
+              <span class="campaign-name">Standard Program</span>
+              <span class="status-badge active">Active</span>
+            </div>
+            <div class="campaign-commission">20% Recurring</div>
+            <div class="campaign-metrics">
+              <div class="metric">
+                <div class="metric-value">32</div>
+                <div class="metric-label">Affiliates</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value currency">₱145,000</div>
+                <div class="metric-label">MRR Inf.</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value">156</div>
+                <div class="metric-label">Conversions</div>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 78%;"></div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-outline btn-sm">View Details</button>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="campaign-card">
+            <div class="campaign-header">
+              <span class="campaign-name">Premium Partners</span>
+              <span class="status-badge active">Active</span>
+            </div>
+            <div class="campaign-commission">25% One-time</div>
+            <div class="campaign-metrics">
+              <div class="metric">
+                <div class="metric-value">8</div>
+                <div class="metric-label">Affiliates</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value currency">₱89,000</div>
+                <div class="metric-label">MRR Inf.</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value">45</div>
+                <div class="metric-label">Conversions</div>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 55%;"></div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-outline btn-sm">View Details</button>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="campaign-card">
+            <div class="campaign-header">
+              <span class="campaign-name">Holiday Promo 2025</span>
+              <span class="status-badge completed">Completed</span>
+            </div>
+            <div class="campaign-commission">30% One-time</div>
+            <div class="campaign-metrics">
+              <div class="metric">
+                <div class="metric-value">15</div>
+                <div class="metric-label">Affiliates</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value currency">₱67,500</div>
+                <div class="metric-label">MRR Inf.</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value">89</div>
+                <div class="metric-label">Conversions</div>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-outline btn-sm">View Details</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Needs Attention -->
+      <div class="section">
+        <h2 class="section-title">Needs Attention</h2>
+        <div class="attention-list">
+          <div class="attention-item">
+            <div class="attention-left">
+              <div class="attention-icon warning">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="attention-label">Holiday Promo</div>
+                <div class="attention-desc">Paused · 0 new referrals this week</div>
+              </div>
+            </div>
+            <span class="attention-status paused">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Paused
+            </span>
+          </div>
+          <div class="attention-item">
+            <div class="attention-left">
+              <div class="attention-icon info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="attention-label">Beta Testers</div>
+                <div class="attention-desc">2 pending applications</div>
+              </div>
+            </div>
+            <span class="attention-status pending">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Pending
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section">
+        <div class="quick-actions">
+          <button class="btn">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Create New Campaign
+          </button>
+          <button class="btn">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            View Commission Rules
+          </button>
+          <button class="btn">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export Campaign Data
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

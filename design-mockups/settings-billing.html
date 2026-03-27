@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Billing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f2f2f2;
+      color: #333;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px;
+      background: #022232;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 10;
+    }
+    .sidebar-logo {
+      padding: 24px 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-logo .logo-mark {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #10409a, #1659d6);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-logo .logo-mark svg { width: 18px; height: 18px; }
+    .sidebar-logo .logo-text { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: rgba(255,255,255,.35);
+      padding: 16px 12px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,.65);
+      text-decoration: none;
+      transition: all .15s;
+      cursor: pointer;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+    .nav-item.active { background: rgba(22,89,214,.25); color: #fff; }
+    .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .sidebar-user:hover { background: rgba(255,255,255,.06); }
+    .sidebar-user .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10409a, #1659d6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600;
+    }
+    .sidebar-user .user-info { flex: 1; }
+    .sidebar-user .user-name { font-size: 13px; font-weight: 600; }
+    .sidebar-user .user-email { font-size: 11px; color: rgba(255,255,255,.45); }
+
+    /* ── Main ── */
+    .main { margin-left: 260px; flex: 1; display: flex; flex-direction: column; }
+
+    /* ── Settings Layout ── */
+    .settings-layout { display: flex; flex: 1; }
+
+    /* ── Settings Sub-nav ── */
+    .settings-subnav {
+      width: 240px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      padding: 24px 0;
+      flex-shrink: 0;
+    }
+    .settings-subnav-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6b7280;
+      padding: 0 24px 12px;
+    }
+    .subnav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 24px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #474747;
+      text-decoration: none;
+      transition: all .15s;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+    .subnav-item:hover { background: #f9fafb; color: #333; }
+    .subnav-item.active {
+      background: rgba(16,64,154,.06);
+      color: #10409a;
+      border-left-color: #10409a;
+      font-weight: 600;
+    }
+    .subnav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: .6; }
+    .subnav-item.active svg { opacity: 1; }
+
+    /* ── Content ── */
+    .settings-content { flex: 1; padding: 32px 40px; overflow-y: auto; }
+    .page-title { font-size: 24px; font-weight: 700; color: #333; margin-bottom: 28px; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    /* ── Subscription Card ── */
+    .plan-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .plan-info { display: flex; align-items: center; gap: 16px; }
+    .plan-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(16,64,154,.1), rgba(22,89,214,.1));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .plan-icon svg { width: 26px; height: 26px; color: #10409a; }
+    .plan-name { font-size: 20px; font-weight: 700; color: #333; }
+    .plan-price { font-size: 14px; color: #6b7280; margin-top: 2px; }
+    .plan-price span { font-weight: 600; color: #333; font-size: 18px; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .plan-details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .plan-detail-item { font-size: 13px; color: #6b7280; }
+    .plan-detail-item strong { color: #333; font-weight: 600; }
+    .plan-features {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .plan-features h4 { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .feature-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .feature-list li {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #474747;
+    }
+    .feature-list li svg { width: 16px; height: 16px; color: #22c55e; flex-shrink: 0; }
+
+    /* ── Upgrade Card ── */
+    .upgrade-card {
+      background: linear-gradient(135deg, #022232, #10409a);
+      border: none;
+      color: #fff;
+    }
+    .upgrade-card .card-title { color: #fff; }
+    .upgrade-card .card-desc { color: rgba(255,255,255,.7); }
+    .upgrade-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-left: 10px;
+      vertical-align: middle;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .upgrade-features { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .upgrade-features li {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: rgba(255,255,255,.85);
+    }
+    .upgrade-features li svg { width: 16px; height: 16px; color: #60a5fa; flex-shrink: 0; }
+    .btn-upgrade {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px;
+      background: #fff;
+      color: #10409a;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-upgrade:hover { background: #f0f4ff; transform: translateY(-1px); }
+    .btn-upgrade svg { width: 16px; height: 16px; }
+
+    /* ── Usage Stats ── */
+    .usage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .usage-item { }
+    .usage-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .usage-label span:first-child { font-size: 13px; font-weight: 600; color: #333; }
+    .usage-label span:last-child { font-size: 13px; color: #6b7280; }
+    .progress-bar {
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width .3s;
+    }
+    .progress-fill.blue { background: linear-gradient(90deg, #10409a, #1659d6); }
+    .progress-fill.amber { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .progress-fill.green { background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .usage-detail { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+    /* ── Billing Table ── */
+    .billing-table { width: 100%; border-collapse: collapse; }
+    .billing-table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #6b7280;
+      padding: 0 16px 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .billing-table td {
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .billing-table tr:last-child td { border-bottom: none; }
+    .billing-table .amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .paid-badge {
+      display: inline-flex;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #dcfce7;
+      color: #166534;
+    }
+    .invoice-link {
+      color: #10409a;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .invoice-link:hover { text-decoration: underline; }
+    .invoice-link svg { width: 14px; height: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="logo-text">SALIG</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Affiliates
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Campaigns
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Commissions
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Payouts
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Messages
+      </a>
+      <div class="sidebar-section-label">Settings</div>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">AS</div>
+        <div class="user-info">
+          <div class="user-name">Alex Santos</div>
+          <div class="user-email">alex@salig.ph</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="settings-layout">
+
+      <!-- Settings Sub-nav -->
+      <nav class="settings-subnav">
+        <div class="settings-subnav-label">Settings</div>
+        <a class="subnav-item" href="settings-profile.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </a>
+        <a class="subnav-item active" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Billing
+        </a>
+        <a class="subnav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Team
+        </a>
+        <a class="subnav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Portal Branding
+        </a>
+        <a class="subnav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Tracking Code
+        </a>
+        <a class="subnav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Attribution Settings
+        </a>
+        <a class="subnav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Email Templates
+        </a>
+      </nav>
+
+      <!-- Content -->
+      <div class="settings-content">
+        <h1 class="page-title">Billing</h1>
+
+        <!-- Subscription Status -->
+        <div class="card">
+          <h2 class="card-title">Subscription Status</h2>
+          <p class="card-desc">Your current plan and billing details.</p>
+
+          <div class="plan-header">
+            <div class="plan-info">
+              <div class="plan-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <div>
+                <div class="plan-name">Growth Plan</div>
+                <div class="plan-price"><span>&#8369;2,499</span> /month</div>
+              </div>
+            </div>
+            <div class="status-badge">Active</div>
+          </div>
+
+          <div class="plan-details">
+            <div class="plan-detail-item">Next billing date: <strong>April 15, 2026</strong></div>
+            <div class="plan-detail-item">Payment method: <strong>&#8226;&#8226;&#8226;&#8226; 4242</strong></div>
+            <div class="plan-detail-item">Billing cycle: <strong>Monthly</strong></div>
+            <div class="plan-detail-item">Member since: <strong>January 2026</strong></div>
+          </div>
+
+          <div class="plan-features">
+            <h4>Plan Features</h4>
+            <ul class="feature-list">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Up to 100 affiliates
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                5 active campaigns
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                3 team members
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Custom affiliate portal
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Email notifications
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Basic analytics
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                PayPal &amp; GCash payouts
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Standard support
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Upgrade Card -->
+        <div class="card upgrade-card">
+          <h2 class="card-title">Upgrade Your Plan <span class="upgrade-badge">Recommended</span></h2>
+          <p class="card-desc">Unlock more affiliates, campaigns, and advanced features with Scale.</p>
+
+          <ul class="upgrade-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Up to 500 affiliates
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Unlimited campaigns
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              10 team members
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Advanced analytics
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Fraud detection
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              API access
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Priority support
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Webhook integrations
+            </li>
+          </ul>
+
+          <button class="btn-upgrade">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Upgrade to Scale — &#8369;4,999/mo
+          </button>
+        </div>
+
+        <!-- Usage Statistics -->
+        <div class="card">
+          <h2 class="card-title">Usage Statistics</h2>
+          <p class="card-desc">Your current usage against plan limits.</p>
+
+          <div class="usage-grid">
+            <div class="usage-item">
+              <div class="usage-label">
+                <span>Affiliates</span>
+                <span>47 / 100</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill blue" style="width: 47%;"></div>
+              </div>
+              <div class="usage-detail">53 slots remaining</div>
+            </div>
+            <div class="usage-item">
+              <div class="usage-label">
+                <span>Campaigns</span>
+                <span>3 / 5</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill amber" style="width: 60%;"></div>
+              </div>
+              <div class="usage-detail">2 slots remaining</div>
+            </div>
+            <div class="usage-item">
+              <div class="usage-label">
+                <span>Team Members</span>
+                <span>2 / 3</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill green" style="width: 66%;"></div>
+              </div>
+              <div class="usage-detail">1 slot remaining</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing History -->
+        <div class="card">
+          <h2 class="card-title">Billing History</h2>
+          <p class="card-desc">Your recent invoices and payment records.</p>
+
+          <table class="billing-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mar 15, 2026</td>
+                <td>Growth Plan — Monthly</td>
+                <td class="amount">&#8369;2,499.00</td>
+                <td><span class="paid-badge">Paid</span></td>
+                <td><a href="#" class="invoice-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</a></td>
+              </tr>
+              <tr>
+                <td>Feb 15, 2026</td>
+                <td>Growth Plan — Monthly</td>
+                <td class="amount">&#8369;2,499.00</td>
+                <td><span class="paid-badge">Paid</span></td>
+                <td><a href="#" class="invoice-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</a></td>
+              </tr>
+              <tr>
+                <td>Jan 15, 2026</td>
+                <td>Growth Plan — Monthly</td>
+                <td class="amount">&#8369;2,499.00</td>
+                <td><span class="paid-badge">Paid</span></td>
+                <td><a href="#" class="invoice-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

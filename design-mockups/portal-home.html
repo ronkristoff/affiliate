@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Affiliate Portal - Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #f2f2f2; color: #333; min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left svg { width: 32px; height: 32px; }
+    .header-left .brand { font-size: 18px; font-weight: 700; color: #10409a; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .header-right .notif-btn {
+      background: none; border: none; cursor: pointer;
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #6b7280; transition: background .15s;
+    }
+    .header-right .notif-btn:hover { background: #f2f2f2; }
+    .header-right .notif-btn svg { width: 20px; height: 20px; }
+    .header-right .user-area {
+      display: flex; align-items: center; gap: 10px;
+      padding-left: 16px; border-left: 1px solid #e5e7eb;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1659d6; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600;
+    }
+    .user-area .user-name { font-size: 14px; font-weight: 500; color: #333; }
+    .user-area .sign-out {
+      font-size: 13px; color: #6b7280; cursor: pointer;
+      transition: color .15s;
+    }
+    .user-area .sign-out:hover { color: #10409a; }
+
+    /* ── Layout ── */
+    .main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    /* ── Welcome Banner ── */
+    .banner {
+      background: linear-gradient(135deg, #10409a 0%, #1659d6 100%);
+      border-radius: 12px;
+      padding: 32px 36px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .banner h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .banner p { font-size: 14px; opacity: .85; }
+    .banner-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .banner-stat { text-align: center; }
+    .banner-stat .val { font-size: 28px; font-weight: 700; }
+    .banner-stat .label { font-size: 12px; opacity: .75; margin-top: 2px; }
+
+    /* ── Quick Link Card ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 28px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title svg { width: 18px; height: 18px; color: #1659d6; }
+    .link-row {
+      display: flex; align-items: center; gap: 12px;
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 10px 14px;
+    }
+    .link-row input {
+      flex: 1; border: none; background: transparent;
+      font-family: 'Poppins', sans-serif; font-size: 14px;
+      color: #333; outline: none;
+    }
+    .copy-btn {
+      background: #10409a; color: #fff; border: none;
+      border-radius: 8px; padding: 8px 16px;
+      font-family: 'Poppins', sans-serif; font-size: 13px;
+      font-weight: 500; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: background .15s;
+    }
+    .copy-btn:hover { background: #1659d6; }
+    .copy-btn svg { width: 14px; height: 14px; }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 22px 24px;
+    }
+    .stat-card .stat-label {
+      font-size: 13px; font-weight: 500; color: #6b7280; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .stat-card .stat-label svg { width: 16px; height: 16px; color: #6b7280; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #333; }
+    .stat-card .stat-change {
+      font-size: 12px; font-weight: 500; margin-top: 6px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .stat-change.up { background: #ecfdf5; color: #059669; }
+    .stat-change svg { width: 12px; height: 12px; }
+
+    /* ── Recent Activity ── */
+    .activity-card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 24px 28px;
+    }
+    .activity-card .card-title { margin-bottom: 16px; }
+    .activity-list { list-style: none; }
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f2f2f2;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .activity-icon.commission { background: #ecfdf5; color: #059669; }
+    .activity-icon.click { background: #eff6ff; color: #1659d6; }
+    .activity-icon svg { width: 18px; height: 18px; }
+    .activity-body { flex: 1; }
+    .activity-body .title { font-size: 14px; font-weight: 500; color: #333; }
+    .activity-body .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .activity-amount { font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .activity-amount.positive { color: #059669; }
+    .activity-amount.neutral { color: #6b7280; }
+
+    @media (max-width: 640px) {
+      .header { padding: 0 16px; }
+      .main { padding: 20px 16px 48px; }
+      .banner { padding: 24px; }
+      .banner-stats { gap: 20px; }
+      .banner-stat .val { font-size: 22px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#10409a"/>
+        <path d="M8 16l4-8 4 8-4 8z" fill="#fff"/>
+        <path d="M16 12l4-4 4 4-4 4z" fill="#fff" opacity=".6"/>
+        <path d="M16 20l4-4 4 4-4 4z" fill="#fff" opacity=".6"/>
+      </svg>
+      <span class="brand">Affiliate Portal</span>
+    </div>
+    <div class="header-right">
+      <button class="notif-btn" title="Notifications">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z"/>
+        </svg>
+      </button>
+      <div class="user-area">
+        <div class="avatar">M</div>
+        <span class="user-name">Maria Santos</span>
+        <span class="sign-out">Sign out</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Welcome Banner -->
+    <section class="banner">
+      <div>
+        <h1>Welcome back, Maria!</h1>
+        <p>Here's how your affiliate program is performing.</p>
+      </div>
+      <div class="banner-stats">
+        <div class="banner-stat">
+          <div class="val">₱12,300</div>
+          <div class="label">Total Earnings</div>
+        </div>
+        <div class="banner-stat">
+          <div class="val">1,245</div>
+          <div class="label">Total Clicks</div>
+        </div>
+        <div class="banner-stat">
+          <div class="val">23</div>
+          <div class="label">Total Conversions</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Link -->
+    <div class="card">
+      <div class="card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-3.536 3.536a4 4 0 01-5.656-5.656l1.414-1.414M10.172 13.828a4 4 0 010-5.656l3.536-3.536a4 4 0 015.656 5.656l-1.414 1.414"/>
+        </svg>
+        Your Referral Link
+      </div>
+      <div class="link-row">
+        <input type="text" value="https://salig.io/r/maria-santos" readonly>
+        <button class="copy-btn">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+          </svg>
+          This Month
+        </div>
+        <div class="stat-value">₱2,400</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Pending
+        </div>
+        <div class="stat-value">₱800</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          Conversion Rate
+        </div>
+        <div class="stat-value">1.8%</div>
+        <div class="stat-change up">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
+          </svg>
+          +15%
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-card">
+      <div class="card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#1659d6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Recent Activity
+      </div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <div class="activity-icon commission">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="activity-body">
+            <div class="title">Commission earned</div>
+            <div class="meta">From order #ORD-2847 &middot; 2 hours ago</div>
+          </div>
+          <div class="activity-amount positive">+₱350</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-icon click">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+            </svg>
+          </div>
+          <div class="activity-body">
+            <div class="title">Click recorded</div>
+            <div class="meta">From Facebook campaign &middot; 3 hours ago</div>
+          </div>
+          <div class="activity-amount neutral">1 click</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-icon commission">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="activity-body">
+            <div class="title">Commission earned</div>
+            <div class="meta">From order #ORD-2831 &middot; Yesterday</div>
+          </div>
+          <div class="activity-amount positive">+₱520</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-icon click">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+            </svg>
+          </div>
+          <div class="activity-body">
+            <div class="title">Click recorded</div>
+            <div class="meta">From Instagram bio link &middot; Yesterday</div>
+          </div>
+          <div class="activity-amount neutral">3 clicks</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-icon commission">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="activity-body">
+            <div class="title">Commission approved</div>
+            <div class="meta">From order #ORD-2798 &middot; 2 days ago</div>
+          </div>
+          <div class="activity-amount positive">+₱280</div>
+        </li>
+      </ul>
+    </div>
+
+  </main>
+
+</body>
+</html>

@@ -35,6 +35,7 @@
     "cmdk": "^1.1.1",
     "convex": "^1.32.0",
     "convex-helpers": "^0.1.104",
+    "convex-saligpay": "^1.2.0",
     "convex.config": "link:@convex-dev/resend/convex.config",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.542.0",

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affiliates — Salig Affiliate</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#10409a;--brand-sec:#1659d6;--dark:#022232;--light:#eff6ff;--page:#f2f2f2;--surf:#fff;--head:#333;--body:#474747;--muted:#6b7280;--border:#e5e7eb;--ok:#10b981;--warn:#f59e0b;--err:#ef4444;--ok-bg:#d1fae5;--ok-tx:#065f46;--warn-bg:#fef3c7;--warn-tx:#92400e;--err-bg:#fee2e2;--err-tx:#991b1b;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',system-ui,sans-serif;background:var(--page);color:var(--body);-webkit-font-smoothing:antialiased}
+.sb{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--dark);display:flex;flex-direction:column;z-index:50}
+.sb-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo .b{font-size:22px;font-weight:700;color:#fff;letter-spacing:1px}
+.sb-logo .s{font-size:11px;color:rgba(255,255,255,.5)}
+.sb-nav{flex:1;padding:12px 8px}
+.sb-nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;color:rgba(255,255,255,.65);text-decoration:none;font-size:13px;transition:all .15s;margin-bottom:2px}
+.sb-nav a:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.sb-nav a.on{background:var(--brand);color:#fff;font-weight:500}
+.sb-nav a svg{width:18px;height:18px;opacity:.8;flex-shrink:0}
+.sb-nav a.on svg{opacity:1}
+.sb-ft{padding:16px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-u{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px}
+.sb-av{width:34px;height:34px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600}
+.sb-un{font-size:12px;font-weight:500;color:#fff}
+.sb-ur{font-size:10px;color:rgba(255,255,255,.45)}
+.sb-out{display:flex;align-items:center;gap:8px;padding:8px 14px;margin-top:8px;border-radius:8px;color:rgba(255,255,255,.5);font-size:12px;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.mn{margin-left:240px;min-height:100vh}
+.top{position:sticky;top:0;z-index:40;background:var(--surf);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
+.top-l{display:flex;flex-direction:column;gap:2px}
+.top-t{font-size:17px;font-weight:700;color:var(--head)}
+.top-d{font-size:12px;color:var(--muted)}
+.top-r{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surf);color:var(--body);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--page);border-color:#d1d5db}
+.btn-p{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-p:hover{background:#0d3580}
+.btn svg{width:14px;height:14px}
+.ct{padding:24px 32px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;position:relative;transition:color .15s}
+.tab:hover{color:var(--body)}
+.tab.on{color:var(--brand);font-weight:600}
+.tab.on::after{content:"";position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--brand);border-radius:1px}
+.tab .cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;font-size:10px;font-weight:600;margin-left:6px;background:var(--page);color:var(--muted)}
+.tab.on .cnt{background:var(--light);color:var(--brand)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.search{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surf);width:320px}
+.search svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+.search input{border:none;outline:none;font-size:12px;font-family:inherit;color:var(--body);width:100%;background:transparent}
+.search input::placeholder{color:#9ca3af}
+
+/* Filter chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--light);color:var(--brand);border:1px solid rgba(16,64,154,.15)}
+.chip button{display:flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(16,64,154,.1);border:none;cursor:pointer;font-size:10px;color:var(--brand);line-height:1}
+
+/* Table */
+.card{background:var(--surf);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;text-align:left;background:var(--page);border-bottom:1px solid var(--border)}
+td{padding:12px 16px;font-size:12px;border-bottom:1px solid #f3f4f6}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.av-c{display:flex;align-items:center;gap:10px}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.av-n{font-weight:500;color:var(--head);font-size:12px}
+.av-e{font-size:10px;color:var(--muted)}
+.sb{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.sb .dot{width:6px;height:6px;border-radius:50%}
+.sb.act{background:var(--ok-bg);color:var(--ok-tx)}.sb.act .dot{background:var(--ok)}
+.sb.pend{background:var(--warn-bg);color:var(--warn-tx)}.sb.pend .dot{background:var(--warn)}
+.sb.susp{background:var(--err-bg);color:var(--err-tx)}.sb.susp .dot{background:var(--err)}
+.sb.rej{background:#f3f4f6;color:#374151}.sb.rej .dot{background:var(--muted)}
+.cur{font-variant-numeric:tabular-nums;font-weight:500}
+.act-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surf);cursor:pointer;font-family:inherit;color:var(--body);transition:all .15s}
+.act-btn:hover{background:var(--page)}
+.act-btn svg{width:13px;height:13px}
+
+/* Pagination */
+.pag{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border)}
+.pag-info{font-size:12px;color:var(--muted)}
+.pag-btns{display:flex;gap:6px}
+.pag-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surf);cursor:pointer;font-family:inherit;color:var(--body)}
+.pag-btn:hover{background:var(--page)}
+.pag-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.flag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:var(--warn-bg);color:var(--warn-tx);margin-left:8px}
+.flag .dot{width:5px;height:5px;border-radius:50%;background:var(--warn)}
+@media(max-width:768px){.sb{display:none}.mn{margin-left:0}}
+</style>
+</head>
+<body>
+<aside class="sb">
+  <div class="sb-logo"><div class="b">SALIG</div><div class="s">affiliate</div></div>
+  <nav class="sb-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    <a href="#" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Affiliates</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Campaigns</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>Commissions</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payouts</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Reports</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Emails</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
+  </nav>
+  <div class="sb-ft">
+    <div class="sb-u"><div class="sb-av">AR</div><div><div class="sb-un">Alex Reyes</div><div class="sb-ur">Owner</div></div></div>
+    <button class="sb-out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+  </div>
+</aside>
+
+<div class="mn">
+  <div class="top">
+    <div class="top-l"><div class="top-t">Affiliates</div><div class="top-d">Manage your affiliate partners and their performance</div></div>
+    <div class="top-r">
+      <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+      <button class="btn btn-p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Invite Affiliate</button>
+    </div>
+  </div>
+  <div class="ct">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab on">All<span class="cnt">47</span></button>
+      <button class="tab">Pending<span class="cnt">3</span></button>
+      <button class="tab">Active<span class="cnt">42</span></button>
+      <button class="tab">Suspended<span class="cnt">2</span></button>
+      <button class="tab">Rejected<span class="cnt">5</span></button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search affiliates by name or email...">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filter</button>
+        <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>Sort</button>
+      </div>
+    </div>
+
+    <!-- Filter Chips -->
+    <div class="chips">
+      <span class="chip">Status: Active <button>&times;</button></span>
+      <button class="chip" style="background:none;color:var(--muted);border-color:var(--border);">Clear all</button>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <table>
+        <thead><tr><th>Affiliate</th><th>Status</th><th>Campaign</th><th>Referrals</th><th>Clicks</th><th>Earnings</th><th>Joined</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#059669;">AR</div><div><div class="av-n">Ana Reyes</div><div class="av-e">ana.reyes@gmail.com</div></div></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Standard Program</td>
+            <td>45</td>
+            <td>2,100</td>
+            <td class="cur">₱24,500</td>
+            <td>Dec 5, 2025</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#10409a;">MS</div><div><div class="av-n">Maria Santos</div><div class="av-e">maria.santos@outlook.com</div></div></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Standard Program</td>
+            <td>23</td>
+            <td>1,245</td>
+            <td class="cur">₱12,300</td>
+            <td>Jan 15, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#7c3aed;">JD</div><div><div class="av-n">Juan Dela Cruz</div><div class="av-e">juan.dc@yahoo.com</div></div><span class="flag"><span class="dot"></span>Flagged</span></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Premium Partners</td>
+            <td>18</td>
+            <td>980</td>
+            <td class="cur">₱9,800</td>
+            <td>Jan 20, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#d97706;">RV</div><div><div class="av-n">Ramon Villanueva</div><div class="av-e">ramon.v@email.com</div></div></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Premium Partners</td>
+            <td>31</td>
+            <td>1,560</td>
+            <td class="cur">₱18,200</td>
+            <td>Nov 12, 2025</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#0891b2;">LG</div><div><div class="av-n">Lisa Garcia</div><div class="av-e">lisa.garcia@gmail.com</div></div></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Standard Program</td>
+            <td>12</td>
+            <td>756</td>
+            <td class="cur">₱6,400</td>
+            <td>Feb 3, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#4f46e5;">CM</div><div><div class="av-n">Carla Mendoza</div><div class="av-e">carla.m@proton.me</div></div></div></td>
+            <td><span class="sb act"><span class="dot"></span>Active</span></td>
+            <td>Holiday Promo</td>
+            <td>8</td>
+            <td>430</td>
+            <td class="cur">₱4,200</td>
+            <td>Feb 14, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspend</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#be185d;">BT</div><div><div class="av-n">Ben Torres</div><div class="av-e">ben.torres@email.com</div></div></div></td>
+            <td><span class="sb susp"><span class="dot"></span>Suspended</span></td>
+            <td>Holiday Promo</td>
+            <td>5</td>
+            <td>210</td>
+            <td class="cur" style="color:var(--muted);">₱2,100</td>
+            <td>Jan 8, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="act-btn" style="color:var(--ok);border-color:var(--ok);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Reactivate</button></div></td>
+          </tr>
+          <tr>
+            <td><div class="av-c"><div class="av" style="background:#0d9488;">KN</div><div><div class="av-n">Karen Navarro</div><div class="av-e">karen.n@gmail.com</div></div></div></td>
+            <td><span class="sb pend"><span class="dot"></span>Pending</span></td>
+            <td>Standard Program</td>
+            <td>—</td>
+            <td>—</td>
+            <td class="cur">₱0</td>
+            <td>Mar 25, 2026</td>
+            <td><div style="display:flex;gap:4px;"><button class="act-btn" style="color:var(--ok);border-color:var(--ok);">Approve</button><button class="act-btn" style="color:var(--err);border-color:var(--err);">Reject</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pag">
+        <div class="pag-info">Showing 1–8 of 47 affiliates</div>
+        <div class="pag-btns">
+          <button class="pag-btn" disabled>Previous</button>
+          <button class="pag-btn">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
