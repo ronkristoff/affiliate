@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import { Mail, Banknote, Target, BarChart3 } from "lucide-react";
 
 interface QuickActionBase {
   label: string;
   subtext: string;
   href: string;
-  emoji: string;
+  icon: LucideIcon;
 }
 
 interface QuickActionCallback {
   label: string;
   subtext: string;
   onClick: () => void;
-  emoji: string;
+  icon: LucideIcon;
 }
 
 type QuickAction = QuickActionBase | QuickActionCallback;
@@ -36,7 +38,7 @@ export function QuickActionsPanel({
       label: "Invite Affiliate",
       subtext: "Send by email",
       ...(onInvite ? { onClick: onInvite } : { href: "/affiliates/invite" }),
-      emoji: "📨",
+      icon: Mail,
     },
     ...(showPayAll
       ? [
@@ -44,7 +46,7 @@ export function QuickActionsPanel({
             label: "Pay All",
             subtext: pendingCount > 0 ? `${pendingCount} pending` : "No pending",
             href: "/payouts",
-            emoji: "💸",
+            icon: Banknote,
           },
         ]
       : []),
@@ -52,13 +54,13 @@ export function QuickActionsPanel({
       label: "New Campaign",
       subtext: "Set commissions",
       ...(onCreateCampaign ? { onClick: onCreateCampaign } : { href: "/campaigns/new" }),
-      emoji: "🎯",
+      icon: Target,
     },
     {
       label: "Export Report",
       subtext: "CSV download",
       href: "/reports?export=true",
-      emoji: "📊",
+      icon: BarChart3,
     },
   ];
 
@@ -69,27 +71,32 @@ export function QuickActionsPanel({
       </div>
       <div className="p-4">
         <div className="grid grid-cols-2 gap-3">
-          {actions.map((action) =>
-            "onClick" in action ? (
+          {actions.map((action) => {
+            const Icon = action.icon;
+            return "onClick" in action ? (
               <div
                 key={action.label}
                 onClick={action.onClick}
                 className="border border-[var(--border)] rounded-xl p-4 cursor-pointer transition-all hover:border-[var(--brand-secondary)] hover:bg-[#eff6ff] text-center group"
               >
-                <div className="text-[24px] mb-2">{action.emoji}</div>
+                <div className="flex items-center justify-center w-10 h-10 mx-auto mb-2 rounded-full bg-[#eff6ff] text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-colors">
+                  <Icon className="w-5 h-5" />
+                </div>
                 <div className="text-[12px] font-semibold text-[var(--text-heading)] group-hover:text-[var(--brand-primary)] transition-colors">{action.label}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">{action.subtext}</div>
               </div>
             ) : (
               <Link key={action.label} href={action.href}>
                 <div className="border border-[var(--border)] rounded-xl p-4 cursor-pointer transition-all hover:border-[var(--brand-secondary)] hover:bg-[#eff6ff] text-center group">
-                  <div className="text-[24px] mb-2">{action.emoji}</div>
+                  <div className="flex items-center justify-center w-10 h-10 mx-auto mb-2 rounded-full bg-[#eff6ff] text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-colors">
+                    <Icon className="w-5 h-5" />
+                  </div>
                   <div className="text-[12px] font-semibold text-[var(--text-heading)] group-hover:text-[var(--brand-primary)] transition-colors">{action.label}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{action.subtext}</div>
                 </div>
               </Link>
-            )
-          )}
+            );
+          })}
         </div>
       </div>
     </div>

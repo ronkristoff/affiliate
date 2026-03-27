@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { LucideIcon } from "lucide-react";
+import { CheckCircle2, AlertTriangle, User, XCircle, Pin } from "lucide-react";
 
 interface Activity {
   _id: string;
@@ -26,11 +28,18 @@ const iconBgMap: Record<string, string> = {
   red: "bg-[#fee2e2]",
 };
 
-const iconEmojiMap: Record<string, string> = {
-  green: "✅",
-  yellow: "⚠️",
-  blue: "👤",
-  red: "❌",
+const iconColorMap: Record<string, string> = {
+  green: "text-[#059669]",
+  yellow: "text-[#d97706]",
+  blue: "text-[#2563eb]",
+  red: "text-[#dc2626]",
+};
+
+const iconComponentMap: Record<string, LucideIcon> = {
+  green: CheckCircle2,
+  yellow: AlertTriangle,
+  blue: User,
+  red: XCircle,
 };
 
 function formatRelativeTime(timestamp: number): string {
@@ -78,15 +87,16 @@ export function ActivityFeed({ activities, isLoading = false }: ActivityFeedProp
       <div className="divide-y divide-[var(--bg-page)]">
         {activities.slice(0, 5).map((activity) => {
           const iconBg = iconBgMap[activity.iconType] || iconBgMap.blue;
-          const emoji = iconEmojiMap[activity.iconType] || "📌";
+          const iconColor = iconColorMap[activity.iconType] || iconColorMap.blue;
+          const IconComponent = iconComponentMap[activity.iconType] || Pin;
 
           return (
             <div
               key={activity._id}
               className="flex items-start gap-3 px-5 py-3.5 hover:bg-[var(--bg-page)] transition-colors"
             >
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0", iconBg)}>
-                {emoji}
+              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", iconBg, iconColor)}>
+                <IconComponent className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
