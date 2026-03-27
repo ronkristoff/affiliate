@@ -254,6 +254,7 @@ export const listCampaigns = query({
       autoApproveCommissions: v.optional(v.boolean()),
       approvalThreshold: v.optional(v.number()),
       status: v.string(),
+      slug: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {

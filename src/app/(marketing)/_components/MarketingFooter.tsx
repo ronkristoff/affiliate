@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Shield, Lock, Zap } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 
+const currentYear = new Date().getFullYear();
+
 const footerLinks = {
   product: [
     { label: "Features", href: "#features" },
@@ -99,7 +101,7 @@ export function MarketingFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <p className="text-sm text-white/40">
-              © {new Date().getFullYear()} salig-affiliate. All rights reserved.
+              © {currentYear} salig-affiliate. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-sm text-white/40">
