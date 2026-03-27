@@ -57,6 +57,7 @@ import {
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { SearchField } from "@/components/ui/SearchField";
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
@@ -666,25 +667,7 @@ function CommissionsContent() {
         breadcrumbs={[{ label: "Commissions" }]}
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportCSV}
-          disabled={isExporting}
-          className="gap-1.5 text-[12px]"
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="w-3 h-3" />
-              Export CSV
-            </>
-          )}
-        </Button>
+        <ExportButton onClick={handleExportCSV} isExporting={isExporting} />
       </PageTopbar>
 
       {/* Page Content */}
