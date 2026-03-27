@@ -63,6 +63,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
       return await ctx.db.insert("campaigns", {
         tenantId,
         name: "Test Campaign",
+        slug: "test-campaign",
         commissionType: "percentage",
         commissionValue: 10,
         recurringCommission: false,
@@ -475,6 +476,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         return await ctx.db.insert("campaigns", {
           tenantId: otherTenantId,
           name: "Other Campaign",
+          slug: "other-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,

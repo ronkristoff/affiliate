@@ -53,6 +53,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,
@@ -143,6 +144,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,
@@ -163,7 +165,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         });
       });
 
-      // Create commission directly in database (simulating the internal mutation)
+      // Create commission directly in database
       const commissionId = await t.run(async (ctx) => {
         return await ctx.db.insert("commissions", {
           tenantId,
@@ -235,6 +237,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,
@@ -356,6 +359,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,
@@ -465,6 +469,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,
@@ -584,6 +589,7 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("campaigns", {
           tenantId: tenant1Id,
           name: "Campaign 1",
+          slug: "campaign-1",
           status: "active",
           commissionType: "percentage",
           commissionValue: 10,

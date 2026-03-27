@@ -347,6 +347,7 @@ describe("Webhook Processing to Conversion", () => {
       const campaignId = await ctx.db.insert("campaigns", {
         tenantId,
         name: "Test Campaign",
+        slug: "test-campaign",
         commissionType: "percentage",
         commissionValue: 10,
         recurringCommission: false,

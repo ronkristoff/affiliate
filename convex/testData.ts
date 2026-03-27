@@ -855,6 +855,7 @@ export const createTestCampaign = internalMutation({
     const campaignId = await ctx.db.insert("campaigns", {
       tenantId: args.tenantId,
       name: args.name,
+      slug: args.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
       description: args.description,
       commissionType: args.commissionType,
       commissionValue: args.commissionValue,
@@ -1372,6 +1373,7 @@ export const seedAllTestData = internalMutation({
           const campaignId = await ctx.db.insert("campaigns", {
             tenantId,
             name: campaign.name,
+            slug: campaign.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
             description: campaign.description,
             commissionType: campaign.commissionType,
             commissionValue: campaign.commissionValue,

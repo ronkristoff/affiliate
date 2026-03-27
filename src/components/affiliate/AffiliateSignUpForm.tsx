@@ -51,6 +51,9 @@ interface AffiliateSignUpFormProps {
   tenantSlug: string;
   redirectUrl?: string;
   tenantBranding?: TenantBranding;
+  campaignSlug?: string;
+  campaignName?: string;
+  campaignId?: string;
 }
 
 const PROMOTION_CHANNELS = [
@@ -67,6 +70,8 @@ export function AffiliateSignUpForm({
   tenantSlug,
   redirectUrl = "/portal/login",
   tenantBranding,
+  campaignSlug,
+  campaignName,
 }: AffiliateSignUpFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +125,7 @@ export function AffiliateSignUpForm({
         tenantSlug,
         promotionChannel: data.promotionChannel,
         recaptchaToken,
+        campaignSlug,
       });
       
       if (result.success) {
@@ -132,7 +138,7 @@ export function AffiliateSignUpForm({
     } finally {
       setIsLoading(false);
     }
-  }, [executeRecaptcha, signUp, tenantSlug]);
+  }, [executeRecaptcha, signUp, tenantSlug, campaignSlug]);
 
   // Show success state - pending approval overlay
   if (success) {
@@ -151,7 +157,10 @@ export function AffiliateSignUpForm({
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Application Submitted!</h3>
             <p className="text-sm text-muted-foreground">
-              Your application to join {portalName} has been submitted successfully.
+              {campaignName 
+                ? `Your application to join the ${campaignName} campaign has been submitted successfully.`
+                : `Your application to join ${portalName} has been submitted successfully.`
+              }
             </p>
           </div>
         </div>
@@ -166,6 +175,11 @@ export function AffiliateSignUpForm({
           <p className="text-xs text-muted-foreground">
             Typically takes 1-2 business days. You&apos;ll receive an email once your application is approved.
           </p>
+          {campaignName && (
+            <p className="text-xs text-muted-foreground">
+              Upon approval, you&apos;ll receive a referral link to start promoting {campaignName}.
+            </p>
+          )}
         </div>
         
         <div className="text-center text-xs text-muted-foreground">

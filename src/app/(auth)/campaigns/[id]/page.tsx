@@ -58,6 +58,9 @@ import {
   ShieldCheck,
   Settings,
   MoreHorizontal,
+  Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -173,6 +176,12 @@ function CampaignDetailContent() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [signupUrlCopied, setSignupUrlCopied] = useState(false);
+
+  // Signup URL query
+  const signupUrlData = useQuery(api.campaigns.getCampaignSignupUrl, {
+    campaignId: campaignId as Id<"campaigns">,
+  });
 
   // Confirmation dialogs
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
@@ -455,6 +464,32 @@ function CampaignDetailContent() {
         {/* Right: Actions */}
         {campaign.status !== "archived" ? (
           <div className="flex items-center gap-2">
+            {/* Share Signup Link */}
+            {signupUrlData && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(signupUrlData.signupUrl);
+                    setSignupUrlCopied(true);
+                    toast.success("Signup link copied to clipboard!");
+                    setTimeout(() => setSignupUrlCopied(false), 2000);
+                  } catch {
+                    toast.error("Failed to copy link");
+                  }
+                }}
+                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+              >
+                {signupUrlCopied ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Link2 className="w-3.5 h-3.5" />
+                )}
+                {signupUrlCopied ? "Copied!" : "Signup Link"}
+              </Button>
+            )}
+
             {/* Edit — primary action */}
             <Button
               size="sm"
@@ -617,6 +652,53 @@ function CampaignDetailContent() {
                   <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
                     {campaign.description}
                   </p>
+                </div>
+              </>
+            )}
+
+            {/* Signup URL section */}
+            {signupUrlData && (
+              <>
+                <div className="border-t border-[#e5e7eb] my-4" />
+                <div>
+                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
+                    Affiliate Signup Page
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)] mb-2">
+                    Share this link to recruit affiliates for this campaign
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-50 border border-[#e5e7eb] rounded-lg px-3 py-2 text-[12px] text-gray-600 font-mono truncate">
+                      {signupUrlData.signupUrl}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(signupUrlData.signupUrl);
+                          setSignupUrlCopied(true);
+                          toast.success("Signup link copied!");
+                          setTimeout(() => setSignupUrlCopied(false), 2000);
+                        } catch {
+                          toast.error("Failed to copy link");
+                        }
+                      }}
+                      className="flex-shrink-0 gap-1"
+                    >
+                      {signupUrlCopied ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </>
             )}

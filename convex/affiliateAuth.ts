@@ -177,6 +177,8 @@ async function verifyPassword(password: string, storedHash: string): Promise<boo
 /**
  * Internal mutation for creating affiliate account.
  * Separated from the action to allow proper transaction handling.
+ * Supports campaign-specific signup: if campaignSlug is provided,
+ * the affiliate is enrolled in that campaign and a referral link is created.
  */
 export const createAffiliateAccountInternal = internalMutation({
   args: {
@@ -186,12 +188,14 @@ export const createAffiliateAccountInternal = internalMutation({
     passwordHash: v.string(),
     promotionChannel: v.optional(v.string()),
     uniqueCode: v.string(),
+    campaignSlug: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
     affiliateId: v.optional(v.id("affiliates")),
     uniqueCode: v.optional(v.string()),
     status: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
     error: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
@@ -215,6 +219,27 @@ export const createAffiliateAccountInternal = internalMutation({
 
     if (existingAffiliate) {
       return { success: false, error: "An affiliate with this email already exists for this tenant" };
+    }
+
+    // Resolve campaign if campaignSlug is provided
+    let campaignId: Id<"campaigns"> | undefined;
+    if (args.campaignSlug) {
+      const campaign = await ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant_and_slug", (q) =>
+          q.eq("tenantId", tenant._id).eq("slug", args.campaignSlug!)
+        )
+        .first();
+
+      if (!campaign) {
+        return { success: false, error: "Campaign not found" };
+      }
+
+      if (campaign.status !== "active") {
+        return { success: false, error: "This campaign is no longer accepting new affiliates" };
+      }
+
+      campaignId = campaign._id;
     }
 
     // Generate unique referral code using cryptographically secure randomness
@@ -252,6 +277,20 @@ export const createAffiliateAccountInternal = internalMutation({
       return { success: false, error: "Failed to generate unique referral code" };
     }
 
+    // Generate referral link code (separate from affiliate uniqueCode)
+    const referralCode = generateSecureCode();
+    let referralAttempts = 0;
+    let finalReferralCode = referralCode;
+    while (referralAttempts < 10) {
+      const existingLink = await ctx.db
+        .query("referralLinks")
+        .withIndex("by_code", (q) => q.eq("code", finalReferralCode))
+        .first();
+      if (!existingLink) break;
+      finalReferralCode = generateSecureCode();
+      referralAttempts++;
+    }
+
     // Create affiliate with pending status
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId: tenant._id,
@@ -263,6 +302,26 @@ export const createAffiliateAccountInternal = internalMutation({
       promotionChannel: args.promotionChannel,
     });
 
+    // Enroll affiliate in campaign if campaignSlug was provided
+    if (campaignId) {
+      await ctx.db.insert("affiliateCampaigns", {
+        tenantId: tenant._id,
+        affiliateId,
+        campaignId,
+        status: "active",
+        enrolledAt: Date.now(),
+        enrolledVia: "signup",
+      });
+    }
+
+    // Create referral link (pointing to the SaaS Owner's website domain)
+    await ctx.db.insert("referralLinks", {
+      tenantId: tenant._id,
+      affiliateId,
+      campaignId,
+      code: finalReferralCode,
+    });
+
     // Create audit log
     await ctx.db.insert("auditLogs", {
       tenantId: tenant._id,
@@ -270,7 +329,14 @@ export const createAffiliateAccountInternal = internalMutation({
       entityType: "affiliate",
       entityId: affiliateId,
       actorType: "system",
-      newValue: { email: args.email, name: args.name, uniqueCode, status: "pending" },
+      newValue: { 
+        email: args.email, 
+        name: args.name, 
+        uniqueCode, 
+        status: "pending",
+        campaignSlug: args.campaignSlug,
+        enrolledVia: args.campaignSlug ? "signup" : undefined,
+      },
     });
 
     // Send welcome email to affiliate (async, don't fail registration if email fails)
@@ -280,7 +346,7 @@ export const createAffiliateAccountInternal = internalMutation({
     try {
       // Construct referral URL from tenant domain
       const portalDomain = tenant.domain;
-      const referralUrl = `https://${portalDomain}/ref/${uniqueCode}`;
+      const referralUrl = `https://${portalDomain}/ref/${finalReferralCode}`;
 
       await sendAffiliateWelcomeEmail(ctx, {
         to: args.email,
@@ -352,6 +418,7 @@ export const createAffiliateAccountInternal = internalMutation({
       success: true,
       affiliateId,
       uniqueCode: args.uniqueCode,
+      referralCode: finalReferralCode,
       status: "pending",
     };
   },
@@ -361,6 +428,9 @@ export const createAffiliateAccountInternal = internalMutation({
  * Register a new affiliate with reCAPTCHA protection.
  * Creates an affiliate record with "pending" status.
  * The affiliate will be able to login once approved by the SaaS owner.
+ * 
+ * If campaignSlug is provided, the affiliate is enrolled in that campaign
+ * and a referral link is automatically created.
  * 
  * Security: reCAPTCHA token is validated server-side before account creation.
  */
@@ -372,11 +442,13 @@ export const registerAffiliateAccount = action({
     password: v.string(),
     promotionChannel: v.optional(v.string()),
     recaptchaToken: v.string(),
+    campaignSlug: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
     affiliateId: v.optional(v.id("affiliates")),
     uniqueCode: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
     status: v.optional(v.string()),
     error: v.optional(v.string()),
   }),
@@ -411,6 +483,7 @@ export const registerAffiliateAccount = action({
       success: boolean;
       affiliateId?: Id<"affiliates">;
       uniqueCode?: string;
+      referralCode?: string;
       status?: string;
       error?: string;
     } = await ctx.runMutation(internal.affiliateAuth.createAffiliateAccountInternal, {
@@ -420,6 +493,7 @@ export const registerAffiliateAccount = action({
       passwordHash,
       promotionChannel: args.promotionChannel,
       uniqueCode,
+      campaignSlug: args.campaignSlug,
     });
 
     return result;

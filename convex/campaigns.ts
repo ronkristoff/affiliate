@@ -20,6 +20,7 @@ export const campaignReturnShape = v.object({
   _creationTime: v.number(),
   tenantId: v.id("tenants"),
   name: v.string(),
+  slug: v.string(),
   description: v.optional(v.string()),
   commissionType: v.string(),
   commissionRate: v.number(),               // alias for commissionValue
@@ -42,6 +43,7 @@ function mapCampaignToReturnShape(c: Doc<"campaigns">) {
     _creationTime: c._creationTime,
     tenantId: c.tenantId,
     name: c.name,
+    slug: (c as any).slug ?? "",
     description: c.description,
     commissionType: c.commissionType,
     commissionRate: c.commissionValue,           // explicit alias
@@ -56,8 +58,30 @@ function mapCampaignToReturnShape(c: Doc<"campaigns">) {
 }
 
 /**
+ * Generate a URL-safe slug from a campaign name.
+ * Handles collisions by appending a 4-char random suffix.
+ */
+function generateCampaignSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+
+  // Append random 4-char suffix for uniqueness
+  const suffix = Array.from(crypto.getRandomValues(new Uint8Array(3)))
+    .map((b) => "abcdefghijklmnopqrstuvwxyz0123456789".charAt(b % 36))
+    .join("");
+  return `${base}-${suffix}`;
+}
+
+/**
  * Create a new campaign for the tenant.
  * Enforces tier limits before creating.
+ * Auto-generates a URL-safe slug for the campaign's public signup page.
  */
 export const createCampaign = mutation({
   args: {
@@ -131,10 +155,24 @@ export const createCampaign = mutation({
       throw new Error(limitCheck.reason || `You have reached the maximum number of campaigns (${limitCheck.limit}) for your plan. Please upgrade to create more.`);
     }
 
+    // Generate a unique slug for the campaign's public signup page
+    let slug = generateCampaignSlug(args.name);
+    let slugAttempts = 0;
+    while (slugAttempts < 10) {
+      const existing = await ctx.db
+        .query("campaigns")
+        .withIndex("by_tenant_and_slug", (q) => q.eq("tenantId", tenantId).eq("slug", slug))
+        .first();
+      if (!existing) break;
+      slug = generateCampaignSlug(args.name);
+      slugAttempts++;
+    }
+
     // Create the campaign
     const campaignId = await ctx.db.insert("campaigns", {
       tenantId,
       name: args.name,
+      slug,
       description: args.description,
       commissionType: args.commissionType,
       commissionValue: args.commissionRate,
@@ -299,6 +337,115 @@ export const getCampaign = query({
 
     // Use shared mapper — NOT spread — to prevent ghost fields (F1 fix)
     return mapCampaignToReturnShape(campaign);
+  },
+});
+
+/**
+ * Get campaign by tenant slug and campaign slug.
+ * Public query — used by the affiliate registration page to display campaign info.
+ * Only returns active campaigns (not paused or archived).
+ */
+export const getCampaignBySlug = query({
+  args: {
+    tenantSlug: v.string(),
+    campaignSlug: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("campaigns"),
+      name: v.string(),
+      slug: v.string(),
+      description: v.optional(v.string()),
+      commissionType: v.string(),
+      commissionRate: v.number(),
+      recurringCommissions: v.optional(v.boolean()),
+      recurringRate: v.optional(v.number()),
+      recurringRateType: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Get tenant by slug
+    const tenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.tenantSlug))
+      .first();
+
+    if (!tenant) {
+      return null;
+    }
+
+    // Get campaign by slug for this tenant
+    const campaign = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant_and_slug", (q) =>
+        q.eq("tenantId", tenant._id).eq("slug", args.campaignSlug)
+      )
+      .first();
+
+    if (!campaign) {
+      return null;
+    }
+
+    // Only return active campaigns for public signup
+    if (campaign.status !== "active") {
+      return null;
+    }
+
+    return {
+      _id: campaign._id,
+      name: campaign.name,
+      slug: (campaign as any).slug ?? "",
+      description: campaign.description,
+      commissionType: campaign.commissionType,
+      commissionRate: campaign.commissionValue,
+      recurringCommissions: campaign.recurringCommission,
+      recurringRate: campaign.recurringRate,
+      recurringRateType: campaign.recurringRateType,
+    };
+  },
+});
+
+/**
+ * Get the tenant slug for a campaign (used to build signup URLs).
+ */
+export const getCampaignSignupUrl = query({
+  args: {
+    campaignId: v.id("campaigns"),
+  },
+  returns: v.union(
+    v.object({
+      tenantSlug: v.string(),
+      campaignSlug: v.string(),
+      signupUrl: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign || campaign.tenantId !== user.tenantId) {
+      return null;
+    }
+
+    const tenant = await ctx.db.get(user.tenantId);
+    if (!tenant) {
+      return null;
+    }
+
+    const campaignSlug = (campaign as any).slug ?? "";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const signupUrl = `${baseUrl}/portal/register?tenant=${tenant.slug}&campaign=${campaignSlug}`;
+
+    return {
+      tenantSlug: tenant.slug,
+      campaignSlug,
+      signupUrl,
+    };
   },
 });
 

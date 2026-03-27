@@ -51,6 +51,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -142,6 +143,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -225,6 +227,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -297,6 +300,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -353,6 +357,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -410,6 +415,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -472,6 +478,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -543,6 +550,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -621,6 +629,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId: tenantId1,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -703,6 +712,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -786,6 +796,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -849,6 +860,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,

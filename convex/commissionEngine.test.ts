@@ -49,6 +49,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10, // 10%
           recurringCommission: false,
@@ -349,6 +350,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
         await ctx.db.insert("campaigns", {
           tenantId,
           name: "Active Campaign",
+          slug: "active-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -361,6 +363,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
         await ctx.db.insert("campaigns", {
           tenantId,
           name: "Paused Campaign",
+          slug: "paused-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -468,6 +471,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Subscription Campaign",
+          slug: "subscription-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: true,
@@ -581,6 +585,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Recurring Campaign",
+          slug: "recurring-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: true,
@@ -747,6 +752,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: true,
@@ -862,6 +868,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Non-Recurring Campaign",
+          slug: "non-recurring-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false, // Disabled
@@ -983,6 +990,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -1100,6 +1108,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -1214,6 +1223,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -1317,6 +1327,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: true,
@@ -1420,6 +1431,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: true,
@@ -1525,6 +1537,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -1652,6 +1665,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -1888,6 +1902,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -2038,6 +2053,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -2171,6 +2187,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -2333,6 +2350,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -2537,6 +2555,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
         return await ctx.db.insert("campaigns", {
           tenantId,
           name: "Test Campaign",
+          slug: "test-campaign",
           description: "Test campaign for deduplication",
           commissionType: "percentage",
           commissionValue: 10,

@@ -155,6 +155,7 @@ export default defineSchema({
   campaigns: defineTable({
     tenantId: v.id("tenants"),
     name: v.string(),
+    slug: v.optional(v.string()), // URL-safe slug for public signup page (e.g., /portal/register?tenant=X&campaign=summer-sale)
     description: v.optional(v.string()),
     commissionType: v.string(),
     commissionValue: v.number(),
@@ -166,9 +167,25 @@ export default defineSchema({
     approvalThreshold: v.optional(v.number()),
     status: v.string(),
   }).index("by_tenant", ["tenantId"])
-    .index("by_tenant_and_status", ["tenantId", "status"]),
+    .index("by_tenant_and_status", ["tenantId", "status"])
+    .index("by_tenant_and_slug", ["tenantId", "slug"]),
     // Note: _creationTime is auto-appended by Convex to all indexes.
     // Use by_tenant with .order("desc") for newest-first paginated queries.
+
+  // Affiliate-Campaign enrollment join table
+  // Tracks which affiliates are enrolled in which campaigns
+  affiliateCampaigns: defineTable({
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    campaignId: v.id("campaigns"),
+    status: v.string(), // "active", "paused", "removed"
+    enrolledAt: v.number(),
+    enrolledVia: v.string(), // "signup" (self-registered via campaign page), "invite" (added by owner)
+  }).index("by_tenant", ["tenantId"])
+    .index("by_affiliate", ["affiliateId"])
+    .index("by_campaign", ["campaignId"])
+    .index("by_affiliate_and_campaign", ["affiliateId", "campaignId"])
+    .index("by_tenant_and_campaign", ["tenantId", "campaignId"]),
 
   affiliates: defineTable({
     tenantId: v.id("tenants"),

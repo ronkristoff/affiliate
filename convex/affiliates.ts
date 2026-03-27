@@ -1186,6 +1186,37 @@ export const updateAffiliateStatus = mutation({
 
     await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
 
+    // Auto-generate a referral link when an affiliate is approved (if they don't have one)
+    if (args.status === "active" && previousStatus !== "active") {
+      const existingLinks = await ctx.db
+        .query("referralLinks")
+        .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
+        .first();
+
+      if (!existingLinks) {
+        const referralCode = await generateUniqueReferralCode(ctx);
+        await ctx.db.insert("referralLinks", {
+          tenantId,
+          affiliateId: args.affiliateId,
+          code: referralCode,
+        });
+
+        // Create audit log for auto-generated referral link
+        await ctx.db.insert("auditLogs", {
+          tenantId,
+          action: "referral_link_auto_created",
+          entityType: "referralLink",
+          entityId: args.affiliateId,
+          actorType: "system",
+          newValue: {
+            affiliateId: args.affiliateId,
+            code: referralCode,
+            reason: "auto_created_on_approval",
+          },
+        });
+      }
+    }
+
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
