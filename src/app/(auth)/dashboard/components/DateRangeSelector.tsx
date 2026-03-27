@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,269 +12,193 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Calendar, ChevronDown, Check, ArrowLeft } from "lucide-react";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar, ChevronDown } from "lucide-react";
-import { DATE_PRESETS, dateToTimestamp, timestampToDateInput } from "@/lib/date-utils";
+  DATE_PRESETS,
+  dateToTimestamp,
+  timestampToDateInput,
+  inferPeriodFromRange,
+} from "@/lib/date-utils";
 import type { DatePreset } from "@/lib/date-utils";
 
-type DateRangeOption = {
-  label: string;
-  value: string;
-  getRange?: () => { start: number; end: number } | null;
-};
+// ─── Preset groups for section separators ─────────────────────────────────
 
-// Use shared DATE_PRESETS as the canonical source, mapped to the local DateRangeOption type
-const dateRangeOptions: DateRangeOption[] = DATE_PRESETS;
+const QUICK_VALUES = new Set(["today", "thisWeek", "thisMonth"]);
+const ROLLING_VALUES = new Set(["7d", "30d", "90d"]);
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+type Period = "daily" | "weekly" | "monthly";
+
+export interface DateRangeChange {
+  start: number;
+  end: number;
+  label: string;
+  isCustom: boolean;
+  preset?: string;
+  period?: Period;
+}
 
 interface DateRangeSelectorProps {
-  onChange?: (range: { start: number; end: number; label: string; isCustom: boolean; preset?: string }) => void;
+  /** Current active preset value (e.g. "30d", "thisMonth", "custom") */
+  value: string;
+  onChange: (change: DateRangeChange) => void;
   className?: string;
 }
 
-/**
- * Formats a timestamp to a localized date string for display
- */
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
 function formatDateRange(start: number, end: number): string {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  
-  const options: Intl.DateTimeFormatOptions = { 
-    month: "short", 
-    day: "numeric", 
-    year: "numeric" 
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   };
-  
-  return `${startDate.toLocaleDateString("en-US", options)} - ${endDate.toLocaleDateString("en-US", options)}`;
+  return `${new Date(start).toLocaleDateString("en-US", opts)} - ${new Date(end).toLocaleDateString("en-US", opts)}`;
 }
 
-/**
- * Get max date (today) in YYYY-MM-DD format
- */
 function getMaxDateInput(): string {
   return timestampToDateInput(Date.now());
 }
 
-export function DateRangeSelector({ onChange, className }: DateRangeSelectorProps) {
-  const searchParams = useSearchParams();
-  
-  // State for preset selection
-  const [selectedValue, setSelectedValue] = useState<string>("30d");
-  
-  // State for custom date picker
-  const [isCustomPickerOpen, setIsCustomPickerOpen] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState<string>("");
-  const [customEndDate, setCustomEndDate] = useState<string>("");
-  const [customDateError, setCustomDateError] = useState<string>("");
+function needsSeparatorAfter(val: string): boolean {
+  return QUICK_VALUES.has(val) || ROLLING_VALUES.has(val);
+}
 
-  // Determine if we're in custom mode based on URL params
-  const hasCustomRange = searchParams.has("start") && searchParams.has("end");
+// ─── Component ─────────────────────────────────────────────────────────────
 
-  // Initialize from URL params
-  useEffect(() => {
-    const rangeParam = searchParams.get("range");
+export function DateRangeSelector({ value, onChange, className }: DateRangeSelectorProps) {
+  const [showCustom, setShowCustom] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [customDateError, setCustomDateError] = useState("");
 
-    // Check for custom range first
-    if (hasCustomRange) {
-      setSelectedValue("custom");
-      const startParam = searchParams.get("start");
-      const endParam = searchParams.get("end");
-      if (startParam) setCustomStartDate(timestampToDateInput(parseInt(startParam, 10)));
-      if (endParam) setCustomEndDate(timestampToDateInput(parseInt(endParam, 10)));
-    } else if (rangeParam && dateRangeOptions.some((opt) => opt.value === rangeParam && opt.value !== "custom")) {
-      setSelectedValue(rangeParam);
+  // ── Reset custom view when dropdown closes ───────────────────────────────
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setShowCustom(false);
+      setCustomDateError("");
     }
-  }, [searchParams, hasCustomRange]);
+  }, []);
 
-  // Keyboard navigation: Close picker on Escape key
-  useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isCustomPickerOpen) {
-        handleCustomDateCancel();
-      }
-    };
+  // ── Preset selection → close dropdown immediately ────────────────────────
+  const handlePresetSelect = useCallback(
+    (option: DatePreset) => {
+      if (!option.getRange) return;
+      const range = option.getRange();
+      if (!range) return;
 
-    document.addEventListener("keydown", handleEscapeKey);
-    return () => document.removeEventListener("keydown", handleEscapeKey);
-  }, [isCustomPickerOpen]);
+      onChange({
+        ...range,
+        label: option.label,
+        isCustom: false,
+        preset: option.value,
+        period: option.period,
+      });
+    },
+    [onChange],
+  );
 
-  // Handle preset selection
-  const handlePresetSelect = useCallback((option: DateRangeOption) => {
-    if (!option.getRange) return;
+  // ── "Custom" clicked → flip to custom view (same dropdown stays open) ───
+  const handleShowCustom = useCallback(() => {
+    if (!customStartDate || !customEndDate) {
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      setCustomStartDate(timestampToDateInput(thirtyDaysAgo));
+      setCustomEndDate(timestampToDateInput(Date.now()));
+    }
+    setShowCustom(true);
+  }, [customStartDate, customEndDate]);
 
-    const range = option.getRange();
-    if (!range) return; // This is the "custom" option
-
-    setSelectedValue(option.value);
-    setCustomDateError("");
-    setIsCustomPickerOpen(false);
-
-    // Notify parent - parent/hook will update URL
-    onChange?.({
-      ...range,
-      label: option.label,
-      isCustom: false,
-      preset: option.value,
-    });
-  }, [onChange]);
-
-  // Handle custom date apply
+  // ── Custom date apply ───────────────────────────────────────────────────
   const handleCustomDateApply = useCallback(() => {
-    // Validate dates
     if (!customStartDate || !customEndDate) {
       setCustomDateError("Please select both start and end dates");
       return;
     }
 
-    const startTimestamp = dateToTimestamp(customStartDate);
-    const endTimestamp = dateToTimestamp(customEndDate);
+    const start = dateToTimestamp(customStartDate);
+    const end = dateToTimestamp(customEndDate);
 
-    // Validate start <= end
-    if (startTimestamp > endTimestamp) {
+    if (start > end) {
       setCustomDateError("Start date must be before or equal to end date");
       return;
     }
 
-    // Validate not future dates (compare at midnight)
-    // Use Date.now() to avoid new Date() prerender warning
-    const todayMs = Date.now();
-    const todayTimestamp = todayMs - (todayMs % 86400000);
-    if (startTimestamp > todayTimestamp || endTimestamp > todayTimestamp) {
+    const todayTs = Date.now() - (Date.now() % 86400000);
+    if (start > todayTs || end > todayTs) {
       setCustomDateError("Cannot select future dates");
       return;
     }
 
-    setCustomDateError("");
-    setSelectedValue("custom");
-    setIsCustomPickerOpen(false);
-
-    // Notify parent - parent/hook will update URL
-    onChange?.({
-      start: startTimestamp,
-      end: endTimestamp,
-      label: formatDateRange(startTimestamp, endTimestamp),
+    onChange({
+      start,
+      end,
+      label: formatDateRange(start, end),
       isCustom: true,
+      period: inferPeriodFromRange(start, end),
     });
   }, [customStartDate, customEndDate, onChange]);
 
-  // Handle custom date cancel
+  // ── Custom date cancel → go back to preset list ─────────────────────────
   const handleCustomDateCancel = useCallback(() => {
-    // Reset to previous valid state
-    if (selectedValue !== "custom") {
-      setCustomStartDate("");
-      setCustomEndDate("");
-    } else {
-      // Restore current custom values from URL
-      const startParam = searchParams.get("start");
-      const endParam = searchParams.get("end");
-      if (startParam) setCustomStartDate(timestampToDateInput(parseInt(startParam, 10)));
-      if (endParam) setCustomEndDate(timestampToDateInput(parseInt(endParam, 10)));
-    }
+    setCustomStartDate("");
+    setCustomEndDate("");
     setCustomDateError("");
-    setIsCustomPickerOpen(false);
-  }, [selectedValue, searchParams]);
+    setShowCustom(false);
+  }, []);
 
-  // Get the display label for the trigger button
+  // ── Trigger label ───────────────────────────────────────────────────────
   const getTriggerLabel = () => {
-    if (selectedValue === "custom" && hasCustomRange) {
-      const startParam = searchParams.get("start");
-      const endParam = searchParams.get("end");
-      if (startParam && endParam) {
-        return formatDateRange(parseInt(startParam, 10), parseInt(endParam, 10));
-      }
-    }
-    
-    const selectedOption = dateRangeOptions.find((opt) => opt.value === selectedValue);
+    const selectedOption = DATE_PRESETS.find((opt) => opt.value === value);
     return selectedOption?.label || "Last 30 days";
   };
 
-  const selectedOption = dateRangeOptions.find((opt) => opt.value === selectedValue);
-
   return (
-    <div className={cn("relative", className)}>
-      <DropdownMenu open={isCustomPickerOpen} onOpenChange={setIsCustomPickerOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "gap-2 min-w-[140px] justify-between",
-              selectedValue === "custom" && "border-brand-primary border-2",
-              className
-            )}
-            aria-label={`Select date range, currently ${getTriggerLabel()}`}
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              {getTriggerLabel()}
-            </span>
-            <ChevronDown className="w-3 h-3 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {/* Preset options */}
-          {dateRangeOptions
-            .filter((opt) => opt.value !== "custom")
-            .map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => handlePresetSelect(option)}
-                className={cn(
-                  "cursor-pointer text-[13px]",
-                  selectedValue === option.value && "bg-accent font-medium"
-                )}
-              >
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          
-          <DropdownMenuSeparator />
-          
-          {/* Custom option */}
-          <div className="relative">
-            <DropdownMenuItem
-              onClick={() => {
-                // Set default dates if not already set
-                if (!customStartDate || !customEndDate) {
-                  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-                  setCustomStartDate(timestampToDateInput(thirtyDaysAgo));
-                  setCustomEndDate(timestampToDateInput(Date.now()));
-                }
-                setIsCustomPickerOpen(true);
-              }}
-              className={cn(
-                "cursor-pointer text-[13px] flex items-center gap-2",
-                selectedValue === "custom" && "bg-accent font-medium"
-              )}
-            >
-              <Calendar className="w-3 h-3" />
-              Custom
-            </DropdownMenuItem>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <DropdownMenu onOpenChange={handleOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "gap-2 min-w-[140px] justify-between",
+            value === "custom" && "border-brand-primary border-2",
+            className,
+          )}
+          aria-label={`Select date range, currently ${getTriggerLabel()}`}
+        >
+          <span className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            {getTriggerLabel()}
+          </span>
+          <ChevronDown className="w-3 h-3 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
 
-      {/* Custom Date Picker Popover */}
-      <Popover open={isCustomPickerOpen} onOpenChange={setIsCustomPickerOpen}>
-        <PopoverContent className="w-auto p-4" align="end">
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium leading-none">Select Custom Range</h4>
-              <p className="text-sm text-muted-foreground">
-                Choose a start and end date for your report.
-              </p>
+      <DropdownMenuContent align="end" className={cn("p-1", showCustom ? "w-[300px]" : "w-52")}>
+        {showCustom ? (
+          /* ── Custom Date Picker view ──────────────────────────────── */
+          <div className="p-2 space-y-3">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={handleCustomDateCancel}
+              className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              Back to presets
+            </button>
+
+            <div className="space-y-1">
+              <p className="text-sm font-medium leading-none">Custom Range</p>
             </div>
-            
+
             {/* Date inputs */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-date" className="text-xs font-medium">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="dash-start-date" className="text-[11px] text-muted-foreground">
                   Start Date
                 </Label>
                 <Input
-                  id="start-date"
+                  id="dash-start-date"
                   type="date"
                   value={customStartDate}
                   onChange={(e) => {
@@ -283,16 +206,16 @@ export function DateRangeSelector({ onChange, className }: DateRangeSelectorProp
                     setCustomDateError("");
                   }}
                   max={getMaxDateInput()}
-                  className="h-9"
+                  className="h-8 text-[13px]"
                   aria-label="Start date"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-date" className="text-xs font-medium">
+              <div className="space-y-1">
+                <Label htmlFor="dash-end-date" className="text-[11px] text-muted-foreground">
                   End Date
                 </Label>
                 <Input
-                  id="end-date"
+                  id="dash-end-date"
                   type="date"
                   value={customEndDate}
                   onChange={(e) => {
@@ -300,42 +223,76 @@ export function DateRangeSelector({ onChange, className }: DateRangeSelectorProp
                     setCustomDateError("");
                   }}
                   max={getMaxDateInput()}
-                  className="h-9"
+                  className="h-8 text-[13px]"
                   aria-label="End date"
                 />
               </div>
             </div>
 
-            {/* Error message with ARIA live region for screen readers */}
-            <div aria-live="polite" aria-atomic="true">
-              {customDateError && (
-                <p className="text-sm text-destructive" role="alert">
-                  {customDateError}
-                </p>
-              )}
-            </div>
+            {customDateError && (
+              <p className="text-[11px] text-destructive" role="alert">
+                {customDateError}
+              </p>
+            )}
 
-            {/* Action buttons */}
             <div className="flex gap-2 justify-end">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleCustomDateCancel}
-                className="h-8"
+                className="h-7 text-[12px]"
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
                 onClick={handleCustomDateApply}
-                className="h-8 bg-brand-primary hover:bg-brand-secondary"
+                className="h-7 text-[12px] bg-brand-primary hover:bg-brand-secondary"
               >
                 Apply
               </Button>
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+        ) : (
+          /* ── Preset list view ─────────────────────────────────────── */
+          <>
+            {DATE_PRESETS.filter((opt) => opt.value !== "custom").map((option) => {
+              const isActive = value === option.value;
+
+              return (
+                <div key={option.value}>
+                  <DropdownMenuItem
+                    onClick={() => handlePresetSelect(option)}
+                    className={cn(
+                      "cursor-pointer text-[13px] pl-3 gap-2",
+                      isActive && "bg-accent font-medium",
+                    )}
+                  >
+                    <span className="flex-1">{option.label}</span>
+                    {isActive && <Check className="w-3.5 h-3.5 text-[var(--brand-primary)]" />}
+                  </DropdownMenuItem>
+                  {needsSeparatorAfter(option.value) && <DropdownMenuSeparator />}
+                </div>
+              );
+            })}
+
+            {/* Custom — preventDefault stops DropdownMenu from closing */}
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                handleShowCustom();
+              }}
+              className={cn(
+                "cursor-pointer text-[13px] flex items-center gap-2 pl-3",
+                value === "custom" && "bg-accent font-medium",
+              )}
+            >
+              <Calendar className="w-3 h-3" />
+              Custom
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

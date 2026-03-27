@@ -41,7 +41,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ConvexClientProvider>
-              <NuqsAdapter>
+              <NuqsAdapter defaultOptions={{ clearOnDefault: true }}>
                 <main className="flex-1 flex flex-col">
                   {children}
                 </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useMemo } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -16,23 +16,34 @@ import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
-
-type Period = "daily" | "weekly" | "monthly";
-
-const periodTabs: FilterTabItem[] = [
-  { key: "daily", label: "Daily" },
-  { key: "weekly", label: "Weekly" },
-  { key: "monthly", label: "Monthly" },
-];
-import { DateRangeSelector } from "./components/DateRangeSelector";
+import { DateRangeSelector, type DateRangeChange } from "./components/DateRangeSelector";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
+import { DATE_PRESETS, inferPeriodFromRange } from "@/lib/date-utils";
+import {
+  useQueryState,
+  parseAsStringLiteral,
+  parseAsInteger,
+} from "nuqs";
 import { toast } from "sonner";
 import { Loader2, Download, TrendingUp, Clock, Users, Wallet, Leaf } from "lucide-react";
 import Link from "next/link";
+
+type Period = "daily" | "weekly" | "monthly";
+
+// All preset values + "custom" for the nuqs literal parser
+const PRESET_VALUES = [
+  "today",
+  "thisWeek",
+  "thisMonth",
+  "7d",
+  "30d",
+  "90d",
+  "lastMonth",
+  "custom",
+] as const;
 
 // ─── Skeleton fallback for Suspense boundary ─────────────────────────────
 
@@ -49,7 +60,6 @@ function DashboardSkeleton() {
         <div className="flex items-center justify-between w-full">
           <Skeleton className="h-5 w-28" />
           <div className="flex items-center gap-3">
-            <Skeleton className="h-7 w-20 rounded-md" />
             <Skeleton className="h-8 w-36 rounded-md" />
             <Skeleton className="h-8 w-24 rounded-md" />
             <Skeleton className="h-8 w-36 rounded-md" />
@@ -156,8 +166,59 @@ function DashboardContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
-  const [period, setPeriod] = useState<Period>("daily");
   const exportCSV = useAction(api.dashboardExport.exportOwnerDashboardCSV);
+
+  // ─── URL state via nuqs ──────────────────────────────────────────────
+  // `range` = preset key (e.g. "30d", "thisMonth", "custom")
+  // `start` / `end` = epoch ms timestamps (only set when range=custom)
+  // clearOnDefault is enabled globally in NuqsAdapter — default values won't appear in the URL
+  const [range, setRange] = useQueryState(
+    "range",
+    parseAsStringLiteral(PRESET_VALUES).withDefault("30d"),
+  );
+  const [customStart, setCustomStart] = useQueryState("start", parseAsInteger.withDefault(0));
+  const [customEnd, setCustomEnd] = useQueryState("end", parseAsInteger.withDefault(0));
+
+  // Derive dateRange + period from URL state (no useEffect needed)
+  const { dateRange, period } = useMemo(() => {
+    if (range === "custom" && customStart > 0 && customEnd > 0) {
+      return {
+        dateRange: { start: customStart, end: customEnd },
+        period: inferPeriodFromRange(customStart, customEnd) as Period,
+      };
+    }
+
+    const preset = DATE_PRESETS.find((p) => p.value === range);
+    const range_ = preset?.getRange();
+    if (range_) {
+      return {
+        dateRange: range_,
+        period: (preset?.period ?? "daily") as Period,
+      };
+    }
+
+    // Fallback: 30d default
+    const fallback = DATE_PRESETS.find((p) => p.value === "30d")!.getRange()!;
+    return { dateRange: fallback, period: "daily" as Period };
+  }, [range, customStart, customEnd]);
+
+  // ─── Handler: DateRangeSelector → nuqs ──────────────────────────────
+  const handleDateRangeChange = useCallback(
+    (change: DateRangeChange) => {
+      if (change.isCustom) {
+        // Custom range: store timestamps in URL
+        setRange("custom");
+        setCustomStart(change.start);
+        setCustomEnd(change.end);
+      } else if (change.preset) {
+        // Preset: clear custom timestamps, set preset key
+        setRange(change.preset as (typeof PRESET_VALUES)[number]);
+        setCustomStart(0);
+        setCustomEnd(0);
+      }
+    },
+    [setRange, setCustomStart, setCustomEnd],
+  );
 
   const handleExport = useCallback(async () => {
     if (!tenantId) return;
@@ -182,9 +243,10 @@ function DashboardContent() {
   // ─── MERGED: Single query replaces 3 separate queries ────────────────
   const dashboardData = useQuery(
     api.dashboard.getDashboardData,
-    tenantId
+    tenantId && dateRange
       ? {
           tenantId,
+          dateRange,
           period,
           topAffiliatesLimit: 10,
           recentCommissionsLimit: 10,
@@ -242,13 +304,7 @@ function DashboardContent() {
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
         <div className="flex items-center gap-3">
-          <FilterTabs
-            tabs={periodTabs}
-            activeTab={period}
-            onTabChange={(key) => setPeriod(key as Period)}
-            size="sm"
-          />
-          <DateRangeSelector />
+          <DateRangeSelector value={range} onChange={handleDateRangeChange} />
           <Button
             variant="outline"
             size="sm"

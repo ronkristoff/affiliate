@@ -9,17 +9,61 @@
 export interface DatePreset {
   label: string;
   value: string;
+  /** Optional sparkline granularity. Used by dashboard to control chart bucketing. */
+  period?: "daily" | "weekly" | "monthly";
   getRange: () => { start: number; end: number } | null;
 }
 
 /**
  * Preset date ranges for quick-select filtering.
  * Reused by DateRangeFilter (column filter) and DateRangeSelector (dashboard).
+ *
+ * Groups (by value):
+ *   Quick:    today, thisWeek, thisMonth
+ *   Rolling:  7d, 30d, 90d
+ *   Calendar: lastMonth, custom
  */
 export const DATE_PRESETS: DatePreset[] = [
+  // ── Quick ranges ──────────────────────────────────────────────
+  {
+    label: "Today",
+    value: "today",
+    period: "daily",
+    getRange: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      return { start, end: Date.now() };
+    },
+  },
+  {
+    label: "This Week",
+    value: "thisWeek",
+    period: "daily",
+    getRange: () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      // Monday start of week
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset).getTime();
+      return { start, end: Date.now() };
+    },
+  },
+  {
+    label: "This Month",
+    value: "thisMonth",
+    period: "weekly",
+    getRange: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      return { start, end: Date.now() };
+    },
+  },
+
+  // ── Rolling windows ───────────────────────────────────────────
   {
     label: "Last 7 days",
     value: "7d",
+    period: "daily",
     getRange: () => {
       const end = Date.now();
       const start = end - 7 * 24 * 60 * 60 * 1000;
@@ -29,6 +73,7 @@ export const DATE_PRESETS: DatePreset[] = [
   {
     label: "Last 30 days",
     value: "30d",
+    period: "daily",
     getRange: () => {
       const end = Date.now();
       const start = end - 30 * 24 * 60 * 60 * 1000;
@@ -38,24 +83,19 @@ export const DATE_PRESETS: DatePreset[] = [
   {
     label: "Last 90 days",
     value: "90d",
+    period: "weekly",
     getRange: () => {
       const end = Date.now();
       const start = end - 90 * 24 * 60 * 60 * 1000;
       return { start, end };
     },
   },
-  {
-    label: "This month",
-    value: "thisMonth",
-    getRange: () => {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      return { start, end: Date.now() };
-    },
-  },
+
+  // ── Calendar ranges ───────────────────────────────────────────
   {
     label: "Last month",
     value: "lastMonth",
+    period: "monthly",
     getRange: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 0);
@@ -70,6 +110,17 @@ export const DATE_PRESETS: DatePreset[] = [
     getRange: () => null,
   },
 ];
+
+/**
+ * Infers sparkline period from a date range duration.
+ * Used when the user picks a Custom date range (no preset period).
+ */
+export function inferPeriodFromRange(start: number, end: number): "daily" | "weekly" | "monthly" {
+  const durationDays = (end - start) / (24 * 60 * 60 * 1000);
+  if (durationDays <= 31) return "daily";
+  if (durationDays <= 90) return "weekly";
+  return "monthly";
+}
 
 /**
  * Converts a date string (YYYY-MM-DD) to timestamp at end of day.
