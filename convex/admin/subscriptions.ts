@@ -196,9 +196,27 @@ export const getPlatformRevenueMetrics = query({
     let growthMRR = 0;
     let scaleMRR = 0;
 
+    const now = Date.now();
+
     for (const tenant of allTenants) {
       const price = tierPriceMap.get(tenant.plan) ?? 0;
-      const status = tenant.subscriptionStatus;
+
+      // Derive effective subscription status — mirrors the logic in
+      // subscriptions.ts (getSubscriptionStatus) so that tenants whose
+      // subscriptionStatus is still undefined in the DB are still counted.
+      let status: "trial" | "active" | "past_due" | "cancelled" | undefined;
+      const isTrial = tenant.trialEndsAt ? tenant.trialEndsAt > now : false;
+      if (isTrial) {
+        status = "trial";
+      } else if (
+        tenant.subscriptionStatus === "active" ||
+        tenant.subscriptionStatus === "cancelled" ||
+        tenant.subscriptionStatus === "past_due"
+      ) {
+        status = tenant.subscriptionStatus as "active" | "cancelled" | "past_due";
+      } else if (tenant.plan !== "starter") {
+        status = "active";
+      }
 
       if (status === "trial") {
         trialCount++;
@@ -243,9 +261,14 @@ export const getPlatformRevenueMetrics = query({
     }
 
     const trialConvertedCount = uniqueTrialConvertedTenantIds.size;
-    const payingFromTrial = allTenants.filter(
-      (t) => t.plan !== "starter" && t.subscriptionStatus === "active"
-    ).length;
+    // Use the same derived status logic for consistency
+    const payingFromTrial = allTenants.filter((t) => {
+      if (t.plan === "starter") return false;
+      if (t.subscriptionStatus === "active") return true;
+      // If subscriptionStatus is undefined but plan is paid, treat as active
+      if (!t.subscriptionStatus) return true;
+      return false;
+    }).length;
     const trialConversionRate = trialConvertedCount > 0
       ? Math.round((payingFromTrial / trialConvertedCount) * 100)
       : 0;

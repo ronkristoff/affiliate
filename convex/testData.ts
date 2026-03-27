@@ -18,6 +18,11 @@ import { Id } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
 import { internal } from "./_generated/api";
 
+/** Create a timestamp from year/month/day (1-indexed month). */
+function date(year: number, month: number, day: number): number {
+  return new Date(year, month - 1, day).getTime();
+}
+
 /**
  * Test data configuration
  */
@@ -25,6 +30,24 @@ interface TestTenant {
   name: string;
   slug: string;
   plan: string;
+  subscription?: {
+    status?: "trial" | "active" | "past_due" | "cancelled";
+    subscriptionId?: string;
+    trialEndsAt?: number;
+    billingStartDate?: number;
+    billingEndDate?: number;
+    cancellationDate?: number;
+    deletionScheduledDate?: number;
+  };
+  billingEvents: Array<{
+    event: string;
+    plan?: string;
+    amount?: number;
+    timestamp: number;
+    previousPlan?: string;
+    newPlan?: string;
+    transactionId?: string;
+  }>;
   users: Array<{
     email: string;
     name: string;
@@ -47,10 +70,27 @@ interface TestTenant {
 }
 
 const TEST_TENANTS: TestTenant[] = [
+  // =========================================================================
+  // 1. TechFlow SaaS — growth plan, active (converted Nov 2025)
+  // =========================================================================
   {
     name: "TechFlow SaaS",
     slug: "techflow",
-    plan: "starter",
+    plan: "growth",
+    subscription: {
+      status: "active",
+      subscriptionId: "sub_techflow_growth",
+      trialEndsAt: date(2025, 11, 19),
+      billingStartDate: date(2025, 11, 15),
+      billingEndDate: date(2026, 3, 15),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "growth", amount: 0, timestamp: date(2025, 11, 5) },
+      { event: "trial_conversion", plan: "growth", amount: 2499, timestamp: date(2025, 11, 15), newPlan: "growth", transactionId: "txn_techflow_1" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2025, 12, 15), transactionId: "txn_techflow_2" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 1, 15), transactionId: "txn_techflow_3" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 2, 15), transactionId: "txn_techflow_4" },
+    ],
     users: [
       { email: "alex@techflow.test", name: "Alex Chen", role: "owner" },
       { email: "maria@techflow.test", name: "Maria Santos", role: "admin" },
@@ -63,15 +103,33 @@ const TEST_TENANTS: TestTenant[] = [
       { email: "lisa@email.com", name: "Lisa Brown", status: "active", promotionChannel: "Email Marketing" },
     ],
     campaigns: [
-      { name: "Starter Plan Referral", description: "Refer users to our Starter plan", commissionType: "percentage", commissionValue: 20, recurring: true, status: "active" },
+      { name: "Growth Plan Referral", description: "Refer users to our Growth plan", commissionType: "percentage", commissionValue: 20, recurring: true, status: "active" },
       { name: "Pro Plan Launch", description: "Promote our Pro plan launch", commissionType: "percentage", commissionValue: 30, recurring: true, status: "active" },
       { name: "Enterprise Deal", description: "Enterprise tier referrals", commissionType: "fixed", commissionValue: 100, recurring: false, status: "active" },
     ],
   },
+
+  // =========================================================================
+  // 2. GHL Agency Pro — scale plan, active (converted Nov 2025)
+  // =========================================================================
   {
     name: "GHL Agency Pro",
     slug: "ghlagency",
     plan: "scale",
+    subscription: {
+      status: "active",
+      subscriptionId: "sub_ghl_scale",
+      trialEndsAt: date(2025, 11, 26),
+      billingStartDate: date(2025, 11, 22),
+      billingEndDate: date(2026, 3, 22),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "scale", amount: 0, timestamp: date(2025, 11, 12) },
+      { event: "trial_conversion", plan: "scale", amount: 4999, timestamp: date(2025, 11, 22), newPlan: "scale", transactionId: "txn_ghl_1" },
+      { event: "renew", plan: "scale", amount: 4999, timestamp: date(2025, 12, 22), transactionId: "txn_ghl_2" },
+      { event: "renew", plan: "scale", amount: 4999, timestamp: date(2026, 1, 22), transactionId: "txn_ghl_3" },
+      { event: "renew", plan: "scale", amount: 4999, timestamp: date(2026, 2, 22), transactionId: "txn_ghl_4" },
+    ],
     users: [
       { email: "owner@ghlagency.test", name: "Patricia Lim", role: "owner" },
       { email: "ops@ghlagency.test", name: "Roberto Diaz", role: "admin" },
@@ -85,10 +143,17 @@ const TEST_TENANTS: TestTenant[] = [
       { name: "Enterprise Agency", description: "Enterprise agency referrals", commissionType: "fixed", commissionValue: 200, recurring: false, status: "active" },
     ],
   },
+
+  // =========================================================================
+  // 3. Digital Marketing Hub — starter plan, free (no subscription)
+  // =========================================================================
   {
     name: "Digital Marketing Hub",
     slug: "digi",
     plan: "starter",
+    billingEvents: [
+      { event: "subscription_started", plan: "starter", amount: 0, timestamp: date(2025, 11, 20) },
+    ],
     users: [
       { email: "admin@digimark.test", name: "David Wong", role: "owner" },
     ],
@@ -97,6 +162,192 @@ const TEST_TENANTS: TestTenant[] = [
     ],
     campaigns: [
       { name: "Monthly Subscription", description: "Monthly plan referrals", commissionType: "percentage", commissionValue: 25, recurring: true, status: "active" },
+    ],
+  },
+
+  // =========================================================================
+  // 4. Manila SaaS Labs — growth plan, past_due (converted Dec 2025)
+  // =========================================================================
+  {
+    name: "Manila SaaS Labs",
+    slug: "manila-saas",
+    plan: "growth",
+    subscription: {
+      status: "past_due",
+      subscriptionId: "sub_manila_growth",
+      trialEndsAt: date(2025, 12, 17),
+      billingStartDate: date(2025, 12, 10),
+      billingEndDate: date(2026, 2, 10),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "growth", amount: 0, timestamp: date(2025, 12, 3) },
+      { event: "trial_conversion", plan: "growth", amount: 2499, timestamp: date(2025, 12, 10), newPlan: "growth", transactionId: "txn_manila_1" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 1, 10), transactionId: "txn_manila_2" },
+    ],
+    users: [
+      { email: "angelo@manilasaas.test", name: "Angelo Reyes", role: "owner" },
+      { email: "grace@manilasaas.test", name: "Grace Cruz", role: "admin" },
+    ],
+    affiliates: [
+      { email: "carlo.m@saaspro.test", name: "Carlo Mendoza", status: "active", promotionChannel: "LinkedIn" },
+      { email: "anna.l@digimarket.test", name: "Anna Lim", status: "pending", promotionChannel: "TikTok" },
+    ],
+    campaigns: [
+      { name: "SaaS Referral Program", description: "Refer SaaS customers", commissionType: "percentage", commissionValue: 20, recurring: true, status: "active" },
+    ],
+  },
+
+  // =========================================================================
+  // 5. Cebu Digital Agency — scale plan, cancelled (Dec 2025)
+  // =========================================================================
+  {
+    name: "Cebu Digital Agency",
+    slug: "cebu-digital",
+    plan: "scale",
+    subscription: {
+      status: "cancelled",
+      subscriptionId: "sub_cebu_scale",
+      trialEndsAt: date(2025, 11, 22),
+      billingStartDate: date(2025, 11, 18),
+      billingEndDate: date(2026, 1, 18),
+      cancellationDate: date(2025, 12, 20),
+      deletionScheduledDate: date(2026, 2, 18),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "scale", amount: 0, timestamp: date(2025, 11, 8) },
+      { event: "trial_conversion", plan: "scale", amount: 4999, timestamp: date(2025, 11, 18), newPlan: "scale", transactionId: "txn_cebu_1" },
+      { event: "cancel", plan: "scale", amount: 0, timestamp: date(2025, 12, 20), transactionId: "txn_cebu_cancel" },
+    ],
+    users: [
+      { email: "rachel@cebudigital.test", name: "Rachel Torres", role: "owner" },
+    ],
+    affiliates: [
+      { email: "daniel.g@cebudigi.test", name: "Daniel Garcia", status: "active", promotionChannel: "Facebook Ads" },
+      { email: "michelle.s@creativeph.test", name: "Michelle Santos", status: "active", promotionChannel: "Blog" },
+    ],
+    campaigns: [
+      { name: "Agency Growth", description: "Grow your agency referrals", commissionType: "fixed", commissionValue: 150, recurring: false, status: "paused" },
+      { name: "Premium Referrals", description: "High-value client referrals", commissionType: "percentage", commissionValue: 25, recurring: true, status: "paused" },
+    ],
+  },
+
+  // =========================================================================
+  // 6. GrowthHacks PH — growth plan, active (converted Jan 2026)
+  // =========================================================================
+  {
+    name: "GrowthHacks PH",
+    slug: "growthhacks",
+    plan: "growth",
+    subscription: {
+      status: "active",
+      subscriptionId: "sub_growthhacks_growth",
+      trialEndsAt: date(2026, 1, 19),
+      billingStartDate: date(2026, 1, 15),
+      billingEndDate: date(2026, 3, 15),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "growth", amount: 0, timestamp: date(2026, 1, 5) },
+      { event: "trial_conversion", plan: "growth", amount: 2499, timestamp: date(2026, 1, 15), newPlan: "growth", transactionId: "txn_gh_1" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 2, 15), transactionId: "txn_gh_2" },
+    ],
+    users: [
+      { email: "kevin@growthhacks.test", name: "Kevin Aquino", role: "owner" },
+      { email: "tanya@growthhacks.test", name: "Tanya Reyes", role: "member" },
+    ],
+    affiliates: [
+      { email: "paolo.v@growthph.test", name: "Paolo Villanueva", status: "active", promotionChannel: "Twitter/X" },
+    ],
+    campaigns: [
+      { name: "Growth Referral", description: "Refer growth-focused SaaS users", commissionType: "percentage", commissionValue: 20, recurring: true, status: "active" },
+    ],
+  },
+
+  // =========================================================================
+  // 7. Pinoy Marketing Co — starter plan, currently in trial (Mar 2026)
+  // =========================================================================
+  {
+    name: "Pinoy Marketing Co",
+    slug: "pinoy-mktg",
+    plan: "starter",
+    subscription: {
+      trialEndsAt: date(2026, 3, 29), // Still in trial
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "starter", amount: 0, timestamp: date(2026, 3, 15) },
+    ],
+    users: [
+      { email: "luis@pinoymarketing.test", name: "Luis Fernandez", role: "owner" },
+    ],
+    affiliates: [],
+    campaigns: [
+      { name: "Welcome Campaign", description: "Initial affiliate campaign", commissionType: "percentage", commissionValue: 15, recurring: true, status: "active" },
+    ],
+  },
+
+  // =========================================================================
+  // 8. SEAsia Tech Ventures — scale plan, active (converted Dec 2025)
+  // =========================================================================
+  {
+    name: "SEAsia Tech Ventures",
+    slug: "seasia-tech",
+    plan: "scale",
+    subscription: {
+      status: "active",
+      subscriptionId: "sub_seasia_scale",
+      trialEndsAt: date(2025, 12, 29),
+      billingStartDate: date(2025, 12, 25),
+      billingEndDate: date(2026, 3, 25),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "scale", amount: 0, timestamp: date(2025, 12, 15) },
+      { event: "trial_conversion", plan: "scale", amount: 4999, timestamp: date(2025, 12, 25), newPlan: "scale", transactionId: "txn_seasia_1" },
+      { event: "renew", plan: "scale", amount: 4999, timestamp: date(2026, 1, 25), transactionId: "txn_seasia_2" },
+      { event: "renew", plan: "scale", amount: 4999, timestamp: date(2026, 2, 25), transactionId: "txn_seasia_3" },
+    ],
+    users: [
+      { email: "brenda@seasiatech.test", name: "Brenda Ng", role: "owner" },
+      { email: "raj@seasiatech.test", name: "Raj Patel", role: "admin" },
+    ],
+    affiliates: [
+      { email: "chen.w@seasia.test", name: "Chen Wei", status: "active", promotionChannel: "LinkedIn" },
+      { email: "priya.s@seasia.test", name: "Priya Sharma", status: "active", promotionChannel: "Blog" },
+      { email: "ahmed.h@seasia.test", name: "Ahmed Hassan", status: "suspended", promotionChannel: "Email" },
+    ],
+    campaigns: [
+      { name: "Enterprise SaaS", description: "Enterprise software referrals", commissionType: "fixed", commissionValue: 300, recurring: false, status: "active" },
+      { name: "Startup Deals", description: "Startup plan referrals", commissionType: "percentage", commissionValue: 15, recurring: true, status: "active" },
+    ],
+  },
+
+  // =========================================================================
+  // 9. Bicol Digital Solutions — growth plan, active (converted Nov 2025)
+  // =========================================================================
+  {
+    name: "Bicol Digital Solutions",
+    slug: "bicol-digital",
+    plan: "growth",
+    subscription: {
+      status: "active",
+      subscriptionId: "sub_bicol_growth",
+      trialEndsAt: date(2025, 12, 9),
+      billingStartDate: date(2025, 12, 2),
+      billingEndDate: date(2026, 3, 2),
+    },
+    billingEvents: [
+      { event: "trial_started", plan: "growth", amount: 0, timestamp: date(2025, 11, 25) },
+      { event: "trial_conversion", plan: "growth", amount: 2499, timestamp: date(2025, 12, 2), newPlan: "growth", transactionId: "txn_bicol_1" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 1, 2), transactionId: "txn_bicol_2" },
+      { event: "renew", plan: "growth", amount: 2499, timestamp: date(2026, 2, 2), transactionId: "txn_bicol_3" },
+    ],
+    users: [
+      { email: "marco@bicoldigital.test", name: "Marco Imperial", role: "owner" },
+    ],
+    affiliates: [
+      { email: "rosa.d@bicoldigi.test", name: "Rosa Dela Torre", status: "active", promotionChannel: "Facebook Group" },
+      { email: "jose.r@bicoldigi.test", name: "Jose Rizalino", status: "active", promotionChannel: "YouTube" },
+    ],
+    campaigns: [
+      { name: "Digital Products Referral", description: "Digital product affiliate program", commissionType: "percentage", commissionValue: 18, recurring: true, status: "active" },
     ],
   },
 ];
@@ -1002,14 +1253,20 @@ export const seedAllTestData = internalMutation({
         // Generate unique slug
         const slug = generateUniqueSlug(tenantConfig.name, existingSlugs);
 
-        // Create tenant
-        const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
+        // Create tenant with subscription fields from config
+        const sub = tenantConfig.subscription;
         const tenantId = await ctx.db.insert("tenants", {
           name: tenantConfig.name,
           slug,
           plan: tenantConfig.plan,
-          trialEndsAt,
+          trialEndsAt: sub?.trialEndsAt ?? Date.now() + 14 * 24 * 60 * 60 * 1000,
           status: "active",
+          subscriptionStatus: sub?.status,
+          subscriptionId: sub?.subscriptionId,
+          billingStartDate: sub?.billingStartDate,
+          billingEndDate: sub?.billingEndDate,
+          cancellationDate: sub?.cancellationDate,
+          deletionScheduledDate: sub?.deletionScheduledDate,
           branding: {
             portalName: tenantConfig.name,
             primaryColor: "#10409a",
@@ -1058,19 +1315,17 @@ export const seedAllTestData = internalMutation({
           })),
         });
 
-        // Create billing history
-        const billingEvents = [
-          { event: "subscription_started", plan: tenantConfig.plan, amount: 0, timestamp: trialEndsAt - 14 * 24 * 60 * 60 * 1000 },
-          { event: "trial_started", plan: tenantConfig.plan, amount: 0, timestamp: trialEndsAt - 14 * 24 * 60 * 60 * 1000 },
-        ];
-        
-        for (const billing of billingEvents) {
+        // Create billing history from per-tenant events
+        for (const billing of tenantConfig.billingEvents) {
           await ctx.db.insert("billingHistory", {
             tenantId,
             event: billing.event,
             plan: billing.plan,
             amount: billing.amount,
             timestamp: billing.timestamp,
+            transactionId: billing.transactionId,
+            newPlan: billing.newPlan,
+            previousPlan: billing.previousPlan,
             mockTransaction: true,
           });
           stats.billingHistoryCreated++;
