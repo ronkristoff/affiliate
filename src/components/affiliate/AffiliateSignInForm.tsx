@@ -28,16 +28,29 @@ type SignInFormData = {
   password: string;
 };
 
+interface TenantBranding {
+  portalName: string;
+  primaryColor: string;
+  logoUrl?: string;
+}
+
 interface AffiliateSignInFormProps {
   tenantSlug: string;
   redirectUrl?: string;
+  tenantBranding?: TenantBranding;
 }
 
-export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }: AffiliateSignInFormProps) {
+export function AffiliateSignInForm({
+  tenantSlug,
+  redirectUrl = "/portal/home",
+  tenantBranding,
+}: AffiliateSignInFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<"pending" | "suspended" | "rejected" | "invalid" | null>(null);
+
+  const primaryColor = tenantBranding?.primaryColor || "#10409a";
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -53,7 +66,6 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
     setErrorType(null);
 
     try {
-      // Call API route which sets httpOnly cookie server-side
       const response = await fetch("/api/affiliate-auth", {
         method: "POST",
         headers: {
@@ -73,7 +85,6 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
         const errorMessage = result.error || "Invalid email or password";
         setError(errorMessage);
 
-        // Determine error type based on message
         if (errorMessage.includes("pending approval")) {
           setErrorType("pending");
         } else if (errorMessage.includes("suspended")) {
@@ -87,8 +98,6 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
         return;
       }
 
-      // Session is now stored in httpOnly cookie - no localStorage needed
-      // Redirect to portal home
       router.push(redirectUrl);
       router.refresh();
     } catch (err) {
@@ -99,12 +108,11 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
     }
   };
 
-  // Render error message with appropriate styling
   const renderError = () => {
     if (!error) return null;
 
-    const baseClasses = "p-3 text-sm rounded flex items-start gap-2";
-    
+    const baseClasses = "p-3 text-sm rounded-lg flex items-start gap-2";
+
     if (errorType === "pending") {
       return (
         <div className={cn(baseClasses, "bg-amber-50 border border-amber-200 text-amber-800")}>
@@ -116,7 +124,7 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
         </div>
       );
     }
-    
+
     if (errorType === "suspended" || errorType === "rejected") {
       return (
         <div className={cn(baseClasses, "bg-red-50 border border-red-200 text-red-800")}>
@@ -152,17 +160,16 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-900">Email</FormLabel>
+              <FormLabel>Email Address</FormLabel>
               <FormControl>
                 <Input
                   type="email"
                   placeholder="you@example.com"
                   disabled={isLoading}
-                  className="border-gray-300 focus:border-brand focus:ring-brand"
                   {...field}
                 />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -173,10 +180,11 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
-                <FormLabel className="text-sm font-semibold text-gray-900">Password</FormLabel>
-                <a 
-                  href="#" 
-                  className="text-xs text-brand hover:underline"
+                <FormLabel>Password</FormLabel>
+                <a
+                  href="#"
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: primaryColor }}
                   onClick={(e) => {
                     e.preventDefault();
                     // TODO: Implement password reset flow
@@ -188,38 +196,31 @@ export function AffiliateSignInForm({ tenantSlug, redirectUrl = "/portal/home" }
               <FormControl>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   disabled={isLoading}
-                  className="border-gray-300 focus:border-brand focus:ring-brand"
                   {...field}
                 />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage />
             </FormItem>
           )}
         />
 
         <Button
           type="submit"
-          className="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3"
+          className="w-full h-11"
           disabled={isLoading}
+          style={{ backgroundColor: primaryColor }}
         >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
+              Signing in…
             </>
           ) : (
             "Sign In"
           )}
         </Button>
-
-        <div className="text-xs text-gray-500 text-center">
-          By signing in, you agree to our{" "}
-          <a href="#" className="text-brand hover:underline">Terms of Service</a>
-          {" "}and{" "}
-          <a href="#" className="text-brand hover:underline">Privacy Policy</a>
-        </div>
       </form>
     </Form>
   );

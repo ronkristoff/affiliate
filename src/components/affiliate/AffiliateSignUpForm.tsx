@@ -10,7 +10,6 @@ import { api } from "../../../convex/_generated/api";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -26,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Users, TrendingUp } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 const signUpSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -77,10 +76,10 @@ export function AffiliateSignUpForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const primaryColor = tenantBranding?.primaryColor || "#10409a";
   const portalName = tenantBranding?.portalName || "our affiliate program";
-  
+
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -100,34 +99,33 @@ export function AffiliateSignUpForm({
     setError(null);
 
     try {
-      // Execute reCAPTCHA verification
       let recaptchaToken: string | null = null;
-      
+
       if (executeRecaptcha) {
         try {
           recaptchaToken = await executeRecaptcha("affiliate_registration");
         } catch (recaptchaError) {
           console.error("reCAPTCHA execution failed:", recaptchaError);
-          setError("Unable to verify - please check your connection and try again");
+          setError("Unable to verify — please check your connection and try again");
           setIsLoading(false);
           return;
         }
       }
 
       if (!recaptchaToken) {
-        setError("Verification failed - please try again");
+        setError("Verification failed — please try again");
         setIsLoading(false);
         return;
       }
 
-      const result = await signUp({ 
-        ...data, 
+      const result = await signUp({
+        ...data,
         tenantSlug,
         promotionChannel: data.promotionChannel,
         recaptchaToken,
         campaignSlug,
       });
-      
+
       if (result.success) {
         setSuccess(true);
       } else {
@@ -140,56 +138,66 @@ export function AffiliateSignUpForm({
     }
   }, [executeRecaptcha, signUp, tenantSlug, campaignSlug]);
 
-  // Show success state - pending approval overlay
+  /* ── Success State ── */
   if (success) {
     return (
       <div className="space-y-6">
         <div className="text-center space-y-4">
-          <div 
-            className="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${primaryColor}15` }}
+          <div
+            className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: `${primaryColor}12` }}
           >
-            <CheckCircle2 
-              className="w-8 h-8" 
+            <CheckCircle2
+              className="w-10 h-10"
               style={{ color: primaryColor }}
             />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Application Submitted!</h3>
+            <h3 className="text-xl font-bold text-heading">Application Submitted</h3>
             <p className="text-sm text-muted-foreground">
-              {campaignName 
-                ? `Your application to join the ${campaignName} campaign has been submitted successfully.`
-                : `Your application to join ${portalName} has been submitted successfully.`
-              }
+              {campaignName
+                ? `Your application to join the ${campaignName} campaign has been submitted.`
+                : `Your application to join ${portalName} has been submitted.`}
             </p>
           </div>
         </div>
-        
-        <div 
-          className="rounded-lg p-4 text-center space-y-2"
-          style={{ backgroundColor: `${primaryColor}08` }}
+
+        <div
+          className="rounded-xl p-5 space-y-3"
+          style={{
+            backgroundColor: `${primaryColor}06`,
+            border: `1px solid ${primaryColor}14`,
+          }}
         >
-          <p className="text-sm font-medium" style={{ color: primaryColor }}>
-            Pending Approval
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Typically takes 1-2 business days. You&apos;ll receive an email once your application is approved.
+          <div className="flex items-center gap-2">
+            <div
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: primaryColor }}
+            />
+            <p className="text-sm font-semibold" style={{ color: primaryColor }}>
+              Pending Approval
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Typically reviewed within 1–2 business days. You&apos;ll receive an
+            email once your application is approved.
           </p>
           {campaignName && (
-            <p className="text-xs text-muted-foreground">
-              Upon approval, you&apos;ll receive a referral link to start promoting {campaignName}.
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Upon approval, you&apos;ll get your referral link to start
+              promoting {campaignName}.
             </p>
           )}
         </div>
-        
-        <div className="text-center text-xs text-muted-foreground">
-          {/* TODO: Add contactEmail to tenant branding schema and display here */}
-          <p>Questions? Contact the merchant directly.</p>
-        </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Questions? Contact the merchant directly.
+        </p>
       </div>
     );
   }
 
+  /* ── Form State ── */
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -295,47 +303,26 @@ export function AffiliateSignUpForm({
         />
 
         {error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
-        <Button 
-          type="submit" 
-          className="w-full" 
+        <Button
+          type="submit"
+          className="w-full h-11"
           disabled={isLoading}
           style={{ backgroundColor: primaryColor }}
         >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating Account...
+              Creating Account…
             </>
           ) : (
             "Apply to Join"
           )}
         </Button>
-
-        {/* Trust Signals - Sample data for demonstration purposes only */}
-        <div className="pt-4 border-t space-y-3">
-          <p className="text-xs text-muted-foreground text-center italic">
-            *Sample data for demonstration
-          </p>
-          <div className="flex justify-center items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              <span>Join our growing affiliate community</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Terms and Privacy - TODO: Implement actual Terms and Privacy pages */}
-        <div className="text-xs text-muted-foreground text-center">
-          <p>
-            By applying, you agree to receive communications about your affiliate application.
-            {/* TODO: Add links to actual Terms of Service and Privacy Policy pages when implemented */}
-          </p>
-        </div>
       </form>
     </Form>
   );

@@ -468,6 +468,19 @@
   .btn-motion:disabled > svg.animate-spin {
     opacity: 0.7;
   }
+
+  /* ── Portal Register Stagger ── */
+  .animate-stagger-1 { animation: staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both; }
+  .animate-stagger-2 { animation: staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
+  .animate-stagger-3 { animation: staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both; }
+  .animate-stagger-4 { animation: staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both; }
+  .animate-stagger-5 { animation: staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both; }
+
+  /* ── Portal Register Hero Pattern ── */
+  .hero-dot-pattern {
+    background-image: radial-gradient(circle, var(--hero-dot-color, rgba(255, 255, 255, 0.05)) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
 }
 
 /* Keyframe Animations */
@@ -526,5 +539,27 @@
   }
   50% { 
     box-shadow: 0 0 30px 8px rgba(16, 64, 154, 0.25), 0 0 60px 15px rgba(16, 64, 154, 0.15); 
+  }
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger-1,
+  .animate-stagger-2,
+  .animate-stagger-3,
+  .animate-stagger-4,
+  .animate-stagger-5 {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }
