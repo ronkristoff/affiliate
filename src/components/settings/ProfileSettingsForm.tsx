@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Save, KeyRound, Check, AlertCircle, Shield, Building2, Calendar, Mail, Crown } from "lucide-react";
+import { Loader2, Save, KeyRound, Check, AlertCircle, Shield, Building2, Calendar, Mail, Crown, Globe, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const profileSchema = z.object({
@@ -43,6 +43,8 @@ interface ProfileSettingsFormProps {
     _id: string;
     name: string;
     plan: string;
+    domain: string;
+    trackingVerifiedAt?: number;
   };
 }
 
@@ -216,7 +218,7 @@ export function ProfileSettingsForm({ user, tenant }: ProfileSettingsFormProps) 
               </div>
               <div>
                 <CardTitle>Organization</CardTitle>
-                <CardDescription>Your workspace details</CardDescription>
+                <CardDescription>Your workspace details and website domain</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -239,6 +241,8 @@ export function ProfileSettingsForm({ user, tenant }: ProfileSettingsFormProps) 
                 </Badge>
               </div>
             </div>
+            <Separator />
+            <DomainField tenant={tenant} />
           </CardContent>
         </Card>
 
@@ -272,6 +276,138 @@ export function ProfileSettingsForm({ user, tenant }: ProfileSettingsFormProps) 
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+const domainSchema = z.object({
+  domain: z
+    .string()
+    .min(3, "Domain must be at least 3 characters")
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, "Enter a valid domain like yourcompany.com"),
+});
+
+type DomainFormData = z.infer<typeof domainSchema>;
+
+function DomainField({ tenant }: { tenant: { domain: string; trackingVerifiedAt?: number } }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const updateDomain = useMutation(api.tenants.updateTenantWebsiteDomain);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<DomainFormData>({
+    resolver: zodResolver(domainSchema),
+    defaultValues: { domain: tenant.domain },
+  });
+
+  const onSubmit = async (data: DomainFormData) => {
+    setIsSaving(true);
+    try {
+      const result = await updateDomain({ domain: data.domain });
+      toast.success(result.message);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update domain");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    reset({ domain: tenant.domain });
+    setIsEditing(false);
+  };
+
+  const isVerified = !!tenant.trackingVerifiedAt;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Website Domain
+        </p>
+        {isVerified ? (
+          <span className="badge-success text-[10px]">
+            <Check className="h-3 w-3" />
+            Verified
+          </span>
+        ) : (
+          <span className="badge-warning text-[10px]">
+            <AlertCircle className="h-3 w-3" />
+            Unverified
+          </span>
+        )}
+      </div>
+
+      {isEditing ? (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1">
+              <Input
+                placeholder="yourcompany.com"
+                {...register("domain")}
+                aria-invalid={errors.domain ? "true" : "false"}
+                className={errors.domain ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.domain && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.domain.message}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1.5 h-3 w-3" />
+                  Save Domain
+                </>
+              )}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={cancelEdit} disabled={isSaving}>
+              Cancel
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Changing your domain will reset tracking verification and update all referral links.
+            Affiliates will be notified of the change.
+          </p>
+        </form>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <p className="text-sm font-medium text-heading">{tenant.domain}</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+            <RefreshCw className="mr-1.5 h-3 w-3" />
+            Edit
+          </Button>
+        </div>
+      )}
+
+      {!isVerified && !isEditing && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+          Install the tracking snippet on your website to verify this domain.{" "}
+          <a href="/settings/tracking" className="text-brand underline underline-offset-2">
+            Go to Tracking settings
+          </a>
+        </p>
+      )}
     </div>
   );
 }

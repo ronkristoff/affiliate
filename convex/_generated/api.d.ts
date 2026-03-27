@@ -41,6 +41,7 @@ import type * as emails_BroadcastEmail from "../emails/BroadcastEmail.js";
 import type * as emails_CancellationConfirmationEmail from "../emails/CancellationConfirmationEmail.js";
 import type * as emails_CommissionConfirmedEmail from "../emails/CommissionConfirmedEmail.js";
 import type * as emails_DeletionReminderEmail from "../emails/DeletionReminderEmail.js";
+import type * as emails_DomainChangeNotificationEmail from "../emails/DomainChangeNotificationEmail.js";
 import type * as emails_DowngradeConfirmationEmail from "../emails/DowngradeConfirmationEmail.js";
 import type * as emails_FraudAlertEmail from "../emails/FraudAlertEmail.js";
 import type * as emails_NewAffiliateNotificationEmail from "../emails/NewAffiliateNotificationEmail.js";
@@ -133,6 +134,7 @@ declare const fullApi: ApiFromModules<{
   "emails/CancellationConfirmationEmail": typeof emails_CancellationConfirmationEmail;
   "emails/CommissionConfirmedEmail": typeof emails_CommissionConfirmedEmail;
   "emails/DeletionReminderEmail": typeof emails_DeletionReminderEmail;
+  "emails/DomainChangeNotificationEmail": typeof emails_DomainChangeNotificationEmail;
   "emails/DowngradeConfirmationEmail": typeof emails_DowngradeConfirmationEmail;
   "emails/FraudAlertEmail": typeof emails_FraudAlertEmail;
   "emails/NewAffiliateNotificationEmail": typeof emails_NewAffiliateNotificationEmail;

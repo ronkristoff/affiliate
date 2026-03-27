@@ -781,6 +781,8 @@ export const getCurrentUserProfile = query({
         _id: v.id("tenants"),
         name: v.string(),
         plan: v.string(),
+        domain: v.string(),
+        trackingVerifiedAt: v.optional(v.number()),
       }),
     }),
     v.null()
@@ -817,6 +819,8 @@ export const getCurrentUserProfile = query({
         _id: tenant._id,
         name: tenant.name,
         plan: tenant.plan,
+        domain: tenant.domain,
+        trackingVerifiedAt: tenant.trackingVerifiedAt,
       },
     };
   },

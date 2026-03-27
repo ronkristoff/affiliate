@@ -9,6 +9,7 @@ import type { Role } from "./permissions";
 import { obfuscate, deobfuscate } from "./encryption";
 import { seedStats } from "./tenantStats";
 import DeletionReminderEmail from "./emails/DeletionReminderEmail";
+import DomainChangeNotificationEmail from "./emails/DomainChangeNotificationEmail";
 import { render } from "@react-email/components";
 import React from "react";
 import { components } from "./_generated/api";
@@ -243,7 +244,7 @@ export const updateTenantWebsiteDomain = mutation({
  * Send domain change notification to an affiliate.
  * Internal action - called by updateTenantWebsiteDomain mutation.
  */
-export const sendDomainChangeNotification = internalAction({
+export const sendDomainChangeNotification = internalMutation({
   args: {
     affiliateId: v.id("affiliates"),
     tenantId: v.id("tenants"),
@@ -269,17 +270,13 @@ export const sendDomainChangeNotification = internalAction({
     }
 
     try {
-      // Import email template dynamically
-      const DomainChangeEmail = (await import("./emails/DomainChangeNotification")).default;
-
-      // Send email via Resend component
       await resendInstance.sendEmail(ctx, {
         from: "Affiliate Notifications <notifications@boboddy.business>",
         to: affiliate.email,
         subject: `Important: ${tenant.name} has updated their website domain`,
         html: await render(
-          React.createElement(DomainChangeEmail, {
-            affiliateName: affiliate.name,
+          React.createElement(DomainChangeNotificationEmail, {
+            affiliateName: affiliate.name || "Affiliate",
             tenantName: tenant.name,
             oldDomain: args.oldDomain,
             newDomain: args.newDomain,
