@@ -3,10 +3,7 @@
 import { Suspense } from "react";
 import { PayoutsContent } from "./PayoutsClient";
 import { PageTopbar } from "@/components/ui/PageTopbar";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
-import { History } from "lucide-react";
 
 function PayoutsSkeleton() {
   return (
@@ -55,17 +52,8 @@ export default function PayoutsPage() {
       {/* Top Bar */}
       <PageTopbar
         description="Generate payout batches and manage affiliate payments"
-        breadcrumbs={[{ label: "Payouts" }]}
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payouts</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/payouts/history">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <History className="w-3.5 h-3.5" />
-              History
-            </Button>
-          </Link>
-        </div>
       </PageTopbar>
 
       {/* Page Content */}
