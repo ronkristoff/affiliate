@@ -661,7 +661,10 @@ function CommissionsContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Sticky Top Bar */}
-      <PageTopbar description="Review, approve, and manage all affiliate commission payouts">
+      <PageTopbar
+        description="Review, approve, and manage all affiliate commission payouts"
+        breadcrumbs={[{ label: "Commissions" }]}
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
         <Button
           variant="outline"
@@ -1074,18 +1077,25 @@ function CommissionsSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top bar skeleton */}
-      <PageTopbar>
-        <div>
+      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
+        <div className="flex items-center justify-between w-full">
           <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-3 w-64 mt-1" />
+          <Skeleton className="h-9 w-28 rounded-md" />
         </div>
-      </PageTopbar>
+      </div>
 
-      <div className="px-8 pt-6 pb-8">
+      <div className="page-content">
         {/* Metric cards skeleton */}
         <div className="grid grid-cols-5 gap-4 mb-8">
           {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-light)]">
+              <div className="flex items-start justify-between mb-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-9 w-9 rounded-full" />
+              </div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-20" />
+            </div>
           ))}
         </div>
 
@@ -1093,27 +1103,16 @@ function CommissionsSkeleton() {
         <div className="flex items-center gap-4 mb-4">
           <Skeleton className="h-9 flex-1 max-w-xs rounded-lg" />
           <Skeleton className="h-9 w-40 rounded-lg" />
-          <Skeleton className="h-9 w-36 rounded-lg" />
-        </div>
-
-        {/* Status pills skeleton */}
-        <div className="flex items-center gap-2 mb-4">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-8 w-20 rounded-lg" />
-          ))}
         </div>
 
         {/* Table skeleton */}
-        <div className="space-y-3">
-          <Skeleton className="h-10 w-full rounded-lg" />
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
-        </div>
-
-        {/* Pagination skeleton */}
-        <div className="mt-4">
-          <Skeleton className="h-5 w-48" />
+        <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+          <div className="p-4 space-y-3">
+            <Skeleton className="h-10 w-full rounded-md" />
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
+          </div>
         </div>
       </div>
     </div>

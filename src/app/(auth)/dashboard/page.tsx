@@ -40,43 +40,100 @@ function DashboardSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Alert Banner skeleton */}
-      <div className="px-8 pt-6">
+      <div className="page-content pt-6">
         <Skeleton className="h-10 w-full rounded-lg" />
       </div>
 
       {/* Top Bar skeleton */}
-      <div className="px-8 pt-2">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-6 w-32" />
+      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
+        <div className="flex items-center justify-between w-full">
+          <Skeleton className="h-5 w-28" />
           <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-40" />
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-7 w-20 rounded-md" />
+            <Skeleton className="h-8 w-36 rounded-md" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+            <Skeleton className="h-8 w-36 rounded-md" />
           </div>
         </div>
       </div>
 
       {/* Metric Cards skeleton */}
-      <div className="px-8 pt-6 pb-8">
+      <div className="page-content">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-light)]">
+              <div className="flex items-start justify-between mb-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-9 w-9 rounded-full" />
+              </div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-20" />
+            </div>
           ))}
         </div>
 
         {/* Main Content Grid skeleton */}
-        <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px" }}>
+        <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 340px" }}>
           {/* Left column */}
           <div className="space-y-6">
-            <Skeleton className="h-64 rounded-xl" />
-            <Skeleton className="h-64 rounded-xl" />
+            <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[var(--border-light)] flex items-center justify-between">
+                <Skeleton className="h-4 w-40" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-20 rounded-md" />
+                  <Skeleton className="h-8 w-28 rounded-md" />
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                <Skeleton className="h-10 w-full rounded-md" />
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-md" />
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[var(--border-light)] flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </div>
+              <div className="p-4 space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-md" />
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right column */}
           <div className="space-y-6">
-            <Skeleton className="h-32 rounded-xl" />
-            <Skeleton className="h-64 rounded-xl" />
-            <Skeleton className="h-40 rounded-xl" />
+            <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] p-5">
+              <Skeleton className="h-4 w-24 mb-4" />
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
+                ))}
+              </div>
+            </div>
+            <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] p-5">
+              <Skeleton className="h-4 w-28 mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-3 w-32 mb-1" />
+                      <Skeleton className="h-2 w-48" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] p-5">
+              <Skeleton className="h-4 w-20 mb-3" />
+              <Skeleton className="h-2 w-full mb-1" />
+              <Skeleton className="h-2 w-3/4" />
+            </div>
           </div>
         </div>
       </div>
@@ -165,7 +222,7 @@ function DashboardContent() {
   } : undefined;
 
   const affiliatesDelta = stats ? {
-    value: 8, // Mock value since API doesn't provide this
+    value: 8,
     isPositive: true,
     label: "this month"
   } : undefined;
@@ -178,7 +235,7 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      {/* Alert Banner - Persistent warning banner */}
+      {/* Alert Banner */}
       <AlertBanner setupStatus={setupStatus} />
 
       {/* Top Bar */}
@@ -218,8 +275,8 @@ function DashboardContent() {
       </PageTopbar>
 
       {/* Page Content */}
-      <div className="px-8 pt-6 pb-8">
-        {/* Metric Cards Grid - 4 columns */}
+      <div className="page-content">
+        {/* Metric Cards Grid */}
         <FadeIn className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <MetricCard
             label="MRR Influenced"
@@ -276,12 +333,12 @@ function DashboardContent() {
           />
         </FadeIn>
 
-        {/* Main Content Grid - 1fr 340px with generous gap */}
-        <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 340px" }}>
+        {/* Main Content Grid */}
+        <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 340px" }}>
           {/* Left Column - Tables */}
           <div className="space-y-6">
             {/* Recent Commissions Table */}
-            <div className="card">
+            <div className="table-card animate-content-in-delay-1">
               <div className="card-header">
                 <h3 className="card-title">Recent Commissions</h3>
                 <div className="flex items-center gap-2">
@@ -290,7 +347,7 @@ function DashboardContent() {
                   </Button>
                   {canManage && (stats?.pendingCommissionsCount ?? 0) > 0 && (
                     <Button size="sm" className="bg-[var(--success)] text-white hover:bg-[#059669]" asChild>
-                      <Link href="/payouts">💸 Pay All Pending</Link>
+                      <Link href="/payouts">Pay All Pending</Link>
                     </Button>
                   )}
                 </div>
@@ -302,7 +359,7 @@ function DashboardContent() {
             </div>
 
             {/* Top Affiliates Table */}
-            <div className="card">
+            <div className="table-card animate-content-in-delay-2">
               <div className="card-header">
                 <h3 className="card-title">Top Affiliates</h3>
                 <Button variant="outline" size="sm" asChild>
@@ -316,30 +373,37 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* Right Column - Widgets - lighter styling */}
+          {/* Right Column - Widgets */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <QuickActionsPanel
-              pendingCount={stats?.pendingCommissionsCount}
-              showPayAll={canManage}
-              onInvite={() => setIsInviteSheetOpen(true)}
-              onCreateCampaign={() => setIsCreateCampaignOpen(true)}
-            />
+            <div className="animate-content-in-delay-1">
+              <QuickActionsPanel
+                pendingCount={stats?.pendingCommissionsCount}
+                showPayAll={canManage}
+                onInvite={() => setIsInviteSheetOpen(true)}
+                onCreateCampaign={() => setIsCreateCampaignOpen(true)}
+              />
+            </div>
 
             {/* Activity Feed */}
-            <ActivityFeed
-              activities={activities ?? []}
-              isLoading={!activities}
-            />
+            <div className="animate-content-in-delay-2">
+              <ActivityFeed
+                activities={activities ?? []}
+                isLoading={!activities}
+              />
+            </div>
 
             {/* Plan Usage */}
-            <PlanUsageWidget
-              usage={planUsage}
-              isLoading={!planUsage}
-            />
+            <div className="animate-content-in-delay-3">
+              <PlanUsageWidget
+                usage={planUsage}
+                isLoading={!planUsage}
+              />
+            </div>
           </div>
         </div>
       </div>
+
       {/* Invite Affiliate Sheet */}
       <InviteAffiliateSheet
         isOpen={isInviteSheetOpen}

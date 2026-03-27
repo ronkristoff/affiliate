@@ -38,7 +38,7 @@ const STATIC_NAV_ITEMS = {
       label: "Overview",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
         </svg>
       ),
     },
@@ -47,7 +47,7 @@ const STATIC_NAV_ITEMS = {
       label: "Affiliates",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
     },
@@ -56,7 +56,7 @@ const STATIC_NAV_ITEMS = {
       label: "Campaigns",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
         </svg>
       ),
     },
@@ -65,7 +65,7 @@ const STATIC_NAV_ITEMS = {
       label: "Commissions",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       ),
     },
@@ -74,7 +74,7 @@ const STATIC_NAV_ITEMS = {
       label: "Payouts",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
         </svg>
       ),
     },
@@ -85,7 +85,7 @@ const STATIC_NAV_ITEMS = {
       label: "Reports",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
       children: [
@@ -103,7 +103,7 @@ const STATIC_NAV_ITEMS = {
       label: "Emails",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
     },
@@ -114,8 +114,8 @@ const STATIC_NAV_ITEMS = {
       label: "Settings",
       icon: (
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
     },
@@ -136,26 +136,57 @@ function getInitials(name: string): string {
 function SidebarSkeleton() {
   return (
     <aside className="w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen flex flex-col fixed top-0 left-0 z-[100]">
-      <div className="px-5 py-6 border-b border-white/[0.08]">
+      {/* Logo skeleton */}
+      <div className="px-5 py-5 border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1659d6] rounded-lg" />
-          <div className="h-4 w-32 bg-white/[0.1] rounded" />
+          <div className="w-8 h-8 bg-white/[0.08] rounded-lg animate-pulse" />
+          <div className="h-4 w-28 bg-white/[0.06] rounded animate-pulse" />
         </div>
       </div>
-      <div className="px-5 py-3.5 border-b border-white/[0.08]">
+
+      {/* Tenant skeleton */}
+      <div className="px-5 py-3 border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1659d6] rounded-lg" />
+          <div className="w-8 h-8 bg-white/[0.08] rounded-lg animate-pulse" />
           <div>
-            <div className="h-3 w-24 bg-white/[0.1] rounded mb-1" />
-            <div className="h-2 w-20 bg-white/[0.05] rounded" />
+            <div className="h-3 w-24 bg-white/[0.06] rounded animate-pulse mb-1.5" />
+            <div className="h-2 w-16 bg-white/[0.04] rounded animate-pulse" />
           </div>
         </div>
       </div>
-      <div className="flex-1 p-4">
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-9 bg-white/[0.05] rounded" />
-          ))}
+
+      {/* Nav skeleton */}
+      <div className="flex-1 px-3 py-3">
+        <div className="mb-5">
+          <div className="px-3 py-2 mb-2">
+            <div className="h-2 w-14 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-9 bg-white/[0.04] rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="mb-5">
+          <div className="px-3 py-2 mb-2">
+            <div className="h-2 w-16 bg-white/[0.06] rounded animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-9 bg-white/[0.04] rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* User footer skeleton */}
+      <div className="px-5 py-4 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-white/[0.08] rounded-full animate-pulse" />
+          <div className="flex-1">
+            <div className="h-2.5 w-20 bg-white/[0.06] rounded animate-pulse mb-1" />
+            <div className="h-2 w-28 bg-white/[0.04] rounded animate-pulse" />
+          </div>
         </div>
       </div>
     </aside>
@@ -224,21 +255,23 @@ export function Sidebar({ className }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="px-5 py-6 border-b border-white/[0.08]">
+      <div className="px-5 py-5 border-b border-white/[0.06]">
         <Logo href="/dashboard" variant="light" />
       </div>
 
       {/* Tenant Info */}
-      <div className="px-5 py-3.5 border-b border-white/[0.08]">
-        <div className="flex items-center gap-2.5 cursor-pointer">
-          <div className="w-8 h-8 bg-[#1659d6] rounded-lg flex items-center justify-center font-bold text-[13px] text-white shrink-0">
+      <div className="px-5 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5 cursor-pointer rounded-lg px-1 py-0.5 -mx-1 transition-colors hover:bg-white/[0.04]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[12px] text-white shrink-0"
+            style={{ background: "linear-gradient(135deg, #1659d6 0%, #10409a 100%)" }}
+          >
             {user.tenant.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-[#e2e8f0] truncate">
+            <div className="text-[13px] font-semibold text-[#e2e8f0] truncate leading-tight">
               {user.tenant.name}
             </div>
-            <div className="text-[11px] text-white/[0.4] capitalize">
+            <div className="text-[10.5px] text-white/[0.35] capitalize mt-0.5">
               {user.tenant.plan}
             </div>
           </div>
@@ -246,10 +279,10 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="px-0 py-3 flex-1">
+      <nav className="px-3 py-2 flex-1 overflow-y-auto">
         {/* Program Section */}
         <div className="mb-1">
-          <div className="px-5 py-3 text-[10px] font-semibold text-white/[0.3] tracking-[0.08em] uppercase">
+          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
             Program
           </div>
           {STATIC_NAV_ITEMS.program.map((item) => {
@@ -262,18 +295,21 @@ export function Sidebar({ className }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-all border-l-[3px]",
+                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
                   isActive
-                    ? "text-white bg-white/[0.08] border-l-[#7dd3fc] font-semibold"
-                    : "text-white/[0.55] border-l-transparent hover:text-white/[0.9] hover:bg-white/[0.05]"
+                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn("w-[18px] h-[18px] shrink-0", isActive ? "opacity-100" : "opacity-[0.7]")}>
+                <span className={cn(
+                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
+                )}>
                   {item.icon}
                 </span>
-                {item.label}
+                <span className="flex-1">{item.label}</span>
                 {badge !== undefined && (
-                  <span className="ml-auto bg-[#f59e0b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  <span className="bg-[#f59e0b] text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                     {badge}
                   </span>
                 )}
@@ -283,8 +319,8 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
 
         {/* Insights Section */}
-        <div className="mb-1" style={{ marginTop: 8 }}>
-          <div className="px-5 py-3 text-[10px] font-semibold text-white/[0.3] tracking-[0.08em] uppercase">
+        <div className="mb-1 mt-3">
+          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
             Insights
           </div>
           {STATIC_NAV_ITEMS.insights.map((item) => {
@@ -298,25 +334,28 @@ export function Sidebar({ className }: SidebarProps) {
                   <button
                     onClick={() => toggleExpanded(item.href)}
                     className={cn(
-                      "flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-all border-l-[3px] w-full text-left",
+                      "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150 w-full text-left",
                       isActive
-                        ? "text-white bg-white/[0.08] border-l-[#7dd3fc] font-semibold"
-                        : "text-white/[0.55] border-l-transparent hover:text-white/[0.9] hover:bg-white/[0.05]"
+                        ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                     )}
                   >
-                    <span className={cn("w-[18px] h-[18px] shrink-0", isActive ? "opacity-100" : "opacity-[0.7]")}>
+                    <span className={cn(
+                      "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                      isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
+                    )}>
                       {item.icon}
                     </span>
                     <span className="flex-1">{item.label}</span>
                     <ChevronRight
                       className={cn(
-                        "w-3.5 h-3.5 shrink-0 transition-transform duration-200",
+                        "w-3 h-3 shrink-0 transition-transform duration-200 text-white/[0.3]",
                         isExpanded ? "rotate-90" : ""
                       )}
                     />
                   </button>
                   {isExpanded && (
-                    <div className="pl-[46px] pr-5">
+                    <div className="pl-[42px] pr-3 mt-0.5 mb-1">
                       {item.children!.map((child) => {
                         const isChildActive = child.href === "/reports"
                           ? pathname === "/reports"
@@ -326,15 +365,15 @@ export function Sidebar({ className }: SidebarProps) {
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "flex items-center py-[7px] text-[13px] transition-colors",
+                              "flex items-center py-[6px] text-[12.5px] rounded-md transition-colors duration-150",
                               isChildActive
                                 ? "text-white font-medium"
-                                : "text-white/[0.4] hover:text-white/[0.8]"
+                                : "text-white/[0.35] hover:text-white/[0.7]"
                             )}
                           >
                             <span className={cn(
-                              "w-1 h-1 rounded-full mr-2.5 shrink-0",
-                              isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.2]"
+                              "w-1 h-1 rounded-full mr-2.5 shrink-0 transition-colors duration-150",
+                              isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.15]"
                             )} />
                             {child.label}
                           </Link>
@@ -351,13 +390,16 @@ export function Sidebar({ className }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-all border-l-[3px]",
+                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
                   isActive
-                    ? "text-white bg-white/[0.08] border-l-[#7dd3fc] font-semibold"
-                    : "text-white/[0.55] border-l-transparent hover:text-white/[0.9] hover:bg-white/[0.05]"
+                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn("w-[18px] h-[18px] shrink-0", isActive ? "opacity-100" : "opacity-[0.7]")}>
+                <span className={cn(
+                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
+                )}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -367,8 +409,8 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
 
         {/* Account Section */}
-        <div style={{ marginTop: 8 }}>
-          <div className="px-5 py-3 text-[10px] font-semibold text-white/[0.3] tracking-[0.08em] uppercase">
+        <div className="mt-3">
+          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
             Account
           </div>
           {STATIC_NAV_ITEMS.account.map((item) => {
@@ -378,13 +420,16 @@ export function Sidebar({ className }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-all border-l-[3px]",
+                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
                   isActive
-                    ? "text-white bg-white/[0.08] border-l-[#7dd3fc] font-semibold"
-                    : "text-white/[0.55] border-l-transparent hover:text-white/[0.9] hover:bg-white/[0.05]"
+                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn("w-[18px] h-[18px] shrink-0", isActive ? "opacity-100" : "opacity-[0.7]")}>
+                <span className={cn(
+                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
+                )}>
                   {item.icon}
                 </span>
                 {item.label}
@@ -395,27 +440,29 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* User Footer */}
-      <div className="px-5 py-4 border-t border-white/[0.08]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] bg-[#1e4a8c] rounded-full flex items-center justify-center text-[12px] font-bold text-[#7dd3fc] shrink-0">
+      <div className="px-3 py-3 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/[0.04]">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-[#7dd3fc] shrink-0"
+            style={{ background: "linear-gradient(135deg, #0a2e5c 0%, #1e4a8c 100%)" }}
+          >
             {userInitials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[12px] text-white/[0.7] font-medium truncate">
+            <div className="text-[12px] text-white/[0.65] font-medium truncate leading-tight">
               {displayName}
             </div>
-            <div className="text-[11px] text-white/[0.35] truncate">
+            <div className="text-[10.5px] text-white/[0.3] truncate">
               {displayEmail}
             </div>
           </div>
           <button
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="shrink-0 p-1.5 rounded-md text-white/[0.35] hover:text-white/[0.7] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+            className="shrink-0 p-1.5 rounded-md text-white/[0.3] hover:text-white/[0.6] hover:bg-white/[0.08] transition-all duration-150 disabled:opacity-50"
             title="Sign out"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </button>
         </div>

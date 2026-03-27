@@ -30,28 +30,30 @@ function CampaignOverviewSkeleton() {
 
       {/* Top Campaigns section */}
       <div>
-        <Skeleton className="h-5 w-44 mb-4" />
+        <div className="section-header">
+          <Skeleton className="h-5 w-44" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-[220px] rounded-xl" />
+            <div key={i} className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+              <Skeleton className="h-[220px]" />
+            </div>
           ))}
         </div>
       </div>
 
       {/* Needs Attention section */}
       <div>
-        <Skeleton className="h-5 w-44 mb-4" />
+        <div className="section-header">
+          <Skeleton className="h-5 w-44" />
+        </div>
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => (
-            <Skeleton key={i} className="h-12 rounded-lg" />
+            <div key={i} className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)]">
+              <Skeleton className="h-12" />
+            </div>
           ))}
         </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex gap-3 pt-2">
-        <Skeleton className="h-10 w-40 rounded-lg" />
-        <Skeleton className="h-10 w-48 rounded-lg" />
       </div>
     </div>
   );
@@ -63,7 +65,10 @@ export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar description="Create and manage your affiliate campaigns with custom commission structures">
+      <PageTopbar
+        description="Create and manage your affiliate campaigns with custom commission structures"
+        breadcrumbs={[{ label: "Campaigns" }]}
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
         <div className="flex items-center gap-3">
           <Button size="sm" onClick={() => setIsCreateSheetOpen(true)}>
@@ -74,7 +79,7 @@ export default function CampaignsPage() {
       </PageTopbar>
 
       {/* Page Content */}
-      <div className="px-8 pt-6 pb-8">
+      <div className="page-content">
         <Suspense fallback={<CampaignOverviewSkeleton />}>
           <CampaignsContent onCreateCampaign={() => setIsCreateSheetOpen(true)} />
         </Suspense>

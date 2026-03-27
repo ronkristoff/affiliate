@@ -83,9 +83,6 @@ function AuthLayoutContent({
   }
 
   // ── Auth gate: don't render children until the session is confirmed ──
-  // Prevents child queries from firing before the auth session is ready,
-  // which would cause "Unauthorized" errors from requireTenantId().
-  // Show the layout skeleton directly (no white flash) while the session loads.
   if (user === undefined) {
     return <AuthLayoutSkeleton />;
   }
@@ -95,12 +92,15 @@ function AuthLayoutContent({
       {/* Impersonation Banner — fixed at top, offsets all content */}
       {isImpersonating && <ImpersonationBanner />}
 
-      {/* Sidebar — uses the dark themed sidebar matching HTML design */}
+      {/* Sidebar */}
       {!isImpersonating && <Sidebar />}
 
-      {/* Main Content - offset by sidebar width */}
-      <main className="flex-1 min-h-screen" style={{ marginLeft: 'var(--sidebar-width)' }}>
-        <div className="min-h-screen">
+      {/* Main Content */}
+      <main
+        className="flex-1 min-h-screen"
+        style={{ marginLeft: 'var(--sidebar-width)' }}
+      >
+        <div className="min-h-screen animate-content-in">
           {children}
         </div>
       </main>
@@ -115,21 +115,110 @@ function AuthLayoutSkeleton() {
     <div className="flex min-h-screen">
       {/* Sidebar skeleton */}
       <div className="w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen hidden md:block">
-        <Skeleton className="h-6 w-32 mx-5 my-6" />
+        {/* Logo area */}
+        <div className="px-5 py-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-white/[0.08] rounded-lg animate-pulse" />
+            <Skeleton className="h-4 w-28 bg-white/[0.06]" />
+          </div>
+        </div>
+
+        {/* Tenant area */}
+        <div className="px-5 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-white/[0.08] rounded-lg animate-pulse" />
+            <div>
+              <Skeleton className="h-3 w-24 bg-white/[0.06] mb-1.5" />
+              <Skeleton className="h-2 w-16 bg-white/[0.04]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Nav skeleton */}
+        <div className="px-3 py-3">
+          <div className="mb-4">
+            <Skeleton className="h-2 w-12 bg-white/[0.06] mb-2 mx-3" />
+            <div className="space-y-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-9 bg-white/[0.04] rounded-lg mx-0" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main content skeleton */}
       <main className="flex-1 overflow-auto">
-        <div className="px-8 pt-6 pb-8">
-          <div className="space-y-6">
-            <div>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
+        <div className="page-content">
+          {/* PageTopbar skeleton */}
+          <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
+            <div className="flex items-center justify-between w-full">
+              <Skeleton className="h-5 w-32" />
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-36 rounded-md" />
+              </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-xl" />
+          </div>
+
+          <div className="pt-6">
+            {/* Metric cards skeleton */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-light)]">
+                  <div className="flex items-start justify-between mb-3">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                  </div>
+                  <Skeleton className="h-8 w-32 mb-2" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
               ))}
+            </div>
+
+            {/* Main content grid skeleton */}
+            <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 340px" }}>
+              {/* Left column */}
+              <div className="space-y-6">
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[var(--border-light)] flex items-center justify-between">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <Skeleton className="h-10 w-full rounded-md" />
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full rounded-md" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-6">
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] p-5">
+                  <Skeleton className="h-4 w-24 mb-4" />
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-10 w-full rounded-md" />
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] p-5">
+                  <Skeleton className="h-4 w-28 mb-4" />
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                        <div className="flex-1">
+                          <Skeleton className="h-3 w-32 mb-1" />
+                          <Skeleton className="h-2 w-48" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

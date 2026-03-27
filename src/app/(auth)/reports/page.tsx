@@ -5,7 +5,6 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -87,7 +86,10 @@ export default function ReportsIndexPage() {
   return (
     <>
       {/* Sticky Top Bar */}
-      <PageTopbar description="Overview of your affiliate program performance">
+      <PageTopbar
+        description="Overview of your affiliate program performance"
+        breadcrumbs={[{ label: "Insights", href: "/reports" }, { label: "Overview" }]}
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Reports</h1>
         <div className="flex items-center gap-2">
           <CampaignFilterDropdown
@@ -120,7 +122,7 @@ export default function ReportsIndexPage() {
       </PageTopbar>
 
       {/* Page Content */}
-      <div className="px-8 pt-6 pb-8 space-y-6">
+      <div className="page-content space-y-6">
 
       {/* Summary Metrics */}
       <FadeIn className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -162,14 +164,14 @@ export default function ReportsIndexPage() {
       </FadeIn>
 
       {/* Top Affiliates Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="w-5 h-5" />
+      <div className="table-card">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <Users className="w-4 h-4 text-[var(--text-muted)]" />
             Top Affiliates by Revenue
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-5">
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
@@ -180,23 +182,23 @@ export default function ReportsIndexPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-2 font-medium text-muted-foreground">Affiliate</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Clicks</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Conversions</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Commission</th>
+                  <tr className="border-b border-[var(--border-light)]">
+                    <th className="text-left py-3 px-2 font-medium text-[var(--text-muted)] text-[12px]">Affiliate</th>
+                    <th className="text-right py-3 px-2 font-medium text-[var(--text-muted)] text-[12px]">Clicks</th>
+                    <th className="text-right py-3 px-2 font-medium text-[var(--text-muted)] text-[12px]">Conversions</th>
+                    <th className="text-right py-3 px-2 font-medium text-[var(--text-muted)] text-[12px]">Commission</th>
                   </tr>
                 </thead>
                 <tbody>
                   {topAffiliates.map((affiliate: { _id: Id<"affiliates">; name: string; email: string; clicks: number; conversions: number; commissions: number }) => (
-                    <tr key={affiliate._id} className="border-b last:border-0 hover:bg-muted/50">
+                    <tr key={affiliate._id} className="border-b last:border-0 border-[var(--border-light)] hover:bg-[var(--bg-page)] transition-colors">
                       <td className="py-3 px-2">
-                        <div className="font-medium">{affiliate.name}</div>
-                        <div className="text-xs text-muted-foreground">{affiliate.email}</div>
+                        <div className="font-medium text-[13px]">{affiliate.name}</div>
+                        <div className="text-[11px] text-[var(--text-muted)]">{affiliate.email}</div>
                       </td>
-                      <td className="text-right py-3 px-2">{affiliate.clicks.toLocaleString()}</td>
-                      <td className="text-right py-3 px-2">{affiliate.conversions.toLocaleString()}</td>
-                      <td className="text-right py-3 px-2">
+                      <td className="text-right py-3 px-2 text-[13px] tabular-nums">{affiliate.clicks.toLocaleString()}</td>
+                      <td className="text-right py-3 px-2 text-[13px] tabular-nums">{affiliate.conversions.toLocaleString()}</td>
+                      <td className="text-right py-3 px-2 text-[13px] font-medium tabular-nums">
                         ₱{affiliate.commissions.toLocaleString("en-PH", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -208,12 +210,12 @@ export default function ReportsIndexPage() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-[var(--text-muted)] text-[13px]">
               No affiliate data available for the selected period
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       </div>
     </>
   );

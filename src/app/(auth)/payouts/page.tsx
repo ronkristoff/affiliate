@@ -4,43 +4,45 @@ import { Suspense } from "react";
 import { PayoutsContent } from "./PayoutsClient";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { History } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 function PayoutsSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top bar skeleton */}
-      <PageTopbar>
-        <div>
+      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
+        <div className="flex items-center justify-between w-full">
           <Skeleton className="h-5 w-28" />
-          <Skeleton className="h-3 w-56 mt-1" />
+          <Skeleton className="h-9 w-28 rounded-md" />
         </div>
-      </PageTopbar>
+      </div>
 
-      <div className="px-8 pt-6 pb-8">
+      <div className="page-content">
         {/* Metric cards skeleton */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            <div key={i} className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-light)]">
+              <Skeleton className="h-3 w-24 mb-3" />
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-3 w-20" />
+            </div>
           ))}
         </div>
 
         {/* Table skeleton */}
         <div className="space-y-3">
-          <Skeleton className="h-10 w-48" />
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
-        </div>
-
-        {/* Second table skeleton */}
-        <div className="mt-8 space-y-3">
-          <Skeleton className="h-10 w-48" />
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
+          <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--border-light)]">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="p-4 space-y-3">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-md" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -51,11 +53,14 @@ export default function PayoutsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar description="Generate payout batches and manage affiliate payments">
+      <PageTopbar
+        description="Generate payout batches and manage affiliate payments"
+        breadcrumbs={[{ label: "Payouts" }]}
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payouts</h1>
         <div className="flex items-center gap-3">
           <Link href="/payouts/history">
-            <Button variant="outline" size="sm" className="gap-1.5 text-[12px]">
+            <Button variant="outline" size="sm" className="gap-1.5">
               <History className="w-3.5 h-3.5" />
               History
             </Button>
@@ -64,7 +69,7 @@ export default function PayoutsPage() {
       </PageTopbar>
 
       {/* Page Content */}
-      <div className="px-8 pt-6 pb-8">
+      <div className="page-content">
         <Suspense fallback={<PayoutsSkeleton />}>
           <PayoutsContent />
         </Suspense>

@@ -996,21 +996,39 @@ function AffiliatesContent() {
 function PageSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      <AffiliateTopbar />
-      <div className="px-8 pt-6 pb-8">
-        <div className="border-b-2 border-[var(--border)] mb-6">
-          <div className="flex gap-8">
+      {/* Top bar skeleton */}
+      <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
+        <div className="flex items-center justify-between w-full">
+          <Skeleton className="h-5 w-28" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-28 rounded-md" />
+            <Skeleton className="h-8 w-36 rounded-md" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+          </div>
+        </div>
+      </div>
+
+      <div className="page-content">
+        {/* Tabs skeleton */}
+        <div className="border-b border-[var(--border)] mb-6">
+          <div className="flex gap-1">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-24" />
+              <Skeleton key={i} className="h-9 w-24 rounded-lg" />
             ))}
           </div>
         </div>
-        <div className="mt-8 space-y-4">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-10 w-full max-w-sm" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-4 w-48" />
+
+        {/* Toolbar skeleton */}
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full max-w-sm rounded-lg" />
+          <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-10 w-full rounded-md" />
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-md" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

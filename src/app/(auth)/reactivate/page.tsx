@@ -57,114 +57,125 @@ export default function ReactivationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg space-y-6">
+    <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center p-4">
+      <div className="w-full max-w-lg space-y-6 animate-content-in">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Account Status</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-heading)]">Account Status</h1>
+          <p className="text-[14px] text-[var(--text-muted)]">
             Your subscription has been cancelled
           </p>
         </div>
 
         {/* Status Alert */}
-        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle className="text-amber-800 dark:text-amber-200">
-            Subscription Cancelled
-          </AlertTitle>
-          <AlertDescription className="text-amber-700 dark:text-amber-300">
-            Your account will be permanently deleted in {daysUntilDeletion} days.
-          </AlertDescription>
-        </Alert>
+        <div className="rounded-xl p-4 bg-[var(--warning-bg)] border border-[#fcd34d]">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-[var(--warning)] mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-[var(--warning-text)]">
+                Subscription Cancelled
+              </p>
+              <p className="text-[12px] text-[var(--warning-text)] mt-0.5">
+                Your account will be permanently deleted in {daysUntilDeletion} days.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Status Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Account Timeline
-            </CardTitle>
-            <CardDescription>
+        <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-light)] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--border-light)]">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[var(--text-muted)]" />
+              <h3 className="text-[14px] font-bold text-[var(--text-heading)]">Account Timeline</h3>
+            </div>
+            <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5 ml-6">
               Important dates for your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              {/* Access end date */}
-              <div className="flex items-start gap-3 text-sm">
-                <div className="flex-1">
-                  <p className="font-medium">
-                    Access ended: {new Date(billingEndDate).toLocaleDateString()}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {hasAccessExpired 
-                      ? "Your billing cycle has ended"
-                      : "Your billing cycle is still active"
-                    }
-                  </p>
-                </div>
+            </p>
+          </div>
+          <div className="p-5 space-y-4">
+            {/* Access end date */}
+            <div className="flex items-start gap-3 text-[13px]">
+              <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] mt-1.5 shrink-0" />
+              <div>
+                <p className="font-medium text-[var(--text-heading)]">
+                  Access ended: {new Date(billingEndDate).toLocaleDateString()}
+                </p>
+                <p className="text-[12px] text-[var(--text-muted)]">
+                  {hasAccessExpired 
+                    ? "Your billing cycle has ended"
+                    : "Your billing cycle is still active"
+                  }
+                </p>
               </div>
+            </div>
 
-              {/* Deletion date */}
-              <div className="flex items-start gap-3 text-sm">
-                <Trash2 className="h-4 w-4 mt-0.5 text-red-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-red-600">
-                    Data deletion: {new Date(deletionDate).toLocaleDateString()}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {daysUntilDeletion > 0 
-                      ? `${daysUntilDeletion} days until permanent deletion`
-                      : 'Your data is being deleted'
-                    }
-                  </p>
-                </div>
+            {/* Deletion date */}
+            <div className="flex items-start gap-3 text-[13px]">
+              <Trash2 className="h-4 w-4 text-[var(--danger)] mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-[var(--danger)]">
+                  Data deletion: {new Date(deletionDate).toLocaleDateString()}
+                </p>
+                <p className="text-[12px] text-[var(--text-muted)]">
+                  {daysUntilDeletion > 0 
+                    ? `${daysUntilDeletion} days until permanent deletion`
+                    : 'Your data is being deleted'
+                  }
+                </p>
               </div>
             </div>
 
             {/* Access status */}
             {hasAccessExpired ? (
-              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                <RefreshCw className="h-4 w-4 text-red-600" />
-                <span className="text-sm text-red-700 dark:text-red-300">
-                  <strong>Write operations blocked</strong> - Your billing cycle has ended. Reactivate to restore access.
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--danger-bg)] border border-[var(--danger-bg)]">
+                <RefreshCw className="h-4 w-4 text-[var(--danger)] shrink-0" />
+                <span className="text-[12px] text-[var(--danger-text)]">
+                  <strong>Write operations blocked</strong> — Your billing cycle has ended. Reactivate to restore access.
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>Read-only access</strong> - You can view your data until {new Date(billingEndDate).toLocaleDateString()}
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--info-bg)] border border-[var(--info-bg)]">
+                <Clock className="h-4 w-4 text-[var(--info)] shrink-0" />
+                <span className="text-[12px] text-[var(--info-text)]">
+                  <strong>Read-only access</strong> — You can view your data until {new Date(billingEndDate).toLocaleDateString()}
                 </span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Reactivation Card */}
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle>Reactivate Your Subscription</CardTitle>
-            <CardDescription>
+        <div className="bg-[var(--bg-surface)] rounded-xl border-2 border-[var(--brand-primary)]/20 overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--brand-primary)]/10">
+            <h3 className="text-[14px] font-bold text-[var(--text-heading)]">Reactivate Your Subscription</h3>
+            <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
               Reactivate now to preserve your data and restore full access
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span>
+            </p>
+          </div>
+          <div className="p-5 space-y-4">
+            <ul className="space-y-2.5 text-[13px]">
+              <li className="flex items-center gap-2.5 text-[var(--text-body)]">
+                <span className="w-4 h-4 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0">
+                  <span className="text-[var(--success)] text-[10px] leading-none">&#10003;</span>
+                </span>
                 Prevent permanent data deletion
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span>
+              <li className="flex items-center gap-2.5 text-[var(--text-body)]">
+                <span className="w-4 h-4 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0">
+                  <span className="text-[var(--success)] text-[10px] leading-none">&#10003;</span>
+                </span>
                 Restore full read and write access
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span>
+              <li className="flex items-center gap-2.5 text-[var(--text-body)]">
+                <span className="w-4 h-4 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0">
+                  <span className="text-[var(--success)] text-[10px] leading-none">&#10003;</span>
+                </span>
                 Continue managing your affiliates and campaigns
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span>
+              <li className="flex items-center gap-2.5 text-[var(--text-body)]">
+                <span className="w-4 h-4 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0">
+                  <span className="text-[var(--success)] text-[10px] leading-none">&#10003;</span>
+                </span>
                 Resume tracking and commission processing
               </li>
             </ul>
@@ -185,15 +196,15 @@ export default function ReactivationPage() {
               )}
             </Button>
 
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-[11px] text-center text-[var(--text-muted)]">
               Have questions? Contact our support team for assistance.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Alternative options */}
         <div className="text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-[var(--text-muted)]">
             Not ready to reactivate?
           </p>
           <div className="flex justify-center gap-4">

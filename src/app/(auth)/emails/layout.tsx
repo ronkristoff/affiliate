@@ -7,7 +7,6 @@ export default function EmailsLayout({
 }) {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      {/* Page content */}
       {children}
     </div>
   );
