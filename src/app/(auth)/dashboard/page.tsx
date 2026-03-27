@@ -14,10 +14,11 @@ import {
 import { MetricCard } from "@/components/ui/MetricCard";
 import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { PageActions } from "@/components/ui/PageActions";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateRangeSelector, type DateRangeChange } from "./components/DateRangeSelector";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
+import { type DateRangeChange } from "@/app/(auth)/dashboard/components/DateRangeSelector";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
 import { downloadCsv } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
@@ -28,7 +29,7 @@ import {
   parseAsInteger,
 } from "nuqs";
 import { toast } from "sonner";
-import { Loader2, Download, TrendingUp, Clock, Users, Wallet, Leaf } from "lucide-react";
+import { TrendingUp, Clock, Users, Wallet, Leaf } from "lucide-react";
 import Link from "next/link";
 
 type Period = "daily" | "weekly" | "monthly";
@@ -303,31 +304,15 @@ function DashboardContent() {
       {/* Top Bar */}
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
-        <div className="flex items-center gap-3">
-          <DateRangeSelector value={range} onChange={handleDateRangeChange} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="gap-1.5"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-3 h-3" />
-                Export CSV
-              </>
-            )}
-          </Button>
-          <Button size="sm" onClick={() => setIsInviteSheetOpen(true)}>
-            + Invite Affiliate
-          </Button>
-        </div>
+        <PageActions
+          dateRangeValue={range}
+          onDateRangeChange={handleDateRangeChange}
+          onExport={handleExport}
+          isExporting={isExporting}
+        />
+        <Button size="sm" onClick={() => setIsInviteSheetOpen(true)}>
+          + Invite Affiliate
+        </Button>
       </PageTopbar>
 
       {/* Page Content */}

@@ -671,7 +671,7 @@ function CommissionsContent() {
           size="sm"
           onClick={handleExportCSV}
           disabled={isExporting}
-          className="gap-1.5 text-[12px]"
+          className="gap-1.5"
         >
           {isExporting ? (
             <>
