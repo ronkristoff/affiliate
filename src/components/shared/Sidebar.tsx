@@ -7,7 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 
 interface NavItem {
@@ -132,6 +132,8 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+const STORAGE_KEY = "sidebar-collapsed";
+
 // Loading skeleton for sidebar
 function SidebarSkeleton() {
   return (
@@ -198,13 +200,37 @@ export function Sidebar({ className }: SidebarProps) {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const user = useQuery(api.auth.getCurrentUser);
   const badgeCounts = useQuery(api.tenantStats.getSidebarBadgeCounts, {});
 
+  // Load collapsed preference from localStorage on mount
   useEffect(() => {
     setIsMounted(true);
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored !== null) {
+        setIsCollapsed(stored === "true");
+      }
+    } catch {
+      // localStorage unavailable (SSR)
+    }
   }, []);
+
+  // Update CSS custom property when collapsed state changes
+  useEffect(() => {
+    if (!isMounted) return;
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      isCollapsed ? "var(--sidebar-collapsed-width)" : "240px"
+    );
+    try {
+      localStorage.setItem(STORAGE_KEY, String(isCollapsed));
+    } catch {
+      // localStorage unavailable
+    }
+  }, [isCollapsed, isMounted]);
 
   const handleSignOut = useCallback(async () => {
     setIsSigningOut(true);
@@ -231,6 +257,10 @@ export function Sidebar({ className }: SidebarProps) {
     });
   }, []);
 
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed((prev) => !prev);
+  }, []);
+
   if (!isMounted || !user) {
     return <SidebarSkeleton />;
   }
@@ -250,67 +280,114 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen flex flex-col fixed top-0 left-0 z-[100]",
+        "bg-[var(--brand-dark)] min-h-screen flex flex-col fixed top-0 left-0 z-[100] transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]",
+        isCollapsed ? "w-[var(--sidebar-collapsed-width)]" : "w-[var(--sidebar-width)]",
         className
       )}
     >
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/[0.06]">
-        <Logo href="/dashboard" variant="light" />
+      <div className={cn(
+        "border-b border-white/[0.06] flex items-center",
+        isCollapsed ? "px-4 py-5 justify-center" : "px-5 py-5"
+      )}>
+        <Logo href="/dashboard" variant="light" collapsed={isCollapsed} />
       </div>
 
       {/* Tenant Info */}
-      <div className="px-5 py-3 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2.5 cursor-pointer rounded-lg px-1 py-0.5 -mx-1 transition-colors hover:bg-white/[0.04]">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[12px] text-white shrink-0"
+      <div className={cn(
+        "border-b border-white/[0.06]",
+        isCollapsed ? "px-3 py-3 flex justify-center" : "px-5 py-3"
+      )}>
+        <div className={cn(
+          "flex items-center gap-2.5 cursor-pointer rounded-lg px-1 py-0.5 -mx-1 transition-colors hover:bg-white/[0.04]",
+          isCollapsed && "px-0 -mx-0"
+        )}>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[12px] text-white shrink-0"
             style={{ background: "linear-gradient(135deg, #1659d6 0%, #10409a 100%)" }}
           >
             {user.tenant.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
           </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-[#e2e8f0] truncate leading-tight">
-              {user.tenant.name}
+          {!isCollapsed && (
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold text-[#e2e8f0] truncate leading-tight">
+                {user.tenant.name}
+              </div>
+              <div className="text-[10.5px] text-white/[0.35] capitalize mt-0.5">
+                {user.tenant.plan}
+              </div>
             </div>
-            <div className="text-[10.5px] text-white/[0.35] capitalize mt-0.5">
-              {user.tenant.plan}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="px-3 py-2 flex-1 overflow-y-auto">
+      <nav className={cn(
+        "flex-1 overflow-y-auto overflow-x-hidden",
+        isCollapsed ? "px-2 py-2" : "px-3 py-2"
+      )}>
         {/* Program Section */}
         <div className="mb-1">
-          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
-            Program
-          </div>
+          {!isCollapsed && (
+            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+              Program
+            </div>
+          )}
+          {isCollapsed && <div className="h-4" />}
           {STATIC_NAV_ITEMS.program.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            const badge = item.href === "/affiliates" ? (pendingAffiliates > 0 ? pendingAffiliates : undefined) :
-                         item.href === "/commissions" ? (pendingCommissions > 0 ? pendingCommissions : undefined) :
-                         item.href === "/payouts" ? (pendingPayouts > 0 ? pendingPayouts : undefined) : undefined;
+            const badge =
+              item.href === "/affiliates"
+                ? pendingAffiliates > 0
+                  ? pendingAffiliates
+                  : undefined
+                : item.href === "/commissions"
+                ? pendingCommissions > 0
+                  ? pendingCommissions
+                  : undefined
+                : item.href === "/payouts"
+                ? pendingPayouts > 0
+                  ? pendingPayouts
+                  : undefined
+                : undefined;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
+                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  isCollapsed
+                    ? "justify-center px-0 py-2"
+                    : "px-3 py-2",
                   isActive
                     ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
                     : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn(
-                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
-                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
-                )}>
+                <span
+                  className={cn(
+                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    isActive
+                      ? "text-[#7dd3fc]"
+                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                  )}
+                >
                   {item.icon}
                 </span>
-                <span className="flex-1">{item.label}</span>
-                {badge !== undefined && (
-                  <span className="bg-[#f59e0b] text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
-                    {badge}
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1">{item.label}</span>
+                    {badge !== undefined && (
+                      <span className="bg-[#f59e0b] text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                        {badge}
+                      </span>
+                    )}
+                  </>
+                )}
+                {isCollapsed && badge !== undefined && (
+                  <span className="absolute top-0 right-0 bg-[#f59e0b] text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-0.5">
+                    {badge > 9 ? "9+" : badge}
                   </span>
                 )}
               </Link>
@@ -320,15 +397,46 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Insights Section */}
         <div className="mb-1 mt-3">
-          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
-            Insights
-          </div>
+          {!isCollapsed && (
+            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+              Insights
+            </div>
+          )}
+          {isCollapsed && <div className="h-4" />}
           {STATIC_NAV_ITEMS.insights.map((item) => {
             const hasChildren = "children" in item && item.children;
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const isExpanded = isReportsExpanded && item.href === "/reports";
 
             if (hasChildren) {
+              // When collapsed, show as a simple link (no expandable sub-items)
+              if (isCollapsed) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className={cn(
+                      "group flex items-center text-[13px] rounded-lg transition-all duration-150 justify-center px-0 py-2",
+                      isActive
+                        ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                        isActive
+                          ? "text-[#7dd3fc]"
+                          : "text-white/[0.4] group-hover:text-white/[0.6]"
+                      )}
+                    >
+                      {item.icon}
+                    </span>
+                  </Link>
+                );
+              }
+
               return (
                 <div key={item.href}>
                   <button
@@ -340,10 +448,14 @@ export function Sidebar({ className }: SidebarProps) {
                         : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                     )}
                   >
-                    <span className={cn(
-                      "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
-                      isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
-                    )}>
+                    <span
+                      className={cn(
+                        "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                        isActive
+                          ? "text-[#7dd3fc]"
+                          : "text-white/[0.4] group-hover:text-white/[0.6]"
+                      )}
+                    >
                       {item.icon}
                     </span>
                     <span className="flex-1">{item.label}</span>
@@ -357,9 +469,10 @@ export function Sidebar({ className }: SidebarProps) {
                   {isExpanded && (
                     <div className="pl-[42px] pr-3 mt-0.5 mb-1">
                       {item.children!.map((child) => {
-                        const isChildActive = child.href === "/reports"
-                          ? pathname === "/reports"
-                          : pathname.startsWith(child.href);
+                        const isChildActive =
+                          child.href === "/reports"
+                            ? pathname === "/reports"
+                            : pathname.startsWith(child.href);
                         return (
                           <Link
                             key={child.href}
@@ -371,10 +484,12 @@ export function Sidebar({ className }: SidebarProps) {
                                 : "text-white/[0.35] hover:text-white/[0.7]"
                             )}
                           >
-                            <span className={cn(
-                              "w-1 h-1 rounded-full mr-2.5 shrink-0 transition-colors duration-150",
-                              isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.15]"
-                            )} />
+                            <span
+                              className={cn(
+                                "w-1 h-1 rounded-full mr-2.5 shrink-0 transition-colors duration-150",
+                                isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.15]"
+                              )}
+                            />
                             {child.label}
                           </Link>
                         );
@@ -389,20 +504,28 @@ export function Sidebar({ className }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
+                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  isCollapsed
+                    ? "justify-center px-0 py-2"
+                    : "px-3 py-2",
                   isActive
                     ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
                     : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn(
-                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
-                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
-                )}>
+                <span
+                  className={cn(
+                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    isActive
+                      ? "text-[#7dd3fc]"
+                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                  )}
+                >
                   {item.icon}
                 </span>
-                {item.label}
+                {!isCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -410,61 +533,114 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Account Section */}
         <div className="mt-3">
-          <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
-            Account
-          </div>
+          {!isCollapsed && (
+            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+              Account
+            </div>
+          )}
+          {isCollapsed && <div className="h-4" />}
           {STATIC_NAV_ITEMS.account.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150",
+                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  isCollapsed
+                    ? "justify-center px-0 py-2"
+                    : "px-3 py-2",
                   isActive
                     ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
                     : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
                 )}
               >
-                <span className={cn(
-                  "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
-                  isActive ? "text-[#7dd3fc]" : "text-white/[0.4] group-hover:text-white/[0.6]"
-                )}>
+                <span
+                  className={cn(
+                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    isActive
+                      ? "text-[#7dd3fc]"
+                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                  )}
+                >
                   {item.icon}
                 </span>
-                {item.label}
+                {!isCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </div>
       </nav>
 
+      {/* Collapse Toggle */}
+      <div className={cn(
+        "border-t border-white/[0.06]",
+        isCollapsed ? "px-2 py-2 flex justify-center" : "px-3 py-2"
+      )}>
+        <button
+          onClick={toggleCollapsed}
+          className={cn(
+            "flex items-center gap-2.5 rounded-lg text-white/[0.4] hover:text-white/[0.7] hover:bg-white/[0.06] transition-all duration-150",
+            isCollapsed
+              ? "justify-center px-0 py-2 w-full"
+              : "px-3 py-2 w-full text-left text-[12px]"
+          )}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen className="w-[18px] h-[18px] shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose className="w-[18px] h-[18px] shrink-0" />
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* User Footer */}
-      <div className="px-3 py-3 border-t border-white/[0.06]">
-        <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/[0.04]">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-[#7dd3fc] shrink-0"
+      <div className={cn(
+        "border-t border-white/[0.06]",
+        isCollapsed ? "px-2 py-3 flex justify-center" : "px-3 py-3"
+      )}>
+        <div className={cn(
+          "flex items-center gap-2.5 rounded-lg transition-colors hover:bg-white/[0.04]",
+          isCollapsed ? "px-0 py-0" : "px-2 py-2"
+        )}>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-[#7dd3fc] shrink-0"
             style={{ background: "linear-gradient(135deg, #0a2e5c 0%, #1e4a8c 100%)" }}
           >
             {userInitials}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] text-white/[0.65] font-medium truncate leading-tight">
-              {displayName}
-            </div>
-            <div className="text-[10.5px] text-white/[0.3] truncate">
-              {displayEmail}
-            </div>
-          </div>
-          <button
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="shrink-0 p-1.5 rounded-md text-white/[0.3] hover:text-white/[0.6] hover:bg-white/[0.08] transition-all duration-150 disabled:opacity-50"
-            title="Sign out"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
+          {!isCollapsed && (
+            <>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12px] text-white/[0.65] font-medium truncate leading-tight">
+                  {displayName}
+                </div>
+                <div className="text-[10.5px] text-white/[0.3] truncate">
+                  {displayEmail}
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="shrink-0 p-1.5 rounded-md text-white/[0.3] hover:text-white/[0.6] hover:bg-white/[0.08] transition-all duration-150 disabled:opacity-50"
+                title="Sign out"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.75"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </aside>

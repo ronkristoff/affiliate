@@ -5,9 +5,10 @@ interface LogoProps {
   href?: string;
   className?: string;
   variant?: "default" | "light" | "dark";
+  collapsed?: boolean;
 }
 
-export function Logo({ href = "/dashboard", className, variant = "default" }: LogoProps) {
+export function Logo({ href = "/dashboard", className, variant = "default", collapsed = false }: LogoProps) {
   const isLight = variant === "light";
   const isDark = variant === "dark";
 
@@ -15,13 +16,15 @@ export function Logo({ href = "/dashboard", className, variant = "default" }: Lo
   const accentColor = "text-[#7dd3fc]";
 
   const inner = (
-    <div className={cn("flex items-center gap-2.5", className)}>
+    <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5", className)}>
       <div className="w-8 h-8 bg-[#1659d6] rounded-lg flex items-center justify-center font-black text-sm text-white flex-shrink-0">
         S
       </div>
-      <div className={cn("text-[15px] font-bold tracking-[-0.3px]", textColor)}>
-        salig<span className={accentColor}>affiliate</span>
-      </div>
+      {!collapsed && (
+        <div className={cn("text-[15px] font-bold tracking-[-0.3px]", textColor)}>
+          salig<span className={accentColor}>affiliate</span>
+        </div>
+      )}
     </div>
   );
 
