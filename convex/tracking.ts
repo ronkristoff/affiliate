@@ -129,8 +129,8 @@ export const getTrackingSnippetConfigQuery = query({
     return {
       publicKey: tenant.trackingPublicKey,
       tenantId: tenant._id,
-      attributionWindow: 30, // default 30 days
-      cdnUrl: "/track.js",
+      attributionWindow: 30,
+      cdnUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/track.js`,
     };
   },
 });
@@ -169,8 +169,8 @@ export const getTrackingSnippetConfig = mutation({
     return {
       publicKey: tenant.trackingPublicKey!,
       tenantId: tenant._id,
-      attributionWindow: 30, // default 30 days
-      cdnUrl: "/track.js",
+      attributionWindow: 30,
+      cdnUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/track.js`,
     };
   },
 });
@@ -286,7 +286,7 @@ export const getPublicTrackingConfig = query({
     return {
       exists: !!tenant,
       attributionWindow: 30,
-      cdnUrl: "/track.js",
+      cdnUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/track.js`,
     };
   },
 });

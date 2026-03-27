@@ -16,7 +16,15 @@ import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PeriodToggle, type Period } from "@/components/ui/PeriodToggle";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
+
+type Period = "daily" | "weekly" | "monthly";
+
+const periodTabs: FilterTabItem[] = [
+  { key: "daily", label: "Daily" },
+  { key: "weekly", label: "Weekly" },
+  { key: "monthly", label: "Monthly" },
+];
 import { DateRangeSelector } from "./components/DateRangeSelector";
 import { InviteAffiliateSheet } from "@/components/affiliate/InviteAffiliateSheet";
 import { CreateCampaignModal } from "@/components/dashboard/CreateCampaignModal";
@@ -177,7 +185,12 @@ function DashboardContent() {
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
         <div className="flex items-center gap-3">
-          <PeriodToggle value={period} onChange={setPeriod} />
+          <FilterTabs
+            tabs={periodTabs}
+            activeTab={period}
+            onTabChange={(key) => setPeriod(key as Period)}
+            size="sm"
+          />
           <DateRangeSelector />
           <Button
             variant="outline"

@@ -1053,7 +1053,107 @@ body {
           </div>
           <div class="timeline-item">
             <div class="timeline-title">🔗 Referral Links</div>
-            <div class="timeline-desc">Unique URLs tied to an affiliate (and optionally a campaign). Contains a special code like ?ref=jamie123</div>
+            <div class="timeline-desc">Unique URLs an affiliate shares. Each contains a special 8-character code that identifies them — like a fingerprint.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">What Does a Referral Link Actually Look Like?</h2>
+        <p class="screen-intro">This is the URL Jamie copies from her affiliate dashboard and shares with her audience:</p>
+
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-md); margin: var(--space-6) 0;">
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-bg-code); color: #A6E3A1; padding: var(--space-4); border-radius: var(--radius-sm); word-break: break-all; line-height: 1.8;">
+            <span style="color: #6C7086;">https://</span><span style="color: #89B4FA;">acme</span><span style="color: #6C7086">.saligaffiliate.com</span><span style="color: #CBA6F7;">/ref/</span><span style="color: #F9E2AF;">JM8K2NPQ</span>
+          </div>
+          <div style="display: flex; gap: var(--space-4); margin-top: var(--space-4); flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px;">
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-1);">Company</div>
+              <div style="font-size: var(--text-sm);"><strong>acme</strong> — the SaaS owner's subdomain</div>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-1);">Path</div>
+              <div style="font-size: var(--text-sm);"><strong>/ref/</strong> — tells the server "this is a referral link"</div>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-1);">Code</div>
+              <div style="font-size: var(--text-sm);"><strong>JM8K2NPQ</strong> — Jamie's unique 8-character ID</div>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size: var(--text-sm); color: var(--color-text-secondary); margin-bottom: var(--space-4);">The code is 8 characters, using only letters and numbers (excluding <code>0</code>, <code>O</code>, <code>I</code>, <code>1</code> to avoid confusion). It's randomly generated — not based on the affiliate's name.</p>
+
+        <div class="callout">
+          <div class="callout-title">✏️ Vanity Slugs</div>
+          <div class="callout-content">Affiliates can customize their link to use a readable word instead of the random code: <code style="background: var(--color-bg-code); color: #A6E3A1; padding: 2px 6px; border-radius: 4px;">acme.saligaffiliate.com/ref/jamie-special</code>. Same function, looks friendlier.</div>
+        </div>
+
+        <div class="callout callout-success">
+          <div class="callout-title">🖱️ What Happens When Someone Clicks?</div>
+          <div class="callout-content">The click hits Salig-Affiliate's server (<code>/r/JM8K2NPQ</code>). The server checks if the link is valid, records the click, sets a tracking cookie in the visitor's browser, then redirects them to the SaaS owner's website. The whole thing takes under 3 seconds — the visitor just sees a fast page load.</div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">The 5 Link Formats</h2>
+        <p class="screen-intro">The system generates several URL variants for different use cases:</p>
+
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); margin: var(--space-4) 0; border-left: 4px solid var(--color-accent);">
+          <div style="font-size: var(--text-xs); color: var(--color-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">Short URL — the one Jamie shares most</div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/JM8K2NPQ</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); margin: var(--space-4) 0; border-left: 4px solid var(--color-actor-4);">
+          <div style="font-size: var(--text-xs); color: var(--color-actor-4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">Full URL — includes Jamie's name for her own tracking</div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/JM8K2NPQ?ref=jamie-doe</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); margin: var(--space-4) 0; border-left: 4px solid var(--color-actor-2);">
+          <div style="font-size: var(--text-xs); color: var(--color-actor-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">Campaign URL — ties to a specific campaign</div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/JM8K2NPQ?campaign=summer-sale</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); margin: var(--space-4) 0; border-left: 4px solid var(--color-actor-5);">
+          <div style="font-size: var(--text-xs); color: var(--color-actor-5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">UTM URL — for tracking which channel drove the click</div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/JM8K2NPQ?utm_source=youtube</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); margin: var(--space-4) 0; border-left: 4px solid var(--color-actor-3);">
+          <div style="font-size: var(--text-xs); color: var(--color-actor-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">Vanity URL — Jamie's custom branded link</div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/jamie-special</div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">What Jamie Actually Sees</h2>
+        <p class="screen-intro">When Jamie logs into her affiliate portal, here's what her link card looks like:</p>
+
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-md); margin: var(--space-6) 0; max-width: 500px; margin-left: auto; margin-right: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+            <div style="font-family: var(--font-display); font-weight: 600; font-size: var(--text-base);">Your Referral Link</div>
+            <span style="background: var(--color-success-light); color: var(--color-success); padding: 2px 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 600;">Active</span>
+          </div>
+          <div style="background: var(--color-bg-warm); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); flex: 1; word-break: break-all; color: var(--color-text);">acme.saligaffiliate.com/ref/JM8K2NPQ</div>
+            <button style="background: var(--color-accent); color: white; border: none; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 600; cursor: pointer; white-space: nowrap;">Copy</button>
+          </div>
+          <div style="display: flex; gap: var(--space-4); text-align: center;">
+            <div style="flex: 1;">
+              <div style="font-family: var(--font-display); font-weight: 700; font-size: var(--text-xl); color: var(--color-accent);">1,247</div>
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Clicks</div>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-family: var(--font-display); font-weight: 700; font-size: var(--text-xl); color: var(--color-success);">38</div>
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Conversions</div>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-family: var(--font-display); font-weight: 700; font-size: var(--text-xl); color: var(--color-actor-4);">$950</div>
+              <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Earned</div>
+            </div>
+          </div>
+          <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border-light);">
+            <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2);">CUSTOMIZE YOUR LINK</div>
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-secondary);">acme.saligaffiliate.com/ref/</span>
+              <input type="text" value="jamie-special" style="font-family: var(--font-mono); font-size: var(--text-sm); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); width: 150px; background: var(--color-surface);" />
+            </div>
           </div>
         </div>
       </div>
@@ -1166,7 +1266,7 @@ body {
         <div class="timeline">
           <div class="timeline-item">
             <div class="timeline-title">1. Link Contains the Code</div>
-            <div class="timeline-desc">URL looks like <code>yoursite.com?ref=jamie123</code>. The <code>ref</code> parameter identifies which affiliate gets credit.</div>
+            <div class="timeline-desc">URL looks like <code>acme.saligaffiliate.com/ref/JM8K2NPQ</code>. The 8-character code after <code>/ref/</code> identifies which affiliate gets credit.</div>
           </div>
           <div class="timeline-item">
             <div class="timeline-title">2. Server Records the Click</div>
@@ -1178,8 +1278,17 @@ body {
           </div>
           <div class="timeline-item">
             <div class="timeline-title">4. Cookie is Set</div>
-            <div class="timeline-desc">A browser cookie stores the affiliate ID for the configured duration (usually 30-90 days). If the person comes back later and buys, the affiliate still gets credit.</div>
+            <div class="timeline-desc">A browser cookie (<code>sa_aff</code>) stores the affiliate code for the configured duration (usually 30-90 days). If the person comes back later and buys, the affiliate still gets credit.</div>
           </div>
+          <div class="timeline-item">
+            <div class="timeline-title">5. Visitor is Redirected</div>
+            <div class="timeline-desc">A 302 redirect sends the visitor to the SaaS owner's website. The redirect destination comes from the tenant's configuration.</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">🔀 Two Endpoints, Two Jobs</div>
+          <div class="callout-content"><code>GET /r/{code}</code> — Resolves the link (is this code valid? is the campaign active?).<br/><code>GET /track/click?code={code}&t={tenantId}</code> — Does the tracking (deduplication, cookie, redirect).<br/><br/>The link you share (<code>/ref/CODE</code>) hits the resolver first, which then triggers the tracker.</div>
         </div>
       </div>
 
@@ -1964,7 +2073,7 @@ body {
           </div>
           <div class="entity-card">
             <div class="entity-card-title">🔄 The Data Flow</div>
-            <div class="entity-card-desc">Tenant → Campaign → Affiliate → Referral Link → Click → Conversion → Commission → Payout</div>
+            <div class="entity-card-desc">Tenant → Campaign → Affiliate → Referral Link → Click → Cookie → Conversion → Fraud Check → Commission → Approved → Payout Batch → Paid</div>
           </div>
           <div class="entity-card">
             <div class="entity-card-title">🗄️ The Schema</div>
@@ -2078,7 +2187,7 @@ body {
             <div class="translation-lines">
               <p class="tl"><strong>Tracking Key:</strong> A unique identifier for this tenant's tracking data. Generated when the SaaS owner first sets up tracking.</p>
               <p class="tl"><strong>Attribution Days:</strong> How long after a click the affiliate still gets credit. Usually 30-90 days.</p>
-              <p class="tl"><strong>URLSearchParams:</strong> Parses the URL to find the "ref" parameter (e.g., yoursite.com?ref=jamie123).</p>
+              <p class="tl"><strong>URLSearchParams:</strong> Parses the URL to find the "ref" query parameter. Note: Salig-Affiliate's own links use <code>/ref/CODE</code> in the path, but the tracking script also reads <code>?ref=</code> if the SaaS owner manually adds it to their checkout URLs.</p>
               <p class="tl"><strong>Document.cookie:</strong> Sets a browser cookie with the affiliate's code. The "max-age" makes it expire after the attribution window.</p>
               <p class="tl"><strong>The magic:</strong> When someone later buys, the checkout code can read this cookie to know who referred them.</p>
             </div>
@@ -2227,7 +2336,7 @@ body {
             <div class="translation-lines">
               <p class="tl"><strong>ctx.db.insert:</strong> Creates a new record in the affiliates table.</p>
               <p class="tl"><strong>tenantId:</strong> Links this affiliate to the correct company (tenant).</p>
-              <p class="tl"><strong>uniqueCode:</strong> A cryptographically secure 8-character code. Used in URLs like yoursite.com?ref=JM8K2NPQ</p>
+              <p class="tl"><strong>uniqueCode:</strong> A cryptographically secure 8-character code. Used in URLs like <code>acme.saligaffiliate.com/ref/JM8K2NPQ</code></p>
               <p class="tl"><strong>status: "pending":</strong> The affiliate can't log in yet. They need approval first.</p>
               <p class="tl"><strong>passwordHash:</strong> The password is never stored in plain text — it's hashed using PBKDF2 with 100,000 iterations.</p>
             </div>
@@ -2588,6 +2697,494 @@ body {
     </div>
   </section>
 
+  <!-- MODULE 15: Click to Payout — The Complete Journey -->
+  <section class="module" id="module-15">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">14</span>
+        <h1 class="module-title">Click to Payout — The Complete Journey</h1>
+        <p class="module-subtitle">Every system a dollar touches from the moment a link is clicked to the moment an affiliate gets paid.</p>
+      </header>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">The Full Pipeline</h2>
+        <p class="screen-intro">Imagine Jamie is an affiliate. She shares her link. Someone clicks it. What happens between that click and Jamie getting money in her account?</p>
+
+        <div class="flow-diagram" style="flex-wrap: nowrap; overflow-x: auto; padding-bottom: var(--space-4);">
+          <div class="flow-step" style="border-color: var(--color-actor-1); min-width: 100px;">
+            <div class="flow-step-num">1</div>
+            <div class="flow-step-title">Click</div>
+            <div class="flow-step-desc">Link visited</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="border-color: var(--color-actor-4); min-width: 100px;">
+            <div class="flow-step-num">2</div>
+            <div class="flow-step-title">Cookie</div>
+            <div class="flow-step-desc">Attribution set</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="border-color: var(--color-actor-2); min-width: 100px;">
+            <div class="flow-step-num">3</div>
+            <div class="flow-step-title">Conversion</div>
+            <div class="flow-step-desc">Purchase happens</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="border-color: var(--color-actor-3); min-width: 100px;">
+            <div class="flow-step-num">4</div>
+            <div class="flow-step-title">Commission</div>
+            <div class="flow-step-desc">Amount calculated</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="border-color: var(--color-actor-5); min-width: 100px;">
+            <div class="flow-step-num">5</div>
+            <div class="flow-step-title">Approved</div>
+            <div class="flow-step-desc">Verified clean</div>
+          </div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="border-color: var(--color-accent); min-width: 100px;">
+            <div class="flow-step-num">6</div>
+            <div class="flow-step-title">Payout</div>
+            <div class="flow-step-desc">Money sent</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">🗺️ Think of it like a postal system</div>
+          <div class="callout-content">A letter (the click) gets a tracking number (cookie). When the package arrives (conversion), the postal service checks the tracking number to figure out who delivered it (attribution). Then they calculate the delivery fee (commission), verify it's legit (fraud check + approval), and finally deposit the payment (payout). Each step has its own checkpoint.</div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 1-2: The Click & The Cookie</h2>
+        <p class="screen-intro">When someone clicks Jamie's link, the request hits two endpoints in sequence: first to resolve the link, then to track the click.</p>
+
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-md); margin: var(--space-6) 0;">
+          <div style="font-size: var(--text-xs); color: var(--color-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-3);">The Two-Step Request</div>
+          
+          <div style="display: flex; gap: var(--space-4); align-items: stretch; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px; background: var(--color-bg-warm); border-radius: var(--radius-sm); padding: var(--space-4);">
+              <div style="font-weight: 600; margin-bottom: var(--space-2); font-size: var(--text-sm);">Step A: Resolve the Link</div>
+              <div style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-bg-code); color: #A6E3A1; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); margin-bottom: var(--space-3); word-break: break-all;">GET /r/JM8K2NPQ</div>
+              <div style="font-size: var(--text-xs); color: var(--color-text-secondary); line-height: 1.6;">
+                Server looks up the code in the database. Is the affiliate active? Is the campaign running? If archived → 404. If paused → 503. If valid → continue.
+              </div>
+            </div>
+            <div style="flex: 1; min-width: 250px; background: var(--color-bg-warm); border-radius: var(--radius-sm); padding: var(--space-4);">
+              <div style="font-weight: 600; margin-bottom: var(--space-2); font-size: var(--text-sm);">Step B: Track & Redirect</div>
+              <div style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-bg-code); color: #89B4FA; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); margin-bottom: var(--space-3); word-break: break-all;">GET /track/click?code=JM8K2NPQ&t=TENANT_ID</div>
+              <div style="font-size: var(--text-xs); color: var(--color-text-secondary); line-height: 1.6;">
+                Deduplicate the click, save to database, set an attribution cookie in the browser, then 302-redirect the visitor to the SaaS owner's website.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-flow">
+          <div class="data-flow-box" style="background: var(--color-accent-light);">Customer clicks<br/><code>acme.saligaffiliate.com/ref/JM8K2NPQ</code></div>
+          <span class="data-flow-arrow">→</span>
+          <div class="data-flow-box" style="background: var(--color-warning-light);"><code>/r/</code> resolves link<br/>Valid? Active?</div>
+          <span class="data-flow-arrow">→</span>
+          <div class="data-flow-box" style="background: var(--color-success-light);"><code>/track/click</code><br/>Save + Cookie</div>
+          <span class="data-flow-arrow">→</span>
+          <div class="data-flow-box" style="background: var(--color-accent-light);">302 redirect →<br/>SaaS website</div>
+        </div>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE — THE TRACKING ENDPOINT</span>
+            <pre><code><span class="code-comment">// convex/http.ts — GET /track/click</span>
+<span class="code-line"><span class="code-keyword">const</span> dedupeKey = <span class="code-function">generateDedupeKey</span>(</span>
+<span class="code-line">  clientIp, effectiveCode, hourBucket</span>
+<span class="code-line">);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Fire-and-forget — don't await!</span></span>
+<span class="code-line">ctx.<span class="code-function">runMutation</span>(</span>
+<span class="code-line">  internal.clicks.<span class="code-function">trackClickInternal</span>,</span>
+<span class="code-line">  { tenantId, referralLinkId,</span>
+<span class="code-line">    affiliateId, ipAddress, dedupeKey }</span>
+<span class="code-line">);</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Set attribution cookie + redirect</span></span>
+<span class="code-line"><span class="code-keyword">return new</span> <span class="code-function">Response</span>(<span class="code-keyword">null</span>, {</span>
+<span class="code-line">  status: <span class="code-number">302</span>,</span>
+<span class="code-line">  headers: {</span>
+<span class="code-line">    <span class="code-string">"Set-Cookie"</span>: buildCookie(affiliateCode, days),</span>
+<span class="code-line">    <span class="code-string">"Location"</span>: redirectUrl,</span>
+<span class="code-line">  }</span>
+<span class="code-line">});</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl"><strong>generateDedupeKey:</strong> Combines the visitor's IP address + affiliate code + current hour into a unique fingerprint. Same IP, same code, same hour = duplicate click, ignored.</p>
+              <p class="tl"><strong>Fire-and-forget:</strong> The click is saved to the database WITHOUT waiting for confirmation. This keeps the redirect fast — under 3 seconds even under heavy load.</p>
+              <p class="tl"><strong>302 redirect:</strong> A temporary redirect. The visitor's browser immediately goes to the SaaS website. They never see anything unusual — just a fast page load.</p>
+              <p class="tl"><strong>Set-Cookie:</strong> Stores Jamie's affiliate code in the visitor's browser for 30 days (or the campaign's configured duration). If they come back and buy later, we still know Jamie referred them.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">⚠️ Current State: Where Does It Redirect?</div>
+          <div class="callout-content">Right now, the redirect destination is a placeholder — it sends visitors to the tenant's Salig-Affiliate subdomain (e.g., <code>acme.saligaffiliate.com</code>), not the SaaS owner's actual product website. In production, <code>redirectUrl</code> would be configured per-campaign to point to the real checkout page (e.g., <code>acme.com/pricing</code>). The infrastructure is ready — the destination just needs to be wired up.</div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 3: The Conversion</h2>
+        <p class="screen-intro">The customer buys! But how does the system find out? There are two paths:</p>
+
+        <div class="comparison">
+          <div class="comparison-card">
+            <div class="comparison-title">🍪 Cookie-Based Path</div>
+            <ul class="comparison-list">
+              <li><strong>Trigger:</strong> SaaS checkout calls <code>POST /track/conversion</code></li>
+              <li><strong>How:</strong> Server reads the <code>sa_aff</code> cookie from the visitor's browser</li>
+              <li><strong>Finds affiliate:</strong> Decodes cookie → gets affiliate code → looks up the click</li>
+              <li><strong>Best for:</strong> Simple setups, when you control the checkout page</li>
+            </ul>
+          </div>
+          <div class="comparison-card">
+            <div class="comparison-title">🔔 Webhook Path (SaligPay)</div>
+            <ul class="comparison-list">
+              <li><strong>Trigger:</strong> Payment processor fires <code>POST /api/webhooks/saligpay</code></li>
+              <li><strong>How:</strong> Webhook payload includes metadata with affiliate code and tenant ID</li>
+              <li><strong>Finds affiliate:</strong> Reads <code>_salig_aff_ref</code> from the metadata fields</li>
+              <li><strong>Best for:</strong> Subscription billing, external payment processors</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">⚠️ The Organic Fallback</div>
+          <div class="callout-content">At every stage — invalid affiliate, suspended affiliate, expired cookie, missing referral link — the system creates an <strong>organic conversion</strong> instead of dropping the sale. The sale is never lost; it just doesn't get attributed to anyone.</div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 3b: Fraud Check at Conversion Time</h2>
+        <p class="screen-intro">Before a commission is created, the system runs a self-referral check. Think of it as a security guard at the door:</p>
+
+        <div class="data-flow" style="flex-wrap: wrap;">
+          <div class="data-flow-box" style="background: var(--color-error-light);">Compare emails</div>
+          <span class="data-flow-arrow">+</span>
+          <div class="data-flow-box" style="background: var(--color-error-light);">Compare IPs</div>
+          <span class="data-flow-arrow">+</span>
+          <div class="data-flow-box" style="background: var(--color-error-light);">Compare devices</div>
+          <span class="data-flow-arrow">+</span>
+          <div class="data-flow-box" style="background: var(--color-error-light);">Compare payment</div>
+          <span class="data-flow-arrow">→</span>
+          <div class="data-flow-box" style="background: var(--color-warning-light);">Score ≥ 3?<br/>Flag it!</div>
+        </div>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE — WEIGHTED SCORING</span>
+            <pre><code><span class="code-comment">// convex/fraudDetection.ts</span>
+<span class="code-line"><span class="code-keyword">const</span> WEIGHTS = {</span>
+<span class="code-line">  email_match:              <span class="code-number">3</span>,</span>
+<span class="code-line">  ip_match:                 <span class="code-number">3</span>,</span>
+<span class="code-line">  device_match:             <span class="code-number">2</span>,</span>
+<span class="code-line">  payment_method_match:     <span class="code-number">2</span>,</span>
+<span class="code-line">  payment_processor_match:  <span class="code-number">2</span>,</span>
+<span class="code-line">  ip_subnet_match:          <span class="code-number">1</span>,</span>
+<span class="code-line">};</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">const</span> THRESHOLD = <span class="code-number">3</span>;</span>
+<span class="code-line"><span class="code-comment">// Any single high-weight match triggers it</span></span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl"><strong>Weighted scoring:</strong> Each match adds points. Email or IP match = 3 points (high confidence). Device or payment match = 2 points. IP subnet match = 1 point (weaker signal).</p>
+              <p class="tl"><strong>Threshold of 3:</strong> If the total score hits 3 or more, it's flagged as self-referral. This means a single email or IP match is enough — very conservative.</p>
+              <p class="tl"><strong>Self-referral overrides auto-approve:</strong> Even if the campaign says "auto-approve all commissions," a self-referral commission is always set to "pending" for human review.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 4: Commission Created</h2>
+        <p class="screen-intro">The conversion passes fraud checks. Now the system calculates how much Jamie earns:</p>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-title">1. Look Up Campaign Rules</div>
+            <div class="timeline-desc">Get the campaign's commissionType ("percentage" or "flatFee") and commissionValue (e.g., 20 or $25).</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">2. Check for Affiliate Override</div>
+            <div class="timeline-desc">Does Jamie have a custom rate for this campaign? If yes, use it. Otherwise, use the campaign default.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">3. Calculate Amount</div>
+            <div class="timeline-desc">Percentage: $200 sale × 20% = $40 commission. Flat fee: just $25 regardless of sale amount.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">4. Set Initial Status</div>
+            <div class="timeline-desc">Auto-approve on? → "approved". Self-referral? → "pending" (always). Otherwise → "pending" (needs manual review).</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">5. Update Stats Counters</div>
+            <div class="timeline-desc">Calls onCommissionCreated() to increment the denormalized dashboard counters in tenantStats.</div>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">💡 Why Auto-Approval Has Limits</div>
+          <p>Campaigns can set an <code>approvalThreshold</code> — say $100. Commissions under $100 auto-approve. Over $100, they need human review. This catches unusually large commissions that might indicate fraud, while keeping small ones flowing smoothly.</p>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 5: The Commission Lifecycle</h2>
+        <p class="screen-intro">A commission isn't just "created and paid." It moves through a state machine:</p>
+
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-6); box-shadow: var(--shadow-md); margin: var(--space-6) 0;">
+          <svg viewBox="0 0 700 280" style="width: 100%; height: auto; max-width: 700px; margin: 0 auto; display: block;">
+            <!-- Pending box -->
+            <rect x="20" y="100" width="130" height="60" rx="12" fill="#FFF8E1" stroke="#D4A843" stroke-width="2"/>
+            <text x="85" y="127" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="600" fill="#2C2A28">Pending</text>
+            <text x="85" y="147" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" fill="#6B6560">Awaiting review</text>
+
+            <!-- Approved box -->
+            <rect x="280" y="100" width="130" height="60" rx="12" fill="#E8F5EE" stroke="#2D8B55" stroke-width="2"/>
+            <text x="345" y="127" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="600" fill="#2C2A28">Approved</text>
+            <text x="345" y="147" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" fill="#6B6560">Ready to pay</text>
+
+            <!-- Paid box -->
+            <rect x="540" y="100" width="130" height="60" rx="12" fill="#E4F2F7" stroke="#2A7B9B" stroke-width="2"/>
+            <text x="605" y="127" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="600" fill="#2C2A28">Paid</text>
+            <text x="605" y="147" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" fill="#6B6560">Money sent</text>
+
+            <!-- Declined box -->
+            <rect x="150" y="210" width="130" height="55" rx="12" fill="#FDE8E8" stroke="#C93B3B" stroke-width="2"/>
+            <text x="215" y="235" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="600" fill="#2C2A28">Declined</text>
+            <text x="215" y="252" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" fill="#6B6560">Rejected</text>
+
+            <!-- Reversed box -->
+            <rect x="420" y="210" width="130" height="55" rx="12" fill="#FDE8E8" stroke="#C93B3B" stroke-width="2"/>
+            <text x="485" y="235" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="14" font-weight="600" fill="#2C2A28">Reversed</text>
+            <text x="485" y="252" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="11" fill="#6B6560">Refund/chargeback</text>
+
+            <!-- Arrows: Pending → Approved -->
+            <line x1="150" y1="130" x2="275" y2="130" stroke="#2D8B55" stroke-width="2" marker-end="url(#arrowGreen)"/>
+            <text x="212" y="120" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#2D8B55">auto/manual</text>
+
+            <!-- Arrows: Approved → Paid -->
+            <line x1="410" y1="130" x2="535" y2="130" stroke="#2A7B9B" stroke-width="2" marker-end="url(#arrowBlue)"/>
+            <text x="472" y="120" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#2A7B9B">payout batch</text>
+
+            <!-- Arrow: Pending → Declined -->
+            <line x1="85" y1="160" x2="200" y2="212" stroke="#C93B3B" stroke-width="2" marker-end="url(#arrowRed)"/>
+            <text x="115" y="192" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#C93B3B">decline</text>
+
+            <!-- Arrow: Approved → Reversed -->
+            <line x1="410" y1="145" x2="465" y2="210" stroke="#C93B3B" stroke-width="2" marker-end="url(#arrowRed)"/>
+            <text x="458" y="178" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#C93B3B">chargeback</text>
+
+            <!-- Arrow: Pending → Reversed -->
+            <line x1="130" y1="155" x2="440" y2="220" stroke="#C93B3B" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrowRed)"/>
+            <text x="280" y="178" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#C93B3B">refund</text>
+
+            <!-- Arrow markers -->
+            <defs>
+              <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#2D8B55"/>
+              </marker>
+              <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#2A7B9B"/>
+              </marker>
+              <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#C93B3B"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="pattern-cards" style="grid-template-columns: 1fr 1fr;">
+          <div class="pattern-card">
+            <div class="pattern-card-title" style="color: var(--color-success);">Happy Path</div>
+            <div class="pattern-card-desc">Pending → Approved → Paid. The commission makes it all the way to the affiliate's pocket.</div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-card-title" style="color: var(--color-error);">Terminal States</div>
+            <div class="pattern-card-desc">Declined (fraud/review) or Reversed (refund/chargeback). Money never reaches the affiliate.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">Step 6: Payout — Money Finally Moves</h2>
+        <p class="screen-intro">Approved commissions sit in limbo until the SaaS owner generates a payout batch. Here's that process:</p>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-title">1. Generate Batch</div>
+            <div class="timeline-desc">The SaaS owner clicks "Generate Payout Batch." The system finds all approved commissions not yet paid, groups them by affiliate, and creates a batch.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">2. Create Payout Records</div>
+            <div class="timeline-desc">For each affiliate with approved commissions, a payout record is created with the total amount owed. Each commission is tagged with the batch ID.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">3. Commissions → Paid</div>
+            <div class="timeline-desc">Every commission in the batch flips from "approved" to "paid." The tenantStats counters update via onCommissionStatusChange().</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">4. Send Money</div>
+            <div class="timeline-desc">The SaaS owner pays affiliates externally (bank transfer, GCash, PayPal). Then marks each payout as "paid" in the system.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-title">5. Update totalPaidOut</div>
+            <div class="timeline-desc">incrementTotalPaidOut() adds the amount to the tenant's running total. This number appears on the dashboard.</div>
+          </div>
+        </div>
+
+        <div class="translation-block">
+          <div class="translation-code">
+            <span class="translation-label">CODE — STATS COUNTER</span>
+            <pre><code><span class="code-comment">// convex/tenantStats.ts</span>
+<span class="code-line"><span class="code-keyword">export async function</span></span>
+<span class="code-line"><span class="code-function">incrementTotalPaidOut</span>(</span>
+<span class="code-line">  ctx, tenantId, amount</span>
+<span class="code-line">) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> stats = <span class="code-keyword">await</span></span>
+<span class="code-line">    <span class="code-function">getOrCreateStats</span>(ctx, tenantId);</span>
+<span class="code-line">  <span class="code-keyword">await</span> ctx.db.<span class="code-function">patch</span>(stats._id, {</span>
+<span class="code-line">    totalPaidOut:</span>
+<span class="code-line">      stats.totalPaidOut + amount,</span>
+<span class="code-line">  });</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl"><strong>getOrCreateStats:</strong> Grab this tenant's stats record. If it doesn't exist yet (first payout ever), create one.</p>
+              <p class="tl"><strong>ctx.db.patch:</strong> Update the existing record by adding the new amount to totalPaidOut. This is a single fast write — no need to re-scan all commissions.</p>
+              <p class="tl"><strong>Why denormalize?</strong> Without this, the dashboard would need to scan every commission ever to calculate "total paid out." With 100k commissions, that's slow. This counter makes it instant.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen animate-in">
+        <h2 class="screen-heading">The Counter System: tenantStats</h2>
+        <p class="screen-intro">Every step of the journey updates pre-calculated counters. This is how the dashboard loads instantly:</p>
+
+        <div style="overflow-x: auto; margin: var(--space-6) 0;">
+          <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--color-surface); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
+            <thead>
+              <tr style="background: var(--color-bg-warm);">
+                <th style="padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); font-family: var(--font-display);">Event</th>
+                <th style="padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); font-family: var(--font-display);">Hook Function</th>
+                <th style="padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); font-family: var(--font-display);">What Updates</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">Commission created</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light); font-family: var(--font-mono); font-size: var(--text-xs);">onCommissionCreated()</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">pending/approved counters</td>
+              </tr>
+              <tr>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">Status changes</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light); font-family: var(--font-mono); font-size: var(--text-xs);">onCommissionStatusChange()</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">Moves value between buckets</td>
+              </tr>
+              <tr>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">Payout marked paid</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light); font-family: var(--font-mono); font-size: var(--text-xs);">incrementTotalPaidOut()</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">totalPaidOut += amount</td>
+              </tr>
+              <tr>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">Conversion recorded</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light); font-family: var(--font-mono); font-size: var(--text-xs);">incrementTotalConversions()</td>
+                <td style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light);">totalConversionsThisMonth++</td>
+              </tr>
+              <tr>
+                <td style="padding: var(--space-3) var(--space-4);">Affiliate status change</td>
+                <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--text-xs);">updateAffiliateCount()</td>
+                <td style="padding: var(--space-3) var(--space-4);">active/pending/suspended counts</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-success">
+          <div class="callout-title">🎯 Why This Matters for Vibe Coders</div>
+          <div class="callout-content">When you tell an AI "build me a dashboard that loads instantly," it might query every record. The denormalized counter pattern is what actually makes dashboards fast. Say "use pre-aggregated counters updated via mutation hooks" and the AI will build it right.</div>
+        </div>
+      </div>
+
+      <!-- Quiz -->
+      <div class="quiz-container" id="quiz-13">
+        <h3 style="font-family: var(--font-display); font-size: var(--text-xl); margin-bottom: var(--space-4);">Trace the Journey</h3>
+        
+        <div class="quiz-question-block" data-question="q1" data-correct="option-b">
+          <p class="quiz-question">A customer clicks Jamie's link on Day 1, but the purchase doesn't happen until Day 45. The campaign's cookie duration is 30 days. What happens?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Jamie gets the commission — she referred the customer</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>No commission — the cookie expired after 30 days</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The commission is created but auto-declined</span>
+            </button>
+          </div>
+          <div class="quiz-feedback" id="q13-q1-feedback"></div>
+        </div>
+
+        <div class="quiz-question-block" data-question="q2" data-correct="option-c">
+          <p class="quiz-question">A campaign has auto-approve enabled with a $100 threshold. A self-referral commission of $50 is created. What status does it get?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Approved — it's under $100</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Declined — self-referral is always rejected</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Pending — self-referral overrides auto-approve</span>
+            </button>
+          </div>
+          <div class="quiz-feedback" id="q13-q2-feedback"></div>
+        </div>
+
+        <div class="quiz-question-block" data-question="q3" data-correct="option-a">
+          <p class="quiz-question">You're building a dashboard that shows "Total Paid Out" and it's loading slowly because it scans 50,000 commission records. What pattern would fix this?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Denormalized counters updated at each status change</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Add more indexes to the commissions table</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Paginate the query and sum client-side</span>
+            </button>
+          </div>
+          <div class="quiz-feedback" id="q13-q3-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-13')">Check Answers</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-13')">Try Again</button>
+      </div>
+    </div>
+  </section>
+
   <!-- CLOSING -->
   <section class="module" id="module-closing">
     <div class="module-content">
@@ -2602,7 +3199,7 @@ body {
           </div>
           <div class="pattern-card">
             <div class="pattern-card-title">How it works</div>
-            <div class="pattern-card-desc">Click → Conversion → Commission → Payout</div>
+            <div class="pattern-card-desc">Click → Cookie → Conversion → Fraud Check → Commission → Approval → Payout</div>
           </div>
           <div class="pattern-card">
             <div class="pattern-card-title">What's under the hood</div>
@@ -2641,7 +3238,15 @@ body {
       "attribution": "The process of figuring out which affiliate referred a customer.",
       "white-labeled": "When a product is customized to look like it belongs to another company — the affiliate portal shows the SaaS company's branding.",
       "tenant": "A customer of the SaaS platform — each company using Salig-Affiliate is a tenant.",
-      "payout": "When an affiliate actually receives their commission money."
+      "payout": "When an affiliate actually receives their commission money.",
+      "webhook": "An automated message sent from one system to another when something happens — like a payment processor telling your app 'a payment just went through.'",
+      "denormalized": "Storing pre-calculated results instead of computing them from scratch each time. Trades a tiny bit of storage for massive speed gains on reads.",
+      "fire-and-forget": "Sending a request without waiting for the response. The calling code continues immediately, and the request completes in the background.",
+      "302-redirect": "An HTTP status code that tells the browser 'the thing you want is at this other URL — go there.' The visitor's browser automatically navigates to the new location.",
+      "state-machine": "A system that moves through defined states (like pending → approved → paid). Each state change follows specific rules about what transitions are allowed.",
+      "organic-conversion": "A sale that happened without any affiliate referral — the customer found you on their own.",
+      "batch": "A group of items processed together. Instead of paying each affiliate one at a time, you group all their approved commissions into a single batch and process them together.",
+      "metadata": "Extra information attached to a record or request. Like a sticky note with additional context — 'this payment was for affiliate jamie123.'"
     };
 
     // Tooltip functionality
@@ -2800,6 +3405,20 @@ body {
         'q1': {
           'option-b': { correct: true, text: 'Tier limit overrides let admins give specific tenants higher limits without changing their plan. Common for enterprise deals.' },
           'default': { correct: false, text: 'While upgrading plans is one option, overrides let admins customize limits case-by-case without formal plan changes.' }
+        }
+      },
+      'quiz-13': {
+        'q1': {
+          'option-b': { correct: true, text: 'Exactly! The cookie expires after 30 days. On Day 45, the system can no longer attribute the purchase to Jamie. The conversion becomes "organic" — no commission is created.' },
+          'default': { correct: false, text: 'The cookie has a hard expiration. After 30 days, the attribution link is broken. The sale still happens, but it becomes an organic conversion with no affiliate credit.' }
+        },
+        'q2': {
+          'option-c': { correct: true, text: 'Right! Self-referral always overrides auto-approve. Even though the amount is under $100 and auto-approve is on, the system forces "pending" so a human can review whether it really is self-referral.' },
+          'default': { correct: false, text: 'Self-referral detection is a special case that always forces pending status, regardless of auto-approve settings or amount thresholds.' }
+        },
+        'q3': {
+          'option-a': { correct: true, text: 'Exactly! Denormalized counters (like tenantStats.totalPaidOut) are updated every time a commission status changes. The dashboard reads one number instead of scanning 50,000 records.' },
+          'default': { correct: false, text: 'While indexes and pagination help with queries, the real speed trick for dashboards is pre-calculating values and storing them as single numbers that get updated on every change.' }
         }
       }
     };
