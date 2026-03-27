@@ -135,7 +135,7 @@ function getInitials(name: string): string {
 // Loading skeleton for sidebar
 function SidebarSkeleton() {
   return (
-    <aside className="w-[240px] bg-[#022232] min-h-screen flex flex-col fixed top-0 left-0 z-[100]">
+    <aside className="w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen flex flex-col fixed top-0 left-0 z-[100]">
       <div className="px-5 py-6 border-b border-white/[0.08]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#1659d6] rounded-lg" />
@@ -219,7 +219,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "w-[240px] bg-[#022232] min-h-screen flex flex-col fixed top-0 left-0 z-[100]",
+        "w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen flex flex-col fixed top-0 left-0 z-[100]",
         className
       )}
     >

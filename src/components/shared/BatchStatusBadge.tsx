@@ -19,26 +19,26 @@ interface BatchStatusBadgeProps {
 const statusConfig: Record<string, { dotColor: string; bgClass: string; textClass: string }> = {
   pending: {
     dotColor: "#f59e0b",
-    bgClass: "bg-[#fef3c7]",
-    textClass: "text-[#92400e]",
+    bgClass: "bg-[var(--warning-bg)]",
+    textClass: "text-[var(--warning-text)]",
   },
   processing: {
     dotColor: "#3b82f6",
-    bgClass: "bg-[#dbeafe]",
-    textClass: "text-[#1e40af]",
+    bgClass: "bg-[var(--info-bg)]",
+    textClass: "text-[var(--info-text)]",
   },
   completed: {
     dotColor: "#10b981",
-    bgClass: "bg-[#d1fae5]",
-    textClass: "text-[#065f46]",
+    bgClass: "bg-[var(--success-bg)]",
+    textClass: "text-[var(--success-text)]",
   },
 };
 
 export function BatchStatusBadge({ status }: BatchStatusBadgeProps) {
   const config = statusConfig[status] || {
     dotColor: "#6b7280",
-    bgClass: "bg-[#f3f4f6]",
-    textClass: "text-[#374151]",
+    bgClass: "bg-[var(--bg-page)]",
+    textClass: "text-[var(--text-body)]",
   };
 
   const icons: Record<string, React.ReactNode> = {

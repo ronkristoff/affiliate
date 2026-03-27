@@ -31,14 +31,20 @@ function LogoutButton() {
 
   return (
     <div className="pt-2 border-t border-border/50">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleLogout}
         disabled={isLoading}
-        className="flex items-center w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+        className="flex items-center w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
       >
-        <LogOut className="mr-2 h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <LogOut className="h-4 w-4" />
+        )}
         {isLoading ? "Signing out..." : "Sign out"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -93,7 +99,7 @@ function AuthLayoutContent({
       {!isImpersonating && <Sidebar />}
 
       {/* Main Content - offset by sidebar width */}
-      <main className="flex-1 min-h-screen" style={{ marginLeft: 240 }}>
+      <main className="flex-1 min-h-screen" style={{ marginLeft: 'var(--sidebar-width)' }}>
         <div className="min-h-screen">
           {children}
         </div>
@@ -108,13 +114,13 @@ function AuthLayoutSkeleton() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar skeleton */}
-      <div className="w-[240px] bg-[#022232] min-h-screen hidden md:block">
+      <div className="w-[var(--sidebar-width)] bg-[var(--brand-dark)] min-h-screen hidden md:block">
         <Skeleton className="h-6 w-32 mx-5 my-6" />
       </div>
 
       {/* Main content skeleton */}
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6">
+        <div className="px-8 pt-6 pb-8">
           <div className="space-y-6">
             <div>
               <Skeleton className="h-8 w-48 mb-2" />
@@ -122,7 +128,7 @@ function AuthLayoutSkeleton() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
+                <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </div>
           </div>

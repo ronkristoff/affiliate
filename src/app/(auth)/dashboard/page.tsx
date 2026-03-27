@@ -40,12 +40,12 @@ function DashboardSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Alert Banner skeleton */}
-      <div className="px-8 pt-4">
+      <div className="px-8 pt-6">
         <Skeleton className="h-10 w-full rounded-lg" />
       </div>
 
       {/* Top Bar skeleton */}
-      <div className="px-8 pt-4">
+      <div className="px-8 pt-2">
         <div className="flex items-center justify-between">
           <Skeleton className="h-6 w-32" />
           <div className="flex items-center gap-3">
@@ -58,8 +58,8 @@ function DashboardSkeleton() {
 
       {/* Metric Cards skeleton */}
       <div className="px-8 pt-6 pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-xl" />
           ))}
         </div>

@@ -98,7 +98,7 @@ function buildPendingColumns(
       key: "source",
       header: "Source",
       cell: (row) => (
-        <span className="text-[12px] text-[#474747]">
+        <span className="text-[12px] text-[var(--text-body)]">
           {row.promotionChannel || "Direct invite"}
         </span>
       ),
@@ -113,7 +113,7 @@ function buildPendingColumns(
       filterOptions: campaignOptions,
       filterLabel: "Campaign",
       cell: (row) => (
-        <span className="text-[12px] text-[#474747]">
+        <span className="text-[12px] text-[var(--text-body)]">
           {row.campaignName || "Standard Program"}
         </span>
       ),
@@ -190,7 +190,7 @@ function buildActiveColumns(
       filterOptions: campaignOptions,
       filterLabel: "Campaign",
       cell: (row) => (
-        <span className="text-[12px] text-[#474747]">
+        <span className="text-[12px] text-[var(--text-body)]">
           {row.campaignName || "Standard Program"}
         </span>
       ),
@@ -747,12 +747,12 @@ function AffiliatesContent() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
+    <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
       <AffiliateTopbar onExport={handleExportCSV} isExporting={isExporting} onInvite={() => setIsInviteSheetOpen(true)} />
 
       {/* Page Content */}
-      <div className="px-8 py-7">
+      <div className="px-8 pt-6 pb-8">
         {/* Tabs */}
         <AffiliateTabs
           activeTab={tab as AffiliateTabStatus}
@@ -769,7 +769,7 @@ function AffiliatesContent() {
         {tab === "all" && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[15px] font-bold text-[#333]">All Affiliates</h2>
+              <h2 className="text-[15px] font-bold text-[var(--text-heading)]">All Affiliates</h2>
             </div>
 
             <AffiliateToolbar
@@ -851,7 +851,7 @@ function AffiliatesContent() {
               isLoading={isLoading}
               emptyMessage="No pending affiliates found"
               rowClassName={(row) =>
-                selectedAffiliates.has(row._id) ? "bg-[#fffbeb]" : ""
+                selectedAffiliates.has(row._id) ? "bg-[var(--warning-bg)]" : ""
               }
               sortBy={sortBy}
               sortOrder={sortOrder}
@@ -880,7 +880,7 @@ function AffiliatesContent() {
         {(tab === "active" || tab === "suspended" || tab === "rejected") && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[15px] font-bold text-[#333]">
+              <h2 className="text-[15px] font-bold text-[var(--text-heading)]">
                 {tab === "active" ? "All Active Affiliates" : tab === "suspended" ? "Suspended Affiliates" : "Rejected Affiliates"}
               </h2>
             </div>
@@ -995,10 +995,10 @@ function AffiliatesContent() {
 
 function PageSkeleton() {
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
+    <div className="min-h-screen bg-[var(--bg-page)]">
       <AffiliateTopbar />
-      <div className="px-8 py-7">
-        <div className="border-b-2 border-[#e5e7eb] mb-6">
+      <div className="px-8 pt-6 pb-8">
+        <div className="border-b-2 border-[var(--border)] mb-6">
           <div className="flex gap-8">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-8 w-24" />

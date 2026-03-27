@@ -117,11 +117,11 @@ const commissionStatusConfig: Record<
   string,
   { label: string; dotColor: string; bgClass: string; textClass: string }
 > = {
-  pending: { label: "Pending", dotColor: "#f59e0b", bgClass: "bg-[#fef3c7]", textClass: "text-[#92400e]" },
-  approved: { label: "Approved", dotColor: "#10b981", bgClass: "bg-[#d1fae5]", textClass: "text-[#065f46]" },
-  reversed: { label: "Reversed", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
-  declined: { label: "Declined", dotColor: "#ef4444", bgClass: "bg-[#fee2e2]", textClass: "text-[#991b1b]" },
-  paid: { label: "Paid", dotColor: "#6b7280", bgClass: "bg-[#f3f4f6]", textClass: "text-[#374151]" },
+  pending: { label: "Pending", dotColor: "#f59e0b", bgClass: "bg-[var(--warning-bg)]", textClass: "text-[var(--warning-text)]" },
+  approved: { label: "Approved", dotColor: "#10b981", bgClass: "bg-[var(--success-bg)]", textClass: "text-[var(--success-text)]" },
+  reversed: { label: "Reversed", dotColor: "#ef4444", bgClass: "bg-[var(--danger-bg)]", textClass: "text-[var(--danger-text)]" },
+  declined: { label: "Declined", dotColor: "#ef4444", bgClass: "bg-[var(--danger-bg)]", textClass: "text-[var(--danger-text)]" },
+  paid: { label: "Paid", dotColor: "#6b7280", bgClass: "bg-[var(--bg-page)]", textClass: "text-[var(--text-body)]" },
 };
 
 const statusFilterOptions: FilterOption[] = [
@@ -584,7 +584,7 @@ function CommissionsContent() {
         filterType: "text",
         filterLabel: "Customer",
         cell: (row) => (
-          <span className="text-[12px] text-[#474747]">{row.customerEmail || "—"}</span>
+          <span className="text-[12px] text-[var(--text-body)]">{row.customerEmail || "—"}</span>
         ),
       },
       {
@@ -596,7 +596,7 @@ function CommissionsContent() {
         filterType: "text",
         filterLabel: "Plan / Event",
         cell: (row) => (
-          <span className="text-[12px] text-[#474747]">{row.planEvent}</span>
+          <span className="text-[12px] text-[var(--text-body)]">{row.planEvent}</span>
         ),
       },
       {
@@ -609,7 +609,7 @@ function CommissionsContent() {
         filterOptions: campaignOptions,
         filterLabel: "Campaign",
         cell: (row) => (
-          <span className="text-[12px] text-[#474747]">{row.campaignName}</span>
+          <span className="text-[12px] text-[var(--text-body)]">{row.campaignName}</span>
         ),
       },
       {
@@ -782,7 +782,7 @@ function CommissionsContent() {
           activeFilters={activeFilters}
           onFilterChange={handleColumnFilterChange}
           rowClassName={(row) =>
-            isFlagged(row) ? "!bg-[#fffbeb]" : ""
+            isFlagged(row) ? "!bg-[var(--warning-bg)]" : ""
           }
           pagination={{ page, pageSize }}
           total={totalCount}
@@ -799,11 +799,11 @@ function CommissionsContent() {
       <Sheet open={isDrawerOpen} onOpenChange={(open) => !open && setIsDrawerOpen(false)}>
         <SheetContent className="w-[480px] sm:max-w-[480px] p-0 flex flex-col">
           {/* Header */}
-          <SheetHeader className="px-6 py-5 border-b border-[#e5e7eb]">
-            <SheetTitle className="text-base font-bold text-[#333]">
+          <SheetHeader className="px-6 py-5 border-b border-[var(--border)]">
+            <SheetTitle className="text-base font-bold text-[var(--text-heading)]">
               Commission Detail
             </SheetTitle>
-            <SheetDescription className="text-[12px] text-[#6b7280]">
+            <SheetDescription className="text-[12px] text-[var(--text-muted)]">
               {effectiveDetail
                 ? `${effectiveDetail.affiliateName} — ${effectiveDetail.campaignName}`
                 : "Loading…"}
@@ -815,9 +815,9 @@ function CommissionsContent() {
             {effectiveDetail ? (
               <div className="space-y-6">
                 {/* Amount Hero */}
-                <div className="bg-[#f9fafb] rounded-xl p-5">
+                <div className="bg-[var(--bg-page)] rounded-xl p-5">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
                       Commission Amount
                     </span>
                     <StatusBadgeCell status={effectiveDetail.status} statusConfig={commissionStatusConfig} />
@@ -825,8 +825,8 @@ function CommissionsContent() {
                   <span
                     className={`text-[28px] font-bold ${
                       effectiveDetail.status === "reversed" || effectiveDetail.status === "declined"
-                        ? "text-[#ef4444]"
-                        : "text-[#333]"
+                        ? "text-[var(--danger)]"
+                        : "text-[var(--text-heading)]"
                     }`}
                   >
                     {formatCurrency(effectiveDetail.amount)}
@@ -835,7 +835,7 @@ function CommissionsContent() {
 
                 {/* Commission Details */}
                 <div>
-                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-3">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-3">
                     Commission Details
                   </h4>
                   <div className="space-y-0">
@@ -862,7 +862,7 @@ function CommissionsContent() {
 
                 {/* Fraud Signals */}
                 <div>
-                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280] mb-3">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-3">
                     Fraud Signals
                   </h4>
                   {isFlagged(effectiveDetail) ? (
@@ -903,14 +903,14 @@ function CommissionsContent() {
             ) : (
               /* Loading skeleton while detail query resolves */
               <div className="space-y-6">
-                <div className="bg-[#f9fafb] rounded-xl p-5">
+                <div className="bg-[var(--bg-page)] rounded-xl p-5">
                   <Skeleton className="h-4 w-32 mb-3" />
                   <Skeleton className="h-8 w-24" />
                 </div>
                 <div className="space-y-3">
                   <Skeleton className="h-3 w-28" />
                   {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex justify-between py-2 border-b border-[#f3f4f6]">
+                    <div key={i} className="flex justify-between py-2 border-b border-[var(--border-light)]">
                       <Skeleton className="h-3 w-24" />
                       <Skeleton className="h-3 w-40" />
                     </div>
@@ -922,7 +922,7 @@ function CommissionsContent() {
 
           {/* Footer Actions — only for pending status */}
           {effectiveDetail && effectiveDetail.status === "pending" && canManage && (
-            <div className="px-6 py-4 border-t border-[#e5e7eb] flex flex-col gap-2">
+            <div className="px-6 py-4 border-t border-[var(--border)] flex flex-col gap-2">
               {isFlagged(effectiveDetail) ? (
                 <>
                   <Button
@@ -1057,9 +1057,9 @@ function CommissionsContent() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-      <span className="text-[12px] text-[#6b7280]">{label}</span>
-      <span className="text-[13px] font-semibold text-[#333] text-right break-all max-w-[60%]">
+    <div className="flex justify-between items-center py-2 border-b border-[var(--border-light)]">
+      <span className="text-[12px] text-[var(--text-muted)]">{label}</span>
+      <span className="text-[13px] font-semibold text-[var(--text-heading)] text-right break-all max-w-[60%]">
         {value}
       </span>
     </div>
@@ -1083,9 +1083,9 @@ function CommissionsSkeleton() {
 
       <div className="px-8 pt-6 pb-8">
         {/* Metric cards skeleton */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-5 gap-4 mb-8">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
           ))}
         </div>
 

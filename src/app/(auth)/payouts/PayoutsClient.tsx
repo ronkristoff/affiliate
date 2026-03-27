@@ -618,7 +618,7 @@ export function PayoutsContent() {
         header: "Confirmed Commissions",
         align: "right",
         cell: (row) => (
-          <span className="text-[12px] text-[#474747]">
+          <span className="text-[12px] text-[var(--text-body)]">
             {row.commissionCount} commission{row.commissionCount !== 1 ? "s" : ""}
           </span>
         ),
@@ -854,7 +854,7 @@ export function PayoutsContent() {
         </div>
       ) : !hasPendingPayouts ? (
         <FadeIn>
-          <div className="rounded-xl border border-dashed border-[#e5e7eb] p-12 text-center">
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-12 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
               <Wallet className="h-6 w-6 text-[var(--text-muted)]" />
             </div>
@@ -865,18 +865,20 @@ export function PayoutsContent() {
               There are no affiliates with confirmed, unpaid commissions at this time.
               New payouts will appear here once commissions are confirmed.
             </p>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleRecalcStats}
               disabled={isRecalcing}
-              className="mt-4 inline-flex items-center gap-1.5 text-[12px] text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 disabled:opacity-50 transition-colors"
+              className="mt-4 text-[12px] text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80"
             >
               {isRecalcing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
               ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               )}
               Sync stats from commissions
-            </button>
+            </Button>
           </div>
         </FadeIn>
       ) : (
@@ -897,7 +899,7 @@ export function PayoutsContent() {
               setSelectedAffiliates(new Set(ids as Set<Id<"affiliates">>))
             }
             rowClassName={(row) =>
-              selectedAffiliates.has(row.affiliateId) ? "bg-[#eff6ff]" : ""
+              selectedAffiliates.has(row.affiliateId) ? "bg-[var(--brand-light)]" : ""
             }
             isLoading={false}
             emptyMessage="No affiliates match your filters"
@@ -1026,7 +1028,7 @@ export function PayoutsContent() {
             </div>
           ) : auditLogsResult.page.length === 0 ? (
             /* Empty State */
-            <div className="rounded-xl border border-dashed border-[#e5e7eb] p-12 text-center">
+            <div className="rounded-xl border border-dashed border-[var(--border)] p-12 text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
                 <History className="h-6 w-6 text-[var(--text-muted)]" />
               </div>

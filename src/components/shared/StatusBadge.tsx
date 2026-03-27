@@ -21,58 +21,58 @@ const statusConfig: Record<Status, { label: string; dotColor: string; bgClass: s
   pending: {
     label: "Pending",
     dotColor: "#f59e0b", // warning
-    bgClass: "bg-[#fef3c7]",
-    textClass: "text-[#92400e]",
+    bgClass: "bg-[var(--warning-bg)]",
+    textClass: "text-[var(--warning-text)]",
   },
   active: {
     label: "Active",
     dotColor: "#10b981", // success
-    bgClass: "bg-[#d1fae5]",
-    textClass: "text-[#065f46]",
+    bgClass: "bg-[var(--success-bg)]",
+    textClass: "text-[var(--success-text)]",
   },
   suspended: {
     label: "Suspended",
     dotColor: "#6b7280", // gray
-    bgClass: "bg-[#f3f4f6]",
-    textClass: "text-[#374151]",
+    bgClass: "bg-[var(--bg-page)]",
+    textClass: "text-[var(--text-body)]",
   },
   rejected: {
     label: "Rejected",
     dotColor: "#ef4444", // danger
-    bgClass: "bg-[#fee2e2]",
-    textClass: "text-[#991b1b]",
+    bgClass: "bg-[var(--danger-bg)]",
+    textClass: "text-[var(--danger-text)]",
   },
   // Commission statuses
   approved: {
     label: "Approved",
     dotColor: "#10b981", // success
-    bgClass: "bg-[#d1fae5]",
-    textClass: "text-[#065f46]",
+    bgClass: "bg-[var(--success-bg)]",
+    textClass: "text-[var(--success-text)]",
   },
   reversed: {
     label: "Reversed",
     dotColor: "#ef4444", // danger
-    bgClass: "bg-[#fee2e2]",
-    textClass: "text-[#991b1b]",
+    bgClass: "bg-[var(--danger-bg)]",
+    textClass: "text-[var(--danger-text)]",
   },
   paid: {
     label: "Paid",
     dotColor: "#6b7280", // gray
-    bgClass: "bg-[#f3f4f6]",
-    textClass: "text-[#374151]",
+    bgClass: "bg-[var(--bg-page)]",
+    textClass: "text-[var(--text-body)]",
   },
   // Payout statuses
   processing: {
     label: "Processing",
     dotColor: "#3b82f6", // blue
-    bgClass: "bg-[#dbeafe]",
-    textClass: "text-[#1e40af]",
+    bgClass: "bg-[var(--info-bg)]",
+    textClass: "text-[var(--info-text)]",
   },
   pending_payout: {
     label: "Pending",
     dotColor: "#f59e0b", // warning
-    bgClass: "bg-[#fef3c7]",
-    textClass: "text-[#92400e]",
+    bgClass: "bg-[var(--warning-bg)]",
+    textClass: "text-[var(--warning-text)]",
   },
 };
 
@@ -80,8 +80,8 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   const config = statusConfig[status as Status] || {
     label: status,
     dotColor: "#6b7280",
-    bgClass: "bg-[#f3f4f6]",
-    textClass: "text-[#374151]",
+    bgClass: "bg-[var(--bg-page)]",
+    textClass: "text-[var(--text-body)]",
   };
 
   return (

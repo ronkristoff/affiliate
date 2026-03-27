@@ -20,7 +20,7 @@ export function AffiliateTopbar({ onExport, isExporting, onInvite }: AffiliateTo
           size="sm"
           onClick={onExport}
           disabled={!onExport || isExporting}
-          className="h-8 px-3 text-[13px] font-semibold gap-1.5"
+          className="gap-1.5"
         >
           {isExporting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -32,7 +32,7 @@ export function AffiliateTopbar({ onExport, isExporting, onInvite }: AffiliateTo
         <Button
           size="sm"
           onClick={onInvite}
-          className="h-8 px-3 text-[13px] font-semibold gap-1.5 bg-[#10409a] hover:bg-[#1659d6]"
+          className="gap-1.5"
         >
           <UserPlus className="h-3.5 w-3.5" />
           Invite Affiliate

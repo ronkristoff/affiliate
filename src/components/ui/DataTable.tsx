@@ -639,7 +639,7 @@ export function DataTable<T>({
                                 className={cn(
                                   "gap-2 text-[13px] cursor-pointer",
                                   action.variant === "destructive" && "text-[#ef4444] focus:text-[#ef4444] focus:bg-[#fef2f2]",
-                                  action.variant === "warning" && "text-[#92400e] focus:bg-[#fffbeb]",
+                                  action.variant === "warning" && "text-[var(--warning-text)] focus:bg-[var(--warning-bg)]",
                                   action.variant === "success" && "text-[#065f46] focus:bg-[#ecfdf5]",
                                   action.variant === "info" && "text-[#1e40af] focus:bg-[#eff6ff]"
                                 )}
@@ -697,34 +697,34 @@ export function StatusBadgeCell({
     active: {
       label: "Active",
       dotColor: "#10b981",
-      bgClass: "bg-[#d1fae5]",
-      textClass: "text-[#065f46]",
+      bgClass: "bg-[var(--success-bg)]",
+      textClass: "text-[var(--success-text)]",
     },
     pending: {
       label: "Pending",
       dotColor: "#f59e0b",
-      bgClass: "bg-[#fef3c7]",
-      textClass: "text-[#92400e]",
+      bgClass: "bg-[var(--warning-bg)]",
+      textClass: "text-[var(--warning-text)]",
     },
     suspended: {
       label: "Suspended",
       dotColor: "#6b7280",
-      bgClass: "bg-[#f3f4f6]",
-      textClass: "text-[#374151]",
+      bgClass: "bg-[var(--bg-page)]",
+      textClass: "text-[var(--text-body)]",
     },
     rejected: {
       label: "Rejected",
       dotColor: "#ef4444",
-      bgClass: "bg-[#fee2e2]",
-      textClass: "text-[#991b1b]",
+      bgClass: "bg-[var(--danger-bg)]",
+      textClass: "text-[var(--danger-text)]",
     },
   };
 
   const config = (statusConfig || defaultConfig)[status] || {
     label: status,
     dotColor: "#6b7280",
-    bgClass: "bg-[#f3f4f6]",
-    textClass: "text-[#374151]",
+    bgClass: "bg-[var(--bg-page)]",
+    textClass: "text-[var(--text-body)]",
   };
 
   return (
