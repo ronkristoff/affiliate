@@ -1,7 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import SignUp from "@/app/(unauth)/sign-up/SignUp";
 
 export default function SignUpPage() {
-  return <SignUp />;
+  return (
+    <Suspense>
+      <SignUp />
+    </Suspense>
+  );
 }

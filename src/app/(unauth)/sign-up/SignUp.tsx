@@ -9,8 +9,10 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
-type Plan = "starter" | "growth" | "scale";
+type PlanKey = "starter" | "growth" | "scale";
 
 interface PlanInfo {
   name: string;
@@ -22,50 +24,15 @@ interface PlanInfo {
   limit: string;
 }
 
-const plans: Record<Plan, PlanInfo> = {
-  starter: {
-    name: "Starter",
-    monthly: "₱1,999",
-    annual: "₱1,659",
-    monthlyNote: "Free for 14 days, then ₱1,999/mo",
-    annualNote: "Free for 14 days, then ₱1,659/mo (billed ₱19,908/yr)",
-    features: [
-      "Commission tracking + auto-detection",
-      "Manual payouts + CSV export",
-      "Standard email templates",
-      "White-labeled affiliate portal",
-    ],
-    limit: "Up to 1,000 affiliates · 3 campaigns",
-  },
-  growth: {
-    name: "Growth",
-    monthly: "₱4,499",
-    annual: "₱3,734",
-    monthlyNote: "Free for 14 days, then ₱4,499/mo",
-    annualNote: "Free for 14 days, then ₱3,734/mo (billed ₱44,808/yr)",
-    features: [
-      "Everything in Starter",
-      "Advanced reports + analytics",
-      "Custom email templates",
-      "Priority support",
-    ],
-    limit: "Up to 5,000 affiliates · 10 campaigns",
-  },
-  scale: {
-    name: "Scale",
-    monthly: "₱8,999",
-    annual: "₱7,469",
-    monthlyNote: "Free for 14 days, then ₱8,999/mo",
-    annualNote: "Free for 14 days, then ₱7,469/mo (billed ₱89,628/yr)",
-    features: [
-      "Everything in Growth",
-      "Custom domain + SSL",
-      "API access (v2)",
-      "Dedicated onboarding",
-    ],
-    limit: "Unlimited affiliates & campaigns",
-  },
-};
+function formatLimit(value: number): string {
+  if (value === -1) return "Unlimited";
+  return value.toLocaleString();
+}
+
+function formatPrice(price: number): string {
+  if (price === 0) return "Free";
+  return `₱${price.toLocaleString()}`;
+}
 
 export default function SignUp() {
   const router = useRouter();
@@ -78,8 +45,61 @@ export default function SignUp() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [selectedPlan, setSelectedPlan] = useState<Plan>("growth");
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("growth");
   const [isAnnual, setIsAnnual] = useState(false);
+
+  const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
+
+  if (allTiers === undefined) {
+    return (
+      <div className="min-h-screen bg-[#f2f2f2] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
+      </div>
+    );
+  }
+
+  const getPlanInfo = (tier: typeof allTiers[number]): PlanInfo => {
+    const tierName = tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1);
+    const monthlyPrice = tier.price;
+    const annualPrice = Math.round(monthlyPrice * 10);
+    
+    const baseFeatures: string[] = [];
+    if (tier.maxAffiliates > 0) {
+      baseFeatures.push(`${formatLimit(tier.maxAffiliates)} affiliates`);
+    }
+    if (tier.maxCampaigns > 0) {
+      baseFeatures.push(`${formatLimit(tier.maxCampaigns)} campaign${tier.maxCampaigns !== 1 ? "s" : ""}`);
+    }
+    if (tier.features.advancedAnalytics) {
+      baseFeatures.push("Advanced analytics");
+    }
+    if (tier.features.prioritySupport) {
+      baseFeatures.push("Priority support");
+    }
+
+    return {
+      name: tierName,
+      monthly: formatPrice(monthlyPrice),
+      annual: formatPrice(annualPrice),
+      monthlyNote: monthlyPrice === 0 
+        ? "Free forever" 
+        : `Free for 14 days, then ${formatPrice(monthlyPrice)}/mo`,
+      annualNote: monthlyPrice === 0 
+        ? "Free forever" 
+        : `Free for 14 days, then ${formatPrice(annualPrice)}/mo (billed ${formatPrice(annualPrice * 12)}/yr)`,
+      features: baseFeatures,
+      limit: tier.maxAffiliates === -1 
+        ? "Unlimited affiliates & campaigns" 
+        : `Up to ${formatLimit(tier.maxAffiliates)} affiliates · ${formatLimit(tier.maxCampaigns)} campaigns`,
+    };
+  };
+
+  const tierByName = allTiers.reduce((acc, tier) => {
+    acc[tier.tier as PlanKey] = getPlanInfo(tier);
+    return acc;
+  }, {} as Record<PlanKey, PlanInfo>);
+
+  const plans: Record<PlanKey, PlanInfo> = tierByName;
 
   const currentPlan = plans[selectedPlan];
 
@@ -263,8 +283,8 @@ export default function SignUp() {
             Choose your plan <span className="text-[#6b7280] font-normal">— all plans include a 14-day free trial</span>
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {(Object.keys(plans) as Plan[]).map((planKey) => {
-              const plan = plans[planKey];
+            {(Object.keys(plans) as PlanKey[]).map((planKey) => {
+              const plan = plans[planKey]!;
               const isSelected = selectedPlan === planKey;
               const isPopular = planKey === "growth";
 

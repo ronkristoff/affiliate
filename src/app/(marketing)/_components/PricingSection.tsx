@@ -170,11 +170,11 @@ export function PricingSection() {
                     <div className="mb-8">
                       {tier.price === 0 ? (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-black text-white">Free</span>
+                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#022232]")}>Free</span>
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-black text-white">
+                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#022232]")}>
                             ₱{getPrice(tier.price).toLocaleString()}
                           </span>
                           <span className={cn(
