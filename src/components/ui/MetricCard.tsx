@@ -42,6 +42,13 @@ const variantStyles = {
   gray: "bg-[var(--bg-surface)]",
 };
 
+const accentGradientMap: Record<string, string> = {
+  blue: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%)",
+  green: "linear-gradient(135deg, var(--success) 0%, #059669 100%)",
+  yellow: "linear-gradient(135deg, var(--warning) 0%, #d97706 100%)",
+  gray: "linear-gradient(135deg, var(--text-muted) 0%, #4b5563 100%)",
+};
+
 const iconBgMap: Record<string, string> = {
   blue: "bg-[var(--brand-light)] text-[var(--brand-primary)]",
   green: "bg-[var(--success-bg)] text-[var(--success-text)]",
@@ -111,24 +118,37 @@ export function MetricCard({
   };
 
   const iconBg = iconBgMap[variant] ?? iconBgMap.blue;
+  const accentGradient = accentGradientMap[variant] ?? accentGradientMap.blue;
 
   return (
     <div
       className={cn(
-        "metric-card rounded-xl p-5 relative overflow-hidden",
+        "metric-card rounded-xl p-5 relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5",
         variantStyles[variant],
         className
       )}
     >
+      {/* Dramatic gradient top accent bar */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl"
+        style={{ background: accentGradient }}
+      />
+      
+      {/* Decorative corner accent */}
+      <div 
+        className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-[0.03] blur-2xl"
+        style={{ background: accentGradient, transform: 'translate(30%, -30%)' }}
+      />
+
       {/* Label row — icon sits top-right */}
-      <div className="flex items-start justify-between mb-2.5">
-        <p className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em]">
+      <div className="flex items-start justify-between mb-4 relative z-10">
+        <p className="text-[11px] font-light text-[var(--text-muted)] uppercase tracking-[0.2em]">
           {label}
         </p>
         {icon && (
           <div
             className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center shrink-0 icon-breathe",
+              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 icon-breathe shadow-lg",
               iconBg
             )}
           >
@@ -138,7 +158,7 @@ export function MetricCard({
       </div>
 
       {/* Value — animated if numericValue is provided */}
-      <p className="text-[28px] font-bold text-[var(--text-heading)] tabular-nums tracking-tight mb-1.5">
+      <p className="text-[32px] font-semibold text-[var(--text-heading)] tabular-nums tracking-normal mb-2 relative z-10">
         {numericValue !== undefined ? (
           <AnimatedCount
             value={numericValue}
@@ -150,14 +170,14 @@ export function MetricCard({
         )}
       </p>
 
-      {delta && <div className="mb-1">{getDeltaDisplay()}</div>}
+      {delta && <div className="mb-2 relative z-10">{getDeltaDisplay()}</div>}
       {subtext && (
-        <p className="text-[11px] text-[var(--text-muted)]">{subtext}</p>
+        <p className="text-[11px] text-[var(--text-muted)] relative z-10">{subtext}</p>
       )}
 
       {/* Sparkline trend chart */}
       {sparklineData && sparklineData.length >= 2 && (
-        <div className="mt-2">
+        <div className="mt-3 relative z-10">
           <SparklineChart
             data={sparklineData}
             color={

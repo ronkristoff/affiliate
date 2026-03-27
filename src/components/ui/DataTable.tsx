@@ -429,12 +429,12 @@ export function DataTable<T>({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className={cn("bg-white rounded-xl overflow-hidden", className)}>
+      <div className={cn("bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm", className)}>
         <table className="w-full">
           <thead>
             <tr>
               {selectable && (
-                <th className="w-10 px-4 py-2.5 text-left">
+                <th className="w-10 px-4 py-3 text-left">
                   <Skeleton className="h-4 w-4" />
                 </th>
               )}
@@ -442,7 +442,7 @@ export function DataTable<T>({
                 <th
                   key={col.key}
                   className={cn(
-                      "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa]",
+                    "px-4 py-3 text-left text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-[0.08em] bg-gradient-to-r from-[var(--brand-light)]/50 to-transparent",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center"
                   )}
@@ -456,24 +456,24 @@ export function DataTable<T>({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th className="w-12 px-4 py-2.5 bg-[#fafafa]" />
+                <th className="w-12 px-4 py-3 bg-gradient-to-r from-[var(--brand-light)]/50 to-transparent" />
               )}
             </tr>
           </thead>
           <tbody>
             {[...Array(5)].map((_, i) => (
-              <tr key={i} className="transition-colors">
+              <tr key={i} className="transition-colors hover:bg-[var(--brand-light)]/20">
                 {selectable && (
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <Skeleton className="h-4 w-4" />
                   </td>
                 )}
                 {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-3">
+                  <td key={col.key} className="px-4 py-3.5">
                     <Skeleton className="h-4 w-full max-w-[200px]" />
                   </td>
                 ))}
-                {actions.length > 0 && <td className="px-4 py-3" />}
+                {actions.length > 0 && <td className="px-4 py-3.5" />}
               </tr>
             ))}
           </tbody>
@@ -485,22 +485,31 @@ export function DataTable<T>({
   // Empty state
   if (data.length === 0) {
     return (
-      <div className={cn("bg-white rounded-xl overflow-hidden", className)}>
-        <div className="flex items-center justify-center h-32 text-[#6b7280] text-sm">
-          {emptyMessage}
+      <div className={cn("bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm", className)}>
+        <div className="flex items-center justify-center h-40 text-[var(--text-muted)] text-sm">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-[var(--brand-light)]/50 flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            {emptyMessage}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("bg-white border border-[#e5e7eb] rounded-xl overflow-hidden", className)}>
+    <div className={cn("bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm", className)}>
+      {/* Subtle gradient overlay on top */}
+      <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/20 to-transparent" />
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr>
               {selectable && (
-                <th className="w-10 px-4 py-2.5 text-left">
+                <th className="w-10 px-4 py-3 text-left">
                   {/* Checkbox header: no bg/border per AffiliateTable styling reference */}
                   <Checkbox
                     checked={someSelected ? "indeterminate" : allSelected ? true : false}
@@ -542,7 +551,7 @@ export function DataTable<T>({
                   <th
                     key={col.key}
                     className={cn(
-                    "px-4 py-2.5 text-left text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide bg-[#fafafa]",
+                      "px-4 py-3 text-left text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-[0.08em] bg-gradient-to-r from-[var(--brand-light)]/50 to-transparent",
                       col.align === "right" && "text-right",
                       col.align === "center" && "text-center"
                     )}
@@ -569,7 +578,7 @@ export function DataTable<T>({
                 );
               })}
               {actions.length > 0 && (
-                <th className="w-12 px-4 py-2.5 bg-[#fafafa]" />
+                <th className="w-12 px-4 py-3 bg-gradient-to-r from-[var(--brand-light)]/50 to-transparent" />
               )}
             </tr>
           </thead>
@@ -584,17 +593,17 @@ export function DataTable<T>({
                 <tr
                   key={rowId}
                   className={cn(
-                    "transition-colors",
+                    "transition-all duration-150",
                     isClickable && "cursor-pointer",
-                    isSelected && !customRowClass && "bg-[#eff6ff]",
-                    !isSelected && "hover:bg-[#f9fafb]",
+                    isSelected && !customRowClass && "bg-[var(--brand-light)]/50",
+                    !isSelected && "hover:bg-[var(--brand-light)]/20",
                     customRowClass
                   )}
                   onClick={() => onRowClick?.(row)}
                 >
                   {selectable && (
                     <td
-                      className="px-4 py-3"
+                      className="px-4 py-3.5"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Checkbox
@@ -609,7 +618,7 @@ export function DataTable<T>({
                     <td
                       key={col.key}
                       className={cn(
-                        "px-4 py-3",
+                        "px-4 py-3.5",
                         col.align === "right" && "text-right",
                         col.align === "center" && "text-center"
                       )}
@@ -618,17 +627,17 @@ export function DataTable<T>({
                     </td>
                   ))}
                   {actions.length > 0 && (
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[#9ca3af] hover:bg-[#f3f4f6] hover:text-[#6b7280] transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-muted)] hover:bg-[var(--brand-light)] hover:text-[var(--brand-primary)] transition-all duration-150"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={4} className="w-40">
+                        <DropdownMenuContent align="end" sideOffset={4} className="w-44 shadow-xl">
                           {actions.map((action, i) => {
                             const isDisabled = action.disabled?.(row);
                             return (
@@ -637,11 +646,11 @@ export function DataTable<T>({
                                 disabled={isDisabled}
                                 onClick={() => !isDisabled && action.onClick(row)}
                                 className={cn(
-                                  "gap-2 text-[13px] cursor-pointer",
-                                  action.variant === "destructive" && "text-[#ef4444] focus:text-[#ef4444] focus:bg-[#fef2f2]",
+                                  "gap-2 text-[13px] cursor-pointer py-2",
+                                  action.variant === "destructive" && "text-[var(--danger)] focus:text-[var(--danger)] focus:bg-[var(--danger-bg)]",
                                   action.variant === "warning" && "text-[var(--warning-text)] focus:bg-[var(--warning-bg)]",
-                                  action.variant === "success" && "text-[#065f46] focus:bg-[#ecfdf5]",
-                                  action.variant === "info" && "text-[#1e40af] focus:bg-[#eff6ff]"
+                                  action.variant === "success" && "text-[var(--success-text)] focus:bg-[var(--success-bg)]",
+                                  action.variant === "info" && "text-[var(--info-text)] focus:bg-[var(--info-bg)]"
                                 )}
                               >
                                 {action.icon && <span className="shrink-0">{action.icon}</span>}
@@ -671,6 +680,8 @@ export function DataTable<T>({
           />
         )}
       </div>
+      {/* Subtle gradient overlay on bottom */}
+      <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/10 to-transparent" />
     </div>
   );
 }

@@ -303,30 +303,8 @@ function DashboardContent() {
       {/* Top Bar */}
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <DateRangeSelector value={range} onChange={handleDateRangeChange} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="gap-1.5"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-3 h-3" />
-                Export CSV
-              </>
-            )}
-          </Button>
-          <Button size="sm" onClick={() => setIsInviteSheetOpen(true)}>
-            + Invite Affiliate
-          </Button>
         </div>
       </PageTopbar>
 

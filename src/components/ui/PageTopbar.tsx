@@ -31,7 +31,7 @@ export function PageTopbar({ children, className, description, breadcrumbs }: Pa
       className={cn(
         "sticky top-0 z-50",
         "bg-[var(--bg-surface)] border-b border-[var(--border-light)]",
-        description ? "px-8 py-3" : "h-[60px] flex items-center px-8",
+        description ? "px-8 py-3 flex flex-col justify-center" : "h-[60px] flex items-center px-8",
         className
       )}
     >

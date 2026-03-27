@@ -159,7 +159,7 @@ export function DateRangeSelector({ value, onChange, className }: DateRangeSelec
         <Button
           variant="outline"
           className={cn(
-            "gap-2 min-w-[140px] justify-between",
+            "gap-1 min-w-[90px] justify-between text-xs h-8",
             value === "custom" && "border-brand-primary border-2",
             className,
           )}

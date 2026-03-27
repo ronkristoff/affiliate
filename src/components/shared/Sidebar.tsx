@@ -321,7 +321,7 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation */}
+        {/* Navigation */}
       <nav className={cn(
         "flex-1 overflow-y-auto overflow-x-hidden",
         isCollapsed ? "px-2 py-2" : "px-3 py-2"
@@ -329,7 +329,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Program Section */}
         <div className="mb-1">
           {!isCollapsed && (
-            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+            <div className="px-3 pt-4 pb-2 text-[10px] font-bold text-white/[0.2] tracking-[0.15em] uppercase">
               Program
             </div>
           )}
@@ -356,21 +356,28 @@ export function Sidebar({ className }: SidebarProps) {
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  "group relative flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-200",
                   isCollapsed
-                    ? "justify-center px-0 py-2"
-                    : "px-3 py-2",
+                    ? "justify-center px-0 py-2.5"
+                    : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
-                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
+                {/* Active indicator glow */}
+                {isActive && (
+                  <div 
+                    className="absolute inset-0 rounded-lg opacity-20 blur-sm -z-10"
+                    style={{ background: 'linear-gradient(90deg, var(--brand-primary), transparent)' }}
+                  />
+                )}
                 <span
                   className={cn(
-                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc]"
-                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                      ? "text-[#7dd3fc] scale-110"
+                      : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
                   {item.icon}
@@ -379,7 +386,7 @@ export function Sidebar({ className }: SidebarProps) {
                   <>
                     <span className="flex-1">{item.label}</span>
                     {badge !== undefined && (
-                      <span className="bg-[#f59e0b] text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                      <span className="bg-[#f59e0b] text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 shadow-lg shadow-amber-500/30">
                         {badge}
                       </span>
                     )}
@@ -398,7 +405,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Insights Section */}
         <div className="mb-1 mt-3">
           {!isCollapsed && (
-            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+            <div className="px-3 pt-4 pb-2 text-[10px] font-bold text-white/[0.2] tracking-[0.15em] uppercase">
               Insights
             </div>
           )}
@@ -417,18 +424,18 @@ export function Sidebar({ className }: SidebarProps) {
                     href={item.href}
                     title={item.label}
                     className={cn(
-                      "group flex items-center text-[13px] rounded-lg transition-all duration-150 justify-center px-0 py-2",
+                      "group flex items-center text-[13px] rounded-lg transition-all duration-200 justify-center px-0 py-2.5",
                       isActive
-                        ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
-                        : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                     )}
                   >
                     <span
                       className={cn(
-                        "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                        "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                         isActive
-                          ? "text-[#7dd3fc]"
-                          : "text-white/[0.4] group-hover:text-white/[0.6]"
+                          ? "text-[#7dd3fc] scale-110"
+                          : "text-white/[0.35] group-hover:text-white/[0.6]"
                       )}
                     >
                       {item.icon}
@@ -442,18 +449,18 @@ export function Sidebar({ className }: SidebarProps) {
                   <button
                     onClick={() => toggleExpanded(item.href)}
                     className={cn(
-                      "group flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-all duration-150 w-full text-left",
+                      "group flex items-center gap-2.5 px-3 py-2.5 text-[13px] rounded-lg transition-all duration-200 w-full text-left",
                       isActive
-                        ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
-                        : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                     )}
                   >
                     <span
                       className={cn(
-                        "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                        "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                         isActive
-                          ? "text-[#7dd3fc]"
-                          : "text-white/[0.4] group-hover:text-white/[0.6]"
+                          ? "text-[#7dd3fc] scale-110"
+                          : "text-white/[0.35] group-hover:text-white/[0.6]"
                       )}
                     >
                       {item.icon}
@@ -461,13 +468,13 @@ export function Sidebar({ className }: SidebarProps) {
                     <span className="flex-1">{item.label}</span>
                     <ChevronRight
                       className={cn(
-                        "w-3 h-3 shrink-0 transition-transform duration-200 text-white/[0.3]",
+                        "w-3.5 h-3.5 shrink-0 transition-transform duration-200 text-white/[0.25]",
                         isExpanded ? "rotate-90" : ""
                       )}
                     />
                   </button>
                   {isExpanded && (
-                    <div className="pl-[42px] pr-3 mt-0.5 mb-1">
+                    <div className="pl-[42px] pr-3 mt-0.5 mb-1 space-y-0.5">
                       {item.children!.map((child) => {
                         const isChildActive =
                           child.href === "/reports"
@@ -478,16 +485,16 @@ export function Sidebar({ className }: SidebarProps) {
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "flex items-center py-[6px] text-[12.5px] rounded-md transition-colors duration-150",
+                              "flex items-center py-2 px-3 text-[12.5px] rounded-md transition-all duration-150",
                               isChildActive
-                                ? "text-white font-medium"
-                                : "text-white/[0.35] hover:text-white/[0.7]"
+                                ? "text-white font-medium bg-[var(--brand-primary)]/20"
+                                : "text-white/[0.35] hover:text-white/[0.7] hover:bg-white/[0.04]"
                             )}
                           >
                             <span
                               className={cn(
-                                "w-1 h-1 rounded-full mr-2.5 shrink-0 transition-colors duration-150",
-                                isChildActive ? "bg-[#7dd3fc]" : "bg-white/[0.15]"
+                                "w-1.5 h-1.5 rounded-full mr-3 shrink-0 transition-colors duration-150",
+                                isChildActive ? "bg-[#7dd3fc] shadow-[0_0_6px_#7dd3fc]" : "bg-white/[0.15]"
                               )}
                             />
                             {child.label}
@@ -506,21 +513,21 @@ export function Sidebar({ className }: SidebarProps) {
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-200",
                   isCollapsed
-                    ? "justify-center px-0 py-2"
-                    : "px-3 py-2",
+                    ? "justify-center px-0 py-2.5"
+                    : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
-                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
                 <span
                   className={cn(
-                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc]"
-                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                      ? "text-[#7dd3fc] scale-110"
+                      : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
                   {item.icon}
@@ -534,7 +541,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Account Section */}
         <div className="mt-3">
           {!isCollapsed && (
-            <div className="px-3 pt-4 pb-2 text-[10px] font-semibold text-white/[0.25] tracking-[0.1em] uppercase">
+            <div className="px-3 pt-4 pb-2 text-[10px] font-bold text-white/[0.2] tracking-[0.15em] uppercase">
               Account
             </div>
           )}
@@ -547,21 +554,21 @@ export function Sidebar({ className }: SidebarProps) {
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-150",
+                  "group flex items-center gap-2.5 text-[13px] rounded-lg transition-all duration-200",
                   isCollapsed
-                    ? "justify-center px-0 py-2"
-                    : "px-3 py-2",
+                    ? "justify-center px-0 py-2.5"
+                    : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-white/[0.1] font-medium shadow-[inset_3px_0_0_0_#7dd3fc]"
-                    : "text-white/[0.5] hover:text-white/[0.85] hover:bg-white/[0.05]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
                 <span
                   className={cn(
-                    "w-[18px] h-[18px] shrink-0 transition-colors duration-150",
+                    "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc]"
-                      : "text-white/[0.4] group-hover:text-white/[0.6]"
+                      ? "text-[#7dd3fc] scale-110"
+                      : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
                   {item.icon}
@@ -601,36 +608,45 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* User Footer */}
       <div className={cn(
-        "border-t border-white/[0.06]",
+        "border-t border-white/[0.08]",
         isCollapsed ? "px-2 py-3 flex justify-center" : "px-3 py-3"
       )}>
         <div className={cn(
-          "flex items-center gap-2.5 rounded-lg transition-colors hover:bg-white/[0.04]",
-          isCollapsed ? "px-0 py-0" : "px-2 py-2"
+          "flex items-center gap-2.5 rounded-xl transition-all duration-200 hover:bg-white/[0.06]",
+          isCollapsed ? "px-0 py-0" : "px-3 py-2.5"
         )}>
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-[#7dd3fc] shrink-0"
-            style={{ background: "linear-gradient(135deg, #0a2e5c 0%, #1e4a8c 100%)" }}
-          >
-            {userInitials}
+          {/* Avatar with gradient border */}
+          <div className="relative shrink-0">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black text-white"
+              style={{ 
+                background: 'linear-gradient(135deg, #0a2e5c 0%, #1e4a8c 100%)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+              }}
+            >
+              {userInitials}
+            </div>
+            {/* Online indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[var(--success)] rounded-full border-2 border-[var(--brand-dark)]" />
           </div>
           {!isCollapsed && (
             <>
               <div className="min-w-0 flex-1">
-                <div className="text-[12px] text-white/[0.65] font-medium truncate leading-tight">
+                <div className="text-[12px] text-white/[0.75] font-semibold truncate leading-tight">
                   {displayName}
                 </div>
-                <div className="text-[10.5px] text-white/[0.3] truncate">
+                <div className="text-[10.5px] text-white/[0.35] truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]/60" />
                   {displayEmail}
                 </div>
               </div>
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="shrink-0 p-1.5 rounded-md text-white/[0.3] hover:text-white/[0.6] hover:bg-white/[0.08] transition-all duration-150 disabled:opacity-50"
+                className="shrink-0 p-2 rounded-lg text-white/[0.3] hover:text-white hover:bg-white/[0.1] transition-all duration-150 disabled:opacity-50 group"
                 title="Sign out"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"

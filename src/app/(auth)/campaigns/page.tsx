@@ -67,7 +67,6 @@ export default function CampaignsPage() {
       {/* Top Bar */}
       <PageTopbar
         description="Create and manage your affiliate campaigns with custom commission structures"
-        breadcrumbs={[{ label: "Campaigns" }]}
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
         <div className="flex items-center gap-3">
