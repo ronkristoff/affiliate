@@ -33,20 +33,20 @@ const ReducedMotionHero = () => (
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10409a]"></span>
             </span>
             <span className="text-sm font-semibold text-[#10409a] tracking-wide">
-              Now in Beta — 14-day free trial
+              14-day free trial · No credit card required
             </span>
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black text-[#10409a] leading-[0.95] mb-8">
-            The affiliate<br />
-            <span className="text-[#022232]">program</span> your<br />
+            Track every<br />
+            <span className="text-[#022232]">commission.</span>{" "}
             <span className="relative inline-block">
-              <span className="relative z-10">actually needs.</span>
+              <span className="relative z-10">Down to the last peso.</span>
               <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#10409a]/10 -skew-x-3 -z-0" />
             </span>
           </h1>
           <p className="text-xl sm:text-2xl text-[#474747] mb-10 max-w-xl leading-relaxed font-medium">
-            Launch a professional affiliate program in minutes. Built natively on SaligPay 
-            for perfect commission tracking — no webhooks, no integration headaches.
+            The only affiliate platform built natively on SaligPay. Launch in 15 minutes 
+            with automatic tracking, fraud detection, and payouts your affiliates can trust.
           </p>
           <div className="flex flex-col sm:flex-row gap-5 mb-12">
             <Link href="/sign-up">
@@ -184,7 +184,7 @@ export function HeroSection() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10409a]"></span>
               </span>
               <span className="text-sm font-semibold text-[#10409a] tracking-wide">
-                Now in Beta — 14-day free trial
+                14-day free trial · No credit card required
               </span>
             </div>
 
@@ -196,10 +196,10 @@ export function HeroSection() {
                 transition: 'opacity 0.7s ease-out 0.2s, transform 0.7s ease-out 0.2s',
               }}
             >
-              The affiliate<br />
-              <span className="text-[#022232]">program</span> your<br />
+              Track every<br />
+              <span className="text-[#022232]">commission.</span>{" "}
               <span className="relative inline-block">
-                <span className="relative z-10">actually needs.</span>
+                <span className="relative z-10">Down to the last peso.</span>
                 <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#10409a]/10 -skew-x-3 -z-0" />
               </span>
             </h1>
@@ -212,8 +212,8 @@ export function HeroSection() {
                 transition: 'opacity 0.6s ease-out 0.35s, transform 0.6s ease-out 0.35s',
               }}
             >
-              Launch a professional affiliate program in minutes. Built natively on SaligPay 
-              for perfect commission tracking — no webhooks, no integration headaches.
+              The only affiliate platform built natively on SaligPay. Launch in 15 minutes 
+              with automatic tracking, fraud detection, and payouts your affiliates can trust.
             </p>
 
             <div 
