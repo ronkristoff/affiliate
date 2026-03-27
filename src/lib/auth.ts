@@ -78,9 +78,14 @@ const createOptions = (ctx: GenericCtx) =>
       },
     },
     user: {
-      // Store company name for tenant creation
+      // Store company name and domain for tenant creation
       additionalFields: {
         companyName: {
+          type: "string",
+          required: false,
+          input: true, // Allow passing during registration
+        },
+        domain: {
           type: "string",
           required: false,
           input: true, // Allow passing during registration
@@ -132,6 +137,7 @@ const createOptions = (ctx: GenericCtx) =>
                 email: user.email,
                 name: user.name || undefined,
                 companyName: (user as any).companyName || undefined,
+                domain: (user as any).domain || undefined,
                 authId: user.id, // Better Auth's unique user identifier
               });
             }

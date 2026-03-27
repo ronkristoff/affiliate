@@ -27,6 +27,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -86,6 +87,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const emailId = await ctx.db.insert("emails", {
@@ -118,6 +120,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const emailId = await ctx.db.insert("emails", {
@@ -150,6 +153,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -209,6 +213,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -281,6 +286,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         await ctx.db.insert("emails", {
@@ -321,6 +327,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         await ctx.db.insert("emails", {
@@ -360,6 +367,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const broadcastId = await ctx.db.insert("broadcastEmails", {
@@ -392,6 +400,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const broadcastId = await ctx.db.insert("broadcastEmails", {
@@ -423,6 +432,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const broadcastId = await ctx.db.insert("broadcastEmails", {
@@ -457,6 +467,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const fakeId = "broadcast_nonexistent" as any;
@@ -481,6 +492,7 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       const affiliate1 = await ctx.db.insert("affiliates", {
@@ -589,6 +601,7 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       const broadcastId = await ctx.db.insert("broadcastEmails", {
@@ -622,6 +635,7 @@ describe("Recipient List Query Tests (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       const broadcastId = await ctx.db.insert("broadcastEmails", {
@@ -681,6 +695,7 @@ describe("Recipient List Query Tests (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       await ctx.db.insert("emails", {
@@ -727,6 +742,7 @@ describe("Email Tracking with broadcastId/affiliateId (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       const affiliateId = await ctx.db.insert("affiliates", {
@@ -781,6 +797,7 @@ describe("Email Tracking with broadcastId/affiliateId (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       // Track email without broadcast/affiliate fields (backward compat)
@@ -844,6 +861,7 @@ describe("Sequential webhook events for same email (Story 10.6)", () => {
         slug: "test-tenant",
         plan: "Growth",
         status: "active",
+        domain: "test.example.com",
       });
 
       const affiliateId = await ctx.db.insert("affiliates", {

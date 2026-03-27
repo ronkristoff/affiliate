@@ -5,6 +5,7 @@
  * Used by both frontend and backend for consistent URL generation.
  * 
  * Story 6.1: Referral Link Generation
+ * Updated: Tenant Domain Rework - Removed subdomain, Full, Vanity URL formats
  */
 
 /**
@@ -21,27 +22,10 @@ export function generateUniqueReferralCode(): string {
 }
 
 /**
- * Validate vanity slug format.
- * Alphanumeric, hyphens, underscores only. Length: 3-50 characters.
- */
-export function isValidVanitySlug(slug: string): boolean {
-  if (slug.length < 3 || slug.length > 50) return false;
-  return /^[a-zA-Z0-9_-]+$/.test(slug);
-}
-
-/**
  * Build short URL format: https://{domain}/ref/{code}
  */
 export function buildShortUrl(domain: string, code: string): string {
   return `https://${domain}/ref/${code}`;
-}
-
-/**
- * Build full URL format: https://{domain}/ref/{code}?ref={affiliate-name}
- */
-export function buildFullUrl(domain: string, code: string, affiliateName: string): string {
-  const encodedName = encodeURIComponent(affiliateName.toLowerCase().replace(/\s+/g, "-"));
-  return `https://${domain}/ref/${code}?ref=${encodedName}`;
 }
 
 /**
@@ -59,21 +43,12 @@ export function buildUtmUrl(domain: string, code: string, utmSource: string): st
 }
 
 /**
- * Build vanity URL format: https://{domain}/ref/{vanity-slug}
- */
-export function buildVanityUrl(domain: string, vanitySlug: string): string {
-  return `https://${domain}/ref/${vanitySlug}`;
-}
-
-/**
  * Build all URL formats for a referral link.
  */
 export interface ReferralUrlSet {
   shortUrl: string;
-  fullUrl: string;
   campaignUrl?: string;
   utmUrl?: string;
-  vanityUrl?: string;
 }
 
 /**
@@ -82,16 +57,13 @@ export interface ReferralUrlSet {
 export function buildAllUrls(
   domain: string,
   code: string,
-  affiliateName: string,
   options?: {
     campaignSlug?: string;
     utmSource?: string;
-    vanitySlug?: string;
   }
 ): ReferralUrlSet {
   const urls: ReferralUrlSet = {
     shortUrl: buildShortUrl(domain, code),
-    fullUrl: buildFullUrl(domain, code, affiliateName),
   };
 
   if (options?.campaignSlug) {
@@ -100,10 +72,6 @@ export function buildAllUrls(
 
   if (options?.utmSource) {
     urls.utmUrl = buildUtmUrl(domain, code, options.utmSource);
-  }
-
-  if (options?.vanitySlug) {
-    urls.vanityUrl = buildVanityUrl(domain, options.vanitySlug);
   }
 
   return urls;
@@ -119,15 +87,6 @@ export function extractReferralCode(urlPath: string): string | null {
 }
 
 /**
- * Extract vanity slug from a URL path.
- * Supports formats: /ref/{slug}, /ref/{slug}?...
- */
-export function extractVanitySlug(urlPath: string): string | null {
-  const match = urlPath.match(/\/ref\/([a-z0-9_-]+)/i);
-  return match ? match[1] : null;
-}
-
-/**
  * Check if a string looks like a referral code (8 alphanumeric chars).
  */
 export function isReferralCode(value: string): boolean {
@@ -136,11 +95,8 @@ export function isReferralCode(value: string): boolean {
 
 /**
  * Get domain for tenant.
- * Falls back to default domain if no custom slug is configured.
+ * Returns the tenant's verified domain for building referral URLs.
  */
-export function getTenantDomain(slug?: string | null): string {
-  if (slug) {
-    return `${slug}.saligaffiliate.com`;
-  }
-  return "app.saligaffiliate.com";
+export function getTenantDomain(tenant: { domain: string }): string {
+  return tenant.domain;
 }

@@ -65,9 +65,11 @@ describe("BillingEvent Normalization", () => {
         object: {
           id: "sub_test_123",
           status: "active",
+        domain: "test.example.com",
           subscription: {
             id: "sub_test_123",
             status: "active",
+        domain: "test.example.com",
             plan_id: "plan_456",
           },
           customer: { email: "test@example.com" },
@@ -287,6 +289,7 @@ describe("Event Deduplication", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -330,6 +333,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
 
       const affiliateId = await ctx.db.insert("affiliates", {
@@ -338,6 +342,7 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
+        domain: "test.example.com",
       });
 
       const campaignId = await ctx.db.insert("campaigns", {
@@ -347,6 +352,7 @@ describe("Webhook Processing to Conversion", () => {
         commissionValue: 10,
         recurringCommission: false,
         status: "active",
+        domain: "test.example.com",
       });
 
       const referralLinkId = await ctx.db.insert("referralLinks", {
@@ -420,6 +426,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -481,6 +488,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -491,6 +499,7 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -550,6 +559,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -560,6 +570,7 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -619,6 +630,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -666,6 +678,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -716,6 +729,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -792,6 +806,7 @@ describe("Webhook Processing to Conversion", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
 
       const affiliateId = await ctx.db.insert("affiliates", {
@@ -800,6 +815,7 @@ describe("Webhook Processing to Conversion", () => {
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
+        domain: "test.example.com",
       });
 
       await ctx.db.insert("referralLinks", {
@@ -864,6 +880,7 @@ describe("Webhook Status Management", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -899,6 +916,7 @@ describe("Webhook Status Management", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -938,6 +956,7 @@ describe("List Recent Webhooks", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -973,6 +992,7 @@ describe("Get Webhook Payload", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -1005,6 +1025,7 @@ describe("Tenant Validation", () => {
         slug: "test-tenant",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 

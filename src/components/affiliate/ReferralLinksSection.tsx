@@ -24,7 +24,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, Check, Link as LinkIcon, Loader2, Plus, Trash2 } from "lucide-react";
+import { Copy, Check, Link as LinkIcon, Loader2, Plus } from "lucide-react";
+import { DomainVerificationBanner } from "./DomainVerificationBanner";
 
 interface ReferralLink {
   _id: Id<"referralLinks">;
@@ -33,12 +34,10 @@ interface ReferralLink {
   affiliateId: Id<"affiliates">;
   campaignId?: Id<"campaigns">;
   code: string;
-  vanitySlug?: string;
   campaignName?: string;
   shortUrl: string;
-  fullUrl: string;
   campaignUrl?: string;
-  vanityUrl?: string;
+  domainVerified?: boolean;
   clickCount: number;
   conversionCount: number;
   conversionRate: number;
@@ -59,11 +58,10 @@ interface ReferralLinksSectionProps {
 export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: ReferralLinksSectionProps) {
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("none");
-  const [vanitySlug, setVanitySlug] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<Id<"referralLinks"> | null>(null);
-  const [isDeletingVanity, setIsDeletingVanity] = useState(false);
+  const [utmSource, setUtmSource] = useState("");
 
   // Queries
   const referralLinks = useQuery(api.referralLinks.getAffiliatePortalLinks, { 
@@ -74,7 +72,6 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
 
   // Mutations
   const generateReferralLink = useMutation(api.referralLinks.generateReferralLink);
-  const deleteVanitySlug = useMutation(api.referralLinks.deleteVanitySlug);
 
   const activeCampaigns = campaigns.filter((c: Campaign) => c.status === "active");
 
@@ -82,18 +79,20 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
     try {
       setIsGenerating(true);
       const campaignId = selectedCampaignId === "none" ? undefined : selectedCampaignId as Id<"campaigns">;
-      const vanity = vanitySlug.trim() || undefined;
       
       const result = await generateReferralLink({
         affiliateId,
         campaignId,
-        vanitySlug: vanity,
       });
 
-      toast.success("Referral link generated successfully!");
+      if (result.domainVerified === false) {
+        toast.warning("Link created but domain not verified. Referral tracking will be inactive until domain verification is complete.");
+      } else {
+        toast.success("Referral link generated successfully!");
+      }
+      
       setIsGenerateDialogOpen(false);
       setSelectedCampaignId("none");
-      setVanitySlug("");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate referral link");
     } finally {
@@ -112,16 +111,10 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
     }
   };
 
-  const handleDeleteVanitySlug = async () => {
-    try {
-      setIsDeletingVanity(true);
-      await deleteVanitySlug({ affiliateId });
-      toast.success("Vanity slug deleted successfully");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete vanity slug");
-    } finally {
-      setIsDeletingVanity(false);
-    }
+  const buildUtmUrl = (baseUrl: string, source: string): string => {
+    if (!source) return baseUrl;
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${separator}utm_source=${encodeURIComponent(source)}`;
   };
 
   const formatDate = (timestamp: number) => {
@@ -151,7 +144,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
               <DialogHeader>
                 <DialogTitle>Generate Referral Link</DialogTitle>
                 <DialogDescription>
-                  Create a unique referral link for this affiliate. You can optionally associate it with a campaign and set a custom vanity slug.
+                  Create a unique referral link for this affiliate. You can optionally associate it with a campaign.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -170,18 +163,6 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vanitySlug">Vanity Slug (Optional)</Label>
-                  <Input
-                    id="vanitySlug"
-                    placeholder="e.g., johns-special-offer"
-                    value={vanitySlug}
-                    onChange={(e) => setVanitySlug(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    3-50 characters. Use letters, numbers, hyphens, and underscores.
-                  </p>
                 </div>
               </div>
               <DialogFooter>
@@ -204,6 +185,9 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
         )}
       </div>
       <div className="px-5 pb-5">
+        {/* Domain Verification Warning */}
+        <DomainVerificationBanner />
+
         {referralLinks.length === 0 ? (
           <div className="text-center py-10 text-[var(--text-muted)]">
             <LinkIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
@@ -228,6 +212,9 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                     <p className="font-mono text-[13px] text-[var(--text-heading)]">{link.code}</p>
                     {link.campaignName && (
                       <p className="text-[11px] text-[var(--text-muted)]">Campaign: {link.campaignName}</p>
+                    )}
+                    {link.domainVerified === false && (
+                      <p className="text-[11px] text-amber-600">Domain pending verification</p>
                     )}
                   </div>
                   <div className="text-[11px] text-[var(--text-muted)]">
@@ -259,28 +246,6 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                       </Button>
                     </div>
 
-                    {/* Full URL */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Full URL</p>
-                        <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
-                          {link.fullUrl}
-                        </code>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => handleCopyUrl(link.fullUrl, `full-${link._id}`)}
-                      >
-                        {copiedUrl === `full-${link._id}` ? (
-                          <Check className="h-4 w-4 text-[var(--success)]" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-
                     {/* Campaign URL */}
                     {link.campaignUrl && (
                       <div className="flex items-center gap-2">
@@ -305,44 +270,30 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
                       </div>
                     )}
 
-                    {/* Vanity URL */}
-                    {link.vanityUrl ? (
+                    {/* UTM Builder */}
+                    <div className="pt-2">
+                      <p className="text-[11px] text-[var(--text-muted)] mb-2 uppercase tracking-wide">Copy with UTM</p>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <p className="text-[11px] text-[var(--text-muted)] mb-1 uppercase tracking-wide">Vanity URL</p>
-                          <code className="text-[12px] bg-[var(--bg-page)] px-2.5 py-1 rounded-md block truncate font-mono">
-                            {link.vanityUrl}
-                          </code>
-                        </div>
+                        <Input
+                          placeholder="e.g., newsletter, facebook, partner-site"
+                          value={utmSource}
+                          onChange={(e) => setUtmSource(e.target.value)}
+                          className="flex-1 text-sm"
+                        />
                         <Button
                           variant="outline"
-                          size="icon"
-                          className="shrink-0 mr-2"
-                          onClick={() => handleCopyUrl(link.vanityUrl!, `vanity-${link._id}`)}
+                          size="sm"
+                          onClick={() => handleCopyUrl(buildUtmUrl(link.shortUrl, utmSource), `utm-${link._id}`)}
+                          disabled={!utmSource}
                         >
-                          {copiedUrl === `vanity-${link._id}` ? (
+                          {copiedUrl === `utm-${link._id}` ? (
                             <Check className="h-4 w-4 text-[var(--success)]" />
                           ) : (
                             <Copy className="h-4 w-4" />
                           )}
                         </Button>
-                        {canManage && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="shrink-0 text-[var(--danger)] hover:text-[var(--danger)]"
-                            onClick={handleDeleteVanitySlug}
-                            disabled={isDeletingVanity}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
                       </div>
-                    ) : (
-                      <div className="pt-2">
-                        <p className="text-[11px] text-[var(--text-muted)]">No vanity URL set</p>
-                      </div>
-                    )}
+                    </div>
 
                     {/* Stats */}
                     {link.clickCount !== undefined && (

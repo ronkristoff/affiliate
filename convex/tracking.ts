@@ -246,6 +246,28 @@ export const recordTrackingPing = mutation({
       return { success: false, message: "Invalid public key" };
     }
 
+    // Get full tenant record to check domain
+    const fullTenant = await ctx.db.get(tenant._id);
+    if (!fullTenant) {
+      return { success: false, message: "Tenant not found" };
+    }
+
+    // Normalize domains for comparison (lowercase, strip www.)
+    const normalizedPingDomain = args.domain.toLowerCase().replace(/^www\./, '');
+    const normalizedTenantDomain = (fullTenant.domain || '').toLowerCase().replace(/^www\./, '');
+
+    // Validate domain match
+    if (normalizedPingDomain !== normalizedTenantDomain) {
+      return { 
+        success: false, 
+        message: "Domain mismatch",
+        details: {
+          expectedDomain: fullTenant.domain,
+          receivedDomain: args.domain,
+        }
+      };
+    }
+
     // Record the ping
     await ctx.db.insert("trackingPings", {
       tenantId: tenant._id,
@@ -255,7 +277,7 @@ export const recordTrackingPing = mutation({
       timestamp: Date.now(),
     });
 
-    // Update tenant verification status
+    // Update tenant verification status only if domain matches
     if (!tenant.trackingVerifiedAt) {
       await patchTenant(ctx, tenant._id, { trackingVerifiedAt: Date.now() });
     }
@@ -363,6 +385,24 @@ export const recordPingInternal = internalMutation({
       return { success: false, message: "Invalid public key" };
     }
 
+    // Get full tenant record to check domain
+    const fullTenant = await ctx.db.get(tenant._id);
+    if (!fullTenant) {
+      return { success: false, message: "Tenant not found" };
+    }
+
+    // Normalize domains for comparison (lowercase, strip www.)
+    const normalizedPingDomain = args.domain.toLowerCase().replace(/^www\./, '');
+    const normalizedTenantDomain = (fullTenant.domain || '').toLowerCase().replace(/^www\./, '');
+
+    // Validate domain match
+    if (normalizedPingDomain !== normalizedTenantDomain) {
+      return { 
+        success: false, 
+        message: "Domain mismatch",
+      };
+    }
+
     // Record the ping
     await ctx.db.insert("trackingPings", {
       tenantId: tenant._id,
@@ -372,7 +412,7 @@ export const recordPingInternal = internalMutation({
       timestamp: Date.now(),
     });
 
-    // Update tenant verification status
+    // Update tenant verification status only if domain matches
     if (!tenant.trackingVerifiedAt) {
       await ctx.db.patch(tenant._id, { trackingVerifiedAt: Date.now() });
     }

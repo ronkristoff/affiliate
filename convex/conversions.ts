@@ -491,6 +491,74 @@ export const validateCookieAttributionWindow = internalQuery({
 });
 
 /**
+ * Internal: Validate click attribution window
+ * Story 10.0: Tenant Domain Rework
+ * Checks if a specific click exists and is still within the attribution window
+ * Used for body-based attribution from track.js
+ */
+export const validateClickAttributionWindow = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+    clickId: v.id("clicks"),
+  },
+  returns: v.object({
+    valid: v.boolean(),
+    reason: v.optional(v.string()),
+    elapsedDays: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    // Get the click record
+    const click = await ctx.db.get(args.clickId);
+
+    if (!click) {
+      return {
+        valid: false,
+        reason: "click_not_found",
+      };
+    }
+
+    // Verify click belongs to this tenant
+    if (click.tenantId !== args.tenantId) {
+      return {
+        valid: false,
+        reason: "tenant_mismatch",
+      };
+    }
+
+    // Calculate elapsed time
+    const currentTime = Date.now();
+    const elapsedMs = currentTime - click._creationTime;
+    const elapsedDays = elapsedMs / (24 * 60 * 60 * 1000);
+
+    // Default 30 days in milliseconds
+    const defaultCookieDurationMs = 30 * 24 * 60 * 60 * 1000;
+    let attributionWindowMs = defaultCookieDurationMs;
+
+    // Get campaign's cookie duration if click has campaign
+    if (click.campaignId) {
+      const campaign = await ctx.db.get(click.campaignId);
+      if (campaign?.cookieDuration) {
+        attributionWindowMs = campaign.cookieDuration * 24 * 60 * 60 * 1000;
+      }
+    }
+
+    // Check if click is within attribution window
+    if (elapsedMs > attributionWindowMs) {
+      return {
+        valid: false,
+        reason: "click_expired",
+        elapsedDays: Math.round(elapsedDays * 100) / 100,
+      };
+    }
+
+    return {
+      valid: true,
+      elapsedDays: Math.round(elapsedDays * 100) / 100,
+    };
+  },
+});
+
+/**
  * List recent conversions with attribution data for a tenant
  * Used by the AttributionVerifier component
  */

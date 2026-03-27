@@ -1,16 +1,9 @@
-import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
-import { getTenantId, requireTenantId, getAuthenticatedUser } from "./tenantContext";
+import { requireTenantId, getAuthenticatedUser } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
-
-/**
- * Platform domain constant - used for fallback URL generation
- * TODO: Import from shared configuration
- */
-const PLATFORM_DOMAIN = "app.saligaffiliate.com";
 
 /**
  * Generate a unique referral code for a referral link.
@@ -26,15 +19,6 @@ function generateUniqueReferralCode(): string {
 }
 
 /**
- * Validate vanity slug format.
- * Alphanumeric, hyphens, underscores only. Length: 3-50 characters.
- */
-function isValidVanitySlug(slug: string): boolean {
-  if (slug.length < 3 || slug.length > 50) return false;
-  return /^[a-zA-Z0-9_-]+$/.test(slug);
-}
-
-/**
  * Build short URL format: https://{domain}/ref/{code}
  */
 function buildShortUrl(domain: string, code: string): string {
@@ -42,32 +26,10 @@ function buildShortUrl(domain: string, code: string): string {
 }
 
 /**
- * Build full URL format: https://{domain}/ref/{code}?ref={affiliate-name}
- */
-function buildFullUrl(domain: string, code: string, affiliateName: string): string {
-  const encodedName = encodeURIComponent(affiliateName.toLowerCase().replace(/\s+/g, "-"));
-  return `https://${domain}/ref/${code}?ref=${encodedName}`;
-}
-
-/**
  * Build campaign URL format: https://{domain}/ref/{code}?campaign={campaign-slug}
  */
 function buildCampaignUrl(domain: string, code: string, campaignSlug: string): string {
   return `https://${domain}/ref/${code}?campaign=${campaignSlug}`;
-}
-
-/**
- * Build UTM URL format: https://{domain}/ref/{code}?utm_source={source}
- */
-function buildUtmUrl(domain: string, code: string, utmSource: string): string {
-  return `https://${domain}/ref/${code}?utm_source=${encodeURIComponent(utmSource)}`;
-}
-
-/**
- * Build vanity URL format: https://{domain}/ref/{vanity-slug}
- */
-function buildVanityUrl(domain: string, vanitySlug: string): string {
-  return `https://${domain}/ref/${vanitySlug}`;
 }
 
 /**
@@ -88,7 +50,6 @@ export const getReferralLinkByCode = query({
       affiliateId: v.id("affiliates"),
       campaignId: v.optional(v.id("campaigns")),
       code: v.string(),
-      vanitySlug: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -199,7 +160,6 @@ export const getAffiliateReferralLinks = query({
       affiliateId: v.id("affiliates"),
       campaignId: v.optional(v.id("campaigns")),
       code: v.string(),
-      vanitySlug: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -223,7 +183,6 @@ export const createReferralLink = mutation({
     affiliateId: v.id("affiliates"),
     campaignId: v.optional(v.id("campaigns")),
     code: v.string(),
-    vanitySlug: v.optional(v.string()),
   },
   returns: v.object({
     linkId: v.id("referralLinks"),
@@ -252,7 +211,6 @@ export const createReferralLink = mutation({
       affiliateId: args.affiliateId,
       campaignId: args.campaignId,
       code: args.code,
-      vanitySlug: args.vanitySlug,
     });
 
     return { linkId, code: args.code };
@@ -262,7 +220,6 @@ export const createReferralLink = mutation({
 /**
  * Generate a unique referral link for an affiliate.
  * Automatically generates a unique code if not provided.
- * Supports optional vanity slug.
  * @security Requires authentication. Validates tenant ownership.
  * @security Requires 'affiliates:manage' permission.
  */
@@ -270,15 +227,13 @@ export const generateReferralLink = mutation({
   args: {
     affiliateId: v.id("affiliates"),
     campaignId: v.optional(v.id("campaigns")),
-    vanitySlug: v.optional(v.string()),
   },
   returns: v.object({
     linkId: v.id("referralLinks"),
     code: v.string(),
     shortUrl: v.string(),
-    fullUrl: v.string(),
     campaignUrl: v.optional(v.string()),
-    vanityUrl: v.optional(v.string()),
+    domainVerified: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const authUser = await getAuthenticatedUser(ctx);
@@ -332,23 +287,6 @@ export const generateReferralLink = mutation({
       }
     }
 
-    // Validate vanity slug if provided
-    if (args.vanitySlug) {
-      if (!isValidVanitySlug(args.vanitySlug)) {
-        throw new Error("Invalid vanity slug. Use 3-50 alphanumeric characters, hyphens, or underscores.");
-      }
-
-      // Check if vanity slug is already taken
-      const existingVanity = await ctx.db
-        .query("referralLinks")
-        .withIndex("by_vanity_slug", (q) => q.eq("vanitySlug", args.vanitySlug))
-        .first();
-
-      if (existingVanity && existingVanity.tenantId === tenantId) {
-        throw new Error(`Vanity slug "${args.vanitySlug}" is already taken. Please choose a different one.`);
-      }
-    }
-
     // Generate unique referral code with collision handling
     let code = generateUniqueReferralCode();
     let attempts = 0;
@@ -377,13 +315,7 @@ export const generateReferralLink = mutation({
       affiliateId: args.affiliateId,
       campaignId: args.campaignId,
       code,
-      vanitySlug: args.vanitySlug,
     });
-
-    // Update affiliate's vanitySlug field if provided
-    if (args.vanitySlug) {
-      await ctx.db.patch(args.affiliateId, { vanitySlug: args.vanitySlug });
-    }
 
     // Log link creation in audit trail
     await ctx.db.insert("auditLogs", {
@@ -397,21 +329,16 @@ export const generateReferralLink = mutation({
         affiliateId: args.affiliateId,
         code,
         campaignId: args.campaignId,
-        vanitySlug: args.vanitySlug,
       },
     });
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    // Priority: custom domain (if active) > tenant slug > default platform domain
-    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
-      ? tenant.branding.customDomain
-      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
-    const affiliateName = affiliate.name;
+    const domain = tenant?.domain || "";
+    const domainVerified = !!tenant?.trackingVerifiedAt;
 
     // Build URLs
     const shortUrl = buildShortUrl(domain, code);
-    const fullUrl = buildFullUrl(domain, code, affiliateName);
 
     let campaignUrl: string | undefined;
     if (args.campaignId) {
@@ -422,32 +349,25 @@ export const generateReferralLink = mutation({
       }
     }
 
-    let vanityUrl: string | undefined;
-    if (args.vanitySlug) {
-      vanityUrl = buildVanityUrl(domain, args.vanitySlug);
-    }
-
     return {
       linkId,
       code,
       shortUrl,
-      fullUrl,
       campaignUrl,
-      vanityUrl,
+      domainVerified,
     };
   },
 });
 
 /**
  * Get referral links for SaaS Owner dashboard.
- * Supports filtering by campaign and vanity slug search.
+ * Supports filtering by campaign.
  * @security Requires authentication. Results filtered by tenant.
  */
 export const getReferralLinks = query({
   args: {
     paginationOpts: paginationOptsValidator,
     campaignId: v.optional(v.id("campaigns")),
-    vanitySlugSearch: v.optional(v.string()),
   },
   returns: v.object({
     page: v.array(v.object({
@@ -457,13 +377,10 @@ export const getReferralLinks = query({
       affiliateId: v.id("affiliates"),
       campaignId: v.optional(v.id("campaigns")),
       code: v.string(),
-      vanitySlug: v.optional(v.string()),
       affiliateName: v.string(),
       campaignName: v.optional(v.string()),
       shortUrl: v.string(),
-      fullUrl: v.string(),
       campaignUrl: v.optional(v.string()),
-      vanityUrl: v.optional(v.string()),
     })),
     continueCursor: v.optional(v.string()),
     isDone: v.boolean(),
@@ -473,10 +390,7 @@ export const getReferralLinks = query({
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    // Priority: custom domain (if active) > tenant slug > default platform domain
-    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
-      ? tenant.branding.customDomain
-      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
+    const domain = tenant?.domain || "";
 
     // Build base query
     let baseQuery = ctx.db
@@ -505,7 +419,6 @@ export const getReferralLinks = query({
         const affiliate = await ctx.db.get(link.affiliateId);
         const affiliateName = affiliate?.name || "Unknown";
         const shortUrl = buildShortUrl(domain, link.code);
-        const fullUrl = buildFullUrl(domain, link.code, affiliateName);
         
         let campaignUrl: string | undefined;
         if (campaign) {
@@ -513,19 +426,12 @@ export const getReferralLinks = query({
           campaignUrl = buildCampaignUrl(domain, link.code, campaignSlug);
         }
 
-        let vanityUrl: string | undefined;
-        if (link.vanitySlug) {
-          vanityUrl = buildVanityUrl(domain, link.vanitySlug);
-        }
-
         return {
           ...link,
           affiliateName,
           campaignName: campaign?.name,
           shortUrl,
-          fullUrl,
           campaignUrl,
-          vanityUrl,
         };
       }));
 
@@ -550,7 +456,6 @@ export const getReferralLinks = query({
 
       const affiliateName = affiliate?.name || "Unknown";
       const shortUrl = buildShortUrl(domain, link.code);
-      const fullUrl = buildFullUrl(domain, link.code, affiliateName);
       
       let campaignUrl: string | undefined;
       if (link.campaignId && campaignName) {
@@ -558,44 +463,14 @@ export const getReferralLinks = query({
         campaignUrl = buildCampaignUrl(domain, link.code, campaignSlug);
       }
 
-      let vanityUrl: string | undefined;
-      if (link.vanitySlug) {
-        vanityUrl = buildVanityUrl(domain, link.vanitySlug);
-      }
-
       return {
         ...link,
         affiliateName,
         campaignName,
         shortUrl,
-        fullUrl,
         campaignUrl,
-        vanityUrl,
       };
     }));
-
-    // Filter by vanity slug search if provided
-    if (args.vanitySlugSearch) {
-      const searchLower = args.vanitySlugSearch.toLowerCase();
-      const filtered = enrichedPage.filter(link => 
-        link.vanitySlug?.toLowerCase().includes(searchLower)
-      );
-      
-      const pageSize = args.paginationOpts.numItems;
-      const startIndex = args.paginationOpts.cursor 
-        ? parseInt(args.paginationOpts.cursor, 10) 
-        : 0;
-      
-      const paginatedLinks = filtered.slice(startIndex, startIndex + pageSize);
-      const isDone = startIndex + pageSize >= filtered.length;
-      const continueCursor = isDone ? undefined : String(startIndex + pageSize);
-
-      return {
-        page: paginatedLinks,
-        continueCursor,
-        isDone,
-      };
-    }
 
     return {
       page: enrichedPage,
@@ -622,12 +497,9 @@ export const getAffiliatePortalLinks = query({
     affiliateId: v.id("affiliates"),
     campaignId: v.optional(v.id("campaigns")),
     code: v.string(),
-    vanitySlug: v.optional(v.string()),
     campaignName: v.optional(v.string()),
     shortUrl: v.string(),
-    fullUrl: v.string(),
     campaignUrl: v.optional(v.string()),
-    vanityUrl: v.optional(v.string()),
     clickCount: v.number(),
     conversionCount: v.number(),
     conversionRate: v.number(),
@@ -643,11 +515,7 @@ export const getAffiliatePortalLinks = query({
 
     // Get tenant domain for URL building
     const tenant = await ctx.db.get(tenantId);
-    // Priority: custom domain (if active) > tenant slug > default platform domain
-    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
-      ? tenant.branding.customDomain
-      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
-    const affiliateName = affiliate.name;
+    const domain = tenant?.domain || "";
 
     // Query referral links for this affiliate
     let linksQuery = ctx.db
@@ -676,17 +544,11 @@ export const getAffiliatePortalLinks = query({
       }
 
       const shortUrl = buildShortUrl(domain, link.code);
-      const fullUrl = buildFullUrl(domain, link.code, affiliateName);
       
       let campaignUrl: string | undefined;
       if (link.campaignId && campaignName) {
         const campaignSlug = campaignName.toLowerCase().replace(/\s+/g, "-");
         campaignUrl = buildCampaignUrl(domain, link.code, campaignSlug);
-      }
-
-      let vanityUrl: string | undefined;
-      if (link.vanitySlug) {
-        vanityUrl = buildVanityUrl(domain, link.vanitySlug);
       }
 
       // Get click count for this link
@@ -712,9 +574,7 @@ export const getAffiliatePortalLinks = query({
         ...link,
         campaignName,
         shortUrl,
-        fullUrl,
         campaignUrl,
-        vanityUrl,
         clickCount,
         conversionCount,
         conversionRate,
@@ -803,250 +663,5 @@ export const getAffiliateDailyClicks = query({
     }
 
     return result;
-  },
-});
-
-/**
- * Delete/clear a vanity slug from a referral link.
- * Sets the affiliate's vanitySlug field to null.
- * @security Requires authentication. Validates tenant ownership.
- * @security Requires 'affiliates:manage' permission.
- */
-export const deleteVanitySlug = mutation({
-  args: {
-    affiliateId: v.id("affiliates"),
-  },
-  returns: v.object({
-    success: v.boolean(),
-    message: v.string(),
-  }),
-  handler: async (ctx, args) => {
-    const authUser = await getAuthenticatedUser(ctx);
-    if (!authUser) {
-      throw new Error("Unauthorized: Authentication required");
-    }
-
-    const tenantId = authUser.tenantId;
-
-    // Check permission - require affiliates:manage permission
-    const role = authUser.role as Role;
-    if (!hasPermission(role, "affiliates:manage") && !hasPermission(role, "manage:*")) {
-      await ctx.db.insert("auditLogs", {
-        tenantId,
-        action: "permission_denied",
-        entityType: "referralLink",
-        entityId: "delete_vanity_slug",
-        actorId: authUser.userId,
-        actorType: "user",
-        metadata: {
-          securityEvent: true,
-          additionalInfo: `attemptedPermission=affiliates:manage, attemptedAction=deleteVanitySlug`,
-        },
-      });
-      throw new Error("Access denied: You require 'affiliates:manage' permission to delete vanity slugs");
-    }
-
-    // Validate affiliate exists and belongs to tenant
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate) {
-      throw new Error("Affiliate not found");
-    }
-    if (affiliate.tenantId !== tenantId) {
-      throw new Error("Affiliate not found or access denied");
-    }
-
-    // Store previous vanity slug for audit
-    const previousVanitySlug = affiliate.vanitySlug;
-
-    // If no vanity slug to delete, return early
-    if (!previousVanitySlug) {
-      return {
-        success: true,
-        message: "No vanity slug to delete",
-      };
-    }
-
-    // Clear the vanity slug from the affiliate
-    await ctx.db.patch(args.affiliateId, { vanitySlug: undefined });
-
-    // Clear vanity slug from all referral links for this affiliate
-    const links = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
-
-    for (const link of links) {
-      if (link.vanitySlug === previousVanitySlug) {
-        await ctx.db.patch(link._id, { vanitySlug: undefined });
-      }
-    }
-
-    // Log deletion in audit trail
-    await ctx.db.insert("auditLogs", {
-      tenantId,
-      action: "vanity_slug_deleted",
-      entityType: "referralLink",
-      entityId: args.affiliateId,
-      actorId: authUser.userId,
-      actorType: "user",
-      previousValue: { vanitySlug: previousVanitySlug },
-      newValue: { vanitySlug: null },
-    });
-
-    return {
-      success: true,
-      message: `Vanity slug "${previousVanitySlug}" has been deleted`,
-    };
-  },
-});
-
-/**
- * Get referral link by vanity slug.
- * Used for tracking redirects from vanity URLs.
- * @security Public query - used for tracking referral clicks
- */
-export const getReferralLinkByVanitySlug = query({
-  args: {
-    tenantId: v.id("tenants"),
-    vanitySlug: v.string(),
-  },
-  returns: v.union(
-    v.object({
-      _id: v.id("referralLinks"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
-      campaignId: v.optional(v.id("campaigns")),
-      code: v.string(),
-      vanitySlug: v.optional(v.string()),
-    }),
-    v.null()
-  ),
-  handler: async (ctx, args) => {
-    // Find the referral link by vanity slug
-    const referralLink = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_vanity_slug", (q) => q.eq("vanitySlug", args.vanitySlug))
-      .first();
-
-    if (!referralLink) {
-      return null;
-    }
-
-    // Verify the link belongs to the correct tenant
-    if (referralLink.tenantId !== args.tenantId) {
-      return null;
-    }
-
-    // Check affiliate status
-    const affiliate = await ctx.db.get(referralLink.affiliateId);
-    if (!affiliate) {
-      return null;
-    }
-
-    // Return 404 (null) if affiliate is not active
-    if (affiliate.status !== "active") {
-      return null;
-    }
-
-    return referralLink;
-  },
-});
-
-/**
- * Update affiliate's vanity slug.
- * @param affiliateId - The affiliate ID
- * @param vanitySlug - New vanity slug (3-50 chars, alphanumeric/hyphens/underscores)
- * @returns success status and new vanity URL
- */
-export const updateVanitySlug = mutation({
-  args: {
-    affiliateId: v.id("affiliates"),
-    vanitySlug: v.string(),
-  },
-  returns: v.object({
-    success: v.boolean(),
-    vanityUrl: v.string(),
-    message: v.string(),
-  }),
-  handler: async (ctx, args) => {
-    const authUser = await getAuthenticatedUser(ctx);
-    if (!authUser) {
-      throw new Error("Unauthorized: Authentication required");
-    }
-
-    // Verify affiliate belongs to tenant
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate || affiliate.tenantId !== authUser.tenantId) {
-      throw new Error("Affiliate not found or access denied");
-    }
-
-    // Validate slug format (3-50 chars, alphanumeric/hyphens/underscores)
-    const slugRegex = /^[a-zA-Z0-9_-]{3,50}$/;
-    if (!slugRegex.test(args.vanitySlug)) {
-      return {
-        success: false,
-        vanityUrl: "",
-        message: "Invalid slug format. Must be 3-50 characters, alphanumeric, hyphens, or underscores.",
-      };
-    }
-
-    // Check if slug is already taken by another affiliate
-    const existingLink = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_vanity_slug", (q) => q.eq("vanitySlug", args.vanitySlug))
-      .first();
-
-    if (existingLink && existingLink.affiliateId !== args.affiliateId) {
-      return {
-        success: false,
-        vanityUrl: "",
-        message: "This vanity slug is already taken by another affiliate.",
-      };
-    }
-
-    // Get tenant domain for URL building
-    const tenant = await ctx.db.get(authUser.tenantId);
-    // Priority: custom domain (if active) > tenant slug > default platform domain
-    const domain = tenant?.branding?.customDomain && tenant?.branding?.domainStatus === "active"
-      ? tenant.branding.customDomain
-      : (tenant?.slug ? `${tenant.slug}.saligaffiliate.com` : PLATFORM_DOMAIN);
-
-    // Update affiliate's vanitySlug field
-    await ctx.db.patch(args.affiliateId, {
-      vanitySlug: args.vanitySlug,
-    });
-
-    // Update all referral links for this affiliate
-    const affiliateLinks = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
-
-    for (const link of affiliateLinks) {
-      await ctx.db.patch(link._id, {
-        vanitySlug: args.vanitySlug,
-      });
-    }
-
-    const vanityUrl = buildVanityUrl(domain, args.vanitySlug);
-
-    // Log the vanity slug update in audit trail
-    await ctx.db.insert("auditLogs", {
-      tenantId: authUser.tenantId,
-      action: "vanity_slug_updated",
-      entityType: "referralLink",
-      entityId: args.affiliateId,
-      actorId: authUser.userId,
-      actorType: "user",
-      previousValue: { vanitySlug: affiliate.vanitySlug || null },
-      newValue: { vanitySlug: args.vanitySlug, vanityUrl },
-    });
-
-    return {
-      success: true,
-      vanityUrl: vanityUrl,
-      message: "Vanity slug updated successfully!",
-    };
   },
 });

@@ -6,6 +6,7 @@ export default defineSchema({
   tenants: defineTable({
     name: v.string(),
     slug: v.string(),
+    domain: v.string(), // Tenant's website domain (verified via tracking snippet)
     plan: v.string(),
     status: v.string(),
     subscriptionStatus: v.optional(v.string()),
@@ -52,6 +53,7 @@ export default defineSchema({
       sslProvisionedAt: v.optional(v.number()),
     })),
   }).index("by_slug", ["slug"])
+    .index("by_domain", ["domain"])
     .index("by_tracking_key", ["trackingPublicKey"])
     .index("by_status", ["status"])
     .index("by_plan", ["plan"]),
@@ -230,11 +232,9 @@ export default defineSchema({
     affiliateId: v.id("affiliates"),
     campaignId: v.optional(v.id("campaigns")),
     code: v.string(),
-    vanitySlug: v.optional(v.string()),
   }).index("by_tenant", ["tenantId"])
     .index("by_affiliate", ["affiliateId"])
     .index("by_code", ["code"])
-    .index("by_vanity_slug", ["vanitySlug"])
     .index("by_tenant_and_campaign", ["tenantId", "campaignId"]),
 
   // Task 4: Tracking Tables
@@ -281,7 +281,8 @@ export default defineSchema({
     attributionSource: v.optional(v.union(
       v.literal("cookie"),
       v.literal("webhook"),
-      v.literal("organic")
+      v.literal("organic"),
+      v.literal("body")
     )),
     isSelfReferral: v.optional(v.boolean()),
     metadata: v.optional(v.object({

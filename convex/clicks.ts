@@ -480,6 +480,7 @@ export const getTenantByIdInternal = internalQuery({
     v.object({
       _id: v.id("tenants"),
       slug: v.string(),
+      domain: v.string(),
       branding: v.optional(v.object({
         portalName: v.optional(v.string()),
       })),
@@ -496,6 +497,7 @@ export const getTenantByIdInternal = internalQuery({
     return {
       _id: tenant._id,
       slug: tenant.slug,
+      domain: tenant.domain,
       branding: tenant.branding,
     };
   },

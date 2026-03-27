@@ -25,8 +25,8 @@ const platformGuides = {
       "Log in to your WordPress admin dashboard",
       "Go to Appearance > Theme Editor",
       "Select the theme you want to edit",
-      "Find and click on 'Theme Footer' (footer.php)",
-      "Paste the tracking snippet just before the closing </body> tag",
+      "Find and click on 'Theme Header' (header.php)",
+      "Paste the tracking snippet in the <head> section",
       "Click 'Update File' to save changes",
     ],
     videoUrl: "https://example.com/wordpress-tutorial",
@@ -39,7 +39,7 @@ const platformGuides = {
       "Click on 'Actions' > 'Edit code'",
       "Find and click on 'layout' folder",
       "Select 'theme.liquid'",
-      "Paste the tracking snippet just before the closing </body> tag",
+      "Paste the tracking snippet in the <head> section",
       "Click 'Save' to save changes",
     ],
     videoUrl: "https://example.com/shopify-tutorial",
@@ -51,7 +51,7 @@ const platformGuides = {
       "Go to your website's dashboard",
       "Click on 'Settings' > 'Custom Code'",
       "Click 'Add Code' > 'Paste the code snippet'",
-      "Paste the tracking snippet in the <body> section",
+      "Paste the tracking snippet in the <head> section",
       "Click 'Apply' to save",
     ],
     videoUrl: "https://example.com/wix-tutorial",
@@ -61,7 +61,7 @@ const platformGuides = {
     steps: [
       "Log in to your Squarespace account",
       "Go to Settings > Advanced > Code Injection",
-      "Paste the tracking snippet in the 'Footer' section",
+      "Paste the tracking snippet in the 'Header' section",
       "Click 'Save' to save changes",
     ],
     videoUrl: "https://example.com/squarespace-tutorial",
@@ -70,8 +70,8 @@ const platformGuides = {
     title: "Custom HTML",
     steps: [
       "Open your HTML file in a code editor",
-      "Find the closing </body> tag",
-      "Paste the tracking snippet just before the </body> tag",
+      "Find the <head> section",
+      "Paste the tracking snippet inside the <head> section",
       "Save and upload the file to your server",
     ],
     videoUrl: null,
@@ -108,12 +108,12 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
     });
   }, [getConfig]);
 
-  // Generate snippet code
+  // Generate snippet code with data-tenant and cache busting
   const snippetCode = configLoading
     ? "Loading..."
     : snippetConfig
       ? `<!-- salig-affiliate tracking -->
-<script src="${snippetConfig.cdnUrl}" data-key="${snippetConfig.publicKey}" async></script>`
+<script src="${snippetConfig.cdnUrl}?v=2" data-key="${snippetConfig.publicKey}" data-tenant="${snippetConfig.tenantId}" async></script>`
       : "Error loading configuration";
 
   // Copy to clipboard
@@ -201,7 +201,12 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
             )}
           </div>
           <CardDescription>
-            Copy this code and paste it before the closing &lt;/body&gt; tag on your website.
+            Copy this code and paste it in the &lt;head&gt; section of your website.
+            {snippetConfig?.tenantId && (
+              <span className="block mt-1 text-xs">
+                This snippet is for domain: <strong>{verificationStatus?.domain || "your domain"}</strong>
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -233,7 +238,10 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
           {/* Info */}
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p>Paste the snippet before &lt;/body&gt; on every page of your website.</p>
+            <p>
+              Paste the snippet in the &lt;head&gt; section on every page of your website.
+              This ensures the tracking script loads before your page content.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -250,15 +258,14 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
                 <div>
                   <h4 className="font-medium text-green-900 dark:text-green-100">
-                    Tracking Active
+                    Tracking Verified
                   </h4>
                   <p className="text-sm text-green-700 dark:text-green-300">
-                    Your snippet is installed and sending data correctly.
+                    Your snippet is installed and verified on your domain.
                   </p>
-                  {verificationStatus?.lastPingAt && (
+                  {verificationStatus?.lastPingAt && verificationStatus?.domain && (
                     <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      Last ping: {formatLastPing(verificationStatus.lastPingAt)}
-                      {verificationStatus?.domain && ` from ${verificationStatus.domain}`}
+                      Verified on {verificationStatus.domain} at {formatLastPing(verificationStatus.lastPingAt)}
                     </p>
                   )}
                 </div>
@@ -270,14 +277,14 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
                 <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="font-medium text-amber-900 dark:text-amber-100">
-                    Awaiting first ping
+                    Awaiting verification
                   </h4>
                   <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                    Add the snippet to your website and load any page. We&apos;ll detect it automatically.
+                    Add the snippet to your website and load any page. We&apos;ll verify the domain matches.
                   </p>
                   <div className="mt-3 space-y-1 text-xs text-amber-600 dark:text-amber-400">
                     <p>1. Copy the snippet above</p>
-                    <p>2. Paste before &lt;/body&gt; on your website</p>
+                    <p>2. Paste in the &lt;head&gt; section of your website</p>
                     <p>3. Load any page on your site</p>
                   </div>
                 </div>
@@ -317,6 +324,22 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
               </Button>
             )}
           </div>
+
+          {/* Troubleshooting Tips */}
+          {!isVerified && (
+            <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+              <h5 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+                Troubleshooting
+              </h5>
+              <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                <li>• Ensure the snippet is installed on a publicly accessible page</li>
+                <li>• Check that your site is accessible (not behind a login)</li>
+                <li>• Disable ad blockers temporarily to test</li>
+                <li>• Wait up to 5 minutes for verification to complete</li>
+                <li>• The domain in your settings must match where the snippet is installed</li>
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 

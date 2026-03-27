@@ -279,7 +279,7 @@ export const createAffiliateAccountInternal = internalMutation({
     let welcomeEmailError: string | undefined;
     try {
       // Construct referral URL from tenant domain
-      const portalDomain = tenant.branding?.customDomain || `${tenant.slug}.boboddy.business`;
+      const portalDomain = tenant.domain;
       const referralUrl = `https://${portalDomain}/ref/${uniqueCode}`;
 
       await sendAffiliateWelcomeEmail(ctx, {

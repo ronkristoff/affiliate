@@ -2518,6 +2518,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
+        domain: "test.example.com",
         });
       });
 
@@ -2528,6 +2529,7 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
           name: "Test Affiliate",
           uniqueCode: "AFF123",
           status: "active",
+        domain: "test.example.com",
         });
       });
 

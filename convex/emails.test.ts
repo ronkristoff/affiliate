@@ -31,6 +31,7 @@ describe("Commission Confirmed Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Test trackEmailSent mutation
@@ -62,6 +63,7 @@ describe("Commission Confirmed Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Test trackEmailSent mutation with failure
@@ -96,6 +98,7 @@ describe("Commission Confirmed Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
           branding: {
             portalName: "Test Affiliate Portal",
             primaryColor: "#10409a",
@@ -120,6 +123,7 @@ describe("Commission Confirmed Email Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
+        domain: "test.example.com",
         });
         
         // Create a commission with all email-related fields
@@ -154,6 +158,7 @@ describe("Commission Confirmed Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Create affiliate
@@ -173,6 +178,7 @@ describe("Commission Confirmed Email Tests", () => {
           commissionValue: 10,
           recurringCommission: false,
           status: "active",
+        domain: "test.example.com",
         });
         
         // Create conversion WITHOUT optional metadata (Subtask 4.2)
@@ -198,6 +204,7 @@ describe("Commission Confirmed Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
         
         // Track multiple email attempts (simulating retry scenario)
@@ -314,6 +321,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Test trackEmailSent mutation for payout_sent
@@ -345,6 +353,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Test trackEmailSent mutation with failure
@@ -379,6 +388,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
           branding: {
             portalName: "Test Affiliate Portal",
             primaryColor: "#10409a",
@@ -433,6 +443,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         // Create affiliate
@@ -480,6 +491,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -504,6 +516,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
         
         // Track multiple email attempts (simulating retry scenario)
@@ -555,6 +568,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -628,6 +642,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -691,6 +706,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -902,6 +918,7 @@ describe("New Referral Alert Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -957,6 +974,7 @@ describe("New Referral Alert Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -1012,6 +1030,7 @@ describe("New Referral Alert Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {
@@ -1057,6 +1076,7 @@ describe("New Referral Alert Email Tests", () => {
           slug: "test-tenant",
           plan: "Growth",
           status: "active",
+        domain: "test.example.com",
         });
 
         const affiliateId = await ctx.db.insert("affiliates", {

@@ -24,6 +24,7 @@
     },
 
     key: null,
+    tenantId: null,
     _initialized: false,
 
     /**
@@ -38,14 +39,22 @@
       }
 
       this.key = script.getAttribute('data-key');
+      this.tenantId = script.getAttribute('data-tenant');
       
       if (!this.key) {
         this.log('error', 'Missing data-key attribute');
         return;
       }
 
+      if (!this.tenantId) {
+        this.log('warn', 'Missing data-tenant attribute - referral path interception disabled');
+      }
+
       this._initialized = true;
       this.log('info', 'Initializing with key: ' + this.key);
+      
+      // Handle /ref/{code} path interception (MUST run before async work)
+      this.handleReferralPath();
       
       // Send initial verification ping
       this.sendPing();
@@ -55,13 +64,74 @@
     },
 
     /**
+     * Handle /ref/{code} path interception
+     * Extracts referral code from URL, records click, sets cookie, and cleans URL
+     */
+    handleReferralPath: function() {
+      if (!this.tenantId) {
+        return;
+      }
+
+      var self = this;
+      var path = window.location.pathname;
+      
+      // Match /ref/{code} pattern where code is 8 alphanumeric chars (excluding 0, O, I, 1)
+      var match = path.match(/\/ref\/([A-HJ-NP-Z2-9]{8})$/i);
+      
+      if (!match) {
+        return;
+      }
+
+      var code = match[1].toUpperCase();
+      self.log('info', 'Referral code detected: ' + code);
+
+      // Record click via API
+      fetch('/track/click?code=' + encodeURIComponent(code) + '&t=' + encodeURIComponent(this.tenantId), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('Click recording failed: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success && data.attributionData) {
+          // Set cookie with full attribution data
+          self.setAttributionData(
+            data.attributionData.affiliateCode,
+            data.attributionData.clickId,
+            data.attributionData.tenantId
+          );
+          self.log('info', 'Attribution data set from referral path');
+        }
+
+        // Clean URL by removing /ref/{code} using replaceState
+        var cleanPath = path.replace(/\/ref\/[A-HJ-NP-Z2-9]{8}$/i, '');
+        if (cleanPath === '') cleanPath = '/';
+        
+        var newUrl = window.location.protocol + '//' + window.location.host + cleanPath + window.location.search + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+        self.log('info', 'URL cleaned: ' + cleanPath);
+      })
+      .catch(function(error) {
+        self.log('error', 'Failed to record click: ' + error.message);
+      });
+    },
+
+    /**
      * Send verification ping to the server
      */
     sendPing: function() {
       var self = this;
+      // Strip www. prefix from domain for consistency
+      var domain = window.location.hostname.replace(/^www\./, '');
       var data = {
         publicKey: this.key,
-        domain: window.location.hostname,
+        domain: domain,
         url: window.location.href,
         referrer: document.referrer,
         userAgent: navigator.userAgent,
@@ -182,12 +252,27 @@
         (function(link) {
           var href = link.getAttribute('href');
           
-          // Only modify links that don't already have the affiliate param
-          if (href && href.indexOf('ref=') === -1 && href.indexOf(window.location.hostname) === -1) {
-            var separator = href.indexOf('?') === -1 ? '?' : '&';
-            var newHref = href + separator + 'ref=' + encodeURIComponent(affiliateCode);
-            link.setAttribute('href', newHref);
+          // Skip links that:
+          // 1. Already have ref= param
+          // 2. Are same-domain links
+          // 3. Contain /ref/ in path (referral links themselves)
+          if (!href || href.indexOf('ref=') !== -1) {
+            return;
           }
+          
+          // Skip same-domain links
+          if (href.indexOf(window.location.hostname) !== -1) {
+            return;
+          }
+          
+          // Skip links with /ref/ in path
+          if (href.match(/\/ref\/[A-HJ-NP-Z2-9]{8}/i)) {
+            return;
+          }
+          
+          var separator = href.indexOf('?') === -1 ? '?' : '&';
+          var newHref = href + separator + 'ref=' + encodeURIComponent(affiliateCode);
+          link.setAttribute('href', newHref);
         })(links[i]);
       }
     },
@@ -226,13 +311,10 @@
           timestamp: data.timestamp || null,
         };
       } catch (e) {
-        // Fallback to simple code format (legacy)
-        return {
-          code: cookieValue,
-          clickId: null,
-          tenantId: null,
-          timestamp: null,
-        };
+        // If cookie is corrupt, clear it and log warning
+        this.log('warn', 'Corrupt attribution cookie cleared');
+        this.clearCookie();
+        return null;
       }
     },
 

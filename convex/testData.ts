@@ -29,6 +29,7 @@ function date(year: number, month: number, day: number): number {
 interface TestTenant {
   name: string;
   slug: string;
+  domain: string;
   plan: string;
   subscription?: {
     status?: "trial" | "active" | "past_due" | "cancelled";
@@ -76,6 +77,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "TechFlow SaaS",
     slug: "techflow",
+    domain: "techflow.test",
     plan: "growth",
     subscription: {
       status: "active",
@@ -115,6 +117,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "GHL Agency Pro",
     slug: "ghlagency",
+    domain: "ghlagency.test",
     plan: "scale",
     subscription: {
       status: "active",
@@ -150,6 +153,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "Digital Marketing Hub",
     slug: "digi",
+    domain: "digi.test",
     plan: "starter",
     billingEvents: [
       { event: "subscription_started", plan: "starter", amount: 0, timestamp: date(2025, 11, 20) },
@@ -171,6 +175,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "Manila SaaS Labs",
     slug: "manila-saas",
+    domain: "manila-saas.test",
     plan: "growth",
     subscription: {
       status: "past_due",
@@ -203,6 +208,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "Cebu Digital Agency",
     slug: "cebu-digital",
+    domain: "cebu-digital.test",
     plan: "scale",
     subscription: {
       status: "cancelled",
@@ -237,6 +243,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "GrowthHacks PH",
     slug: "growthhacks",
+    domain: "growthhacks.test",
     plan: "growth",
     subscription: {
       status: "active",
@@ -268,6 +275,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "Pinoy Marketing Co",
     slug: "pinoy-mktg",
+    domain: "pinoy-mktg.test",
     plan: "starter",
     subscription: {
       trialEndsAt: date(2026, 3, 29), // Still in trial
@@ -290,6 +298,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "SEAsia Tech Ventures",
     slug: "seasia-tech",
+    domain: "seasia-tech.test",
     plan: "scale",
     subscription: {
       status: "active",
@@ -325,6 +334,7 @@ const TEST_TENANTS: TestTenant[] = [
   {
     name: "Bicol Digital Solutions",
     slug: "bicol-digital",
+    domain: "bicol-digital.test",
     plan: "growth",
     subscription: {
       status: "active",
@@ -356,6 +366,7 @@ const TEST_TENANTS: TestTenant[] = [
 const PLATFORM_ADMIN = {
   name: "Salig Affiliate Platform",
   slug: "salig-platform",
+  domain: "salig-platform.test",
   users: [
     { email: "admin@saligaffiliate.com", name: "Platform Admin", role: "admin" },
   ],
@@ -696,6 +707,7 @@ export const createTestTenantWithUsers = internalMutation({
   args: {
     name: v.string(),
     slug: v.string(),
+    domain: v.string(),
     plan: v.string(),
     users: v.array(v.object({
       email: v.string(),
@@ -724,9 +736,11 @@ export const createTestTenantWithUsers = internalMutation({
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,
       slug: args.slug,
+      domain: args.domain,
       plan: args.plan,
       trialEndsAt,
       status: "active",
+      trackingVerifiedAt: Date.now(),
       branding: {
         portalName: args.name,
         primaryColor: "#10409a",
@@ -875,7 +889,6 @@ export const createTestReferralLink = internalMutation({
     affiliateId: v.id("affiliates"),
     campaignId: v.optional(v.id("campaigns")),
     code: v.string(),
-    vanitySlug: v.optional(v.string()),
   },
   returns: v.id("referralLinks"),
   handler: async (ctx, args) => {
@@ -884,7 +897,6 @@ export const createTestReferralLink = internalMutation({
       affiliateId: args.affiliateId,
       campaignId: args.campaignId,
       code: args.code,
-      vanitySlug: args.vanitySlug,
     });
 
     return referralLinkId;
@@ -1258,9 +1270,11 @@ export const seedAllTestData = internalMutation({
         const tenantId = await ctx.db.insert("tenants", {
           name: tenantConfig.name,
           slug,
+          domain: tenantConfig.domain,
           plan: tenantConfig.plan,
           trialEndsAt: sub?.trialEndsAt ?? Date.now() + 14 * 24 * 60 * 60 * 1000,
           status: "active",
+          trackingVerifiedAt: Date.now(),
           subscriptionStatus: sub?.status,
           subscriptionId: sub?.subscriptionId,
           billingStartDate: sub?.billingStartDate,
@@ -1577,9 +1591,11 @@ export const seedAllTestData = internalMutation({
       const adminTenantId = await ctx.db.insert("tenants", {
         name: PLATFORM_ADMIN.name,
         slug: adminSlug,
+        domain: PLATFORM_ADMIN.domain,
         plan: "starter",
         trialEndsAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year trial (effectively unlimited for dev)
         status: "active",
+        trackingVerifiedAt: Date.now(),
         branding: {
           portalName: PLATFORM_ADMIN.name,
           primaryColor: "#10409a",

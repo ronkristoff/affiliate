@@ -4,37 +4,33 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link2, Copy, Share2, Settings, Check } from "lucide-react";
+import { Link2, Copy, Share2, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { DomainVerificationBanner } from "@/components/affiliate/DomainVerificationBanner";
 
 interface QuickLinkCardProps {
   primaryLink?: string;
   affiliateId: string;
 }
 
-export function QuickLinkCard({ primaryLink, affiliateId }: QuickLinkCardProps) {
+export function QuickLinkCard({ primaryLink }: QuickLinkCardProps) {
   const [copied, setCopied] = useState(false);
-  const [showCustomize, setShowCustomize] = useState(false);
-  const [vanitySlug, setVanitySlug] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
-  
-  const updateVanitySlug = useMutation(api.referralLinks.updateVanitySlug);
+  const [showUtmBuilder, setShowUtmBuilder] = useState(false);
+  const [utmSource, setUtmSource] = useState("");
 
-  const handleCopyLink = async () => {
-    if (!primaryLink) return;
+  const handleCopyLink = async (url?: string) => {
+    const linkToCopy = url || primaryLink;
+    if (!linkToCopy) return;
     
     try {
-      await navigator.clipboard.writeText(primaryLink);
+      await navigator.clipboard.writeText(linkToCopy);
       setCopied(true);
       toast.success("Link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
-      textArea.value = primaryLink;
+      textArea.value = linkToCopy;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand("copy");
@@ -66,24 +62,10 @@ export function QuickLinkCard({ primaryLink, affiliateId }: QuickLinkCardProps) 
     }
   };
 
-  const handleCustomize = async () => {
-    if (!vanitySlug.trim()) return;
-    
-    setIsUpdating(true);
-    try {
-      await updateVanitySlug({
-        affiliateId: affiliateId as Id<"affiliates">,
-        vanitySlug: vanitySlug.trim(),
-      });
-      toast.success("Vanity slug updated!");
-      setShowCustomize(false);
-      setVanitySlug("");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update vanity slug";
-      toast.error(errorMessage);
-    } finally {
-      setIsUpdating(false);
-    }
+  const buildUtmUrl = (baseUrl: string, source: string): string => {
+    if (!source) return baseUrl;
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${separator}utm_source=${encodeURIComponent(source)}`;
   };
 
   return (
@@ -94,19 +76,12 @@ export function QuickLinkCard({ primaryLink, affiliateId }: QuickLinkCardProps) 
             <Link2 className="w-4 h-4" />
             Your Referral Link
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-blue-600 hover:text-blue-700"
-            onClick={() => setShowCustomize(!showCustomize)}
-            aria-label="Customize your referral link"
-          >
-            <Settings className="w-4 h-4 mr-1" aria-hidden="true" />
-            Customize
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Domain Verification Warning */}
+        <DomainVerificationBanner />
+
         {/* Link Display */}
         <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
           <Link2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -121,7 +96,7 @@ export function QuickLinkCard({ primaryLink, affiliateId }: QuickLinkCardProps) 
             variant="outline"
             size="sm"
             className="flex-1"
-            onClick={handleCopyLink}
+            onClick={() => handleCopyLink()}
           >
             {copied ? (
               <>
@@ -144,30 +119,44 @@ export function QuickLinkCard({ primaryLink, affiliateId }: QuickLinkCardProps) 
             <Share2 className="w-4 h-4 mr-1" />
             Share
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => setShowUtmBuilder(!showUtmBuilder)}
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            UTM
+          </Button>
         </div>
 
-        {/* Customize Section */}
-        {showCustomize && (
+        {/* UTM Builder Section */}
+        {showUtmBuilder && (
           <div className="pt-3 border-t">
             <p className="text-sm text-gray-600 mb-2">
-              Customize your link with a vanity slug:
+              Add UTM parameters to track your marketing sources:
             </p>
             <div className="flex gap-2">
               <Input
                 type="text"
-                placeholder="your-custom-slug"
-                value={vanitySlug}
-                onChange={(e) => setVanitySlug(e.target.value)}
+                placeholder="e.g., newsletter, facebook, partner-site"
+                value={utmSource}
+                onChange={(e) => setUtmSource(e.target.value)}
                 className="flex-1"
               />
               <Button
                 size="sm"
-                onClick={handleCustomize}
-                disabled={isUpdating || !vanitySlug.trim()}
+                onClick={() => handleCopyLink(buildUtmUrl(primaryLink || "", utmSource))}
+                disabled={!utmSource.trim() || !primaryLink}
               >
-                {isUpdating ? "Saving..." : "Save"}
+                Copy
               </Button>
             </div>
+            {utmSource && primaryLink && (
+              <p className="text-xs text-gray-500 mt-2 truncate">
+                Preview: {buildUtmUrl(primaryLink, utmSource)}
+              </p>
+            )}
           </div>
         )}
       </CardContent>

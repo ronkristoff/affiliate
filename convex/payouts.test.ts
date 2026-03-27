@@ -42,6 +42,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         slug: "test-saas-co",
         plan: "starter",
         status: "active",
+        domain: "test.example.com",
       });
     });
 
@@ -101,6 +102,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         slug: "other-saas-co",
         plan: "starter",
         status: "active",
+        domain: "test-other.example.com",
       });
     });
 

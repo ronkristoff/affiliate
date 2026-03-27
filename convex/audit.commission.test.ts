@@ -43,6 +43,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate@test.com",
           name: "Test Affiliate",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF123",
         });
       });
@@ -53,6 +54,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId,
           name: "Test Campaign",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -132,6 +134,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate@test.com",
           name: "Test Affiliate",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF456",
         });
       });
@@ -142,6 +145,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId,
           name: "Test Campaign",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -224,6 +228,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate@test.com",
           name: "Test Affiliate",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF789",
         });
       });
@@ -233,6 +238,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId,
           name: "Test Campaign",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -344,6 +350,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate@test.com",
           name: "Test Affiliate",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF790",
         });
       });
@@ -353,6 +360,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId,
           name: "Test Campaign",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -452,6 +460,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate@test.com",
           name: "Test Affiliate",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF791",
         });
       });
@@ -461,6 +470,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId,
           name: "Test Campaign",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,
@@ -569,6 +579,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           email: "affiliate1@test.com",
           name: "Affiliate 1",
           status: "active",
+        domain: "test.example.com",
           uniqueCode: "TESTAFF1",
         });
       });
@@ -578,6 +589,7 @@ describe("Story 7.8: Commission Audit Log", () => {
           tenantId: tenant1Id,
           name: "Campaign 1",
           status: "active",
+        domain: "test.example.com",
           commissionType: "percentage",
           commissionValue: 10,
           recurringCommission: false,

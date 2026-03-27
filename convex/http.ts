@@ -86,7 +86,7 @@ http.route({
         );
       }
 
-      const { amount, orderId, customerEmail, products, metadata } = body;
+      const { amount, orderId, customerEmail, products, metadata, affiliateCode: bodyAffiliateCode, clickId: bodyClickId } = body;
 
       // Validate required fields
       if (amount === undefined || typeof amount !== "number") {
@@ -109,26 +109,41 @@ http.route({
         ? forwardedFor.split(",")[0].trim() 
         : realIp || undefined;
 
-      // AC1.2: Parse attribution cookie (sa_aff)
-      const cookieHeader = req.headers.get("Cookie") || "";
-      const existingCookie = cookieHeader
-        .split(";")
-        .find(c => c.trim().startsWith("sa_aff="));
-      
-      let cookieData: { affiliateCode?: string; campaignId?: string; timestamp?: number } = {};
-      if (existingCookie) {
-        try {
-          const cookieValue = existingCookie.split("=")[1];
-          const decodedValue = decodeURIComponent(cookieValue);
-          cookieData = JSON.parse(atob(decodedValue));
-        } catch {
-          // Invalid cookie format, treat as no cookie
-          cookieData = {};
+      // AC1.2: Parse attribution from POST body (new track.js) or cookie (legacy)
+      // Body attribution takes precedence over cookie
+      let effectiveAffiliateCode: string | null = bodyAffiliateCode || null;
+      let effectiveClickId: string | null = bodyClickId || null;
+      let attributionSource: "body" | "cookie" | null = bodyAffiliateCode ? "body" : null;
+      let cookieTimestamp: number | undefined;
+
+      // If no body attribution, fall back to cookie (backwards compatibility)
+      if (!effectiveAffiliateCode) {
+        const cookieHeader = req.headers.get("Cookie") || "";
+        const existingCookie = cookieHeader
+          .split(";")
+          .find(c => c.trim().startsWith("sa_aff="));
+        
+        let cookieData: { affiliateCode?: string; campaignId?: string; timestamp?: number } = {};
+        if (existingCookie) {
+          try {
+            const cookieValue = existingCookie.split("=")[1];
+            const decodedValue = decodeURIComponent(cookieValue);
+            cookieData = JSON.parse(atob(decodedValue));
+          } catch {
+            // Invalid cookie format, treat as no cookie
+            cookieData = {};
+          }
+        }
+
+        if (cookieData.affiliateCode) {
+          effectiveAffiliateCode = cookieData.affiliateCode;
+          cookieTimestamp = cookieData.timestamp;
+          attributionSource = "cookie";
         }
       }
 
-      // AC1.5: If no cookie, create organic conversion (AC #2)
-      if (!cookieData.affiliateCode) {
+      // AC1.5: If no attribution, create organic conversion (AC #2)
+      if (!effectiveAffiliateCode) {
         // Create organic conversion without affiliate attribution
         const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
           tenantId: tenant._id,
@@ -164,7 +179,7 @@ http.route({
       // AC1.6: Validate affiliate is still active
       const affiliateValidation = await ctx.runQuery(internal.clicks.validateAffiliateCodeInternal, {
         tenantId: tenant._id,
-        code: cookieData.affiliateCode,
+        code: effectiveAffiliateCode,
       });
 
       if (!affiliateValidation.valid) {
@@ -178,7 +193,7 @@ http.route({
           metadata: {
             orderId,
             products,
-            originalAffiliateCode: cookieData.affiliateCode,
+            originalAffiliateCode: effectiveAffiliateCode,
             invalidReason: affiliateValidation.reason,
             ...metadata,
           },
@@ -202,16 +217,17 @@ http.route({
         );
       }
 
-      // AC3: Validate cookie attribution window (Story 6.4)
-      // Check if cookie timestamp is within the campaign's attribution window
+      // AC3: Validate attribution window (Story 6.4)
+      // For body attribution, validate clickId exists and is within window
+      // For cookie attribution, validate timestamp is within window
       let windowValidation: { isExpired: boolean; elapsedDays: number; campaignCookieDuration: number } | undefined;
       
-      if (cookieData.timestamp) {
+      if (attributionSource === "cookie" && cookieTimestamp) {
         windowValidation = await ctx.runQuery(internal.conversions.validateCookieAttributionWindow, {
           tenantId: tenant._id,
-          affiliateCode: cookieData.affiliateCode,
-          campaignId: cookieData.campaignId ? cookieData.campaignId as Id<"campaigns"> : undefined,
-          cookieTimestamp: cookieData.timestamp,
+          affiliateCode: effectiveAffiliateCode,
+          campaignId: undefined, // Will be resolved from referral link
+          cookieTimestamp: cookieTimestamp,
         });
 
         if (windowValidation && windowValidation.isExpired) {
@@ -225,8 +241,9 @@ http.route({
             metadata: {
               orderId,
               products,
-              originalAffiliateCode: cookieData.affiliateCode,
-              expirationReason: "cookie_expired",
+              originalAffiliateCode: effectiveAffiliateCode,
+              expirationReason: "attribution_expired",
+              attributionSource: "cookie",
               cookieElapsedDays: windowValidation.elapsedDays,
               cookieWindowDays: windowValidation.campaignCookieDuration / (24 * 60 * 60 * 1000),
               ...metadata,
@@ -239,7 +256,52 @@ http.route({
               conversionId,
               organic: true,
               attributed: false,
-              message: "Conversion recorded as organic (cookie expired)",
+              message: "Conversion recorded as organic (attribution expired)",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...corsHeaders,
+              },
+            }
+          );
+        }
+      }
+
+      // For body attribution with clickId, validate the click exists and is within window
+      if (attributionSource === "body" && effectiveClickId) {
+        const clickValidation = await ctx.runQuery(internal.conversions.validateClickAttributionWindow, {
+          tenantId: tenant._id,
+          clickId: effectiveClickId as Id<"clicks">,
+        });
+
+        if (!clickValidation.valid) {
+          // Click expired or not found - create organic conversion
+          const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+            tenantId: tenant._id,
+            customerEmail,
+            amount,
+            status: "pending",
+            ipAddress: clientIp,
+            metadata: {
+              orderId,
+              products,
+              originalAffiliateCode: effectiveAffiliateCode,
+              originalClickId: effectiveClickId,
+              expirationReason: clickValidation.reason || "click_invalid",
+              attributionSource: "body",
+              ...metadata,
+            },
+          });
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              conversionId,
+              organic: true,
+              attributed: false,
+              message: `Conversion recorded as organic (${clickValidation.reason || "click invalid"})`,
             }),
             {
               status: 200,
@@ -255,7 +317,7 @@ http.route({
       // AC1.7: Get referral link for attribution chain
       const referralLink = await ctx.runQuery(internal.conversions.getReferralLinkByCodeInternal, {
         tenantId: tenant._id,
-        code: cookieData.affiliateCode,
+        code: effectiveAffiliateCode,
       });
 
       if (!referralLink) {
@@ -269,7 +331,7 @@ http.route({
           metadata: {
             orderId,
             products,
-            originalAffiliateCode: cookieData.affiliateCode,
+            originalAffiliateCode: effectiveAffiliateCode,
             invalidReason: "referral_link_not_found",
             ...metadata,
           },
@@ -308,17 +370,22 @@ http.route({
 
       // AC1.8: Create attributed conversion
       // AC2.1-2.6: Create conversion with full attribution chain
+      // Use body clickId if provided, otherwise fall back to recent click lookup
+      const finalClickId = effectiveClickId 
+        ? effectiveClickId as Id<"clicks"> 
+        : recentClick?._id;
+      
       const conversionId = await ctx.runMutation(internal.conversions.createConversionWithAttribution, {
         tenantId: tenant._id,
         affiliateId: referralLink.affiliateId,
         referralLinkId: referralLink._id,
-        clickId: recentClick?._id,
+        clickId: finalClickId,
         campaignId: referralLink.campaignId,
         customerEmail,
         amount,
         status: "pending",
         ipAddress: clientIp,
-        attributionSource: "cookie",
+        attributionSource: attributionSource || "cookie",
         metadata: {
           orderId,
           products,
@@ -1425,14 +1492,14 @@ http.route({
         );
       }
 
-      // Get tenant for destination URL
+      // Get tenant for destination URL and domain
       const tenant = await ctx.runQuery(internal.clicks.getTenantByIdInternal, {
         tenantId,
       });
 
-      // Default redirect URL (can be overridden by campaign settings in future stories)
-      const redirectUrl = tenant?.branding?.portalName 
-        ? `https://${tenant.slug}.saligaffiliate.com`
+      // Default redirect URL using tenant.domain
+      const redirectUrl = tenant?.domain
+        ? `https://${tenant.domain}`
         : "https://app.saligaffiliate.com";
 
       // AC1, AC2: Generate dedupeKey for click deduplication
@@ -1440,33 +1507,6 @@ http.route({
       const timeWindow = Math.floor(Date.now() / (1000 * 60 * 60)); // Hourly bucket
       const dedupeKey = `${clientIp}:${effectiveCode}:${timeWindow}`;
 
-      // AC4: Fire-and-forget click tracking (don't block redirect on DB write)
-      // This ensures < 3 second response time (NFR3)
-      // We don't await to maintain fast redirect performance
-      ctx.runMutation(internal.clicks.trackClickInternal, {
-        tenantId,
-        referralLinkId: referralLink._id,
-        affiliateId: referralLink.affiliateId,
-        campaignId: referralLink.campaignId,
-        ipAddress: clientIp,
-        userAgent,
-        referrer,
-        dedupeKey,
-      }).catch(error => {
-        // Log error but don't break user experience
-        console.error("Click tracking error:", error);
-      });
-
-      // AC1, AC4: Build attribution cookie
-      // Cookie format: Base64-encoded JSON with affiliate code and timestamp
-      const cookiePayload = {
-        affiliateCode: effectiveCode,
-        campaignId: referralLink.campaignId,
-        timestamp: Date.now(),
-      };
-      const cookieValue = btoa(JSON.stringify(cookiePayload));
-      
-      // AC4: Configurable cookie TTL - default 30 days
       // Get cookie duration from campaign if available, otherwise default 30 days
       let cookieDurationDays = 30;
       if (referralLink.campaignId) {
@@ -1477,13 +1517,26 @@ http.route({
           cookieDurationDays = campaign.cookieDuration;
         }
       }
-      
-      const expires = new Date();
-      expires.setDate(expires.getDate() + cookieDurationDays);
 
-      // Set cookie on tenant's domain for cross-subdomain tracking
-      const domain = tenant?.slug ? `.${tenant.slug}.saligaffiliate.com` : ".saligaffiliate.com";
-      const setCookieHeader = `sa_aff=${encodeURIComponent(cookieValue)}; Expires=${expires.toUTCString()}; Path=/; Domain=${domain}; HttpOnly; Secure; SameSite=Lax`;
+      // AWAIT click recording to ensure clickId exists for response
+      // This is required for track.js to get the clickId in the JSON response
+      let clickId: Id<"clicks"> | null = null;
+      try {
+        const result: { clickId: Id<"clicks">; isNew: boolean } = await ctx.runMutation(internal.clicks.trackClickInternal, {
+          tenantId,
+          referralLinkId: referralLink._id,
+          affiliateId: referralLink.affiliateId,
+          campaignId: referralLink.campaignId,
+          ipAddress: clientIp,
+          userAgent,
+          referrer,
+          dedupeKey,
+        });
+        clickId = result.clickId;
+      } catch (error) {
+        // Log error but continue - click might be a duplicate
+        console.error("Click tracking error:", error);
+      }
 
       // AC5: Performance monitoring
       const duration = Date.now() - startTime;
@@ -1528,19 +1581,55 @@ http.route({
         });
       }
 
-      // AC1, AC4: Return 302 redirect with Set-Cookie header
-      // Note: We don't await trackClickPromise to ensure fast redirect
-      return new Response(null, {
-        status: 302,
-        headers: {
-          "Location": redirectUrl,
-          "Set-Cookie": setCookieHeader,
-          "Cache-Control": "no-store",
-          "X-Click-Tracked": "true",
-          "X-Attribution-Source": attributionSource,
-          "X-Response-Time": `${duration}ms`,
-        },
-      });
+      // Determine response type based on Accept header
+      // track.js sends Accept: application/json
+      // Browsers send Accept: text/html
+      const acceptHeader = req.headers.get("Accept") || "";
+      const wantsJson = acceptHeader.includes("application/json");
+
+      // Build attribution data for JSON response
+      const attributionData = {
+        affiliateCode: effectiveCode,
+        clickId: clickId,
+        tenantId: tenantId,
+        campaignId: referralLink.campaignId,
+        cookieDuration: cookieDurationDays,
+      };
+
+      if (wantsJson) {
+        // Return JSON response for track.js
+        return new Response(
+          JSON.stringify({
+            success: true,
+            attributionData,
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+              "Access-Control-Allow-Origin": "*", // CORS for cross-origin track.js calls
+              "Access-Control-Allow-Methods": "GET, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type, Accept",
+              "X-Click-Tracked": "true",
+              "X-Attribution-Source": attributionSource,
+              "X-Response-Time": `${duration}ms`,
+            },
+          }
+        );
+      } else {
+        // Return 302 redirect for browser navigation (backwards compatibility)
+        return new Response(null, {
+          status: 302,
+          headers: {
+            "Location": redirectUrl,
+            "Cache-Control": "no-store",
+            "X-Click-Tracked": "true",
+            "X-Attribution-Source": attributionSource,
+            "X-Response-Time": `${duration}ms`,
+          },
+        });
+      }
 
     } catch (error) {
       console.error("Click tracking error:", error);

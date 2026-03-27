@@ -384,7 +384,6 @@ export const seedTenantBulkData = internalMutation({
           passwordHash: TEST_PASSWORD_HASH,
           promotionChannel,
           payoutMethod: rng() > 0.15 ? payoutMethods[Math.floor(rng() * payoutMethods.length)] : undefined,
-          vanitySlug: rng() > 0.7 ? `${name.toLowerCase().replace(/\s+/g, "-")}-${uniqueCode.slice(0, 4).toLowerCase()}` : undefined,
         });
 
         createdAffiliateIds.push(affiliateId);

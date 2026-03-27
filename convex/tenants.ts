@@ -37,13 +37,14 @@ export interface SaligPayCredentials {
 }
 
 /**
- * Create a new tenant with the given name and slug.
+ * Create a new tenant with the given name, slug, and domain.
  * Used during user registration to create a tenant for the new SaaS owner.
  */
 export const createTenant = internalMutation({
   args: {
     name: v.string(),
     slug: v.string(),
+    domain: v.string(),
   },
   returns: v.id("tenants"),
   handler: async (ctx, args) => {
@@ -57,12 +58,23 @@ export const createTenant = internalMutation({
       throw new Error(`Tenant slug "${args.slug}" is already taken`);
     }
 
+    // Check if domain is already taken
+    const existingTenantByDomain = await ctx.db
+      .query("tenants")
+      .withIndex("by_domain", (q) => q.eq("domain", args.domain))
+      .first();
+
+    if (existingTenantByDomain) {
+      throw new Error(`A tenant with domain "${args.domain}" already exists`);
+    }
+
     // Create tenant with default settings
     const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days from now
 
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,
       slug: args.slug,
+      domain: args.domain,
       plan: "starter",
       trialEndsAt,
       status: "active",
@@ -78,13 +90,209 @@ export const createTenant = internalMutation({
       entityType: "tenant",
       entityId: tenantId,
       actorType: "system",
-      newValue: { name: args.name, slug: args.slug, plan: "starter" },
+      newValue: { name: args.name, slug: args.slug, domain: args.domain, plan: "starter" },
     });
 
     // Seed denormalized tenantStats counters
     await ctx.runMutation(internal.tenantStats.seedStats, { tenantId });
 
     return tenantId;
+  },
+});
+
+/**
+ * Update the tenant's main website domain.
+ * This is the domain where the tenant's product is hosted and where referral links point to.
+ * Changing this domain will invalidate all existing referral links.
+ * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
+ */
+export const updateTenantWebsiteDomain = mutation({
+  args: {
+    domain: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Check permission - require settings:* or manage:* permission
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=updateTenantWebsiteDomain`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to update domain settings");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // Validate domain format
+    let cleanedDomain = args.domain.trim().toLowerCase();
+    
+    // Strip protocol if provided
+    cleanedDomain = cleanedDomain.replace(/^https?:\/\//, "");
+    
+    // Strip www.
+    cleanedDomain = cleanedDomain.replace(/^www\./, "");
+    
+    // Strip trailing slashes and path
+    cleanedDomain = cleanedDomain.split("/")[0];
+    
+    // Strip port if present
+    cleanedDomain = cleanedDomain.split(":")[0];
+
+    // Reject empty domain
+    if (!cleanedDomain || cleanedDomain.length < 3) {
+      throw new Error("Domain is required and must be at least 3 characters");
+    }
+
+    // Reject localhost
+    if (cleanedDomain === "localhost" || cleanedDomain.includes("localhost")) {
+      throw new Error("localhost is not allowed. Please provide a production domain");
+    }
+
+    // Reject IP addresses
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipRegex.test(cleanedDomain)) {
+      throw new Error("IP addresses are not allowed. Please provide a domain name");
+    }
+
+    // Basic domain format check
+    const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!domainRegex.test(cleanedDomain)) {
+      throw new Error("Invalid domain format. Please provide a valid domain like 'yourcompany.com'");
+    }
+
+    // Check if domain is already taken by another tenant
+    if (cleanedDomain !== tenant.domain) {
+      const existingTenant = await ctx.db
+        .query("tenants")
+        .withIndex("by_domain", (q) => q.eq("domain", cleanedDomain))
+        .first();
+
+      if (existingTenant) {
+        throw new Error("A tenant with this domain already exists");
+      }
+    }
+
+    const previousDomain = tenant.domain;
+
+    // Update tenant domain and clear tracking verification
+    await ctx.db.patch(authUser.tenantId, {
+      domain: cleanedDomain,
+      trackingVerifiedAt: undefined, // Require re-verification
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "tenant_domain_updated",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: { domain: previousDomain },
+      newValue: { domain: cleanedDomain },
+      metadata: {
+        warning: "Domain change breaks all existing referral links",
+        trackingVerificationCleared: true,
+      },
+    });
+
+    // Notify all active affiliates about the domain change
+    const affiliates = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    for (const affiliate of affiliates) {
+      await ctx.scheduler.runAfter(0, internal.tenants.sendDomainChangeNotification, {
+        affiliateId: affiliate._id,
+        tenantId: authUser.tenantId,
+        oldDomain: previousDomain,
+        newDomain: cleanedDomain,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Domain updated to ${cleanedDomain}. Tracking verification has been reset - please reinstall the tracking snippet on your new domain. All active affiliates have been notified of the change.`,
+    };
+  },
+});
+
+/**
+ * Send domain change notification to an affiliate.
+ * Internal action - called by updateTenantWebsiteDomain mutation.
+ */
+export const sendDomainChangeNotification = internalAction({
+  args: {
+    affiliateId: v.id("affiliates"),
+    tenantId: v.id("tenants"),
+    oldDomain: v.string(),
+    newDomain: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get affiliate details
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || affiliate.status !== "active") {
+      return null;
+    }
+
+    // Get tenant details
+    const tenant = await ctx.runQuery(internal.tenants.getTenantInternal, {
+      tenantId: args.tenantId,
+    });
+
+    if (!tenant) {
+      console.error("Cannot send domain change notification: tenant not found");
+      return null;
+    }
+
+    try {
+      // Import email template dynamically
+      const DomainChangeEmail = (await import("./emails/DomainChangeNotification")).default;
+
+      // Send email via Resend component
+      await resendInstance.sendEmail(ctx, {
+        from: "Affiliate Notifications <notifications@boboddy.business>",
+        to: affiliate.email,
+        subject: `Important: ${tenant.name} has updated their website domain`,
+        html: await render(
+          React.createElement(DomainChangeEmail, {
+            affiliateName: affiliate.name,
+            tenantName: tenant.name,
+            oldDomain: args.oldDomain,
+            newDomain: args.newDomain,
+          })
+        ),
+      });
+
+      console.log(`Domain change notification sent to ${affiliate.email}`);
+    } catch (error) {
+      console.error("Failed to send domain change notification:", error);
+    }
+
+    return null;
   },
 });
 

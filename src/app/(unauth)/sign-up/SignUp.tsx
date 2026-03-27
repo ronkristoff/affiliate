@@ -40,6 +40,7 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [domain, setDomain] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -118,6 +119,30 @@ export default function SignUp() {
 
   const strength = getPasswordStrength(password);
 
+  // Helper to clean domain input (strip protocol, www, trailing slashes)
+  const cleanDomain = (input: string): string | null => {
+    if (!input) return null;
+    
+    let cleaned = input.toLowerCase().trim();
+    
+    // Strip protocol
+    cleaned = cleaned.replace(/^https?:\/\//, "");
+    
+    // Strip www.
+    cleaned = cleaned.replace(/^www\./, "");
+    
+    // Strip trailing slashes and path
+    cleaned = cleaned.split("/")[0];
+    
+    // Strip port if present
+    cleaned = cleaned.split(":")[0];
+    
+    // Basic validation
+    if (!cleaned || cleaned.length < 3) return null;
+    
+    return cleaned;
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -135,6 +160,32 @@ export default function SignUp() {
     }
     if (companyName.trim().length > 100) {
       toast.error("Company name must be less than 100 characters");
+      return;
+    }
+    if (!domain.trim()) {
+      toast.error("Please enter your website URL");
+      return;
+    }
+    // Domain validation
+    const cleanedDomain = cleanDomain(domain.trim());
+    if (!cleanedDomain) {
+      toast.error("Please enter a valid website URL (e.g., yourcompany.com)");
+      return;
+    }
+    if (cleanedDomain === "localhost" || cleanedDomain.includes("localhost")) {
+      toast.error("localhost is not allowed. Please enter your production domain");
+      return;
+    }
+    // Check for IP addresses
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipRegex.test(cleanedDomain)) {
+      toast.error("IP addresses are not allowed. Please enter a domain name");
+      return;
+    }
+    // Basic domain format check
+    const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!domainRegex.test(cleanedDomain)) {
+      toast.error("Please enter a valid domain (e.g., yourcompany.com)");
       return;
     }
     if (!email.trim()) {
@@ -158,12 +209,14 @@ export default function SignUp() {
 
     setLoading(true);
     try {
+      const cleanedDomainValue = cleanDomain(domain.trim());
       const { data, error } = await authClient.signUp.email(
         {
           email,
           password,
           name: `${firstName} ${lastName}`,
           companyName: companyName.trim(),
+          domain: cleanedDomainValue,
         },
         {
           onRequest: () => {
@@ -434,6 +487,41 @@ export default function SignUp() {
                   required
                 />
               </div>
+            </div>
+
+            {/* Domain */}
+            <div className="mb-4">
+              <Label htmlFor="domain" className="text-[13px] font-semibold text-[#333] block mb-1.5">
+                Website URL
+              </Label>
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                <Input
+                  type="text"
+                  id="domain"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
+                  placeholder="yourcompany.com"
+                  autoComplete="url"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-1.5">
+                Your website URL where customers buy your product
+              </p>
             </div>
 
             {/* Email */}

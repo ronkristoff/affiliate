@@ -56,11 +56,52 @@ async function generateUniqueSlug(ctx: any, companyName: string): Promise<string
  * Note: This is an internal function called by the auth system,
  * so it does NOT use tenant-scoped wrappers.
  */
+// Helper function to clean and validate domain
+function cleanAndValidateDomain(domain: string | undefined): string {
+  if (!domain || domain.trim().length === 0) {
+    throw new Error("Domain is required");
+  }
+
+  let cleaned = domain.toLowerCase().trim();
+
+  // Strip protocol
+  cleaned = cleaned.replace(/^https?:\/\//, "");
+
+  // Strip www.
+  cleaned = cleaned.replace(/^www\./, "");
+
+  // Strip trailing slashes and path
+  cleaned = cleaned.split("/")[0];
+
+  // Strip port if present
+  cleaned = cleaned.split(":")[0];
+
+  // Reject localhost
+  if (cleaned === "localhost" || cleaned.includes("localhost")) {
+    throw new Error("localhost is not allowed. Please provide a production domain");
+  }
+
+  // Reject IP addresses
+  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipRegex.test(cleaned)) {
+    throw new Error("IP addresses are not allowed. Please provide a domain name");
+  }
+
+  // Basic domain format check
+  const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+  if (!domainRegex.test(cleaned)) {
+    throw new Error("Invalid domain format. Please provide a valid domain like 'yourcompany.com'");
+  }
+
+  return cleaned;
+}
+
 export const syncUserCreation = internalMutation({
   args: {
     email: v.string(),
     name: v.optional(v.string()),
     companyName: v.optional(v.string()),
+    domain: v.optional(v.string()),
     authId: v.string(), // Better Auth user ID
   },
   returns: v.id("users"),
@@ -87,6 +128,19 @@ export const syncUserCreation = internalMutation({
       throw new Error("Company name must be less than 100 characters");
     }
 
+    // Validate and clean domain
+    const cleanedDomain = cleanAndValidateDomain(args.domain);
+
+    // Check domain uniqueness
+    const existingTenantByDomain = await ctx.db
+      .query("tenants")
+      .withIndex("by_domain", (q: any) => q.eq("domain", cleanedDomain))
+      .first();
+
+    if (existingTenantByDomain) {
+      throw new Error("A tenant with this domain already exists");
+    }
+
     const slug = await generateUniqueSlug(ctx, companyName);
 
     // Create tenant for this user (they are the owner)
@@ -95,6 +149,7 @@ export const syncUserCreation = internalMutation({
     const tenantId: Id<"tenants"> = await ctx.db.insert("tenants", {
       name: companyName,
       slug,
+      domain: cleanedDomain,
       plan: "starter",
       trialEndsAt,
       status: "active",
