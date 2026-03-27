@@ -32,45 +32,56 @@ export default async function Image() {
         />
 
         {/* Logo/Brand */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            marginBottom: "40px",
-          }}
-        >
           <div
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #10409a 0%, #1659d6 100%)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: "16px",
+              marginBottom: "40px",
             }}
           >
-            <span
+            <div
               style={{
-                color: "#ffffff",
-                fontSize: "28px",
-                fontWeight: "700",
+                width: "48px",
+                height: "48px",
+                borderRadius: "12px",
+                background: "#1659d6",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              S
+              <span
+                style={{
+                  color: "#ffffff",
+                  fontSize: "28px",
+                  fontWeight: "900",
+                }}
+              >
+                S
+              </span>
+            </div>
+            <span>
+              <span
+                style={{
+                  fontSize: "36px",
+                  fontWeight: "700",
+                  color: "#022232",
+                }}
+              >
+                salig
+              </span>
+              <span
+                style={{
+                  fontSize: "36px",
+                  fontWeight: "700",
+                  color: "#7dd3fc",
+                }}
+              >
+                affiliate
+              </span>
             </span>
           </div>
-          <span
-            style={{
-              fontSize: "36px",
-              fontWeight: "700",
-              color: "#10409a",
-            }}
-          >
-            salig-affiliate
-          </span>
-        </div>
 
         {/* Main Headline */}
         <h1

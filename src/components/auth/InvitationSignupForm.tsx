@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/shared/Logo";
 
 interface InvitationSignupFormProps {
   token?: string;
@@ -162,24 +163,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
     <div className="min-h-screen bg-[#f2f2f2]">
       {/* Topbar */}
       <header className="bg-white border-b border-[#e5e7eb] px-8 h-[60px] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#10409a] rounded-lg flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-[18px] h-[18px] text-white"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-base font-extrabold text-[#022232] tracking-tight">salig-affiliate</span>
-        </div>
+        <Logo href="/" />
         <div className="text-[13px] text-[#6b7280]">
           Already have an account?{" "}
           <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
@@ -413,24 +397,7 @@ function InvitationError({ errorType }: { errorType: "invalid" | "expired" | "mi
     <div className="min-h-screen bg-[#f2f2f2]">
       {/* Topbar */}
       <header className="bg-white border-b border-[#e5e7eb] px-8 h-[60px] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#10409a] rounded-lg flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-[18px] h-[18px] text-white"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-base font-extrabold text-[#022232] tracking-tight">salig-affiliate</span>
-        </div>
+        <Logo href="/" />
       </header>
 
       {/* Main Content */}

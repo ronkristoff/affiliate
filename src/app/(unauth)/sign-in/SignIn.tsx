@@ -11,6 +11,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { ConvexHttpClient } from "convex/browser";
+import { Logo } from "@/components/shared/Logo";
 
 export default function SignIn() {
   const router = useRouter();
@@ -194,23 +195,8 @@ export default function SignIn() {
         <div className="absolute bottom-[-80px] left-[-80px] w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,64,154,0.3)_0%,transparent_70%)] pointer-events-none" />
 
         {/* Logo */}
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 bg-[#10409a] rounded-[10px] flex items-center justify-center shadow-[0_4px_16px_rgba(16,64,154,0.5)]">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-[22px] h-[22px] text-white"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-xl font-extrabold text-white tracking-tight">salig-affiliate</span>
+        <div className="relative z-10">
+          <Logo href="/" variant="light" />
         </div>
 
         {/* Hero */}

@@ -10,6 +10,7 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import { Logo } from "@/components/shared/Logo";
 
 export function MarketingNav() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -50,14 +51,7 @@ export function MarketingNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav className="flex items-center justify-between" aria-label="Main navigation">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2" aria-label="salig-affiliate home">
-            <div className="w-9 h-9 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-              <span className="text-white font-bold text-sm font-display tracking-tight">SA</span>
-            </div>
-            <span className="font-bold text-xl text-[var(--text-heading)]">
-              salig<span className="text-[var(--brand-primary)]">-affiliate</span>
-            </span>
-          </Link>
+          <Logo href="/" />
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
@@ -99,14 +93,7 @@ export function MarketingNav() {
               <div className="flex flex-col h-full">
                 {/* Mobile Header */}
                 <div className="flex items-center justify-between pb-6 border-b">
-                  <Link href="/" className="flex items-center gap-2" aria-label="salig-affiliate home">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-                      <span className="text-white font-bold text-xs font-display tracking-tight">SA</span>
-                    </div>
-                    <span className="font-bold text-lg text-[var(--text-heading)]">
-                      salig<span className="text-[var(--brand-primary)]">-affiliate</span>
-                    </span>
-                  </Link>
+                  <Logo href="/" />
                 </div>
 
                 {/* Mobile Nav Links */}

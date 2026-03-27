@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { ChevronRight } from "lucide-react";
+import { Logo } from "@/components/shared/Logo";
 
 interface NavItem {
   href: string;
@@ -223,16 +224,9 @@ export function Sidebar({ className }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <Link href="/dashboard" className="px-5 py-6 border-b border-white/[0.08] block">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#1659d6] rounded-lg flex items-center justify-center font-black text-sm text-white">
-            S
-          </div>
-          <div className="text-[15px] font-bold text-white tracking-[-0.3px]">
-            salig<span className="text-[#7dd3fc]">affiliate</span>
-          </div>
-        </div>
-      </Link>
+      <div className="px-5 py-6 border-b border-white/[0.08]">
+        <Logo href="/dashboard" variant="light" />
+      </div>
 
       {/* Tenant Info */}
       <div className="px-5 py-3.5 border-b border-white/[0.08]">

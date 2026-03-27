@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Shield, Lock, Zap } from "lucide-react";
+import { Logo } from "@/components/shared/Logo";
 
 const footerLinks = {
   product: [
@@ -30,12 +31,7 @@ export function MarketingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-16 mb-16">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="inline-flex items-center gap-3 mb-6">
-              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                <span className="text-[#10409a] font-black text-xl">S</span>
-              </div>
-              <span className="font-black text-2xl">salig<span className="text-[#22d3ee]">affiliate</span></span>
-            </Link>
+            <Logo href="/" variant="light" />
             <p className="text-white/60 text-base mb-6 leading-relaxed">
               Launch, manage, and pay your affiliate program natively on SaligPay.
             </p>
