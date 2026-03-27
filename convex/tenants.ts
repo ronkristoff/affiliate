@@ -776,6 +776,14 @@ export const deleteTenantData = internalMutation({
       return null;
     }
 
+    // Deletion guard: if deletionScheduledDate was cleared (by admin reactivation),
+    // abort silently. Convex does not expose ctx.scheduler.cancel(), so reactivation
+    // clears deletionScheduledDate instead of cancelling the scheduled job.
+    if (!tenant.deletionScheduledDate) {
+      console.log(`Tenant ${args.tenantId} deletion was cancelled (deletionScheduledDate cleared), skipping`);
+      return null;
+    }
+
     // Cascading deletion of all tenant data
     // Note: Convex doesn't support cascading deletes, so we must do it manually
 

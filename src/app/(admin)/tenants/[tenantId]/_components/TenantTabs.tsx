@@ -5,12 +5,13 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
+  Receipt,
   Plug,
   StickyNote,
   FileText,
 } from "lucide-react";
 
-type Tab = "overview" | "affiliates" | "payouts" | "integrations" | "notes" | "audit";
+type Tab = "overview" | "affiliates" | "payouts" | "billing" | "integrations" | "notes" | "audit";
 
 interface TenantTabsProps {
   activeTab: Tab;
@@ -24,6 +25,7 @@ function buildTabs(affiliatesCount: number, notesCount: number): FilterTabItem[]
     { key: "overview", label: "Overview", icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
     { key: "affiliates", label: "Affiliates", icon: <Users className="h-3.5 w-3.5" />, count: affiliatesCount },
     { key: "payouts", label: "Payout Batches", icon: <CreditCard className="h-3.5 w-3.5" /> },
+    { key: "billing", label: "Billing", icon: <Receipt className="h-3.5 w-3.5" /> },
     { key: "integrations", label: "Integrations", icon: <Plug className="h-3.5 w-3.5" /> },
     { key: "notes", label: "Admin Notes", icon: <StickyNote className="h-3.5 w-3.5" />, count: notesCount },
     { key: "audit", label: "Audit Log", icon: <FileText className="h-3.5 w-3.5" /> },

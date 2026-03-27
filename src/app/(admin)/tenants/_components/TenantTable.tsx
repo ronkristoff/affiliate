@@ -15,6 +15,7 @@ import { TenantAvatar } from "./TenantAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { PlanBadge } from "./PlanBadge";
 import { Eye } from "lucide-react";
+import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,6 +24,7 @@ import { Eye } from "lucide-react";
 export type TenantSortField =
   | "name"
   | "plan"
+  | "subscriptionStatus"
   | "status"
   | "affiliateCount"
   | "mrr"
@@ -36,6 +38,7 @@ interface Tenant {
   domain: string | undefined;
   plan: string;
   status: string;
+  subscriptionStatus?: string;
   ownerEmail: string;
   affiliateCount: number;
   mrr: number;
@@ -77,6 +80,13 @@ const planFilterOptions: FilterOption[] = [
   { value: "growth", label: "Growth" },
   { value: "scale", label: "Scale" },
   { value: "pro", label: "Pro" },
+];
+
+const subscriptionStatusFilterOptions: FilterOption[] = [
+  { value: "trial", label: "Trial" },
+  { value: "active", label: "Active" },
+  { value: "past_due", label: "Past Due" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -134,6 +144,17 @@ export function TenantTable({
         filterOptions: planFilterOptions,
         filterLabel: "Plan",
         cell: (row) => <PlanBadge plan={row.plan} />,
+      },
+      {
+        key: "subscriptionStatus",
+        header: "Subscription",
+        sortable: true,
+        sortField: "subscriptionStatus",
+        filterable: true,
+        filterType: "select",
+        filterOptions: subscriptionStatusFilterOptions,
+        filterLabel: "Subscription",
+        cell: (row) => <SubscriptionStatusBadge status={row.subscriptionStatus} />,
       },
       {
         key: "status",

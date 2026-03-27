@@ -30,6 +30,7 @@ interface Tenant {
   domain: string | undefined;
   plan: string;
   status: string;
+  subscriptionStatus?: string;
   ownerEmail: string;
   affiliateCount: number;
   mrr: number;
@@ -70,6 +71,9 @@ function AdminTenantsContent() {
   );
   const [planFilter, setPlanFilter] = useState(
     searchParams.get("plan") || ""
+  );
+  const [subscriptionStatusFilter, setSubscriptionStatusFilter] = useState(
+    searchParams.get("subscriptionStatus") || ""
   );
   const [statusColFilter, setStatusColFilter] = useState(
     searchParams.get("col_status") || ""
@@ -122,6 +126,8 @@ function AdminTenantsContent() {
     if (sortOrder !== "desc") params.set("order", sortOrder);
     if (tenantNameFilter) params.set("name", tenantNameFilter);
     if (planFilter) params.set("plan", planFilter);
+    if (subscriptionStatusFilter) params.set("subscriptionStatus", subscriptionStatusFilter);
+    if (subscriptionStatusFilter) params.set("subscriptionStatus", subscriptionStatusFilter);
     if (statusColFilter) params.set("col_status", statusColFilter);
     if (affiliateMin) params.set("aff_min", affiliateMin);
     if (affiliateMax) params.set("aff_max", affiliateMax);
@@ -144,6 +150,7 @@ function AdminTenantsContent() {
     sortOrder,
     tenantNameFilter,
     planFilter,
+    subscriptionStatusFilter,
     statusColFilter,
     affiliateMin,
     affiliateMax,
@@ -165,7 +172,7 @@ function AdminTenantsContent() {
   useEffect(() => {
     setPage(1);
     setCursor(undefined);
-  }, [debouncedSearch, activeFilter, tenantNameFilter, planFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
+  }, [debouncedSearch, activeFilter, tenantNameFilter, planFilter, subscriptionStatusFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
 
   // ── Build activeFilters for DataTable & FilterChips ──────────────────────
   const activeFilters = useMemo<ColumnFilter[]>(() => {
@@ -175,6 +182,9 @@ function AdminTenantsContent() {
     }
     if (planFilter) {
       filters.push({ columnKey: "plan", type: "select", values: planFilter.split(",") });
+    }
+    if (subscriptionStatusFilter) {
+      filters.push({ columnKey: "subscriptionStatus", type: "select", values: subscriptionStatusFilter.split(",") });
     }
     if (statusColFilter) {
       filters.push({ columnKey: "status", type: "select", values: statusColFilter.split(",") });
@@ -210,7 +220,7 @@ function AdminTenantsContent() {
       });
     }
     return filters;
-  }, [tenantNameFilter, planFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
+  }, [tenantNameFilter, planFilter, subscriptionStatusFilter, statusColFilter, affiliateMin, affiliateMax, mrrMin, mrrMax, createdAfter, createdBefore]);
 
   // ── Column definitions (for FilterChips label resolution) ────────────────
   // Only header + filterLabel needed for chip display; cell is required by type.
@@ -218,6 +228,7 @@ function AdminTenantsContent() {
     () => [
       { key: "name", header: "Tenant", filterLabel: "Tenant", cell: () => null },
       { key: "plan", header: "Plan", filterLabel: "Plan", cell: () => null },
+      { key: "subscriptionStatus", header: "Subscription", filterLabel: "Subscription", cell: () => null },
       { key: "status", header: "Status", filterLabel: "Status", cell: () => null },
       { key: "affiliateCount", header: "Affiliates", filterLabel: "Affiliates", cell: () => null },
       { key: "mrr", header: "MRR", filterLabel: "MRR", cell: () => null },
@@ -238,6 +249,9 @@ function AdminTenantsContent() {
             break;
           case "plan":
             setPlanFilter(filter.values?.length ? filter.values.join(",") : "");
+            break;
+          case "subscriptionStatus":
+            setSubscriptionStatusFilter(filter.values?.length ? filter.values.join(",") : "");
             break;
           case "status":
             setStatusColFilter(filter.values?.length ? filter.values.join(",") : "");
@@ -264,6 +278,7 @@ function AdminTenantsContent() {
       // Clear any filters that were removed
       if (!activeKeys.has("name")) setTenantNameFilter("");
       if (!activeKeys.has("plan")) setPlanFilter("");
+      if (!activeKeys.has("subscriptionStatus")) setSubscriptionStatusFilter("");
       if (!activeKeys.has("status")) setStatusColFilter("");
       if (!activeKeys.has("affiliateCount")) {
         setAffiliateMin("");
@@ -286,6 +301,7 @@ function AdminTenantsContent() {
     switch (key) {
       case "name": setTenantNameFilter(""); break;
       case "plan": setPlanFilter(""); break;
+      case "subscriptionStatus": setSubscriptionStatusFilter(""); break;
       case "status": setStatusColFilter(""); break;
       case "affiliateCount": setAffiliateMin(""); setAffiliateMax(""); break;
       case "mrr": setMrrMin(""); setMrrMax(""); break;
@@ -312,6 +328,7 @@ function AdminTenantsContent() {
     setSortOrder("desc");
     setTenantNameFilter("");
     setPlanFilter("");
+    setSubscriptionStatusFilter("");
     setStatusColFilter("");
     setAffiliateMin("");
     setAffiliateMax("");
@@ -372,6 +389,15 @@ function AdminTenantsContent() {
       data = data.filter((t) => plans.includes(t.plan.toLowerCase()));
     }
 
+    // Subscription status filter
+    if (subscriptionStatusFilter) {
+      const statuses = subscriptionStatusFilter.toLowerCase().split(",");
+      data = data.filter((t) => {
+        const status = (t.subscriptionStatus ?? "").toLowerCase();
+        return statuses.includes(status);
+      });
+    }
+
     // Status column filter
     if (statusColFilter) {
       const statuses = statusColFilter.toLowerCase().split(",");
@@ -417,6 +443,7 @@ function AdminTenantsContent() {
     tenants,
     tenantNameFilter,
     planFilter,
+    subscriptionStatusFilter,
     statusColFilter,
     affiliateMin,
     affiliateMax,
@@ -436,6 +463,9 @@ function AdminTenantsContent() {
           break;
         case "plan":
           comparison = a.plan.localeCompare(b.plan);
+          break;
+        case "subscriptionStatus":
+          comparison = (a.subscriptionStatus ?? "").localeCompare(b.subscriptionStatus ?? "");
           break;
         case "status":
           comparison = a.status.localeCompare(b.status);

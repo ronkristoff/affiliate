@@ -13,38 +13,17 @@ import { TenantTabs } from "./TenantTabs";
 import { OverviewTab } from "./OverviewTab";
 import { AffiliatesTab } from "./AffiliatesTab";
 import { PayoutsTab } from "./PayoutsTab";
+import { BillingTab } from "./BillingTab";
 import { IntegrationsTab } from "./IntegrationsTab";
 import { NotesTab } from "./NotesTab";
 import { AuditLogTab } from "./AuditLogTab";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { ChevronRight } from "lucide-react";
+import { TenantDetail } from "./types";
 
-const TABS = ["overview", "affiliates", "payouts", "integrations", "notes", "audit"] as const;
+const TABS = ["overview", "affiliates", "payouts", "billing", "integrations", "notes", "audit"] as const;
 type Tab = (typeof TABS)[number];
-
-interface TenantDetail {
-  _id: Id<"tenants">;
-  companyName: string;
-  domain: string | undefined;
-  ownerEmail: string;
-  ownerName: string | undefined;
-  plan: string;
-  status: string;
-  createdAt: number;
-  saligPayStatus: string | undefined;
-  saligPayExpiresAt: number | undefined;
-  affiliateCount: {
-    total: number;
-    active: number;
-    pending: number;
-    flagged: number;
-  };
-  totalCommissions: number;
-  mrrInfluenced: number;
-  isFlagged: boolean;
-  flagReasons: string[];
-}
 
 interface TenantDetailContentProps {
   tenant: TenantDetail;
@@ -165,6 +144,9 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
               )}
               {activeTab === "payouts" && (
                 <PayoutsTab tenantId={tenant._id} />
+              )}
+              {activeTab === "billing" && (
+                <BillingTab tenantId={tenant._id} tenant={tenant} />
               )}
               {activeTab === "integrations" && (
                 <IntegrationsTab tenant={tenant} />

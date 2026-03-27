@@ -10,6 +10,7 @@
 
 import type * as admin__helpers from "../admin/_helpers.js";
 import type * as admin_impersonation from "../admin/impersonation.js";
+import type * as admin_subscriptions from "../admin/subscriptions.js";
 import type * as admin_tenants from "../admin/tenants.js";
 import type * as admin_tier_configs from "../admin/tier_configs.js";
 import type * as admin_tier_overrides from "../admin/tier_overrides.js";
@@ -101,6 +102,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "admin/_helpers": typeof admin__helpers;
   "admin/impersonation": typeof admin_impersonation;
+  "admin/subscriptions": typeof admin_subscriptions;
   "admin/tenants": typeof admin_tenants;
   "admin/tier_configs": typeof admin_tier_configs;
   "admin/tier_overrides": typeof admin_tier_overrides;

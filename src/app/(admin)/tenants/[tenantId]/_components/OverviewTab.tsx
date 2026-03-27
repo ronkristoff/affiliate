@@ -6,30 +6,11 @@ import { Id } from "@/convex/_generated/dataModel";
 import { RecentCommissionsTable } from "./RecentCommissionsTable";
 import { PlanUsageCard } from "./PlanLimitsCard";
 import { QuickActionsCard } from "./QuickActionsCard";
+import { SubscriptionSummaryCard } from "./SubscriptionSummaryCard";
+import type { TenantDetail } from "./types";
 
 interface OverviewTabProps {
-  tenant: {
-    _id: Id<"tenants">;
-    companyName: string;
-    domain: string | undefined;
-    ownerEmail: string;
-    ownerName: string | undefined;
-    plan: string;
-    status: string;
-    createdAt: number;
-    saligPayStatus: string | undefined;
-    saligPayExpiresAt: number | undefined;
-    affiliateCount: {
-      total: number;
-      active: number;
-      pending: number;
-      flagged: number;
-    };
-    totalCommissions: number;
-    mrrInfluenced: number;
-    isFlagged: boolean;
-    flagReasons: string[];
-  };
+  tenant: TenantDetail;
 }
 
 export function OverviewTab({ tenant }: OverviewTabProps) {
@@ -39,18 +20,21 @@ export function OverviewTab({ tenant }: OverviewTabProps) {
   });
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2">
-        <RecentCommissionsTable
-          commissions={commissions?.commissions ?? []}
-          isLoading={commissions === undefined}
-          tenantId={tenant._id}
-        />
-      </div>
+    <div className="space-y-6">
+      <SubscriptionSummaryCard tenant={tenant} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RecentCommissionsTable
+            commissions={commissions?.commissions ?? []}
+            isLoading={commissions === undefined}
+            tenantId={tenant._id}
+          />
+        </div>
 
-      <div className="space-y-6">
-        <PlanUsageCard tenantId={tenant._id} />
-        <QuickActionsCard tenantId={tenant._id} tenantName={tenant.companyName} />
+        <div className="space-y-6">
+          <PlanUsageCard tenantId={tenant._id} />
+          <QuickActionsCard tenantId={tenant._id} tenantName={tenant.companyName} />
+        </div>
       </div>
     </div>
   );

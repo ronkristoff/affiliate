@@ -5,40 +5,11 @@ import { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { betterAuthComponent } from "../auth";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
-import { readTenantStats } from "./_helpers";
+import { requireAdmin, readTenantStats } from "./_helpers";
 
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/**
- * Verify that the caller is a platform admin.
- * Returns the admin user document or null.
- * @deprecated Prefer requireAdmin from _helpers.ts
- */
-async function requireAdmin(ctx: QueryCtx) {
-  let betterAuthUser;
-  try {
-    betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
-  } catch {
-    return null;
-  }
-
-  if (!betterAuthUser) {
-    return null;
-  }
-
-  const appUser = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q: any) => q.eq("email", betterAuthUser.email))
-    .first();
-
-  if (!appUser || appUser.role !== "admin") {
-    return null;
-  }
-
-  return appUser;
-}
 
 /**
  * Determine if a tenant is flagged based on conditions:
@@ -140,6 +111,7 @@ export interface TenantRow {
   domain: string | undefined;
   plan: string;
   status: string;
+  subscriptionStatus?: string;
   ownerEmail: string;
   affiliateCount: number;
   mrr: number;
@@ -178,6 +150,7 @@ export const searchTenants = query({
         domain: v.optional(v.string()),
         plan: v.string(),
         status: v.string(),
+        subscriptionStatus: v.optional(v.string()),
         ownerEmail: v.string(),
         affiliateCount: v.number(),
         mrr: v.number(),
@@ -190,9 +163,6 @@ export const searchTenants = query({
   }),
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx);
-    if (!admin) {
-      throw new Error("Unauthorized: Admin access required");
-    }
 
     // ── Step 1: Fetch a page of tenants via native pagination ──────────
     // Use a generous page (3x requested) so we can filter in memory
@@ -244,6 +214,7 @@ export const searchTenants = query({
         domain: tenant.branding?.customDomain,
         plan: tenant.plan,
         status: tenant.status,
+        subscriptionStatus: tenant.subscriptionStatus,
         ownerEmail,
         affiliateCount: stats.affiliatesPending
           + stats.affiliatesActive
@@ -697,6 +668,13 @@ export const getTenantDetails = query({
     createdAt: v.number(),
     saligPayStatus: v.optional(v.string()),
     saligPayExpiresAt: v.optional(v.number()),
+    subscriptionStatus: v.optional(v.string()),
+    subscriptionId: v.optional(v.string()),
+    billingStartDate: v.optional(v.number()),
+    billingEndDate: v.optional(v.number()),
+    trialEndsAt: v.optional(v.number()),
+    cancellationDate: v.optional(v.number()),
+    deletionScheduledDate: v.optional(v.number()),
     affiliateCount: v.object({
       total: v.number(),
       active: v.number(),
@@ -809,6 +787,13 @@ export const getTenantDetails = query({
       createdAt: tenant._creationTime,
       saligPayStatus,
       saligPayExpiresAt,
+      subscriptionStatus: tenant.subscriptionStatus,
+      subscriptionId: tenant.subscriptionId,
+      billingStartDate: tenant.billingStartDate,
+      billingEndDate: tenant.billingEndDate,
+      trialEndsAt: tenant.trialEndsAt,
+      cancellationDate: tenant.cancellationDate,
+      deletionScheduledDate: tenant.deletionScheduledDate,
       affiliateCount,
       totalCommissions,
       mrrInfluenced,
