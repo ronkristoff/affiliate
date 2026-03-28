@@ -339,6 +339,8 @@ describe("Webhook Processing to Conversion", () => {
       const affiliateId = await ctx.db.insert("affiliates", {
         tenantId,
         email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
@@ -495,6 +497,8 @@ describe("Webhook Processing to Conversion", () => {
       return await ctx.db.insert("affiliates", {
         tenantId,
         email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
@@ -565,6 +569,8 @@ describe("Webhook Processing to Conversion", () => {
       return await ctx.db.insert("affiliates", {
         tenantId,
         email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",
@@ -734,6 +740,8 @@ describe("Webhook Processing to Conversion", () => {
       return await ctx.db.insert("affiliates", {
         tenantId,
         email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
         name: "Test Affiliate",
         uniqueCode: "INACTIVE123",
         status: "suspended", // Inactive status
@@ -809,6 +817,8 @@ describe("Webhook Processing to Conversion", () => {
       const affiliateId = await ctx.db.insert("affiliates", {
         tenantId,
         email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
         name: "Test Affiliate",
         uniqueCode: "TEST123",
         status: "active",

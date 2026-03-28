@@ -771,9 +771,16 @@ export const createTestAffiliate = internalMutation({
       throw new Error(`Affiliate with email "${args.email}" already exists in this tenant`);
     }
 
+    // Split name into firstName and lastName
+    const nameParts = args.name.split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId: args.tenantId,
       email: args.email,
+      firstName,
+      lastName,
       name: args.name,
       uniqueCode: args.uniqueCode,
       status: args.status,
@@ -1378,9 +1385,15 @@ export const seedAllTestData = internalMutation({
         // Create affiliates with referral links
         for (const affiliate of tenantConfig.affiliates) {
           const uniqueCode = generateReferralCode();
+          // Split name into firstName and lastName
+          const nameParts = affiliate.name.split(" ");
+          const firstName = nameParts[0] || "";
+          const lastName = nameParts.slice(1).join(" ") || "";
           const affiliateId = await ctx.db.insert("affiliates", {
             tenantId,
             email: affiliate.email,
+            firstName,
+            lastName,
             name: affiliate.name,
             uniqueCode,
             status: affiliate.status,
