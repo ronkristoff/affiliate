@@ -956,7 +956,8 @@ export const getAffiliateCountByStatus = query({
 export const registerAffiliate = mutation({
   args: {
     email: v.string(),
-    name: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     passwordHash: v.string(),
   },
   returns: v.object({
@@ -1010,11 +1011,15 @@ export const registerAffiliate = mutation({
       throw new Error("Failed to generate unique referral code");
     }
 
+    const fullName = `${args.firstName} ${args.lastName}`.trim();
+
     // Create affiliate with pending status (requires approval)
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId,
       email: args.email,
-      name: args.name,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      name: fullName,
       uniqueCode,
       status: "pending",
       passwordHash: args.passwordHash,
@@ -1029,7 +1034,7 @@ export const registerAffiliate = mutation({
       entityType: "affiliate",
       entityId: affiliateId,
       actorType: "system",
-      newValue: { email: args.email, name: args.name, uniqueCode, status: "pending" },
+      newValue: { email: args.email, name: fullName, uniqueCode, status: "pending" },
     });
 
     return {
@@ -1043,7 +1048,8 @@ export const registerAffiliate = mutation({
 export const inviteAffiliate = mutation({
   args: {
     email: v.string(),
-    name: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     promotionChannel: v.optional(v.string()),
   },
   returns: v.object({
@@ -1098,10 +1104,14 @@ export const inviteAffiliate = mutation({
       throw new Error("Failed to generate unique referral code");
     }
 
+    const fullName = `${args.firstName} ${args.lastName}`.trim();
+
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId,
       email: args.email,
-      name: args.name,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      name: fullName,
       uniqueCode,
       status: "active",
       promotionChannel: args.promotionChannel,
@@ -1116,7 +1126,7 @@ export const inviteAffiliate = mutation({
       entityId: affiliateId,
       actorType: "user",
       actorId: authUser.userId,
-      newValue: { email: args.email, name: args.name, uniqueCode, status: "active" },
+      newValue: { email: args.email, name: fullName, uniqueCode, status: "active" },
     });
 
     return {

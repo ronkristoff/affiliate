@@ -190,7 +190,9 @@ export default defineSchema({
   affiliates: defineTable({
     tenantId: v.id("tenants"),
     email: v.string(),
-    name: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    name: v.string(), // Full name for backward compatibility (computed from firstName + lastName)
     uniqueCode: v.string(),
     status: v.string(),
     vanitySlug: v.optional(v.string()),

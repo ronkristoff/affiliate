@@ -44,11 +44,16 @@ const PROMOTION_CHANNELS = [
 ] as const;
 
 const inviteSchema = z.object({
-  name: z
+  firstName: z
     .string()
-    .min(1, "Name is required")
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters"),
+    .min(1, "First name is required")
+    .min(2, "First name must be at least 2 characters")
+    .max(50, "First name must be less than 50 characters"),
+  lastName: z
+    .string()
+    .min(1, "Last name is required")
+    .min(2, "Last name must be at least 2 characters")
+    .max(50, "Last name must be less than 50 characters"),
   email: z
     .string()
     .min(1, "Email is required")
@@ -74,14 +79,15 @@ export function InviteAffiliateSheet({ isOpen, onClose }: InviteAffiliateSheetPr
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema),
     defaultValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
       email: "",
       promotionChannel: "",
     },
   });
 
   const resetForm = () => {
-    form.reset({ name: "", email: "", promotionChannel: "" });
+    form.reset({ firstName: "", lastName: "", email: "", promotionChannel: "" });
   };
 
   const onSubmit = async (data: InviteFormData) => {
@@ -89,7 +95,8 @@ export function InviteAffiliateSheet({ isOpen, onClose }: InviteAffiliateSheetPr
       setIsSubmitting(true);
       const result = await inviteAffiliate({
         email: data.email.trim().toLowerCase(),
-        name: data.name.trim(),
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
         promotionChannel: data.promotionChannel || undefined,
       });
 
@@ -131,23 +138,43 @@ export function InviteAffiliateSheet({ isOpen, onClose }: InviteAffiliateSheetPr
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
             <div className="px-6 py-5 space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="John Doe"
-                        disabled={isSubmitting}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="John"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Doe"
+                          disabled={isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

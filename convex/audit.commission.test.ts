@@ -42,6 +42,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           status: "active",
           uniqueCode: "TESTAFF123",
@@ -133,6 +135,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           status: "active",
           uniqueCode: "TESTAFF456",
@@ -227,6 +231,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           status: "active",
           uniqueCode: "TESTAFF789",
@@ -349,6 +355,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           status: "active",
           uniqueCode: "TESTAFF790",
@@ -459,6 +467,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           status: "active",
           uniqueCode: "TESTAFF791",
@@ -579,6 +589,8 @@ describe("Story 7.8: Commission Audit Log", () => {
         return await ctx.db.insert("affiliates", {
           tenantId: tenant1Id,
           email: "affiliate1@test.com",
+          firstName: "Affiliate",
+          lastName: "One",
           name: "Affiliate 1",
           status: "active",
           uniqueCode: "TESTAFF1",

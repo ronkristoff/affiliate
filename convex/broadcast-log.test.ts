@@ -33,6 +33,8 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -159,6 +161,8 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "bounced@test.com",
+          firstName: "Bounced",
+          lastName: "Affiliate",
           name: "Bounced Affiliate",
           uniqueCode: "BOUNCED1",
           status: "approved",
@@ -219,6 +223,8 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "complainer@test.com",
+          firstName: "Complainer",
+          lastName: "User",
           name: "Complainer",
           uniqueCode: "COMPLAIN1",
           status: "approved",

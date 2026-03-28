@@ -184,7 +184,8 @@ export const createAffiliateAccountInternal = internalMutation({
   args: {
     tenantSlug: v.string(),
     email: v.string(),
-    name: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     passwordHash: v.string(),
     promotionChannel: v.optional(v.string()),
     uniqueCode: v.string(),
@@ -291,11 +292,15 @@ export const createAffiliateAccountInternal = internalMutation({
       referralAttempts++;
     }
 
+    const fullName = `${args.firstName} ${args.lastName}`.trim();
+
     // Create affiliate with pending status
     const affiliateId = await ctx.db.insert("affiliates", {
       tenantId: tenant._id,
       email: args.email,
-      name: args.name,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      name: fullName,
       uniqueCode: args.uniqueCode,
       status: "pending",
       passwordHash: args.passwordHash,
@@ -331,7 +336,7 @@ export const createAffiliateAccountInternal = internalMutation({
       actorType: "system",
       newValue: { 
         email: args.email, 
-        name: args.name, 
+        name: fullName, 
         uniqueCode, 
         status: "pending",
         campaignSlug: args.campaignSlug,
@@ -350,7 +355,7 @@ export const createAffiliateAccountInternal = internalMutation({
 
       await sendAffiliateWelcomeEmail(ctx, {
         to: args.email,
-        affiliateName: args.name,
+        affiliateName: fullName,
         affiliateEmail: args.email,
         uniqueCode,
         portalName: tenant.branding?.portalName || tenant.name,
@@ -384,7 +389,7 @@ export const createAffiliateAccountInternal = internalMutation({
         ownerEmail = ownerUser.email;
         await sendNewAffiliateNotificationEmail(ctx, {
           to: ownerUser.email,
-          affiliateName: args.name,
+          affiliateName: fullName,
           affiliateEmail: args.email,
           promotionChannel: args.promotionChannel,
           uniqueCode,
@@ -407,7 +412,7 @@ export const createAffiliateAccountInternal = internalMutation({
         tenantId: tenant._id,
         type: "new_affiliate_notification",
         recipientEmail: ownerEmail,
-        subject: `New Affiliate Application from ${args.name}`,
+        subject: `New Affiliate Application from ${fullName}`,
         status: ownerNotificationSent ? "sent" : "failed",
         sentAt: ownerNotificationSent ? Date.now() : undefined,
         errorMessage: ownerNotificationError,
@@ -438,7 +443,8 @@ export const registerAffiliateAccount = action({
   args: {
     tenantSlug: v.string(),
     email: v.string(),
-    name: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     password: v.string(),
     promotionChannel: v.optional(v.string()),
     recaptchaToken: v.string(),
@@ -489,7 +495,8 @@ export const registerAffiliateAccount = action({
     } = await ctx.runMutation(internal.affiliateAuth.createAffiliateAccountInternal, {
       tenantSlug: args.tenantSlug,
       email: args.email,
-      name: args.name,
+      firstName: args.firstName,
+      lastName: args.lastName,
       passwordHash,
       promotionChannel: args.promotionChannel,
       uniqueCode,
