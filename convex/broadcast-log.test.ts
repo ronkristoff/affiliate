@@ -504,6 +504,8 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
       const affiliate1 = await ctx.db.insert("affiliates", {
         tenantId,
         email: "aff1@test.com",
+        firstName: "Affiliate",
+        lastName: "One",
         name: "Affiliate 1",
         uniqueCode: "AFF1",
         status: "approved",
@@ -512,6 +514,8 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
       const affiliate2 = await ctx.db.insert("affiliates", {
         tenantId,
         email: "aff2@test.com",
+        firstName: "Affiliate",
+        lastName: "Two",
         name: "Affiliate 2",
         uniqueCode: "AFF2",
         status: "approved",
@@ -520,6 +524,8 @@ describe("Aggregate Stats Calculation Tests (Story 10.6)", () => {
       const affiliate3 = await ctx.db.insert("affiliates", {
         tenantId,
         email: "aff3@test.com",
+        firstName: "Affiliate",
+        lastName: "Three",
         name: "Affiliate 3",
         uniqueCode: "AFF3",
         status: "approved",
@@ -754,6 +760,8 @@ describe("Email Tracking with broadcastId/affiliateId (Story 10.6)", () => {
       const affiliateId = await ctx.db.insert("affiliates", {
         tenantId,
         email: "tracked-aff@test.com",
+        firstName: "Tracked",
+        lastName: "Affiliate",
         name: "Tracked Affiliate",
         uniqueCode: "TRACKED",
         status: "approved",
@@ -873,6 +881,8 @@ describe("Sequential webhook events for same email (Story 10.6)", () => {
       const affiliateId = await ctx.db.insert("affiliates", {
         tenantId,
         email: "lifecycle@test.com",
+        firstName: "Lifecycle",
+        lastName: "User",
         name: "Lifecycle",
         uniqueCode: "LIFECYCLE",
         status: "approved",

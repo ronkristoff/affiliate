@@ -152,10 +152,10 @@ function generateAffiliateEmail(index: number, rng: () => number): string {
   return `${firstName}.${lastName}${suffix}@${domain}`;
 }
 
-function generateAffiliateName(rng: () => number): string {
+function generateAffiliateName(rng: () => number): { firstName: string; lastName: string; name: string } {
   const first = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)];
   const last = LAST_NAMES[Math.floor(rng() * LAST_NAMES.length)];
-  return `${first} ${last}`;
+  return { firstName: first, lastName: last, name: `${first} ${last}` };
 }
 
 function randomTimestamp(rng: () => number, daysAgoMin: number, daysAgoMax: number): number {
@@ -353,7 +353,7 @@ export const seedTenantBulkData = internalMutation({
       }
       existingEmails.add(email);
 
-      const name = generateAffiliateName(rng);
+      const { firstName, lastName, name } = generateAffiliateName(rng);
       const status = pickRandom(AFFILIATE_STATUSES, rng);
       const promotionChannel = pickRandom(PROMOTION_CHANNELS, rng);
 
@@ -378,6 +378,8 @@ export const seedTenantBulkData = internalMutation({
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email,
+          firstName,
+          lastName,
           name,
           uniqueCode,
           status,
@@ -933,7 +935,7 @@ export const seedAllTenantsBulkData = internalMutation({
           }
           existingEmails.add(email);
 
-          const name = generateAffiliateName(rng);
+          const { firstName, lastName, name } = generateAffiliateName(rng);
           const status = pickRandom(AFFILIATE_STATUSES, rng);
           const promotionChannel = pickRandom(PROMOTION_CHANNELS, rng);
 
@@ -954,6 +956,8 @@ export const seedAllTenantsBulkData = internalMutation({
           const affiliateId = await ctx.db.insert("affiliates", {
             tenantId: tenant._id,
             email,
+            firstName,
+            lastName,
             name,
             uniqueCode,
             status,

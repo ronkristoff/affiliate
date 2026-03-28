@@ -214,10 +214,10 @@ function generateAffiliateEmail(index: number, rng: () => number): string {
   return `${firstName}.${lastName}${suffix}@${domain}`;
 }
 
-function generateAffiliateName(rng: () => number): string {
+function generateAffiliateName(rng: () => number): { firstName: string; lastName: string; name: string } {
   const first = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)];
   const last = LAST_NAMES[Math.floor(rng() * LAST_NAMES.length)];
-  return `${first} ${last}`;
+  return { firstName: first, lastName: last, name: `${first} ${last}` };
 }
 
 /** Generate timestamp within the Dec 2025 → Mar 2026 range, optionally narrowed. */
@@ -501,7 +501,7 @@ export const seedTechFlow = internalMutation({
       }
       existingEmails.add(email);
 
-      const name = generateAffiliateName(rng);
+      const { firstName, lastName, name } = generateAffiliateName(rng);
       const status = pickRandom(AFFILIATE_STATUSES, rng);
       const promotionChannel = pickRandom(PROMOTION_CHANNELS, rng);
       const enrolledAt = randomTimestamp(rng, 1, DAYS_AGO_MAX); // Within Dec 2025 → Mar 2026
@@ -575,6 +575,8 @@ export const seedTechFlow = internalMutation({
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email,
+          firstName,
+          lastName,
           name,
           uniqueCode,
           status,

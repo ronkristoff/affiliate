@@ -1295,6 +1295,8 @@ describe("Story 13.1: Payout Batch Generation", () => {
           const otherAffiliateId = await ctx.db.insert("affiliates", {
             tenantId: otherTenantId,
             email: "other-aff@test.com",
+            firstName: "Other",
+            lastName: "Aff",
             name: "Other Aff",
             uniqueCode: "OTHER_AFF",
             status: "active",
