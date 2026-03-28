@@ -3,9 +3,19 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -14,8 +24,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Mail, UserPlus, AlertTriangle, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
+
+const invitationSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email like name@company.com"),
+  role: z.enum({ owner: "owner", manager: "manager", viewer: "viewer" }),
+});
+
+type InvitationFormData = z.infer<typeof invitationSchema>;
 
 interface TeamInvitationFormProps {
   onInvitationSent?: () => void;
@@ -23,10 +50,7 @@ interface TeamInvitationFormProps {
 }
 
 export function TeamInvitationForm({ onInvitationSent, disabled }: TeamInvitationFormProps) {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"owner" | "manager" | "viewer">("viewer");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const createInvitation = useMutation(api.teamInvitations.createTeamInvitation);
   
@@ -40,23 +64,28 @@ export function TeamInvitationForm({ onInvitationSent, disabled }: TeamInvitatio
   // Combine disabled states - also disable when at limit
   const isDisabled = disabled || isAtLimit;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const form = useForm<InvitationFormData>({
+    resolver: zodResolver(invitationSchema),
+    defaultValues: {
+      email: "",
+      role: "viewer",
+    },
+  });
+
+  const onSubmit = async (data: InvitationFormData) => {
     setIsLoading(true);
 
     try {
       await createInvitation({
-        email,
-        role,
+        email: data.email,
+        role: data.role,
       });
-      setEmail("");
-      setRole("viewer");
+      form.reset({ email: "", role: "viewer" });
       toast.success("Invitation sent successfully!");
       onInvitationSent?.();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to send invitation";
-      setError(errorMessage);
+      form.setError("root", { message: errorMessage });
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -135,72 +164,94 @@ export function TeamInvitationForm({ onInvitationSent, disabled }: TeamInvitatio
         </CardContent>
       )}
       
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="colleague@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isDisabled || isLoading}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as "owner" | "manager" | "viewer")}
-              disabled={isDisabled || isLoading}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="viewer">Viewer - Read-only access</option>
-              <option value="manager">Manager - Can manage campaigns, affiliates, commissions</option>
-              <option value="owner">Owner - Full access to everything</option>
-            </select>
-            <p className="text-xs text-muted-foreground">
-              {role === "owner" && "Owners have full access to all settings and data."}
-              {role === "manager" && "Managers can manage campaigns, affiliates, and commissions."}
-              {role === "viewer" && "Viewers have read-only access to campaigns, affiliates, and commissions."}
-            </p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter>
-          {isAtLimit && (
-            <p className="text-sm text-red-600 dark:text-red-400 mb-2 text-center w-full">
-              Cannot invite more team members. Please upgrade your plan.
-            </p>
-          )}
-          <Button type="submit" disabled={isDisabled || isLoading || !email} className="w-full">
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending Invitation...
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Send Invitation
-              </>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4">
+            {form.formState.errors.root && (
+              <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {form.formState.errors.root.message}
+                </p>
+              </div>
             )}
-          </Button>
-        </CardFooter>
-      </form>
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="colleague@company.com"
+                        disabled={isDisabled || isLoading}
+                        className="pl-10"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isDisabled || isLoading}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
+                      <SelectItem value="manager">Manager - Can manage campaigns, affiliates, commissions</SelectItem>
+                      <SelectItem value="owner">Owner - Full access to everything</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {field.value === "owner" && "Owners have full access to all settings and data."}
+                    {field.value === "manager" && "Managers can manage campaigns, affiliates, and commissions."}
+                    {field.value === "viewer" && "Viewers have read-only access to campaigns, affiliates, and commissions."}
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            {isAtLimit && (
+              <p className="text-sm text-red-600 dark:text-red-400 mb-2 text-center w-full">
+                Cannot invite more team members. Please upgrade your plan.
+              </p>
+            )}
+            <Button 
+              type="submit" 
+              disabled={isDisabled || isLoading} 
+              className="w-full"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending Invitation...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Send Invitation
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Form>
     </Card>
   );
 }

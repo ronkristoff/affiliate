@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,26 +13,60 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 type VerificationMethod = "totp" | "otp" | "backup";
 
+const baseSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+  trustDevice: z.boolean().optional(),
+});
+
+type FormData = z.infer<typeof baseSchema>;
+
 export default function TwoFactorVerification() {
   const [method, setMethod] = useState<VerificationMethod>("totp");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [trustDevice, setTrustDevice] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleTotpVerify = async () => {
+  const form = useForm<FormData>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      code: "",
+      trustDevice: false,
+    },
+  });
+
+  const validateCode = (code: string): string | null => {
+    if (method === "backup") {
+      if (!code || code.length < 1) return "Enter your backup code";
+      if (!/^[0-9a-zA-Z-]+$/.test(code)) return "Enter a valid backup code format";
+      return null;
+    }
+    
+    // TOTP or OTP
+    if (!code || code.length !== 6) return "Enter the 6-digit code";
+    if (!/^[0-9]+$/.test(code)) return "Enter a valid 6-digit code";
+    return null;
+  };
+
+  const handleTotpVerify = async (code: string, trustDevice: boolean) => {
     try {
       setLoading(true);
+      setError(null);
       await authClient.twoFactor.verifyTotp({
         code,
         trustDevice,
@@ -40,55 +78,84 @@ export default function TwoFactorVerification() {
             setLoading(false);
             router.push("/");
           },
+          onError: (ctx) => {
+            setLoading(false);
+            setError(ctx.error.message || "Invalid code. Please try again.");
+          },
         },
       });
-    } catch (error) {
-      console.log("error", error);
-      alert("Failed to verify code. Please try again.");
-    } finally {
+    } catch {
       setLoading(false);
+      setError("Failed to verify code. Please try again.");
     }
   };
 
   const handleOtpSend = async () => {
     try {
       setLoading(true);
+      setError(null);
       await authClient.twoFactor.sendOtp();
       setOtpSent(true);
     } catch {
-      alert("Failed to send verification code. Please try again.");
-    } finally {
       setLoading(false);
+      setError("Failed to send verification code. Please try again.");
     }
   };
 
-  const handleOtpVerify = async () => {
+  const handleOtpVerify = async (code: string, trustDevice: boolean) => {
     try {
       setLoading(true);
+      setError(null);
       await authClient.twoFactor.verifyOtp({
         code,
         trustDevice,
       });
       // Redirect will happen automatically on success
     } catch {
-      alert("Failed to verify code. Please try again.");
-    } finally {
       setLoading(false);
+      setError("Failed to verify code. Please try again.");
     }
   };
 
-  const handleBackupCodeVerify = async () => {
+  const handleBackupCodeVerify = async (code: string) => {
     try {
       setLoading(true);
+      setError(null);
       await authClient.twoFactor.verifyBackupCode({
         code,
       });
       // Redirect will happen automatically on success
     } catch {
-      alert("Failed to verify backup code. Please try again.");
-    } finally {
       setLoading(false);
+      setError("Invalid backup code. Please try again.");
     }
+  };
+
+  const onSubmit = (data: FormData) => {
+    const codeError = validateCode(data.code);
+    if (codeError) {
+      form.setError("code", { message: codeError });
+      return;
+    }
+
+    if (method === "totp") {
+      handleTotpVerify(data.code, data.trustDevice || false);
+    } else if (method === "otp") {
+      if (otpSent) {
+        handleOtpVerify(data.code, data.trustDevice || false);
+      } else {
+        handleOtpSend();
+      }
+    } else {
+      handleBackupCodeVerify(data.code);
+    }
+  };
+
+  const handleMethodChange = (newMethod: VerificationMethod) => {
+    setMethod(newMethod);
+    setOtpSent(false);
+    setError(null);
+    form.reset({ code: "", trustDevice: false });
   };
 
   return (
@@ -102,121 +169,114 @@ export default function TwoFactorVerification() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (method === "totp") {
-              handleTotpVerify();
-            } else if (method === "otp") {
-              if (otpSent) {
-                handleOtpVerify();
-              } else {
-                handleOtpSend();
-              }
-            } else {
-              handleBackupCodeVerify();
-            }
-          }}
-          className="grid gap-4"
-        >
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={method === "totp" ? "default" : "outline"}
-              onClick={() => {
-                setMethod("totp");
-                setCode("");
-              }}
-            >
-              Authenticator App
-            </Button>
-            <Button
-              type="button"
-              variant={method === "otp" ? "default" : "outline"}
-              onClick={() => {
-                setMethod("otp");
-                setCode("");
-                setOtpSent(false);
-              }}
-            >
-              Email Code
-            </Button>
-            <Button
-              type="button"
-              variant={method === "backup" ? "default" : "outline"}
-              onClick={() => {
-                setMethod("backup");
-                setCode("");
-              }}
-            >
-              Backup Code
-            </Button>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="code">
-              {method === "totp"
-                ? "Enter code from authenticator app"
-                : method === "otp"
-                  ? otpSent
-                    ? "Enter verification code"
-                    : "Click below to receive a verification code"
-                  : "Enter backup code"}
-            </Label>
-            <Input
-              id="code"
-              type="text"
-              placeholder={
-                method === "backup" ? "xxxx-xxxx-xxxx" : "Enter 6-digit code"
-              }
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              pattern={method === "backup" ? "[0-9a-zA-Z-]+" : "[0-9]*"}
-              inputMode={method === "backup" ? "text" : "numeric"}
-              maxLength={method === "backup" ? 14 : 6}
-              required={method === "backup" || (method === "otp" && otpSent)}
-              disabled={loading}
-            />
-          </div>
-
-          {method !== "backup" && (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="trust"
-                checked={trustDevice}
-                onCheckedChange={(checked) =>
-                  setTrustDevice(checked as boolean)
-                }
-                disabled={loading}
-              />
-              <label
-                htmlFor="trust"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Trust this device for 60 days
-              </label>
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : method === "otp" && !otpSent ? (
-              "Send Verification Code"
-            ) : (
-              "Verify"
-            )}
+        <div className="flex gap-2 mb-4">
+          <Button
+            type="button"
+            variant={method === "totp" ? "default" : "outline"}
+            onClick={() => handleMethodChange("totp")}
+          >
+            Authenticator App
           </Button>
           <Button
             type="button"
-            className="w-full"
-            variant="outline"
-            disabled={loading}
-            onClick={() => router.push("/sign-in")}
+            variant={method === "otp" ? "default" : "outline"}
+            onClick={() => handleMethodChange("otp")}
           >
-            Cancel
+            Email Code
           </Button>
-        </form>
+          <Button
+            type="button"
+            variant={method === "backup" ? "default" : "outline"}
+            onClick={() => handleMethodChange("backup")}
+          >
+            Backup Code
+          </Button>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            {method === "otp" && !otpSent && (
+              <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
+                <p>Click below to receive a verification code via email</p>
+              </div>
+            )}
+
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {method === "totp"
+                      ? "Authenticator Code"
+                      : method === "otp"
+                        ? "Email Verification Code"
+                        : "Backup Code"}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder={
+                        method === "backup" ? "xxxx-xxxx-xxxx" : "Enter 6-digit code"
+                      }
+                      disabled={loading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {method !== "backup" && (
+              <FormField
+                control={form.control}
+                name="trustDevice"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                        disabled={loading}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Trust this device for 60 days
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : method === "otp" && !otpSent ? (
+                "Send Verification Code"
+              ) : (
+                "Verify"
+              )}
+            </Button>
+            <Button
+              type="button"
+              className="w-full"
+              variant="outline"
+              disabled={loading}
+              onClick={() => router.push("/sign-in")}
+            >
+              Cancel
+            </Button>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );

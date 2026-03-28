@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";

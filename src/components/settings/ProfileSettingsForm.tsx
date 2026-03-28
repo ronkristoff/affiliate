@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { UserAvatar } from "./UserAvatar";
