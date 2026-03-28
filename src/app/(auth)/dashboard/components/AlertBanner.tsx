@@ -21,7 +21,7 @@ export function AlertBanner({ setupStatus, onDismiss }: AlertBannerProps) {
   // Only show the most critical unverified item (tracking is most important)
   if (!setupStatus.trackingSnippetInstalled) {
     return (
-      <div className="flex items-center gap-3 px-8 pt-4">
+      <div className="flex items-center gap-3 mb-6">
         <div className="flex items-center gap-3 px-4 py-2.5 bg-[var(--warning-bg)] border border-[#fcd34d] rounded-lg text-[13px] text-[var(--warning-text)] w-full">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>

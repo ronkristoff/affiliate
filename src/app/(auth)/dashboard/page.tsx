@@ -252,9 +252,6 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      {/* Alert Banner */}
-      <AlertBanner setupStatus={setupStatus} />
-
       {/* Top Bar */}
       <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
@@ -265,6 +262,8 @@ function DashboardContent() {
 
       {/* Page Content */}
       <div className="page-content">
+        {/* Alert Banner */}
+        <AlertBanner setupStatus={setupStatus} />
         {/* Metric Cards Grid */}
         <FadeIn>
           <SummaryCards 
