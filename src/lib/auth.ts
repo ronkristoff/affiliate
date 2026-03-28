@@ -7,7 +7,7 @@ import {
   sendOTPVerification,
   sendEmailVerification,
   sendResetPassword,
-} from "../../convex/email";
+} from "../../convex/email"; // This resolves to email.tsx
 import { magicLink } from "better-auth/plugins";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { betterAuthComponent } from "../../convex/auth";

@@ -11,6 +11,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -34,7 +41,15 @@ const signInSchema = z.object({
   rememberMe: z.boolean(),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address like name@company.com"),
+});
+
 type SignInFormValues = z.infer<typeof signInSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function SignIn() {
   const router = useRouter();
@@ -52,6 +67,19 @@ export default function SignIn() {
       email: "",
       password: "",
       rememberMe: false,
+    },
+    mode: "onBlur",
+  });
+
+  // Forgot password modal state
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
     },
     mode: "onBlur",
   });
@@ -183,18 +211,12 @@ export default function SignIn() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const currentEmail = form.getValues("email");
-    if (!currentEmail) {
-      setError("Please enter your email address first");
-      return;
-    }
-
-    setLoading(true);
+  const handleForgotPassword = async (values: ForgotPasswordFormValues) => {
+    setForgotPasswordLoading(true);
 
     try {
       const { error } = await authClient.forgetPassword.emailOtp({
-        email: currentEmail,
+        email: values.email,
       });
 
       if (error) {
@@ -204,6 +226,7 @@ export default function SignIn() {
         return;
       }
 
+      setForgotPasswordSuccess(true);
       toast.success("Reset link sent!", {
         description: "Check your email for the password reset instructions.",
       });
@@ -212,8 +235,24 @@ export default function SignIn() {
         description: "Failed to send reset password link. Please try again.",
       });
     } finally {
-      setLoading(false);
+      setForgotPasswordLoading(false);
     }
+  };
+
+  const openForgotPasswordModal = () => {
+    // Pre-fill email from sign-in form if available
+    const currentEmail = form.getValues("email");
+    if (currentEmail) {
+      forgotPasswordForm.setValue("email", currentEmail);
+    }
+    setForgotPasswordSuccess(false);
+    setIsForgotPasswordOpen(true);
+  };
+
+  const closeForgotPasswordModal = () => {
+    setIsForgotPasswordOpen(false);
+    setForgotPasswordSuccess(false);
+    forgotPasswordForm.reset();
   };
 
   return (
@@ -415,7 +454,7 @@ export default function SignIn() {
                     variant="link"
                     size="sm"
                     className="text-[12px] h-auto p-0 text-[#10409a] font-medium no-underline"
-                    onClick={handleForgotPassword}
+                    onClick={openForgotPasswordModal}
                   >
                     Forgot password?
                   </Button>
@@ -557,6 +596,149 @@ export default function SignIn() {
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={isForgotPasswordOpen} onOpenChange={(open) => {
+        if (!open) closeForgotPasswordModal();
+      }}>
+        <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+          <button
+            type="button"
+            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+            onClick={closeForgotPasswordModal}
+            aria-label="Close"
+          >
+            <svg
+              className="w-4 h-4 text-[#6b7280]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {forgotPasswordSuccess ? "Check your email" : "Reset your password"}
+            </DialogTitle>
+            <DialogDescription className="text-[14px] text-[#6b7280]">
+              {forgotPasswordSuccess
+                ? "We've sent password reset instructions to your email address."
+                : "Enter your email address and we'll send you instructions to reset your password."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {!forgotPasswordSuccess ? (
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)}>
+                <div className="mb-5">
+                  <FormField
+                    control={forgotPasswordForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[13px] font-semibold text-[#333]">
+                          Email address
+                        </FormLabel>
+                        <div className="relative">
+                          <svg
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                            <polyline points="22,6 12,13 2,6" />
+                          </svg>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                              placeholder="alex@yourcompany.com"
+                              autoComplete="email"
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-11 border border-[#e5e7eb] text-[#333] font-medium"
+                    onClick={closeForgotPasswordModal}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={forgotPasswordLoading}
+                    className="flex-1 h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6]"
+                  >
+                    {forgotPasswordLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin mr-2" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send reset link"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-center w-14 h-14 mx-auto rounded-full bg-green-100">
+                <svg
+                  className="w-7 h-7 text-green-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-[#6b7280]">
+                  Didn't receive the email? Check your spam folder, or{" "}
+                  <button
+                    type="button"
+                    className="text-[#10409a] font-semibold no-underline hover:underline"
+                    onClick={() => setForgotPasswordSuccess(false)}
+                  >
+                    try again
+                  </button>
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="w-full h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6]"
+                onClick={closeForgotPasswordModal}
+              >
+                Back to sign in
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
