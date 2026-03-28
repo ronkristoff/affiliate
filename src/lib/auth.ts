@@ -39,6 +39,17 @@ const createOptions = (ctx: GenericCtx) =>
       disableCSRFCheck: false,
       useSecureCookies: process.env.NODE_ENV === "production",
     },
+    session: {
+      // Session expires in 7 days (604800 seconds)
+      expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
+      // Update the session age every day to keep it fresh
+      updateAge: 60 * 60 * 24, // 24 hours in seconds
+      // Cookie cache settings for performance
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 5, // 5 minutes
+      },
+    },
     account: {
       accountLinking: {
         enabled: true,

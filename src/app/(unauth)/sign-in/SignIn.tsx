@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -38,7 +37,6 @@ const signInSchema = z.object({
     .min(1, "Email is required")
     .email("Enter a valid email address like name@company.com"),
   password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean(),
 });
 
 const forgotPasswordSchema = z.object({
@@ -66,7 +64,6 @@ export default function SignIn() {
     defaultValues: {
       email: "",
       password: "",
-      rememberMe: false,
     },
     mode: "onBlur",
   });
@@ -154,7 +151,6 @@ export default function SignIn() {
         {
           email: values.email,
           password: values.password,
-          rememberMe: values.rememberMe,
         },
         {
           onRequest: () => {
@@ -524,30 +520,6 @@ export default function SignIn() {
                         </Button>
                       </div>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Remember Me */}
-              <div className="mb-6">
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2.5">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="w-4 h-4 cursor-pointer flex-shrink-0"
-                          />
-                        </FormControl>
-                        <label className="text-[13px] text-[#6b7280] cursor-pointer">
-                          Keep me signed in for 30 days
-                        </label>
-                      </div>
                     </FormItem>
                   )}
                 />
