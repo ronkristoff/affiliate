@@ -9,7 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Logo } from "@/components/shared/Logo";
 
@@ -51,6 +51,7 @@ export default function SignUp() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
+  const completeSignUp = useMutation(api.users.completeSignUp);
 
   if (allTiers === undefined) {
     return (
@@ -209,34 +210,42 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      const cleanedDomainValue = cleanDomain(domain.trim());
-      const { data, error } = await authClient.signUp.email(
-        {
-          email,
-          password,
-          name: `${firstName} ${lastName}`,
-          companyName: companyName.trim(),
-          domain: cleanedDomainValue,
-        },
-        {
-          onRequest: () => {
-            setLoading(true);
-          },
-          onSuccess: () => {
-            setLoading(false);
-            toast.success("Account created successfully!");
-            router.push("/onboarding");
-          },
-          onError: (ctx) => {
-            setLoading(false);
-            toast.error(ctx.error.message || "Sign up failed");
-          },
-        }
-      );
+      // Step 1: Create auth user via Better Auth (email, password, name only).
+      // We cannot pass companyName/domain through Better Auth's additionalFields
+      // because the @convex-dev/better-auth component schema doesn't include them,
+      // causing a 422 error when the adapter tries to insert unknown fields.
+      const { data, error } = await authClient.signUp.email({
+        email,
+        password,
+        name: `${firstName} ${lastName}`,
+      });
 
       if (error) {
         toast.error(error.message || "Sign up failed");
+        setLoading(false);
+        return;
       }
+
+      // Step 2: Create tenant + user record in app tables via Convex mutation
+      try {
+        await completeSignUp({
+          email: email.trim(),
+          name: `${firstName} ${lastName}`,
+          companyName: companyName.trim(),
+          domain: cleanedDomain,
+          plan: selectedPlan,
+        });
+      } catch (err: any) {
+        // If tenant/user creation fails, the auth user still exists.
+        // They can sign in and complete onboarding later.
+        setLoading(false);
+        toast.error(err.message || "Account created but setup failed. Please contact support.");
+        return;
+      }
+
+      setLoading(false);
+      toast.success("Account created successfully!");
+      router.push("/onboarding");
     } catch (err) {
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again.");

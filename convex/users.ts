@@ -96,6 +96,123 @@ function cleanAndValidateDomain(domain: string | undefined): string {
   return cleaned;
 }
 
+/**
+ * Complete sign-up: create tenant and user record after Better Auth creates the auth user.
+ *
+ * This is called from the frontend AFTER successful authClient.signUp.email().
+ * companyName and domain cannot be passed through Better Auth's additionalFields
+ * because the @convex-dev/better-auth component schema does not include them,
+ * causing a 422 (FAILED_TO_CREATE_USER) when the adapter tries to insert
+ * unknown fields into the component's user table.
+ */
+export const completeSignUp = mutation({
+  args: {
+    email: v.string(),
+    name: v.optional(v.string()),
+    companyName: v.string(),
+    domain: v.string(),
+    plan: v.optional(v.string()),
+  },
+  returns: v.id("users"),
+  handler: async (ctx, args): Promise<Id<"users">> => {
+    // Server-side validation
+    if (!args.email || args.email.trim().length === 0) {
+      throw new Error("Email is required");
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(args.email.trim())) {
+      throw new Error("Invalid email format");
+    }
+
+    const email = args.email.trim().toLowerCase();
+
+    // Check if user already exists by email (idempotent)
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+
+    if (existingUser) {
+      return existingUser._id;
+    }
+
+    // Company name validation
+    if (!args.companyName || args.companyName.length < 2) {
+      throw new Error("Company name must be at least 2 characters");
+    }
+    if (args.companyName.length > 100) {
+      throw new Error("Company name must be less than 100 characters");
+    }
+
+    // Validate and clean domain
+    const cleanedDomain = cleanAndValidateDomain(args.domain);
+
+    // Check domain uniqueness
+    const existingTenantByDomain = await ctx.db
+      .query("tenants")
+      .withIndex("by_domain", (q: any) => q.eq("domain", cleanedDomain))
+      .first();
+
+    if (existingTenantByDomain) {
+      throw new Error("A tenant with this domain already exists");
+    }
+
+    const companyName = args.companyName.trim();
+    const slug = await generateUniqueSlug(ctx, companyName);
+    const plan = args.plan || "starter";
+
+    // Create tenant for this user (they are the owner)
+    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days from now
+
+    const tenantId: Id<"tenants"> = await ctx.db.insert("tenants", {
+      name: companyName,
+      slug,
+      domain: cleanedDomain,
+      plan,
+      trialEndsAt,
+      status: "active",
+      branding: {
+        portalName: companyName,
+      },
+    });
+
+    // Create audit log entry for tenant creation
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: "tenant_created",
+      entityType: "tenant",
+      entityId: tenantId,
+      actorType: "system",
+      newValue: { name: companyName, slug, plan },
+    });
+
+    // Seed denormalized tenantStats counters
+    await ctx.runMutation(internal.tenantStats.seedStats, { tenantId });
+
+    // Create user with owner role
+    const userId = await ctx.db.insert("users", {
+      tenantId,
+      email,
+      name: args.name,
+      role: "owner",
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: "user_created",
+      entityType: "user",
+      entityId: userId,
+      actorType: "system",
+      newValue: { email, name: args.name, role: "owner" },
+    });
+
+    return userId;
+  },
+});
+
 export const syncUserCreation = internalMutation({
   args: {
     email: v.string(),
@@ -117,10 +234,12 @@ export const syncUserCreation = internalMutation({
       throw new Error("Invalid email format");
     }
 
+    const email = args.email.trim().toLowerCase();
+
     // Check if user already exists by email (idempotent)
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     if (existingUser) {
@@ -131,10 +250,12 @@ export const syncUserCreation = internalMutation({
       return existingUser._id;
     }
 
-    // If no domain provided, we can't create a tenant. Throw a clear error
-    // that will be caught by the auth hook's try/catch (non-fatal).
-    if (!args.domain) {
-      throw new Error("Domain is required for new user registration");
+    // If no domain provided, skip — the frontend will call completeSignUp
+    // to create the tenant + user record with companyName and domain.
+    // This is expected during the normal signup flow where additionalFields
+    // cannot be passed through Better Auth's component adapter.
+    if (!args.domain || !args.companyName) {
+      throw new Error("Domain and companyName are required for new user registration via syncUserCreation");
     }
 
     // Generate a slug from company name or email
@@ -194,7 +315,7 @@ export const syncUserCreation = internalMutation({
     // Create user with owner role AND store the Better Auth authId
     const userId = await ctx.db.insert("users", {
       tenantId,
-      email: args.email,
+      email,
       name: args.name,
       role: "owner",
       authId: args.authId, // Link to Better Auth user
@@ -207,7 +328,7 @@ export const syncUserCreation = internalMutation({
       entityType: "user",
       entityId: userId,
       actorType: "system",
-      newValue: { email: args.email, name: args.name, role: "owner" },
+      newValue: { email, name: args.name, role: "owner" },
     });
 
     return userId;
