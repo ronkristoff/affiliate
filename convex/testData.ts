@@ -6,8 +6,9 @@
  * that should only be called in development/test environments.
  * 
  * Usage:
- * 1. Run: npx convex run testData:seedAllTestData --json
- * 2. Check the output for all generated credentials
+ * 1. Run: pnpm convex run testData:seedAuthUsers     (creates auth users via HTTP)
+ * 2. Run: pnpm convex run testData:seedAllTestData    (creates app data)
+ * 3. Or use getTestCredentials to see all credentials
  * 
  * Password for all test users: "TestPass123!"
  */
@@ -15,7 +16,6 @@
 import { internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { betterAuthComponent } from "./auth";
 import { internal } from "./_generated/api";
 
 /** Create a timestamp from year/month/day (1-indexed month). */
@@ -374,52 +374,12 @@ const PLATFORM_ADMIN = {
 
 /**
  * Pre-computed password hash for "TestPass123!" using Better Auth's scrypt.
- * Generated with: hashPassword('TestPass123!')
- * Format: salt:hash (hex encoded)
+ * Used for affiliate accounts (not Better Auth — those use the HTTP signup).
  */
 const TEST_PASSWORD_HASH = "b1fb84d0f1c6feb781d661faecc3eeb6:4840a3170ce388473977f0fef10160e603fc9d95a74f55b2bfbf7626d0879e545a1fe515d12b36f0230bce85f6d4f6de3cf8f98f9a1daca3deeefd06e76a2000";
 
-/**
- * Returns the pre-computed password hash.
- * Note: This only works for the test password "TestPass123!"
- */
 function getTestPasswordHash(): string {
   return TEST_PASSWORD_HASH;
-}
-
-/**
- * Create a Better Auth user with password.
- * This creates entries in the better-auth managed tables.
- */
-async function createBetterAuthUser(
-  ctx: any,
-  email: string,
-  name: string,
-  password: string
-): Promise<string> {
-  const now = Date.now();
-  
-  // Create user in Better Auth's user table
-  const userId = await (ctx.db as any).insert("user", {
-    name,
-    email,
-    emailVerified: true,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  // Create password account in Better Auth's account table
-  // Using pre-computed hash for "TestPass123!"
-  await (ctx.db as any).insert("account", {
-    accountId: `password-${email}`,
-    providerId: "credential",
-    userId: userId,
-    password: getTestPasswordHash(),
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  return userId;
 }
 
 /**
@@ -1292,18 +1252,35 @@ export const seedAllTestData = internalMutation({
         // Create tenant users
         const tenantUsers: Array<{ email: string; name: string; role: string }> = [];
         for (const user of tenantConfig.users) {
-          // Create Better Auth user first (this is required for login to work)
-          const authUserId = await createBetterAuthUser(ctx, user.email, user.name, TEST_PASSWORD);
+          // Auth users are created via HTTP endpoint (seedAuthUsers action).
+          // The auth hook creates a minimal user record; we upsert here with full data.
           
-          // Create user in app's users table
-          const userId = await ctx.db.insert("users", {
-            tenantId,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            emailVerified: true,
-            authId: authUserId, // Link to Better Auth user
-          });
+          // Check if user already exists (created by auth hook during seedAuthUsers)
+          const existingUser = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q: any) => q.eq("email", user.email))
+            .first();
+
+          let userId: Id<"users">;
+          if (existingUser) {
+            // Patch existing user with correct tenant, role, etc.
+            await ctx.db.patch(existingUser._id, {
+              tenantId,
+              name: user.name,
+              role: user.role,
+              emailVerified: true,
+            });
+            userId = existingUser._id;
+          } else {
+            // Create user in app's users table
+            userId = await ctx.db.insert("users", {
+              tenantId,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              emailVerified: true,
+            });
+          }
           stats.usersCreated++;
           tenantUsers.push(user);
 
@@ -1607,23 +1584,29 @@ export const seedAllTestData = internalMutation({
 
       await ctx.runMutation(internal.tenantStats.seedStats, { tenantId: adminTenantId });
 
-      // Create Better Auth user for platform admin
-      const adminAuthUserId = await createBetterAuthUser(
-        ctx,
-        PLATFORM_ADMIN.users[0].email,
-        PLATFORM_ADMIN.users[0].name,
-        TEST_PASSWORD,
-      );
+      // Platform admin auth user was created via HTTP endpoint (seedAuthUsers action).
+      // The auth hook may have created a minimal user record; upsert here.
+      const existingAdmin = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q: any) => q.eq("email", PLATFORM_ADMIN.users[0].email))
+        .first();
 
-      // Create platform admin user with role "admin"
-      await ctx.db.insert("users", {
-        tenantId: adminTenantId,
-        email: PLATFORM_ADMIN.users[0].email,
-        name: PLATFORM_ADMIN.users[0].name,
-        role: PLATFORM_ADMIN.users[0].role, // "admin"
-        emailVerified: true,
-        authId: adminAuthUserId,
-      });
+      if (existingAdmin) {
+        await ctx.db.patch(existingAdmin._id, {
+          tenantId: adminTenantId,
+          name: PLATFORM_ADMIN.users[0].name,
+          role: PLATFORM_ADMIN.users[0].role, // "admin"
+          emailVerified: true,
+        });
+      } else {
+        await ctx.db.insert("users", {
+          tenantId: adminTenantId,
+          email: PLATFORM_ADMIN.users[0].email,
+          name: PLATFORM_ADMIN.users[0].name,
+          role: PLATFORM_ADMIN.users[0].role, // "admin"
+          emailVerified: true,
+        });
+      }
       stats.usersCreated++;
 
       await ctx.db.insert("auditLogs", {

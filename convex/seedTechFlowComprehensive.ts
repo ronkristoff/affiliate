@@ -32,7 +32,7 @@
  * rawWebhooks              50      processed/failed/duplicate events
  * ──────────────────────────────────────────────────────────────────────────
  *
- * DATE RANGE: ~Oct 28, 2025 → Mar 28, 2026 (5 months, ~150 days)
+ * DATE RANGE: Dec 1, 2025 → Mar 28, 2026 (4 months, ~117 days)
  *
  * USAGE:
  *   npx convex run seedTechFlowComprehensive:seedTechFlow --args '{"tenantSlug":"techflow-saas"}'
@@ -41,7 +41,7 @@
  * Password for all generated test affiliates: "TestPass123!"
  */
 
-import { internalMutation, internalQuery } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -175,6 +175,13 @@ const PAYOUT_METHODS = [
 const TEST_PASSWORD_HASH = "b1fb84d0f1c6feb781d661faecc3eeb6:4840a3170ce388473977f0fef10160e603fc9d95a74f55b2bfbf7626d0879e545a1fe515d12b36f0230bce85f6d4f6de3cf8f98f9a1daca3deeefd06e76a2000";
 
 // =============================================================================
+// Date Range Constants — Dec 1, 2025 → Mar 28, 2026
+// =============================================================================
+const DATE_RANGE_START = new Date(2025, 11, 1).getTime();   // Dec 1, 2025 00:00 UTC
+const DATE_RANGE_END = new Date(2026, 2, 28, 23, 59, 59).getTime(); // Mar 28, 2026 23:59 UTC
+const DAYS_AGO_MAX = Math.ceil((Date.now() - DATE_RANGE_START) / (24 * 60 * 60 * 1000)); // ~117 days
+
+// =============================================================================
 // Pseudo-random Generator (Seeded for Determinism)
 // =============================================================================
 
@@ -213,12 +220,14 @@ function generateAffiliateName(rng: () => number): string {
   return `${first} ${last}`;
 }
 
-/** Generate timestamp within a range of days ago from now. */
-function randomTimestamp(rng: () => number, daysAgoMin: number, daysAgoMax: number): number {
+/** Generate timestamp within the Dec 2025 → Mar 2026 range, optionally narrowed. */
+function randomTimestamp(rng: () => number, daysAgoMin: number = 0, daysAgoMax: number = DAYS_AGO_MAX): number {
   const now = Date.now();
   const msPerDay = 24 * 60 * 60 * 1000;
   const offset = msPerDay * (daysAgoMin + rng() * (daysAgoMax - daysAgoMin));
-  return Math.floor(now - offset);
+  const ts = Math.floor(now - offset);
+  // Clamp to the Dec 2025 → Mar 2026 range
+  return Math.max(DATE_RANGE_START, Math.min(DATE_RANGE_END, ts));
 }
 
 function generateIPAddress(rng: () => number): string {
@@ -495,7 +504,7 @@ export const seedTechFlow = internalMutation({
       const name = generateAffiliateName(rng);
       const status = pickRandom(AFFILIATE_STATUSES, rng);
       const promotionChannel = pickRandom(PROMOTION_CHANNELS, rng);
-      const enrolledAt = randomTimestamp(rng, 1, 150); // Within 5-month range
+      const enrolledAt = randomTimestamp(rng, 1, DAYS_AGO_MAX); // Within Dec 2025 → Mar 2026
 
       let uniqueCode = generateReferralCode(rng);
       let codeAttempts = 0;
@@ -538,7 +547,7 @@ export const seedTechFlow = internalMutation({
             signals.push({
               type: pickRandom(FRAUD_INDICATORS, rng),
               severity: pickRandom(["low", "medium", "high"] as const, rng),
-              timestamp: randomTimestamp(rng, 5, 60),
+              timestamp: randomTimestamp(rng, 5, Math.min(60, DAYS_AGO_MAX)),
               details: "Auto-detected during test data generation",
               signalId: `sig_seed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             });
@@ -660,7 +669,7 @@ export const seedTechFlow = internalMutation({
       for (let i = 0; i < SESSION_COUNT; i++) {
         const affiliateId = pickRandom(activeAffiliateIds, rng);
         const now = Date.now();
-        const createdAt = randomTimestamp(rng, 1, 90);
+        const createdAt = randomTimestamp(rng, 1, Math.min(90, DAYS_AGO_MAX));
         const expiresAt = createdAt + (7 * 24 * 60 * 60 * 1000); // 7-day sessions
 
         await ctx.db.insert("affiliateSessions", {
@@ -690,7 +699,7 @@ export const seedTechFlow = internalMutation({
         if (!links || links.length === 0) continue;
 
         const referralLinkId = pickRandom(links, rng);
-        const clickTimestamp = randomTimestamp(rng, 1, 150);
+        const clickTimestamp = randomTimestamp(rng, 1, DAYS_AGO_MAX);
         const ipAddress = generateIPAddress(rng);
         const dedupeKey = `${referralLinkId}-${ipAddress}-${Math.floor(clickTimestamp / 60000)}`; // 1-min dedupe
 
@@ -740,7 +749,7 @@ export const seedTechFlow = internalMutation({
         const attributionSource = isOrganic
           ? "organic"
           : pickRandom(["cookie", "cookie", "cookie", "webhook", "webhook", "body"] as const, rng);
-        const conversionTimestamp = randomTimestamp(rng, 1, 150);
+        const conversionTimestamp = randomTimestamp(rng, 1, DAYS_AGO_MAX);
 
         const conversionId = await ctx.db.insert("conversions", {
           tenantId,
@@ -831,7 +840,7 @@ export const seedTechFlow = internalMutation({
           ? pickRandom(matchingConversions, rng)
           : null;
 
-        const timestamp = randomTimestamp(rng, 1, 150);
+        const timestamp = randomTimestamp(rng, 1, DAYS_AGO_MAX);
 
         const commissionId = await ctx.db.insert("commissions", {
           tenantId,
@@ -892,7 +901,7 @@ export const seedTechFlow = internalMutation({
 
       // --- Completed batches (monthly cadence over 5 months) ---
       for (let b = 0; b < batchesToCreate && payoutsCreated < PAYOUT_TARGET && groupIdx < paidAffiliateGroups.length; b++) {
-        const generatedAt = randomTimestamp(rng, 7, 140);
+        const generatedAt = randomTimestamp(rng, 7, Math.min(140, DAYS_AGO_MAX));
         const batchStatus = b < 6 ? "completed" : (b === 6 ? "pending" : "processing");
 
         const payoutsPerBatch = Math.max(1, Math.floor((PAYOUT_TARGET - payoutsCreated) / (batchesToCreate - b)));
@@ -1015,7 +1024,7 @@ export const seedTechFlow = internalMutation({
     if (!isDryRun) {
       for (let i = 0; i < AUDIT_LOG_COUNT; i++) {
         const action = pickRandom(AUDIT_ACTIONS, rng);
-        const timestamp = randomTimestamp(rng, 1, 150);
+        const timestamp = randomTimestamp(rng, 1, DAYS_AGO_MAX);
         const actorId = adminUsers.length > 0
           ? pickRandom(adminUsers, rng)._id
           : undefined;
@@ -1097,7 +1106,7 @@ export const seedTechFlow = internalMutation({
     if (!isDryRun) {
       for (let i = 0; i < EMAIL_COUNT; i++) {
         const emailType = pickRandom(EMAIL_TYPES, rng);
-        const timestamp = randomTimestamp(rng, 1, 150);
+        const timestamp = randomTimestamp(rng, 1, DAYS_AGO_MAX);
         const deliveryStatus = pickRandom(EMAIL_DELIVERY_STATUSES, rng);
 
         // Pick affiliate as recipient for affiliate-related emails
@@ -1179,10 +1188,15 @@ export const seedTechFlow = internalMutation({
     // =========================================================================
     if (!isDryRun) {
       const broadcastData = [
-        { subject: "December Affiliate Newsletter", status: "sent" as const, sentAt: randomTimestamp(rng, 60, 90) },
-        { subject: "New Year Bonus Campaign Launch", status: "sent" as const, sentAt: randomTimestamp(rng, 40, 60) },
-        { subject: "January Performance Update", status: "sent" as const, sentAt: randomTimestamp(rng, 20, 40) },
-        { subject: "February Payout Reminder", status: "partial" as const, sentAt: randomTimestamp(rng, 10, 20) },
+        // Dec 2025 newsletter (~90-117 days ago)
+        { subject: "December Affiliate Newsletter", status: "sent" as const, sentAt: randomTimestamp(rng, 90, DAYS_AGO_MAX) },
+        // Jan 2026 (~59-89 days ago)
+        { subject: "New Year Bonus Campaign Launch", status: "sent" as const, sentAt: randomTimestamp(rng, 59, 89) },
+        // Jan 2026 (~30-58 days ago)
+        { subject: "January Performance Update", status: "sent" as const, sentAt: randomTimestamp(rng, 30, 58) },
+        // Feb 2026 (~10-29 days ago)
+        { subject: "February Payout Reminder", status: "partial" as const, sentAt: randomTimestamp(rng, 10, 29) },
+        // Mar 2026 (recent, 0-9 days ago)
         { subject: "March Program Updates", status: "pending" as const, sentAt: undefined },
       ];
 
@@ -1373,7 +1387,7 @@ export const seedTechFlow = internalMutation({
             ? `failed.login.${i + 1}@example.com`
             : `success.login.${i + 1}@example.com`,
           ipAddress: generateIPAddress(rng),
-          failedAt: randomTimestamp(rng, 1, 60),
+          failedAt: randomTimestamp(rng, 1, Math.min(60, DAYS_AGO_MAX)),
           lockedUntil: isLocked
             ? Date.now() + 15 * 60 * 1000 // 15 min lockout
             : undefined,
@@ -1426,7 +1440,7 @@ export const seedTechFlow = internalMutation({
           tenantId,
           metricType,
           value,
-          timestamp: randomTimestamp(rng, 1, 150),
+          timestamp: randomTimestamp(rng, 1, DAYS_AGO_MAX),
           metadata,
         });
         stats.performanceMetricsCreated++;
@@ -1441,7 +1455,7 @@ export const seedTechFlow = internalMutation({
         await ctx.db.insert("trackingPings", {
           tenantId,
           trackingKey: `tp_${tenant.slug}_${Math.random().toString(36).slice(2, 10)}`,
-          timestamp: randomTimestamp(rng, 1, 150),
+          timestamp: randomTimestamp(rng, 1, DAYS_AGO_MAX),
           domain: tenant.domain,
           userAgent: generateUserAgent(rng),
           ipAddress: generateIPAddress(rng),
@@ -1512,6 +1526,209 @@ export const seedTechFlow = internalMutation({
       breakdown,
       errors,
     };
+  },
+});
+
+// =============================================================================
+// Cleanup: Delete rows from a single table for a tenant
+// =============================================================================
+
+/**
+ * Delete all rows from one table for a tenant. Uses .take(500) in a loop.
+ * Each call is a separate function execution with its own 4096 read budget.
+ * Keeps under limit by only reading one table at a time.
+ */
+export const deleteTenantTableRows = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    tableName: v.string(),
+    indexName: v.optional(v.string()),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const { tenantId, tableName, indexName } = args;
+    const idx = indexName ?? "by_tenant";
+    let count = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      let docs: any[];
+      try {
+        docs = await ctx.db
+          .query(tableName as any)
+          .withIndex(idx as any, (q: any) => q.eq("tenantId", tenantId))
+          .take(500);
+      } catch {
+        break; // Table/index doesn't exist — skip
+      }
+      if (docs.length === 0) break;
+      for (const doc of docs) {
+        await ctx.db.delete(doc._id);
+        count++;
+      }
+      hasMore = docs.length === 500;
+    }
+    return count;
+  },
+});
+
+// =============================================================================
+// Master Reset: Clear everything and re-seed from scratch
+// =============================================================================
+
+/**
+ * Master reset action: wipe all data, re-seed base tenants/users, then bulk seed TechFlow.
+ *
+ * Each table deletion runs as a separate internalMutation call via ctx.runMutation,
+ * giving each its own 4096 read budget.
+ *
+ * Usage:
+ *   npx convex run seedTechFlowComprehensive:resetAndSeedAll --args '{"tenantSlug":"techflow-saas"}'
+ */
+export const resetAndSeedAll = action({
+  args: {
+    tenantSlug: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const { tenantSlug } = args;
+
+    // Step 1: Find the tenant (before wiping)
+    const tenantId = await ctx.runQuery(
+      internal.seedTechFlowComprehensive._findTenantId,
+      { slug: tenantSlug },
+    );
+    if (!tenantId) {
+      return `ERROR: Tenant "${tenantSlug}" not found.`;
+    }
+
+    // Step 2: Delete all data table-by-table (reverse dependency order)
+    // Each ctx.runMutation call gets its own 4096 read budget
+    const leafTables = [
+      "clicks", "performanceMetrics", "trackingPings", "rawWebhooks",
+      "emails", "broadcastEmails",
+      "commissions", "conversions",
+      "payouts", "payoutBatches",
+      "referralLinks", "affiliateCampaigns",
+      "affiliates",
+      "auditLogs", "brandAssets", "billingHistory", "teamInvitations",
+    ];
+
+    const deletedCounts: Record<string, number> = {};
+
+    for (const tableName of leafTables) {
+      try {
+        const count: number = await ctx.runMutation(
+          internal.seedTechFlowComprehensive.deleteTenantTableRows,
+          { tenantId, tableName },
+        );
+        deletedCounts[tableName] = count;
+      } catch (e) {
+        deletedCounts[tableName] = -1;
+      }
+    }
+
+    // Tables without by_tenant index — use special handling
+    // affiliateSessions (by_affiliate) — delete all (dev only)
+    try {
+      const count: number = await ctx.runMutation(
+        internal.seedTechFlowComprehensive._deleteAllFromTable,
+        { tableName: "affiliateSessions" },
+      );
+      deletedCounts["affiliateSessions"] = count;
+    } catch (e) {
+      deletedCounts["affiliateSessions"] = -1;
+    }
+
+    // loginAttempts — delete all (dev only)
+    try {
+      const count: number = await ctx.runMutation(
+        internal.seedTechFlowComprehensive._deleteAllFromTable,
+        { tableName: "loginAttempts" },
+      );
+      deletedCounts["loginAttempts"] = count;
+    } catch (e) {
+      deletedCounts["loginAttempts"] = -1;
+    }
+
+    // emailTemplates (by_tenant_and_type) — special index
+    try {
+      const count: number = await ctx.runMutation(
+        internal.seedTechFlowComprehensive.deleteTenantTableRows,
+        { tenantId, tableName: "emailTemplates", indexName: "by_tenant_and_type" },
+      );
+      deletedCounts["emailTemplates"] = count;
+    } catch (e) {
+      deletedCounts["emailTemplates"] = -1;
+    }
+
+    // tenantStats — find and delete
+    try {
+      const count: number = await ctx.runMutation(
+        internal.seedTechFlowComprehensive.deleteTenantTableRows,
+        { tenantId, tableName: "tenantStats" },
+      );
+      deletedCounts["tenantStats"] = count;
+    } catch (e) {
+      deletedCounts["tenantStats"] = -1;
+    }
+
+    // Step 3: Re-seed base data (tenants, users, campaigns, initial affiliates)
+    try {
+      await ctx.runMutation(internal.testData.seedAllTestData, {});
+    } catch (e) {
+      // Base data already exists — that's fine
+    }
+
+    // Step 4: Bulk seed TechFlow with comprehensive data
+    const result: any = await ctx.runMutation(
+      internal.seedTechFlowComprehensive.seedTechFlow,
+      { tenantSlug, dryRun: false },
+    );
+
+    // Step 5: Backfill tenantStats
+    await ctx.runMutation(internal.tenantStats.backfillStats, { tenantId });
+
+    const totalDeleted = Object.values(deletedCounts).reduce((s, c) => s + Math.max(0, c), 0);
+
+    return [
+      `Reset complete for "${tenantSlug}".`,
+      `Deleted: ${totalDeleted} rows across ${Object.keys(deletedCounts).length} tables.`,
+      `Re-seeded: ${JSON.stringify(result.stats)}`,
+      `Errors: ${result.errors.length > 0 ? JSON.stringify(result.errors) : "none"}`,
+    ].join("\n");
+  },
+});
+
+// Internal helpers for the master reset
+export const _findTenantId = internalQuery({
+  args: { slug: v.string() },
+  returns: v.union(v.id("tenants"), v.null()),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    return tenant ? tenant._id : null;
+  },
+});
+
+export const _deleteAllFromTable = internalMutation({
+  args: { tableName: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    let count = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const docs = await ctx.db.query(args.tableName as any).take(500);
+      if (docs.length === 0) break;
+      for (const doc of docs) {
+        await ctx.db.delete(doc._id);
+        count++;
+      }
+      hasMore = docs.length === 500;
+    }
+    return count;
   },
 });
 

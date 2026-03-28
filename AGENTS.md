@@ -434,3 +434,273 @@ import { Button } from "@/components/ui/button";
 3. **White-label trust** — Affiliate portal reflects the SaaS Owner's brand, not salig-affiliate's
 4. **Mobile-first for affiliates** — They may check commissions on mobile; dashboard must be responsive
 5. **Clear status communication** — Commission states, payout status, fraud flags must be instantly understandable
+
+## 🧪 Test Data & Seeding
+
+### Quick Reference: Seed Workflow
+
+For a **full fresh seed**, run these commands in order:
+
+```bash
+# 1. Clear all existing data (app tables + auth component tables)
+pnpm convex run testData:clearAllTestData --typecheck=disable -- '{}'
+
+# 2. Create credential accounts for all 16 auth users in component tables
+#    (run seedAuthUsers action OR ensureAuthAccounts directly)
+pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
+
+# 3. Seed app data (tenants, users, affiliates, campaigns, clicks, commissions, etc.)
+pnpm convex run testData:seedAllTestData --typecheck=disable -- '{}'
+```
+
+**Important:** Always use `--typecheck=disable` when running Convex functions from the CLI. Pre-existing test files (commissionEngine.test.ts, payouts.test.ts, webhooks.test.ts) have TypeScript errors that will block function push/deployment otherwise.
+
+### Test Credentials
+
+All test accounts use password: **`TestPass123!`**
+
+Pre-computed scrypt hash (for programmatic use):
+```
+b1fb84d0f1c6feb781d661faecc3eeb6:4840a3170ce388473977f0fef10160e603fc9d95a74f55b2bfbf7626d0879e545a1fe515d12b36f0230bce85f6d4f6de3cf8f98f9a1daca3deeefd06e76a2000
+```
+
+### Seed Data Summary
+
+| Resource | Count | Notes |
+|----------|-------|-------|
+| Tenants | 10 | 9 SaaS companies + 1 Platform Admin |
+| Auth Users (Better Auth) | 16 | In component-scoped tables |
+| App Users | 16 | In root `users` table with tenant/role assignments |
+| Affiliates | 17 | Across tenants, with referral codes |
+| Campaigns | 14 | Various commission types and statuses |
+| Clicks | ~378 | Randomly generated per affiliate |
+| Conversions | ~39 | Linked to clicks and campaigns |
+| Commissions | ~39 | Mix of pending/approved/paid statuses |
+| Payout Batches | 7 | For affiliates with paid commissions |
+| Brand Assets | 27 | Logos, copy-text per tenant |
+| Billing History | 29 | Trial starts, conversions, renewals, cancellations |
+| Audit Logs | 86 | Auto-generated for all seed operations |
+
+### Seed Files
+
+| File | Purpose |
+|------|---------|
+| `convex/seedAuthUsers.ts` | Action that calls HTTP signup endpoint + fallback to `ensureAuthAccounts` |
+| `convex/seedAuthHelpers.ts` | `ensureAuthAccounts` internalMutation using the adapter factory to create credential accounts |
+| `convex/testData.ts` | All test data config, `clearAllTestData`, `seedAllTestData`, `getTestCredentials` |
+
+## ⚠️ Better Auth Component Tables — Critical Knowledge
+
+The `@convex-dev/better-auth` component manages its own **component-scoped database tables** (`user`, `account`, `session`, `verification`, `twoFactor`, `passkey`, `rateLimit`, `jwks`). These are **separate** from any root Convex tables you might define with the same names.
+
+### ⚠️ Root Tables vs. Component Tables
+
+**Direct `ctx.db.insert("user", ...)` writes to ROOT tables**, NOT the component's tables. Better Auth sign-in only reads from component-scoped tables. If you write to root tables directly, users will not be able to sign in.
+
+```typescript
+// ❌ WRONG — writes to root "user" table, Better Auth won't see it
+await ctx.db.insert("user", { email, name, ... });
+
+// ✅ CORRECT — use the adapter to write to component tables
+const factory = betterAuthComponent.adapter(ctx);
+const db = factory({ options: {} });
+await db.create({ model: "user", data: { email, name, ... } });
+```
+
+### ⚠️ Adapter Factory Pattern
+
+`betterAuthComponent.adapter(ctx)` returns a **factory function**, NOT an adapter object. You must call the factory to get the actual adapter with methods (`findMany`, `findOne`, `create`, `delete`, etc.).
+
+```typescript
+import { betterAuthComponent } from "./auth";
+
+// Step 1: Get the factory (this is a function, not an object)
+const factory: any = betterAuthComponent.adapter(ctx);
+
+// Step 2: Call the factory to get the actual adapter
+const db: any = factory({ options: {} });
+
+// Step 3: Use adapter methods
+const users = await db.findMany({ model: "user" });
+```
+
+### ⚠️ Adapter `create()` Requires Both `createdAt` AND `updatedAt`
+
+The component's schema validators require both `createdAt` and `updatedAt` fields on all models. The adapter **auto-injects `createdAt`** but does NOT auto-inject `updatedAt`. You must provide `updatedAt` explicitly, or you'll get an `ArgumentValidationError`.
+
+```typescript
+// ❌ WRONG — missing updatedAt, will fail with ArgumentValidationError
+await db.create({
+  model: "account",
+  data: {
+    userId: user.id,
+    accountId: email,
+    providerId: "credential",
+    password: hash,
+  },
+});
+
+// ✅ CORRECT — include both timestamps
+const now = Date.now();
+await db.create({
+  model: "account",
+  data: {
+    userId: user.id,
+    accountId: email,
+    providerId: "credential",
+    password: hash,
+    createdAt: now,
+    updatedAt: now,
+  },
+});
+```
+
+**Component schema for `account` model** (for reference):
+```typescript
+{
+  accountId: v.string(),          // For credential: the email address
+  providerId: v.string(),         // "credential" for email/password
+  password: v.optional(v.string()),
+  accessToken: v.optional(v.string()),
+  refreshToken: v.optional(v.string()),
+  createdAt: v.float64(),         // REQUIRED (auto-injected by adapter)
+  updatedAt: v.float64(),         // REQUIRED (NOT auto-injected!)
+  userId: v.string(),             // Better Auth user ID (not Convex doc ID)
+  // ... other optional OAuth fields
+}
+```
+
+### ⚠️ Adapter Method Reliability
+
+| Method | Status | Notes |
+|--------|--------|-------|
+| `findMany` | ✅ Works | Returns array of records with `id` (mapped from `_id`) |
+| `create` | ✅ Works | Triggers component onCreate hooks; requires full schema data |
+| `findOne` | ❌ Fails | Throws `c.map is not a function` — use `findMany` + filter instead |
+| `delete` | ❌ Fails | Throws `c.map is not a function` — no working delete via adapter |
+
+**Workaround for reads**: Use `findMany` and filter in JavaScript.
+**Workaround for deletes**: Use `ctx.db.query("account").collect()` + `ctx.db.delete()` on the root table reference (component tables ARE accessible via `ctx.db` for reads/deletes, even though `clearAllTestData` reports 0).
+
+### ⚠️ HTTP Signup Is the Most Reliable Creation Method
+
+The only fully reliable way to create auth users with both `user` AND `account` records is via the HTTP signup endpoint:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "TestPass123!", "name": "User Name"}'
+```
+
+This creates both the `user` and `account` (credential) records atomically. The adapter `create` approach works but must be done in two steps (user first, then account).
+
+### ⚠️ databaseHooks.user.create.after Must Be Non-Fatal
+
+The `databaseHooks.user.create.after` hook in `src/lib/auth.ts` calls `syncUserCreation`, which normally requires a `domain` to create a tenant. During seeding (no domain), this hook throws. It MUST be wrapped in try/catch so the auth user creation in component tables still succeeds:
+
+```typescript
+// In src/lib/auth.ts
+databaseHooks: {
+  user: {
+    create: {
+      after: async (user) => {
+        if ("runMutation" in ctx) {
+          try {
+            await ctx.runMutation(internal.users.syncUserCreation, { ... });
+          } catch (err) {
+            // Non-fatal — auth user creation must succeed even if
+            // app-level user record creation fails (e.g., missing domain during seeding)
+            console.error("[Better Auth] syncUserCreation failed (non-fatal):", err);
+          }
+        }
+      },
+    },
+  },
+},
+```
+
+### ⚠️ Orphaned Users: User Without Account
+
+If the `databaseHooks.user.create.after` hook throws (before the try/catch fix was added), Better Auth creates the `user` record but fails before creating the `account` record. This results in **orphaned users** that exist in the component `user` table but have no `account` record — they cannot sign in (error: "Credential account not found").
+
+**Detection**: Users in component `user` table without matching `account` records.
+**Fix**: Use `ensureAuthAccounts` in `convex/seedAuthHelpers.ts` to retroactively create `account` records for orphaned users.
+
+### ⚠️ syncUserCreation Must Be Idempotent
+
+The `syncUserCreation` mutation in `convex/users.ts` is called by the auth hook. It must check if a user already exists before creating one, since the hook fires on every signup (including re-runs during seeding):
+
+```typescript
+// Always check for existing user first
+const existingUser = await ctx.db
+  .query("users")
+  .withIndex("by_email", (q) => q.eq("email", email))
+  .first();
+
+if (existingUser) {
+  return existingUser._id; // Already exists, skip
+}
+```
+
+### ⚠️ App User Upsert Pattern in seedAllTestData
+
+Since auth users may already exist in the component tables (from HTTP signup) and the hook may have created minimal app user records, `seedAllTestData` uses an **upsert pattern**:
+
+```typescript
+// Check if user already exists (created by auth hook during seedAuthUsers)
+const existingUser = await ctx.db
+  .query("users")
+  .withIndex("by_email", (q) => q.eq("email", user.email))
+  .first();
+
+if (existingUser) {
+  // Patch existing user with correct tenant, role, etc.
+  await ctx.db.patch(existingUser._id, {
+    tenantId,
+    name: user.name,
+    role: user.role,
+    emailVerified: true,
+  });
+} else {
+  // Create new user in app's users table
+  await ctx.db.insert("users", {
+    tenantId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    emailVerified: true,
+  });
+}
+```
+
+## ⚠️ Convex CLI Gotchas
+
+### Pre-existing TS Errors Require `--typecheck=disable`
+
+Several test files have TypeScript errors (commissionEngine.test.ts, payouts.test.ts, webhooks.test.ts, etc.). When pushing or running Convex functions, always use `--typecheck=disable`:
+
+```bash
+# ❌ WRONG — will fail due to TS errors in test files
+pnpm convex run testData:seedAllTestData -- '{}'
+
+# ✅ CORRECT — skips type checking
+pnpm convex run testData:seedAllTestData --typecheck=disable -- '{}'
+
+# ✅ CORRECT — push + skip type checking (for new functions)
+pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
+```
+
+### `--push` Flag for New Functions
+
+When running a function from a file that was just created or modified, use `--push` to register the new functions with the Convex backend before executing:
+
+```bash
+pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
+```
+
+### Environment Variables Required for Seeding
+
+| Variable | Purpose | Set Command |
+|----------|---------|-------------|
+| `BETTER_AUTH_SECRET` | Required by Better Auth for token signing | `pnpm convex env set BETTER_AUTH_SECRET <value>` |
+| `SITE_URL` | Required by Better Auth for base URL + seed HTTP calls | `pnpm convex env set SITE_URL http://localhost:3000` |

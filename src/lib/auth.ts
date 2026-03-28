@@ -131,15 +131,19 @@ const createOptions = (ctx: GenericCtx) =>
         create: {
           after: async (user) => {
             if ("runMutation" in ctx) {
-              // Use the new syncUserCreation with tenant creation
-              // Pass authId to link Better Auth user to app user record
-              await ctx.runMutation(internal.users.syncUserCreation, {
-                email: user.email,
-                name: user.name || undefined,
-                companyName: (user as any).companyName || undefined,
-                domain: (user as any).domain || undefined,
-                authId: user.id, // Better Auth's unique user identifier
-              });
+              try {
+                await ctx.runMutation(internal.users.syncUserCreation, {
+                  email: user.email,
+                  name: user.name || undefined,
+                  companyName: (user as any).companyName || undefined,
+                  domain: (user as any).domain || undefined,
+                  authId: user.id, // Better Auth's unique user identifier
+                });
+              } catch (err) {
+                // Log but don't throw — user creation in auth tables should succeed
+                // even if app-level user record creation fails (e.g., missing domain during seeding)
+                console.error("[Better Auth] syncUserCreation failed (non-fatal):", err);
+              }
             }
           },
         },

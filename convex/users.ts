@@ -117,6 +117,26 @@ export const syncUserCreation = internalMutation({
       throw new Error("Invalid email format");
     }
 
+    // Check if user already exists by email (idempotent)
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
+      .first();
+
+    if (existingUser) {
+      // Update authId if missing, then return existing user
+      if (!existingUser.authId) {
+        await ctx.db.patch(existingUser._id, { authId: args.authId });
+      }
+      return existingUser._id;
+    }
+
+    // If no domain provided, we can't create a tenant. Throw a clear error
+    // that will be caught by the auth hook's try/catch (non-fatal).
+    if (!args.domain) {
+      throw new Error("Domain is required for new user registration");
+    }
+
     // Generate a slug from company name or email
     const companyName = args.companyName || args.email.split("@")[0];
 
