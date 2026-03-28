@@ -12,6 +12,7 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { ConvexHttpClient } from "convex/browser";
 import { Logo } from "@/components/shared/Logo";
+import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
 
 export default function SignIn() {
   const router = useRouter();
@@ -190,17 +191,19 @@ export default function SignIn() {
     <div className="flex min-h-screen">
       {/* Left Panel - Brand */}
       <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#022232] relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute top-[-120px] right-[-120px] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(22,89,214,0.25)_0%,transparent_70%)] pointer-events-none" />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(16,64,154,0.3)_0%,transparent_70%)] pointer-events-none" />
+        {/* Animated Network Constellation */}
+        <SidebarNetwork />
+
+        {/* Subtle radial vignette for depth */}
+        <div className="absolute top-[-120px] right-[-120px] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(22,89,214,0.12)_0%,transparent_70%)] pointer-events-none" />
 
         {/* Logo */}
-        <div className="relative z-10">
+        <div className="relative z-10 sidebar-content-enter">
           <Logo href="/" variant="light" />
         </div>
 
         {/* Hero */}
-        <div className="flex flex-col justify-center relative z-10 py-8">
+        <div className="flex flex-col justify-center relative z-10 py-8 sidebar-enter-delay-1">
           <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
             Your affiliate<br />program,<br /><span className="text-[#7dd3fc]">on autopilot.</span>
           </h1>
@@ -211,9 +214,9 @@ export default function SignIn() {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-col gap-3.5 relative z-10">
+        <div className="flex flex-col gap-3.5 relative z-10 sidebar-enter-delay-2">
           <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
-            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -233,7 +236,7 @@ export default function SignIn() {
             </div>
           </div>
           <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
-            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -253,7 +256,7 @@ export default function SignIn() {
             </div>
           </div>
           <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
-            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Logo } from "@/components/shared/Logo";
+import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
 
 type PlanKey = "starter" | "growth" | "scale";
 
@@ -46,7 +47,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("growth");
   const [isAnnual, setIsAnnual] = useState(false);
 
@@ -55,8 +56,15 @@ export default function SignUp() {
 
   if (allTiers === undefined) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
+      <div className="flex min-h-screen">
+        <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#022232] relative overflow-hidden">
+          <div className="relative z-10">
+            <Logo href="/" variant="light" />
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center bg-white">
+          <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
+        </div>
       </div>
     );
   }
@@ -65,7 +73,7 @@ export default function SignUp() {
     const tierName = tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1);
     const monthlyPrice = tier.price;
     const annualPrice = Math.round(monthlyPrice * 10);
-    
+
     const baseFeatures: string[] = [];
     if (tier.maxAffiliates > 0) {
       baseFeatures.push(`${formatLimit(tier.maxAffiliates)} affiliates`);
@@ -84,15 +92,15 @@ export default function SignUp() {
       name: tierName,
       monthly: formatPrice(monthlyPrice),
       annual: formatPrice(annualPrice),
-      monthlyNote: monthlyPrice === 0 
-        ? "Free forever" 
+      monthlyNote: monthlyPrice === 0
+        ? "Free forever"
         : `Free for 14 days, then ${formatPrice(monthlyPrice)}/mo`,
-      annualNote: monthlyPrice === 0 
-        ? "Free forever" 
+      annualNote: monthlyPrice === 0
+        ? "Free forever"
         : `Free for 14 days, then ${formatPrice(annualPrice)}/mo (billed ${formatPrice(annualPrice * 12)}/yr)`,
       features: baseFeatures,
-      limit: tier.maxAffiliates === -1 
-        ? "Unlimited affiliates & campaigns" 
+      limit: tier.maxAffiliates === -1
+        ? "Unlimited affiliates & campaigns"
         : `Up to ${formatLimit(tier.maxAffiliates)} affiliates · ${formatLimit(tier.maxCampaigns)} campaigns`,
     };
   };
@@ -123,24 +131,24 @@ export default function SignUp() {
   // Helper to clean domain input (strip protocol, www, trailing slashes)
   const cleanDomain = (input: string): string | null => {
     if (!input) return null;
-    
+
     let cleaned = input.toLowerCase().trim();
-    
+
     // Strip protocol
     cleaned = cleaned.replace(/^https?:\/\//, "");
-    
+
     // Strip www.
     cleaned = cleaned.replace(/^www\./, "");
-    
+
     // Strip trailing slashes and path
     cleaned = cleaned.split("/")[0];
-    
+
     // Strip port if present
     cleaned = cleaned.split(":")[0];
-    
+
     // Basic validation
     if (!cleaned || cleaned.length < 3) return null;
-    
+
     return cleaned;
   };
 
@@ -252,29 +260,32 @@ export default function SignUp() {
     }
   };
 
-  const updatePlanSummary = () => {
-    const plan = plans[selectedPlan];
-    return isAnnual ? `${plan.annual}/mo (annual)` : `${plan.monthly}/mo`;
+  const getPrice = () => {
+    return isAnnual ? currentPlan.annual : currentPlan.monthly;
+  };
+
+  const getPriceNote = () => {
+    return isAnnual ? currentPlan.annualNote : currentPlan.monthlyNote;
   };
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
-      {/* Topbar */}
-      <header className="bg-white border-b border-[#e5e7eb] px-8 h-[60px] flex items-center justify-between flex-shrink-0">
-        <Logo href="/" />
-        <div className="text-[13px] text-[#6b7280]">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
-            Sign in
-          </Link>
-        </div>
-      </header>
+    <div className="flex min-h-screen">
+      {/* ── Left Panel — Brand ── */}
+      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:pt-12 lg:px-12 lg:pb-12 bg-[#022232] relative overflow-hidden">
+        {/* Animated Network Constellation */}
+        <SidebarNetwork />
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center px-6 py-10 pb-16">
+        {/* Subtle radial vignette for depth */}
+        <div className="absolute top-[-120px] right-[-120px] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(22,89,214,0.12)_0%,transparent_70%)] pointer-events-none" />
+
+        {/* Logo */}
+        <div className="relative z-10 mb-10 sidebar-content-enter">
+          <Logo href="/" variant="light" />
+        </div>
+
         {/* Hero */}
-        <div className="text-center max-w-[540px] mb-9">
-          <div className="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-full px-3.5 py-1 text-[12px] font-semibold text-green-700 mb-4">
+        <div className="flex flex-col relative z-10 mb-10 sidebar-enter-delay-1">
+          <div className="inline-flex items-center gap-1.5 bg-white/7 border border-white/10 rounded-full px-3.5 py-1 text-[12px] font-semibold text-white/80 mb-5 w-fit">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -282,142 +293,187 @@ export default function SignUp() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-3 h-3 text-green-600"
+              className="w-3 h-3 text-[#7dd3fc]"
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
             14-day free trial — no credit card required
           </div>
-          <h1 className="text-[30px] font-bold text-[#333] tracking-tight leading-tight mb-2.5">
-            Launch your affiliate program today
+          <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
+            Launch your<br />affiliate<br /><span className="text-[#7dd3fc]">empire.</span>
           </h1>
-          <p className="text-sm text-[#6b7280] leading-relaxed">
-            Full access to all features during your trial. Choose the plan that fits you best — you
-            can change anytime.
+          <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
+            Full access to commission tracking, payout management, and a branded affiliate portal —
+            integrated natively with SaligPay.
           </p>
         </div>
 
-        {/* Billing Toggle */}
-        <div className="flex items-center gap-3 mb-[18px]">
-          <span className={`text-[13px] font-medium ${!isAnnual ? "text-[#333] font-semibold" : "text-[#6b7280]"}`}>
-            Monthly
-          </span>
-          <button
-            onClick={() => setIsAnnual(!isAnnual)}
-            className={`w-[42px] h-6 rounded-full relative cursor-pointer transition-colors border-none ${
-              isAnnual ? "bg-[#10409a]" : "bg-[#e5e7eb]"
-            }`}
-            aria-label="Toggle billing period"
-          >
-            <div
-              className={`absolute w-[18px] h-[18px] bg-white rounded-full top-0.5 transition-all shadow-sm ${
-                isAnnual ? "left-5" : "left-0.5"
-              }`}
-            />
-          </button>
-          <span className={`text-[13px] font-medium ${isAnnual ? "text-[#333] font-semibold" : "text-[#6b7280]"}`}>
-            Annual
-          </span>
-          <span className="bg-green-50 text-green-700 text-[11px] font-bold rounded px-2 py-0.5">
-            Save 17%
-          </span>
-        </div>
-
-        {/* Plan Selector */}
-        <div className="w-full max-w-[780px] mb-8">
-          <p className="text-[13px] font-semibold text-[#333] mb-3.5 text-center">
-            Choose your plan <span className="text-[#6b7280] font-normal">— all plans include a 14-day free trial</span>
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {(Object.keys(plans) as PlanKey[]).map((planKey) => {
-              const plan = plans[planKey]!;
-              const isSelected = selectedPlan === planKey;
-              const isPopular = planKey === "growth";
-
-              return (
-                <div
-                  key={planKey}
-                  onClick={() => setSelectedPlan(planKey)}
-                  className={`bg-white border-2 rounded-[14px] p-5 cursor-pointer transition-all hover:border-blue-300 hover:shadow-[0_4px_16px_rgba(16,64,154,0.08)] hover:-translate-y-1 ${
-                    isSelected
-                      ? "border-[#10409a] shadow-[0_0_0_4px_rgba(16,64,154,0.1),0_4px_16px_rgba(16,64,154,0.12)]"
-                      : "border-[#e5e7eb]"
-                  } ${isPopular && !isSelected ? "border-[#10409a]" : ""} relative`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#10409a] text-white text-[10px] font-bold uppercase tracking-wider rounded-full px-3 py-0.5 whitespace-nowrap">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2.5 mb-3.5">
-                    <input
-                      type="radio"
-                      name="plan"
-                      checked={isSelected}
-                      onChange={() => setSelectedPlan(planKey)}
-                      className="w-[18px] h-[18px] accent-[#10409a] cursor-pointer"
-                    />
-                    <span className="text-[15px] font-bold text-[#333]">{plan.name}</span>
-                  </div>
-                  <div className="mb-1.5">
-                    <span className="text-[26px] font-extrabold text-[#022232] tracking-tight">
-                      {isAnnual ? plan.annual : plan.monthly}
-                    </span>
-                    <span className="text-[13px] text-[#6b7280]">/mo</span>
-                  </div>
-                  <p className="text-[11px] font-semibold text-green-600 mb-4">
-                    {isAnnual ? plan.annualNote : plan.monthlyNote}
-                  </p>
-                  <ul className="list-none flex flex-col gap-2">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#474747] leading-snug">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3 h-3 text-[#10b981] flex-shrink-0 mt-px"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="inline-block text-[11px] font-semibold text-[#6b7280] bg-[#f2f2f2] border border-[#e5e7eb] rounded px-1.5 py-0.5 mt-3">
-                    {plan.limit}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Signup Form Card */}
-        <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-[480px] shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-          <h2 className="text-[17px] font-bold text-[#333] mb-1.5">Create your account</h2>
-          <p className="text-[13px] text-[#6b7280] mb-6 leading-relaxed">
-            You won&apos;t be charged until after your 14-day trial ends.
-          </p>
-
-          {/* Plan Summary */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg py-2.5 px-3.5 flex items-center justify-between mb-5">
-            <div className="text-[13px] text-blue-800">
-              Selected: <strong>{currentPlan.name}</strong> — <span>{updatePlanSummary()}</span>
+        {/* Stats */}
+        <div className="flex flex-col gap-3.5 relative z-10 sidebar-enter-delay-2">
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
             </div>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="text-[12px] text-[#10409a] font-semibold no-underline h-auto p-0"
-              onClick={() => document.querySelector(".grid")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              Change plan
-            </Button>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Commissions tracked</div>
+              <div className="text-sm text-white font-semibold mt-px">Zero-latency SaligPay integration</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Setup time</div>
+              <div className="text-sm text-white font-semibold mt-px">First campaign live in under 15 minutes</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
+            <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 icon-breathe">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-[18px] h-[18px] text-[#7dd3fc]"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">White-labeled portal</div>
+              <div className="text-sm text-white font-semibold mt-px">Your brand. Your affiliates. Zero salig marks.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right Panel — Form ── */}
+      <div className="flex-1 flex flex-col items-center bg-white overflow-y-auto">
+        {/* Mobile header */}
+        <div className="lg:hidden w-full flex items-center justify-between px-6 h-[60px] border-b border-[#e5e7eb] flex-shrink-0">
+          <Logo href="/" />
+          <div className="text-[13px] text-[#6b7280]">
+            Already have an account?{" "}
+            <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
+              Sign in
+            </Link>
+          </div>
+        </div>
+
+        <div className="w-full max-w-[460px] px-6 py-10 pb-12">
+          {/* Desktop header */}
+          <div className="hidden lg:block mb-8">
+            <h2 className="text-[26px] font-bold text-[#333] tracking-tight mb-2">Create your account</h2>
+            <p className="text-sm text-[#6b7280] leading-relaxed">
+              Already using salig-affiliate?{" "}
+              <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
+                Sign in →
+              </Link>
+            </p>
           </div>
 
+          {/* ── Plan Selector ── */}
+          <div className="mb-6">
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className={`text-[13px] font-medium transition-colors ${!isAnnual ? "text-[#333] font-semibold" : "text-[#6b7280]"}`}>
+                Monthly
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsAnnual(!isAnnual)}
+                className={`w-[42px] h-[22px] rounded-full relative cursor-pointer transition-colors border-none ${
+                  isAnnual ? "bg-[#10409a]" : "bg-[#d1d5db]"
+                }`}
+                aria-label="Toggle billing period"
+              >
+                <div
+                  className={`absolute w-[18px] h-[18px] bg-white rounded-full top-[2px] transition-all shadow-sm ${
+                    isAnnual ? "left-[22px]" : "left-[2px]"
+                  }`}
+                />
+              </button>
+              <span className={`text-[13px] font-medium transition-colors ${isAnnual ? "text-[#333] font-semibold" : "text-[#6b7280]"}`}>
+                Annual
+              </span>
+              <span className="bg-green-50 text-green-700 text-[11px] font-bold rounded-full px-2.5 py-0.5 border border-green-200">
+                Save 17%
+              </span>
+            </div>
+
+            {/* Plan Cards */}
+            <div className="grid grid-cols-3 gap-2.5">
+              {(Object.keys(plans) as PlanKey[]).map((planKey) => {
+                const plan = plans[planKey]!;
+                const isSelected = selectedPlan === planKey;
+                const isPopular = planKey === "growth";
+
+                return (
+                  <button
+                    key={planKey}
+                    type="button"
+                    onClick={() => setSelectedPlan(planKey)}
+                    className={`relative rounded-xl p-3.5 text-left transition-all border-2 ${
+                      isSelected
+                        ? "border-[#10409a] bg-[#f0f5ff] shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                        : "border-[#e5e7eb] bg-white hover:border-[#c7d5f0] hover:bg-[#fafbff]"
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#10409a] text-white text-[9px] font-bold uppercase tracking-wider rounded-full px-2.5 py-[2px] whitespace-nowrap leading-tight">
+                        Popular
+                      </div>
+                    )}
+                    <div className="text-[13px] font-bold text-[#333] mb-1">{plan.name}</div>
+                    <div className="mb-0.5">
+                      <span className="text-[20px] font-extrabold text-[#022232] tracking-tight leading-none">
+                        {isAnnual ? plan.annual : plan.monthly}
+                      </span>
+                      <span className="text-[11px] text-[#6b7280]">/mo</span>
+                    </div>
+                    <div className="text-[10px] text-[#6b7280] leading-snug mt-1">
+                      {plan.limit}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Price note */}
+            <p className="text-[11px] font-medium text-green-600 text-center mt-2">
+              {getPriceNote()}
+            </p>
+          </div>
+
+          {/* ── Form ── */}
           <form onSubmit={handleSignUp}>
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -427,7 +483,7 @@ export default function SignUp() {
                 </Label>
                 <div className="relative">
                   <svg
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -443,7 +499,7 @@ export default function SignUp() {
                     id="first-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
+                    className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                     placeholder="Alex"
                     autoComplete="given-name"
                     required
@@ -459,7 +515,7 @@ export default function SignUp() {
                   id="last-name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full h-[42px] rounded-lg px-3 text-sm"
+                  className="w-full h-11 rounded-lg px-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                   placeholder="Reyes"
                   autoComplete="family-name"
                   required
@@ -474,7 +530,7 @@ export default function SignUp() {
               </Label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -490,7 +546,7 @@ export default function SignUp() {
                   id="company"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
+                  className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                   placeholder="My SaaS Co."
                   autoComplete="organization"
                   required
@@ -505,7 +561,7 @@ export default function SignUp() {
               </Label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -522,14 +578,14 @@ export default function SignUp() {
                   id="domain"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
+                  className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                   placeholder="yourcompany.com"
                   autoComplete="url"
                   required
                 />
               </div>
-              <p className="text-[11px] text-[#6b7280] mt-1.5">
-                Your website URL where customers buy your product
+              <p className="text-[11px] text-[#6b7280] mt-1">
+                Where customers buy your product
               </p>
             </div>
 
@@ -540,7 +596,7 @@ export default function SignUp() {
               </Label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -556,7 +612,7 @@ export default function SignUp() {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-[42px] rounded-lg pl-9 pr-3 text-sm"
+                  className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                   placeholder="alex@yourcompany.com"
                   autoComplete="email"
                   required
@@ -565,13 +621,13 @@ export default function SignUp() {
             </div>
 
             {/* Password */}
-            <div className="mb-4">
+            <div className="mb-5">
               <Label htmlFor="password" className="text-[13px] font-semibold text-[#333] block mb-1.5">
                 Password
               </Label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -587,7 +643,7 @@ export default function SignUp() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-[42px] rounded-lg pl-9 pr-10 text-sm"
+                  className="w-full h-11 rounded-lg pl-10 pr-10 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
                   placeholder="Min. 8 characters"
                   autoComplete="new-password"
                   required
@@ -613,13 +669,14 @@ export default function SignUp() {
                   )}
                 </Button>
               </div>
+
               {/* Password Strength */}
-              <div className="mt-1.5 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2.5">
                 <div className="flex gap-1">
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className={`w-7 h-1 rounded-sm transition-colors ${
+                      className={`w-7 h-1 rounded-full transition-colors ${
                         strength.score >= i
                           ? strength.score <= 1
                             ? "bg-red-500"
@@ -648,27 +705,23 @@ export default function SignUp() {
                 </span>
               </div>
               {/* Password Requirements */}
-              <div className="mt-2 text-[11px] text-[#6b7280] space-y-1">
-                <p>Password must have:</p>
-                <ul className="space-y-0.5 ml-4">
+              <div className="mt-2 text-[11px] text-[#6b7280] space-y-0.5">
+                <ul className="space-y-0">
                   <li className={password.length >= 8 ? "text-green-600" : ""}>
-                    {password.length >= 8 ? "✓" : "•"} At least 8 characters
-                  </li>
-                  <li className={/[A-Z]/.test(password) ? "text-green-600" : ""}>
-                    {/[A-Z]/.test(password) ? "✓" : "•"} One uppercase letter
-                  </li>
-                  <li className={/[0-9]/.test(password) ? "text-green-600" : ""}>
-                    {/[0-9]/.test(password) ? "✓" : "•"} One number
-                  </li>
-                  <li className={/[^A-Za-z0-9]/.test(password) ? "text-green-600" : ""}>
-                    {/[^A-Za-z0-9]/.test(password) ? "✓" : "•"} One special character
+                    {password.length >= 8 ? "✓" : "·"} 8+ characters
+                    <span className="inline-block w-4" />
+                    {/[A-Z]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Uppercase
+                    <span className="inline-block w-4" />
+                    {/[0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Number
+                    <span className="inline-block w-4" />
+                    {/[^A-Za-z0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Special
                   </li>
                 </ul>
               </div>
             </div>
 
             {/* Terms */}
-            <div className="flex items-start gap-2.5 mb-5">
+            <div className="flex items-start gap-2.5 mb-6">
               <input
                 type="checkbox"
                 id="terms"
@@ -694,7 +747,7 @@ export default function SignUp() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed mb-3"
+              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -702,11 +755,13 @@ export default function SignUp() {
                   Creating account...
                 </>
               ) : (
-                "Start free trial →"
+                <>
+                  Start free trial — {getPrice()}/mo
+                </>
               )}
             </Button>
 
-            <div className="flex items-center justify-center gap-1.5 text-[12px] text-[#6b7280]">
+            <div className="flex items-center justify-center gap-1.5 text-[12px] text-[#6b7280] mt-3">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -721,33 +776,40 @@ export default function SignUp() {
               No credit card required. Cancel anytime during trial.
             </div>
           </form>
-        </div>
 
-        {/* Trust Strip */}
-        <div className="flex items-center justify-center gap-6 mt-8 flex-wrap">
-          {[
-            "Native SaligPay integration",
-            "White-labeled affiliate portal",
-            "Live in under 15 minutes",
-            "WCAG 2.1 AA compliant",
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-[12px] text-[#6b7280]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-3.5 h-3.5 text-[#10b981]"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {item}
+          {/* Desktop divider + footer */}
+          <div className="hidden lg:block mt-8 pt-6 border-t border-[#e5e7eb]">
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              {[
+                "Native SaligPay integration",
+                "White-labeled portal",
+                "Live in under 15 minutes",
+                "WCAG 2.1 AA",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-[12px] text-[#6b7280]">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3 h-3 text-[#10b981]"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {item}
+                </div>
+              ))}
             </div>
-          ))}
+            <p className="text-[11px] text-[#6b7280] text-center mt-4 leading-relaxed">
+              By signing up, you agree to our{" "}
+              <a href="#" className="text-[#10409a] no-underline hover:underline">Terms of Service</a> and{" "}
+              <a href="#" className="text-[#10409a] no-underline hover:underline">Privacy Policy</a>.
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

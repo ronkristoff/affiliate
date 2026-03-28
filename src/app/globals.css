@@ -636,6 +636,54 @@
   .glow-brand {
     box-shadow: 0 0 20px rgba(16, 64, 154, 0.15), 0 0 40px rgba(16, 64, 154, 0.1);
   }
+
+  /* ── Sidebar Background Animation: Network Constellation ── */
+  .sidebar-network-lines {
+    stroke-dasharray: 4 6;
+    animation: netDashFlow 3s linear infinite;
+  }
+
+  .sidebar-network-lines-slow {
+    stroke-dasharray: 6 8;
+    animation: netDashFlow 5s linear infinite;
+  }
+
+  .sidebar-network-lines-reverse {
+    stroke-dasharray: 4 6;
+    animation: netDashFlowReverse 4s linear infinite;
+  }
+
+  .sidebar-node-pulse {
+    animation: nodePulse 3s ease-in-out infinite;
+  }
+
+  .sidebar-node-pulse-delay {
+    animation: nodePulse 3s ease-in-out 1.5s infinite;
+  }
+
+  .sidebar-node-glow {
+    animation: nodeGlow 4s ease-in-out infinite;
+  }
+
+  .sidebar-node-glow-delay {
+    animation: nodeGlow 4s ease-in-out 2s infinite;
+  }
+
+  .sidebar-content-enter {
+    animation: sidebarFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .sidebar-enter-delay-1 {
+    animation: sidebarFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  }
+
+  .sidebar-enter-delay-2 {
+    animation: sidebarFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+  }
+
+  .sidebar-enter-delay-3 {
+    animation: sidebarFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
 }
 
 /* Keyframe Animations */
@@ -776,6 +824,45 @@
   }
 }
 
+/* ── Sidebar Background Animations: Network Constellation ── */
+/* Animated data-flow lines — dashed strokes that move along connection paths.
+   Pure SVG stroke animation (GPU-composited). Fits the "affiliate network" theme. */
+
+@keyframes netDashFlow {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -20; }
+}
+
+@keyframes netDashFlowReverse {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 20; }
+}
+
+/* Nodes pulse in opacity — simulates live network activity */
+@keyframes nodePulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* Node glow rings expand and fade — like a radar ping */
+@keyframes nodeGlow {
+  0%   { r: 3; opacity: 0.6; }
+  50%  { r: 8; opacity: 0; }
+  100% { r: 3; opacity: 0; }
+}
+
+/* Sidebar content entrance choreography */
+@keyframes sidebarFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-stagger-1,
   .animate-stagger-2,
@@ -794,5 +881,18 @@
   .animate-hero-in-delay-5 {
     animation: none !important;
     opacity: 1 !important;
+  }
+
+  .sidebar-network-lines,
+  .sidebar-network-lines-slow,
+  .sidebar-network-lines-reverse,
+  .sidebar-node-pulse,
+  .sidebar-node-pulse-delay,
+  .sidebar-node-glow,
+  .sidebar-node-glow-delay,
+  .sidebar-content-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
