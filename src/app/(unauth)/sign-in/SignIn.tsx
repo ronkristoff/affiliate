@@ -2,8 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -13,19 +21,42 @@ import { toast } from "sonner";
 import { ConvexHttpClient } from "convex/browser";
 import { Logo } from "@/components/shared/Logo";
 import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
+
+const signInSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address like name@company.com"),
+  password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean(),
+});
+
+type SignInFormValues = z.infer<typeof signInSchema>;
 
 export default function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lockoutEndTime, setLockoutEndTime] = useState<number | null>(null);
   const [remainingAttempts, setRemainingAttempts] = useState<number>(5);
+
+  const form = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+    mode: "onBlur",
+  });
+
+  const email = form.watch("email");
 
   // Check rate limit status
   const rateLimitStatus = useQuery(
@@ -67,8 +98,7 @@ export default function SignIn() {
     return () => clearInterval(interval);
   }, [lockoutEndTime]);
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: SignInFormValues) => {
     setError("");
 
     // Check if currently locked out
@@ -94,9 +124,9 @@ export default function SignIn() {
     try {
       const { data, error: authError } = await authClient.signIn.email(
         {
-          email,
-          password,
-          rememberMe,
+          email: values.email,
+          password: values.password,
+          rememberMe: values.rememberMe,
         },
         {
           onRequest: () => {
@@ -105,7 +135,7 @@ export default function SignIn() {
           onSuccess: async (ctx) => {
             setLoading(false);
             // Clear failed attempts on successful login
-            await clearFailedAttempts({ email });
+            await clearFailedAttempts({ email: values.email });
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {
@@ -115,7 +145,6 @@ export default function SignIn() {
                 return;
               }
               // Check if user is a platform admin - redirect to /tenants if so
-              // Use ConvexHttpClient to get role since Better Auth session doesn't include custom fields
               const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || window.location.origin;
               const convex = new ConvexHttpClient(convexUrl);
               try {
@@ -125,7 +154,6 @@ export default function SignIn() {
                   return;
                 }
               } catch (e) {
-                // If query fails, fall through to dashboard
                 console.error("Failed to get user role:", e);
               }
               router.push("/dashboard");
@@ -134,7 +162,7 @@ export default function SignIn() {
           onError: async (ctx) => {
             setLoading(false);
             // Record failed attempt with IP
-            const result = await recordFailedAttempt({ email, ipAddress });
+            const result = await recordFailedAttempt({ email: values.email, ipAddress });
             if (result.isLocked) {
               setLockoutEndTime(result.lockedUntil ?? null);
               setError("Too many failed login attempts. Your account has been temporarily locked for 15 minutes.");
@@ -156,7 +184,8 @@ export default function SignIn() {
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    const currentEmail = form.getValues("email");
+    if (!currentEmail) {
       setError("Please enter your email address first");
       return;
     }
@@ -165,7 +194,7 @@ export default function SignIn() {
 
     try {
       const { error } = await authClient.forgetPassword.emailOtp({
-        email,
+        email: currentEmail,
       });
 
       if (error) {
@@ -334,146 +363,174 @@ export default function SignIn() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSignIn}>
-            {/* Email */}
-            <div className="mb-[18px]">
-              <label htmlFor="email" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                Email address
-              </label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
-                  placeholder="alex@yourcompany.com"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="mb-[18px]">
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="text-[13px] font-semibold text-[#333]">
-                  Password
-                </label>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="text-[12px] h-auto p-0 text-[#10409a] font-medium no-underline"
-                  onClick={handleForgotPassword}
-                >
-                  Forgot password?
-                </Button>
-              </div>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4"
-                    >
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Email */}
+              <div className="mb-[18px]">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Email address
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                            placeholder="alex@yourcompany.com"
+                            autoComplete="email"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </Button>
+                />
               </div>
-            </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center gap-2.5 mb-6">
-              <input
-                type="checkbox"
-                id="remember"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 accent-[#10409a] cursor-pointer flex-shrink-0"
-              />
-              <label htmlFor="remember" className="text-[13px] text-[#6b7280] cursor-pointer">
-                Keep me signed in for 30 days
-              </label>
-            </div>
+              {/* Password */}
+              <div className="mb-[18px]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[13px] font-semibold text-[#333]">
+                    Password
+                  </label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="text-[12px] h-auto p-0 text-[#10409a] font-medium no-underline"
+                    onClick={handleForgotPassword}
+                  >
+                    Forgot password?
+                  </Button>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in to dashboard"
-              )}
-            </Button>
-          </form>
+              {/* Remember Me */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2.5">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="w-4 h-4 cursor-pointer flex-shrink-0"
+                          />
+                        </FormControl>
+                        <label className="text-[13px] text-[#6b7280] cursor-pointer">
+                          Keep me signed in for 30 days
+                        </label>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in to dashboard"
+                )}
+              </Button>
+            </form>
+          </Form>
 
           {/* Divider */}
           <div className="flex items-center gap-3.5 my-6">

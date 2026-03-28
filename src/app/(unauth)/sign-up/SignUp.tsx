@@ -3,6 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -13,6 +22,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Logo } from "@/components/shared/Logo";
 import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 
 type PlanKey = "starter" | "growth" | "scale";
 
@@ -36,23 +48,95 @@ function formatPrice(price: number): string {
   return `₱${price.toLocaleString()}`;
 }
 
+// Helper to clean domain input (strip protocol, www, trailing slashes)
+function cleanDomain(input: string): string | null {
+  if (!input) return null;
+
+  let cleaned = input.toLowerCase().trim();
+
+  // Strip protocol
+  cleaned = cleaned.replace(/^https?:\/\//, "");
+
+  // Strip www.
+  cleaned = cleaned.replace(/^www\./, "");
+
+  // Strip trailing slashes and path
+  cleaned = cleaned.split("/")[0];
+
+  // Strip port if present
+  cleaned = cleaned.split(":")[0];
+
+  // Basic validation
+  if (!cleaned || cleaned.length < 3) return null;
+
+  return cleaned;
+}
+
+const signUpSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(1, "First name is required"),
+    lastName: z
+      .string()
+      .min(1, "Last name is required"),
+    companyName: z
+      .string()
+      .min(1, "Company name is required")
+      .min(2, "Company name must be at least 2 characters long")
+      .max(100, "Company name can't exceed 100 characters"),
+    domain: z
+      .string()
+      .min(1, "Website URL is required")
+      .refine((val) => {
+        const cleaned = cleanDomain(val);
+        if (!cleaned) return false;
+        if (cleaned === "localhost" || cleaned.includes("localhost")) return false;
+        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+        if (ipRegex.test(cleaned)) return false;
+        const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+        return domainRegex.test(cleaned);
+      }, "Enter a valid domain like yourcompany.com (no IP addresses or localhost)"),
+    email: z
+      .string()
+      .min(1, "Work email is required")
+      .email("Enter a valid email address like name@company.com"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters"),
+    agreedToTerms: z.literal(true, {
+      error: "Please agree to the Terms of Service and Privacy Policy",
+    }),
+  });
+
+type SignUpFormValues = z.infer<typeof signUpSchema>;
+
 export default function SignUp() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("growth");
   const [isAnnual, setIsAnnual] = useState(false);
 
+  const form = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      companyName: "",
+      domain: "",
+      email: "",
+      password: "",
+      agreedToTerms: undefined as unknown as true,
+    },
+    mode: "onBlur",
+  });
+
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
   const completeSignUp = useMutation(api.users.completeSignUp);
+
+  const password = form.watch("password");
 
   if (allTiers === undefined) {
     return (
@@ -128,104 +212,21 @@ export default function SignUp() {
 
   const strength = getPasswordStrength(password);
 
-  // Helper to clean domain input (strip protocol, www, trailing slashes)
-  const cleanDomain = (input: string): string | null => {
-    if (!input) return null;
-
-    let cleaned = input.toLowerCase().trim();
-
-    // Strip protocol
-    cleaned = cleaned.replace(/^https?:\/\//, "");
-
-    // Strip www.
-    cleaned = cleaned.replace(/^www\./, "");
-
-    // Strip trailing slashes and path
-    cleaned = cleaned.split("/")[0];
-
-    // Strip port if present
-    cleaned = cleaned.split(":")[0];
-
-    // Basic validation
-    if (!cleaned || cleaned.length < 3) return null;
-
-    return cleaned;
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!firstName.trim() || !lastName.trim()) {
-      toast.error("Please enter your first and last name");
-      return;
-    }
-    if (!companyName.trim()) {
-      toast.error("Please enter your company name");
-      return;
-    }
-    if (companyName.trim().length < 2) {
-      toast.error("Company name must be at least 2 characters");
-      return;
-    }
-    if (companyName.trim().length > 100) {
-      toast.error("Company name must be less than 100 characters");
-      return;
-    }
-    if (!domain.trim()) {
-      toast.error("Please enter your website URL");
-      return;
-    }
-    // Domain validation
-    const cleanedDomain = cleanDomain(domain.trim());
-    if (!cleanedDomain) {
-      toast.error("Please enter a valid website URL (e.g., yourcompany.com)");
-      return;
-    }
-    if (cleanedDomain === "localhost" || cleanedDomain.includes("localhost")) {
-      toast.error("localhost is not allowed. Please enter your production domain");
-      return;
-    }
-    // Check for IP addresses
-    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (ipRegex.test(cleanedDomain)) {
-      toast.error("IP addresses are not allowed. Please enter a domain name");
-      return;
-    }
-    // Basic domain format check
-    const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
-    if (!domainRegex.test(cleanedDomain)) {
-      toast.error("Please enter a valid domain (e.g., yourcompany.com)");
-      return;
-    }
-    if (!email.trim()) {
-      toast.error("Please enter your email");
-      return;
-    }
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-    if (!agreedToTerms) {
-      toast.error("Please agree to the Terms of Service and Privacy Policy");
-      return;
-    }
-
+  const onSubmit = async (values: SignUpFormValues) => {
     setLoading(true);
     try {
+      const cleanedDomain = cleanDomain(values.domain);
+      if (!cleanedDomain) {
+        toast.error("Please enter a valid website URL");
+        setLoading(false);
+        return;
+      }
+
       // Step 1: Create auth user via Better Auth (email, password, name only).
-      // We cannot pass companyName/domain through Better Auth's additionalFields
-      // because the @convex-dev/better-auth component schema doesn't include them,
-      // causing a 422 error when the adapter tries to insert unknown fields.
       const { data, error } = await authClient.signUp.email({
-        email,
-        password,
-        name: `${firstName} ${lastName}`,
+        email: values.email,
+        password: values.password,
+        name: `${values.firstName} ${values.lastName}`,
       });
 
       if (error) {
@@ -237,15 +238,13 @@ export default function SignUp() {
       // Step 2: Create tenant + user record in app tables via Convex mutation
       try {
         await completeSignUp({
-          email: email.trim(),
-          name: `${firstName} ${lastName}`,
-          companyName: companyName.trim(),
+          email: values.email.trim(),
+          name: `${values.firstName} ${values.lastName}`,
+          companyName: values.companyName.trim(),
           domain: cleanedDomain,
           plan: selectedPlan,
         });
       } catch (err: any) {
-        // If tenant/user creation fails, the auth user still exists.
-        // They can sign in and complete onboarding later.
         setLoading(false);
         toast.error(err.message || "Account created but setup failed. Please contact support.");
         return;
@@ -474,274 +473,326 @@ export default function SignUp() {
           </div>
 
           {/* ── Form ── */}
-          <form onSubmit={handleSignUp}>
-            {/* Name row */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <Label htmlFor="first-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                  First name
-                </Label>
-                <div className="relative">
-                  <svg
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <Input
-                    type="text"
-                    id="first-name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                    placeholder="Alex"
-                    autoComplete="given-name"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="last-name" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                  Last name
-                </Label>
-                <Input
-                  type="text"
-                  id="last-name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full h-11 rounded-lg px-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                  placeholder="Reyes"
-                  autoComplete="family-name"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Company */}
-            <div className="mb-4">
-              <Label htmlFor="company" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                Company / SaaS name
-              </Label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="2" y="7" width="20" height="14" rx="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-                <Input
-                  type="text"
-                  id="company"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                  placeholder="My SaaS Co."
-                  autoComplete="organization"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Domain */}
-            <div className="mb-4">
-              <Label htmlFor="domain" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                Website URL
-              </Label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-                <Input
-                  type="text"
-                  id="domain"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                  placeholder="yourcompany.com"
-                  autoComplete="url"
-                  required
-                />
-              </div>
-              <p className="text-[11px] text-[#6b7280] mt-1">
-                Where customers buy your product
-              </p>
-            </div>
-
-            {/* Email */}
-            <div className="mb-4">
-              <Label htmlFor="email" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                Work email
-              </Label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                <Input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                  placeholder="alex@yourcompany.com"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="mb-5">
-              <Label htmlFor="password" className="text-[13px] font-semibold text-[#333] block mb-1.5">
-                Password
-              </Label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 rounded-lg pl-10 pr-10 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
-                  placeholder="Min. 8 characters"
-                  autoComplete="new-password"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Name row */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        First name
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            placeholder="Alex"
+                            autoComplete="given-name"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </Button>
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Last name
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          className="w-full h-11 rounded-lg px-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                          placeholder="Reyes"
+                          autoComplete="family-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              {/* Password Strength */}
-              <div className="mt-2 flex items-center gap-2.5">
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={`w-7 h-1 rounded-full transition-colors ${
-                        strength.score >= i
-                          ? strength.score <= 1
-                            ? "bg-red-500"
-                            : strength.score === 2
-                            ? "bg-amber-500"
-                            : "bg-green-500"
-                          : "bg-[#e5e7eb]"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span
-                  className="text-[11px]"
-                  style={{
-                    color:
-                      strength.score === 0
-                        ? "#6b7280"
-                        : strength.score === 1
-                        ? "#EF4444"
-                        : strength.score === 2
-                        ? "#F59E0B"
-                        : "#10B981",
-                  }}
-                >
-                  {strength.label}
-                </span>
+              {/* Company */}
+              <div className="mb-4">
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Company / SaaS name
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="2" y="7" width="20" height="14" rx="2" />
+                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            placeholder="My SaaS Co."
+                            autoComplete="organization"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              {/* Password Requirements */}
-              <div className="mt-2 text-[11px] text-[#6b7280] space-y-0.5">
-                <ul className="space-y-0">
-                  <li className={password.length >= 8 ? "text-green-600" : ""}>
-                    {password.length >= 8 ? "✓" : "·"} 8+ characters
-                    <span className="inline-block w-4" />
-                    {/[A-Z]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Uppercase
-                    <span className="inline-block w-4" />
-                    {/[0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Number
-                    <span className="inline-block w-4" />
-                    {/[^A-Za-z0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Special
-                  </li>
-                </ul>
-              </div>
-            </div>
 
-            {/* Terms */}
-            <div className="flex items-start gap-2.5 mb-6">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-4 h-4 accent-[#10409a] cursor-pointer flex-shrink-0 mt-0.5"
-              />
-              <label htmlFor="terms" className="text-[12px] text-[#6b7280] leading-relaxed cursor-pointer">
-                I agree to the{" "}
-                <Link href="/terms" className="text-[#10409a] font-medium no-underline hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="text-[#10409a] font-medium no-underline hover:underline">
-                  Privacy Policy
-                </Link>
-                . I understand salig-affiliate processes affiliate personal data on my behalf as a data
-                processor under the Philippine Data Privacy Act.
-              </label>
-            </div>
+              {/* Domain */}
+              <div className="mb-4">
+                <FormField
+                  control={form.control}
+                  name="domain"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Website URL
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#6b7280] pointer-events-none"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            placeholder="yourcompany.com"
+                            autoComplete="url"
+                          />
+                        </FormControl>
+                      </div>
+                      <p className="text-[11px] text-[#6b7280] mt-1">
+                        Where customers buy your product
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Email */}
+              <div className="mb-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Work email
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            placeholder="alex@yourcompany.com"
+                            autoComplete="email"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Password */}
+              <div className="mb-5">
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold text-[#333]">
+                        Password
+                      </FormLabel>
+                      <div className="relative">
+                        <svg
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] pointer-events-none"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            className="w-full h-11 rounded-lg pl-10 pr-10 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            placeholder="Min. 8 characters"
+                            autoComplete="new-password"
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#6b7280] hover:text-[#474747] h-auto w-auto size-auto"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Password Strength */}
+                      <div className="mt-2 flex items-center gap-2.5">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div
+                              key={i}
+                              className={`w-7 h-1 rounded-full transition-colors ${
+                                strength.score >= i
+                                  ? strength.score <= 1
+                                    ? "bg-red-500"
+                                    : strength.score === 2
+                                    ? "bg-amber-500"
+                                    : "bg-green-500"
+                                  : "bg-[#e5e7eb]"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span
+                          className="text-[11px]"
+                          style={{
+                            color:
+                              strength.score === 0
+                                ? "#6b7280"
+                                : strength.score === 1
+                                ? "#EF4444"
+                                : strength.score === 2
+                                ? "#F59E0B"
+                                : "#10B981",
+                          }}
+                        >
+                          {strength.label}
+                        </span>
+                      </div>
+                      {/* Password Requirements */}
+                      <div className="mt-2 text-[11px] text-[#6b7280] space-y-0.5">
+                        <ul className="space-y-0">
+                          <li className={password.length >= 8 ? "text-green-600" : ""}>
+                            {password.length >= 8 ? "✓" : "·"} 8+ characters
+                            <span className="inline-block w-4" />
+                            {/[A-Z]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Uppercase
+                            <span className="inline-block w-4" />
+                            {/[0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Number
+                            <span className="inline-block w-4" />
+                            {/[^A-Za-z0-9]/.test(password) ? <span className="text-green-600">✓</span> : <span>·</span>} Special
+                          </li>
+                        </ul>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Terms */}
+              <div className="mb-6">
+                <FormField
+                  control={form.control}
+                  name="agreedToTerms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-start gap-2.5">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value === true}
+                            onCheckedChange={(checked) => field.onChange(checked === true)}
+                            className="w-4 h-4 cursor-pointer flex-shrink-0 mt-0.5"
+                          />
+                        </FormControl>
+                        <label className="text-[12px] text-[#6b7280] leading-relaxed cursor-pointer">
+                          I agree to the{" "}
+                          <Link href="/terms" className="text-[#10409a] font-medium no-underline hover:underline">
+                            Terms of Service
+                          </Link>{" "}
+                          and{" "}
+                          <Link href="/privacy" className="text-[#10409a] font-medium no-underline hover:underline">
+                            Privacy Policy
+                          </Link>
+                          . I understand salig-affiliate processes affiliate personal data on my behalf as a data
+                          processor under the Philippine Data Privacy Act.
+                        </label>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
             {/* Submit */}
             <Button
@@ -775,7 +826,8 @@ export default function SignUp() {
               </svg>
               No credit card required. Cancel anytime during trial.
             </div>
-          </form>
+            </form>
+          </Form>
 
           {/* Desktop divider + footer */}
           <div className="hidden lg:block mt-8 pt-6 border-t border-[#e5e7eb]">
