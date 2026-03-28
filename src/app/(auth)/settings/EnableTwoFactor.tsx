@@ -16,6 +16,9 @@ import { authClient } from "@/lib/auth-client";
 import QRCode from "react-qr-code";
 import { api } from "../../../../convex/_generated/api";
 import { useQuery } from "convex/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 
 type SetupStep =
   | "loading"
@@ -24,15 +27,37 @@ type SetupStep =
   | "qr-verify"
   | "backup";
 
+// Zod schemas
+const passwordSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
+const codeSchema = z.object({
+  code: z.string().min(1, "Verification code is required").max(6, "Code must be 6 digits"),
+});
+
+type PasswordFormData = z.infer<typeof passwordSchema>;
+type CodeFormData = z.infer<typeof codeSchema>;
+
 export default function EnableTwoFactor() {
   const user = useQuery(api.auth.getCurrentUser);
   const [step, setStep] = useState<SetupStep>("loading");
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [totpUri, setTotpUri] = useState<string>();
   const [backupCodes, setBackupCodes] = useState<string[]>();
   const [copied, setCopied] = useState(false);
+
+  // Password form
+  const passwordForm = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { password: "" },
+  });
+
+  // Code verification form
+  const codeForm = useForm<CodeFormData>({
+    resolver: zodResolver(codeSchema),
+    defaultValues: { code: "" },
+  });
 
   useEffect(() => {
     const checkAccounts = async () => {
@@ -48,37 +73,37 @@ export default function EnableTwoFactor() {
     checkAccounts();
   }, []);
 
-  const handlePasswordSubmit = async () => {
+  const onPasswordSubmit = async (data: PasswordFormData) => {
     try {
       setLoading(true);
-      const { data } = await authClient.twoFactor.enable({
-        password,
+      const { data: result } = await authClient.twoFactor.enable({
+        password: data.password,
       });
-      if (data?.totpURI) {
-        setTotpUri(data.totpURI);
-        if (data.backupCodes) {
-          setBackupCodes(data.backupCodes);
+      if (result?.totpURI) {
+        setTotpUri(result.totpURI);
+        if (result.backupCodes) {
+          setBackupCodes(result.backupCodes);
         }
         setStep("qr-verify");
       }
     } catch {
-      alert("Failed to enable 2FA. Please check your password and try again.");
+      passwordForm.setError("password", { message: "Failed to enable 2FA. Please check your password and try again." });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyCode = async () => {
+  const onCodeSubmit = async (data: CodeFormData) => {
     try {
       setLoading(true);
-      const { data, error } = await authClient.twoFactor.verifyTotp({
-        code,
+      const { data: result, error } = await authClient.twoFactor.verifyTotp({
+        code: data.code,
       });
-      console.log("data", data);
+      console.log("data", result);
       console.log("error", error);
       setStep("backup");
     } catch {
-      alert("Failed to verify code. Please try again.");
+      codeForm.setError("code", { message: "Failed to verify code. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -166,10 +191,7 @@ export default function EnableTwoFactor() {
 
             {step === "password" && (
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handlePasswordSubmit();
-                }}
+                onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
                 className="grid gap-4"
               >
                 <div className="grid gap-2">
@@ -177,11 +199,13 @@ export default function EnableTwoFactor() {
                   <Input
                     id="password"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    {...passwordForm.register("password")}
                     disabled={loading}
+                    className={passwordForm.formState.errors.password ? "border-rose-500" : ""}
                   />
+                  {passwordForm.formState.errors.password && (
+                    <p className="text-xs text-rose-500">{passwordForm.formState.errors.password.message}</p>
+                  )}
                 </div>
                 <Button type="submit" disabled={loading}>
                   {loading ? (
@@ -199,10 +223,7 @@ export default function EnableTwoFactor() {
                   <QRCode value={totpUri} />
                 </div>
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleVerifyCode();
-                  }}
+                  onSubmit={codeForm.handleSubmit(onCodeSubmit)}
                   className="grid gap-4"
                 >
                   <div className="grid gap-2">
@@ -211,14 +232,16 @@ export default function EnableTwoFactor() {
                       id="code"
                       type="text"
                       placeholder="Enter 6-digit code"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
+                      {...codeForm.register("code")}
                       pattern="[0-9]*"
                       inputMode="numeric"
                       maxLength={6}
-                      required
                       disabled={loading}
+                      className={codeForm.formState.errors.code ? "border-rose-500" : ""}
                     />
+                    {codeForm.formState.errors.code && (
+                      <p className="text-xs text-rose-500">{codeForm.formState.errors.code.message}</p>
+                    )}
                   </div>
                   <Button type="submit" disabled={loading}>
                     {loading ? (

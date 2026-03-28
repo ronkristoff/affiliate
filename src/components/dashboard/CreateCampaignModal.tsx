@@ -6,6 +6,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 
 import {
   Sheet,
@@ -49,6 +52,29 @@ interface CreateCampaignModalProps {
   onSuccess?: () => void;
 }
 
+// ─── Zod Schema ─────────────────────────────────────────────────────
+
+const createCampaignSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
+  description: z.string().optional(),
+  commissionType: z.enum(["percentage", "flatFee"]),
+  commissionRate: z.string().min(1, "Commission rate is required").refine((val) => !isNaN(Number(val)), {
+    message: "Must be a number",
+  }),
+  cookieDuration: z.string().refine((val) => {
+    if (!val) return true;
+    const d = Number(val);
+    return !isNaN(d) && d >= 1 && d <= 365;
+  }, { message: "Must be between 1 and 365 days" }).optional().or(z.literal("")),
+  recurringCommissions: z.boolean(),
+  recurringRateType: z.enum(["same", "reduced", "custom"]).optional(),
+  recurringRate: z.string().optional(),
+  autoApproveCommissions: z.boolean(),
+  approvalThreshold: z.string().optional(),
+});
+
+type CreateCampaignFormData = z.infer<typeof createCampaignSchema>;
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function formatCurrency(amount: number): string {
@@ -88,28 +114,38 @@ export function CreateCampaignModal({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Form state
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [commissionType, setCommissionType] = useState<"percentage" | "flatFee">(
-    "percentage"
-  );
-  const [commissionRate, setCommissionRate] = useState("");
-  const [cookieDuration, setCookieDuration] = useState("30");
-  const [recurringCommissions, setRecurringCommissions] = useState(false);
-  const [recurringRate, setRecurringRate] = useState("");
-  const [recurringRateType, setRecurringRateType] = useState<
-    "same" | "reduced" | "custom"
-  >("same");
-  const [autoApproveCommissions, setAutoApproveCommissions] = useState(true);
-  const [approvalThreshold, setApprovalThreshold] = useState("");
+  // React Hook Form
+  const form = useForm<CreateCampaignFormData>({
+    resolver: zodResolver(createCampaignSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      commissionType: "percentage",
+      commissionRate: "10",
+      cookieDuration: "30",
+      recurringCommissions: false,
+      recurringRateType: "same",
+      recurringRate: "",
+      autoApproveCommissions: true,
+      approvalThreshold: "",
+    },
+  });
+
+  const { register, watch, setValue, formState: { errors }, reset } = form;
+  
+  // Watch form values for calculations
+  const commissionType = watch("commissionType");
+  const commissionRate = watch("commissionRate");
+  const cookieDuration = watch("cookieDuration");
+  const recurringCommissions = watch("recurringCommissions");
+  const recurringRateType = watch("recurringRateType");
+  const recurringRate = watch("recurringRate");
+  const autoApproveCommissions = watch("autoApproveCommissions");
+  const approvalThreshold = watch("approvalThreshold");
 
   // Queries & mutations
   const campaignLimit = useQuery(api.campaigns.checkCampaignLimit);
   const createCampaign = useMutation(api.campaigns.createCampaign);
-
-  // Validation
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // ─── Commission calculation ──────────────────────────────────────
 
@@ -132,90 +168,37 @@ export function CreateCampaignModal({
       ? exampleAmount * (effectiveRecurringRate / 100)
       : rate;
 
-  // ─── Validation ──────────────────────────────────────────────────
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!name.trim()) {
-      newErrors.name = "Campaign name is required";
-    } else if (name.trim().length < 2) {
-      newErrors.name = "At least 2 characters";
-    } else if (name.trim().length > 100) {
-      newErrors.name = "Less than 100 characters";
-    }
-
-    if (!commissionRate) {
-      newErrors.commissionRate = "Commission rate is required";
-    } else {
-      const r = Number(commissionRate);
-      if (isNaN(r)) {
-        newErrors.commissionRate = "Must be a number";
-      } else if (commissionType === "percentage" && (r < 1 || r > 100)) {
-        newErrors.commissionRate = "Between 1 and 100%";
-      } else if (commissionType === "flatFee" && r < 0) {
-        newErrors.commissionRate = "Must be 0 or greater";
-      }
-    }
-
-    if (cookieDuration) {
-      const d = Number(cookieDuration);
-      if (isNaN(d) || d < 1 || d > 365) {
-        newErrors.cookieDuration = "Between 1 and 365 days";
-      }
-    }
-
-    if (recurringCommissions && recurringRateType !== "same" && recurringRate) {
-      const r = Number(recurringRate);
-      if (isNaN(r) || r < 1 || r > 100) {
-        newErrors.recurringRate = "Between 1 and 100%";
-      }
-    }
-
-    if (autoApproveCommissions && approvalThreshold) {
-      const t = Number(approvalThreshold);
-      if (isNaN(t) || t < 0 || t > 10000000) {
-        newErrors.approvalThreshold = "Must be less than ₱10,000,000";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   // ─── Reset on open ──────────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen) {
-      setName("");
-      setDescription("");
-      setCommissionType("percentage");
-      setCommissionRate("10");
-      setCookieDuration("30");
-      setRecurringCommissions(false);
-      setRecurringRate("");
-      setRecurringRateType("same");
-      setAutoApproveCommissions(true);
-      setApprovalThreshold("");
-      setErrors({});
+      reset({
+        name: "",
+        description: "",
+        commissionType: "percentage",
+        commissionRate: "10",
+        cookieDuration: "30",
+        recurringCommissions: false,
+        recurringRateType: "same",
+        recurringRate: "",
+        autoApproveCommissions: true,
+        approvalThreshold: "",
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
   // ─── Commission type change defaults ─────────────────────────────
 
   useEffect(() => {
     if (commissionType === "percentage") {
       const current = Number(commissionRate);
-      if (!commissionRate || current > 100) setCommissionRate("10");
+      if (!commissionRate || current > 100) setValue("commissionRate", "10");
     }
     if (commissionType === "flatFee") {
       const current = Number(commissionRate);
-      if (!commissionRate || current < 0) setCommissionRate("50");
+      if (!commissionRate || current < 0) setValue("commissionRate", "50");
     }
-    if (errors.commissionRate) {
-      setErrors((prev) => ({ ...prev, commissionRate: "" }));
-    }
-  }, [commissionType]);
+  }, [commissionType, commissionRate, setValue]);
 
   // ─── Recurring rate defaults ─────────────────────────────────────
 
@@ -224,33 +207,31 @@ export function CreateCampaignModal({
       const initial = Number(commissionRate) || 0;
       const reduced =
         Math.round(initial * (DEFAULT_REDUCED_RATE_PERCENTAGE / 100) * 100) / 100;
-      if (reduced > 0) setRecurringRate(String(reduced));
+      if (reduced > 0) setValue("recurringRate", String(reduced));
     }
-  }, [recurringRateType, recurringCommissions, commissionRate]);
+  }, [recurringRateType, recurringCommissions, commissionRate, setValue]);
 
   // ─── Submit ──────────────────────────────────────────────────────
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const onSubmit = async (data: CreateCampaignFormData) => {
     setLoading(true);
 
     try {
       const result = await createCampaign({
-        name,
-        description: description || undefined,
-        commissionType,
-        commissionRate: Number(commissionRate),
-        cookieDuration: Number(cookieDuration),
-        recurringCommissions,
+        name: data.name,
+        description: data.description || undefined,
+        commissionType: data.commissionType,
+        commissionRate: Number(data.commissionRate),
+        cookieDuration: Number(data.cookieDuration) || 30,
+        recurringCommissions: data.recurringCommissions,
         recurringRate:
-          recurringCommissions && recurringRate && recurringRateType !== "same"
-            ? Number(recurringRate)
+          data.recurringCommissions && data.recurringRate && data.recurringRateType !== "same"
+            ? Number(data.recurringRate)
             : undefined,
-        recurringRateType: recurringCommissions ? recurringRateType : undefined,
-        autoApproveCommissions,
-        approvalThreshold: approvalThreshold
-          ? Number(approvalThreshold)
+        recurringRateType: data.recurringCommissions ? data.recurringRateType : undefined,
+        autoApproveCommissions: data.autoApproveCommissions,
+        approvalThreshold: data.approvalThreshold
+          ? Number(data.approvalThreshold)
           : undefined,
       });
 
@@ -321,7 +302,7 @@ export function CreateCampaignModal({
             </motion.div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <motion.div
               className="px-6 py-5 space-y-5"
               variants={containerVariants}
@@ -350,14 +331,10 @@ export function CreateCampaignModal({
                   <Input
                     id="campaign-name"
                     placeholder="e.g. Main Affiliate Program"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (errors.name) setErrors((p) => ({ ...p, name: "" }));
-                    }}
+                    {...register("name")}
                     className={`h-10 text-sm transition-all duration-200 ${
                       errors.name
-                        ? "border-red-400 ring-1 ring-red-100"
+                        ? "border-rose-500 ring-1 ring-rose-100"
                         : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
                     }`}
                   />
@@ -368,9 +345,9 @@ export function CreateCampaignModal({
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
-                        className="text-xs text-red-500"
+                        className="text-xs text-rose-500"
                       >
-                        {errors.name}
+                        {errors.name.message}
                       </motion.p>
                     ) : (
                       <motion.p
@@ -397,8 +374,7 @@ export function CreateCampaignModal({
                   <Textarea
                     id="campaign-desc"
                     placeholder="What's this campaign about?"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    {...register("description")}
                     rows={2}
                     className="text-sm border-gray-200 resize-none focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100 transition-all duration-200"
                   />
@@ -420,7 +396,7 @@ export function CreateCampaignModal({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setCommissionType("percentage")}
+                    onClick={() => setValue("commissionType", "percentage")}
                     className={`relative rounded-xl p-4 text-left transition-all duration-200 border-2 ${
                       commissionType === "percentage"
                         ? "border-[#10409a] bg-blue-50/60 shadow-sm"
@@ -463,7 +439,7 @@ export function CreateCampaignModal({
 
                   <button
                     type="button"
-                    onClick={() => setCommissionType("flatFee")}
+                    onClick={() => setValue("commissionType", "flatFee")}
                     className={`relative rounded-xl p-4 text-left transition-all duration-200 border-2 ${
                       commissionType === "flatFee"
                         ? "border-[#10409a] bg-blue-50/60 shadow-sm"
@@ -518,15 +494,10 @@ export function CreateCampaignModal({
                       <Input
                         type="number"
                         placeholder={commissionType === "percentage" ? "20" : "500"}
-                        value={commissionRate}
-                        onChange={(e) => {
-                          setCommissionRate(e.target.value);
-                          if (errors.commissionRate)
-                            setErrors((p) => ({ ...p, commissionRate: "" }));
-                        }}
+                        {...register("commissionRate")}
                         className={`h-10 text-sm pr-8 transition-all duration-200 ${
                           errors.commissionRate
-                            ? "border-red-400 ring-1 ring-red-100"
+                            ? "border-rose-500 ring-1 ring-rose-100"
                             : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
                         }`}
                         min={commissionType === "percentage" ? 1 : 0}
@@ -546,9 +517,9 @@ export function CreateCampaignModal({
                           initial={{ opacity: 0, y: -4 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}
-                          className="text-xs text-red-500"
+                          className="text-xs text-rose-500"
                         >
-                          {errors.commissionRate}
+                          {errors.commissionRate.message}
                         </motion.p>
                       ) : null}
                     </AnimatePresence>
@@ -640,23 +611,18 @@ export function CreateCampaignModal({
                     <Input
                       id="cookie-duration"
                       type="number"
-                      value={cookieDuration}
-                      onChange={(e) => {
-                        setCookieDuration(e.target.value);
-                        if (errors.cookieDuration)
-                          setErrors((p) => ({ ...p, cookieDuration: "" }));
-                      }}
+                      {...register("cookieDuration")}
                       className={`h-10 text-sm transition-all duration-200 ${
                         errors.cookieDuration
-                          ? "border-red-400 ring-1 ring-red-100"
+                          ? "border-rose-500 ring-1 ring-rose-100"
                           : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
                       }`}
                       min={1}
                       max={365}
                     />
                     {errors.cookieDuration ? (
-                      <p className="text-xs text-red-500">
-                        {errors.cookieDuration}
+                      <p className="text-xs text-rose-500">
+                        {errors.cookieDuration.message}
                       </p>
                     ) : (
                       <p className="text-xs text-gray-400">
@@ -689,10 +655,10 @@ export function CreateCampaignModal({
                         checked={recurringCommissions}
                         className="data-[state=unchecked]:bg-gray-300 data-[state=unchecked]:border-gray-300"
                         onCheckedChange={(checked) => {
-                          setRecurringCommissions(checked);
+                          setValue("recurringCommissions", checked);
                           if (!checked) {
-                            setRecurringRateType("same");
-                            setRecurringRate("");
+                            setValue("recurringRateType", "same");
+                            setValue("recurringRate", "");
                           }
                         }}
                       />
@@ -715,8 +681,8 @@ export function CreateCampaignModal({
                               onValueChange={(
                                 value: "same" | "reduced" | "custom"
                               ) => {
-                                setRecurringRateType(value);
-                                if (value === "same") setRecurringRate("");
+                                setValue("recurringRateType", value);
+                                if (value === "same") setValue("recurringRate", "");
                               }}
                             >
                               <SelectTrigger className="h-10 text-sm border-gray-200">
@@ -750,18 +716,10 @@ export function CreateCampaignModal({
                                   placeholder={
                                     recurringRateType === "reduced" ? "5" : "10"
                                   }
-                                  value={recurringRate}
-                                  onChange={(e) => {
-                                    setRecurringRate(e.target.value);
-                                    if (errors.recurringRate)
-                                      setErrors((p) => ({
-                                        ...p,
-                                        recurringRate: "",
-                                      }));
-                                  }}
+                                  {...register("recurringRate")}
                                   className={`h-10 text-sm pr-8 transition-all duration-200 ${
                                     errors.recurringRate
-                                      ? "border-red-400 ring-1 ring-red-100"
+                                      ? "border-rose-500 ring-1 ring-rose-100"
                                       : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
                                   }`}
                                   min={1}
@@ -773,8 +731,8 @@ export function CreateCampaignModal({
                                 </span>
                               </div>
                               {errors.recurringRate ? (
-                                <p className="text-xs text-red-500">
-                                  {errors.recurringRate}
+                                <p className="text-xs text-rose-500">
+                                  {errors.recurringRate.message}
                                 </p>
                               ) : recurringRateType === "reduced" ? (
                                 <p className="text-xs text-gray-400">
@@ -816,7 +774,7 @@ export function CreateCampaignModal({
                       <Switch
                         checked={autoApproveCommissions}
                         className="data-[state=unchecked]:bg-gray-300 data-[state=unchecked]:border-gray-300"
-                        onCheckedChange={setAutoApproveCommissions}
+                        onCheckedChange={(checked) => setValue("autoApproveCommissions", checked)}
                       />
                     </div>
 
@@ -841,26 +799,18 @@ export function CreateCampaignModal({
                             id="approval-threshold"
                             type="number"
                             placeholder="e.g. 500"
-                            value={approvalThreshold}
-                            onChange={(e) => {
-                              setApprovalThreshold(e.target.value);
-                              if (errors.approvalThreshold)
-                                setErrors((p) => ({
-                                  ...p,
-                                  approvalThreshold: "",
-                                }));
-                            }}
+                            {...register("approvalThreshold")}
                             className={`h-10 text-sm transition-all duration-200 ${
                               errors.approvalThreshold
-                                ? "border-red-400 ring-1 ring-red-100"
+                                ? "border-rose-500 ring-1 ring-rose-100"
                                 : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
                             }`}
                             min={0}
                             max={10000000}
                           />
                           {errors.approvalThreshold ? (
-                            <p className="text-xs text-red-500">
-                              {errors.approvalThreshold}
+                            <p className="text-xs text-rose-500">
+                              {errors.approvalThreshold.message}
                             </p>
                           ) : (
                             <p className="text-xs text-gray-400">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Percent, PhilippinePeso } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 
 interface SetOverrideDialogProps {
   affiliateId: Id<"affiliates">;
@@ -36,6 +39,16 @@ interface SetOverrideDialogProps {
   };
 }
 
+// Zod schema
+const overrideSchema = z.object({
+  campaignId: z.string().min(1, "Please select a campaign"),
+  rate: z.string().min(1, "Please enter a rate").refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+    message: "Rate must be 0 or greater",
+  }),
+});
+
+type OverrideFormData = z.infer<typeof overrideSchema>;
+
 export function SetOverrideDialog({
   affiliateId,
   open,
@@ -43,13 +56,17 @@ export function SetOverrideDialog({
   preselectedCampaignId,
   existingOverride,
 }: SetOverrideDialogProps) {
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(
-    preselectedCampaignId || existingOverride?.campaignId || ""
-  );
-  const [rate, setRate] = useState<string>(
-    existingOverride?.rate?.toString() || ""
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<OverrideFormData>({
+    resolver: zodResolver(overrideSchema),
+    defaultValues: {
+      campaignId: preselectedCampaignId?.toString() || existingOverride?.campaignId?.toString() || "",
+      rate: existingOverride?.rate?.toString() || "",
+    },
+  });
+
+  const { register, watch, setValue, formState: { errors }, reset } = form;
 
   const campaigns = useQuery(api.campaigns.listCampaigns, {
     includeArchived: false,
@@ -57,30 +74,27 @@ export function SetOverrideDialog({
 
   const setOverride = useMutation(api.affiliates.setCommissionOverride);
 
+  const campaignId = watch("campaignId");
   const selectedCampaign = campaigns?.find(
-    (c) => c._id === selectedCampaignId
+    (c) => c._id === campaignId
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedCampaignId) {
-      toast.error("Please select a campaign");
-      return;
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      reset({
+        campaignId: preselectedCampaignId?.toString() || existingOverride?.campaignId?.toString() || "",
+        rate: existingOverride?.rate?.toString() || "",
+      });
     }
+  }, [open, preselectedCampaignId, existingOverride, reset]);
 
-    const rateValue = parseFloat(rate);
-    if (isNaN(rateValue) || rateValue < 0) {
-      toast.error("Please enter a valid rate");
-      return;
-    }
-
+  const onSubmit = async (data: OverrideFormData) => {
     // Validate rate based on campaign type
-    if (selectedCampaign) {
-      if (selectedCampaign.commissionType === "percentage" && rateValue > 100) {
-        toast.error("Percentage rate cannot exceed 100%");
-        return;
-      }
+    const rateValue = Number(data.rate);
+    if (selectedCampaign && selectedCampaign.commissionType === "percentage" && rateValue > 100) {
+      toast.error("Percentage rate cannot exceed 100%");
+      return;
     }
 
     setIsSubmitting(true);
@@ -88,7 +102,7 @@ export function SetOverrideDialog({
     try {
       await setOverride({
         affiliateId,
-        campaignId: selectedCampaignId as Id<"campaigns">,
+        campaignId: data.campaignId as Id<"campaigns">,
         rate: rateValue,
       });
 
@@ -98,11 +112,6 @@ export function SetOverrideDialog({
           : "Commission override set successfully"
       );
 
-      // Reset and close
-      if (!existingOverride) {
-        setSelectedCampaignId("");
-        setRate("");
-      }
       onOpenChange(false);
     } catch (error) {
       toast.error(
@@ -140,7 +149,7 @@ export function SetOverrideDialog({
 
   // Calculate preview commission (example on ₱1000 sale)
   const getPreviewCommission = () => {
-    const rateValue = parseFloat(rate);
+    const rateValue = parseFloat(watch("rate"));
     if (isNaN(rateValue) || !selectedCampaign) return null;
 
     const exampleAmount = 1000;
@@ -153,7 +162,7 @@ export function SetOverrideDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
               {existingOverride
@@ -179,8 +188,8 @@ export function SetOverrideDialog({
                 />
               ) : (
                 <Select
-                  value={selectedCampaignId}
-                  onValueChange={setSelectedCampaignId}
+                  value={campaignId}
+                  onValueChange={(value) => setValue("campaignId", value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
@@ -199,6 +208,9 @@ export function SetOverrideDialog({
                   </SelectContent>
                 </Select>
               )}
+              {errors.campaignId && (
+                <p className="text-xs text-rose-500">{errors.campaignId.message}</p>
+              )}
             </div>
 
             {/* Rate Input */}
@@ -211,17 +223,19 @@ export function SetOverrideDialog({
                   step="0.01"
                   min="0"
                   max={selectedCampaign?.commissionType === "percentage" ? 100 : undefined}
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
+                  {...register("rate")}
                   placeholder={getPlaceholder()}
                   disabled={isSubmitting}
-                  className="pr-10"
+                  className={`pr-10 ${errors.rate ? "border-rose-500" : ""}`}
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   {getRateSuffix()}
                 </div>
               </div>
-              {selectedCampaign && (
+              {errors.rate && (
+                <p className="text-xs text-rose-500">{errors.rate.message}</p>
+              )}
+              {selectedCampaign && !errors.rate && (
                 <p className="text-xs text-muted-foreground">
                   Default rate: {selectedCampaign.commissionType === "percentage" ? `${selectedCampaign.commissionRate}%` : `₱${selectedCampaign.commissionRate}`}
                 </p>
@@ -251,7 +265,7 @@ export function SetOverrideDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !selectedCampaignId || !rate}>
+            <Button type="submit" disabled={isSubmitting || !campaignId || !watch("rate")}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {existingOverride ? "Update Override" : "Set Override"}
             </Button>
