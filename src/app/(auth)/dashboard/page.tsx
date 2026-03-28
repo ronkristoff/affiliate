@@ -264,7 +264,7 @@ function DashboardContent() {
       </PageTopbar>
 
       {/* Page Content */}
-      <div className="page-content bg-[#f8fafc]">
+      <div className="page-content">
         {/* Metric Cards Grid */}
         <FadeIn>
           <SummaryCards 
