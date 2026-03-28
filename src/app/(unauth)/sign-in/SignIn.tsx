@@ -601,15 +601,96 @@ export default function SignIn() {
       <Dialog open={isForgotPasswordOpen} onOpenChange={(open) => {
         if (!open) closeForgotPasswordModal();
       }}>
-        <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+        <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden" showCloseButton={false}>
+          {/* Visual Header - Dark sidebar aesthetic with network animation */}
+          <div className="relative bg-[#022232] px-5 pt-5 pb-4 overflow-hidden">
+            {/* Animated Network Constellation - smaller */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              preserveAspectRatio="none"
+              viewBox="0 0 440 140"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              {/* Connection Lines */}
+              <line x1="50" y1="30" x2="120" y2="70" className="sidebar-network-lines" stroke="rgba(22,89,214,0.2)" strokeWidth="1" />
+              <line x1="120" y1="70" x2="220" y2="40" className="sidebar-network-lines-slow" stroke="rgba(22,89,214,0.15)" strokeWidth="1" />
+              <line x1="120" y1="70" x2="80" y2="110" className="sidebar-network-lines" stroke="rgba(22,89,214,0.18)" strokeWidth="1" />
+              <line x1="220" y1="40" x2="300" y2="80" className="sidebar-network-lines-reverse" stroke="rgba(22,89,214,0.12)" strokeWidth="1" />
+              <line x1="80" y1="110" x2="160" y2="100" className="sidebar-network-lines-slow" stroke="rgba(22,89,214,0.14)" strokeWidth="1" />
+              <line x1="300" y1="80" x2="260" y2="120" className="sidebar-network-lines" stroke="rgba(22,89,214,0.1)" strokeWidth="1" />
+              
+              {/* Nodes */}
+              <circle cx="50" cy="30" r="2" fill="rgba(125,211,252,0.7)" className="sidebar-node-pulse" />
+              <circle cx="120" cy="70" r="2.5" fill="rgba(125,211,252,0.8)" />
+              <circle cx="220" cy="40" r="1.5" fill="rgba(125,211,252,0.5)" className="sidebar-node-pulse-delay" />
+              <circle cx="300" cy="80" r="1.5" fill="rgba(125,211,252,0.4)" className="sidebar-node-pulse" />
+              <circle cx="80" cy="110" r="2" fill="rgba(125,211,252,0.6)" className="sidebar-node-pulse-delay" />
+              <circle cx="160" cy="100" r="1.5" fill="rgba(125,211,252,0.5)" />
+              <circle cx="260" cy="120" r="1.5" fill="rgba(125,211,252,0.4)" className="sidebar-node-pulse" />
+              
+              {/* Glow rings */}
+              <circle cx="120" cy="70" r="2.5" fill="none" stroke="rgba(125,211,252,0.3)" strokeWidth="1" className="sidebar-node-glow" />
+            </svg>
+            
+            {/* Radial vignette for depth */}
+            <div className="absolute top-[-40px] right-[-40px] w-[150px] h-[150px] rounded-full bg-[radial-gradient(circle,rgba(22,89,214,0.15)_0%,transparent_70%)] pointer-events-none" />
+            
+            {/* Main Icon */}
+            <div className="relative z-10 flex items-center justify-center w-10 h-10 mx-auto mb-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/15">
+              {forgotPasswordSuccess ? (
+                <svg
+                  className="w-5 h-5 text-white animate-bounce"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-white animate-iconBreathe"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  <circle cx="12" cy="16" r="1" fill="currentColor" />
+                </svg>
+              )}
+            </div>
+            
+            {/* Title */}
+            <DialogHeader className="relative z-10 text-center">
+              <DialogTitle className="text-lg font-bold text-white tracking-tight">
+                {forgotPasswordSuccess ? "Check your email" : "Forgot your password?"}
+              </DialogTitle>
+              <DialogDescription className="text-[13px] text-white/65">
+                {forgotPasswordSuccess
+                  ? "We've sent password reset instructions to your inbox."
+                  : "Enter your email and we'll send you a link to reset your password."
+                }
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Close button - positioned in header area */}
           <button
             type="button"
-            className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+            className="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             onClick={closeForgotPasswordModal}
             aria-label="Close"
           >
             <svg
-              className="w-4 h-4 text-[#6b7280]"
+              className="w-3.5 h-3.5 text-white"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -622,121 +703,128 @@ export default function SignIn() {
             </svg>
           </button>
           
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {forgotPasswordSuccess ? "Check your email" : "Reset your password"}
-            </DialogTitle>
-            <DialogDescription className="text-[14px] text-[#6b7280]">
-              {forgotPasswordSuccess
-                ? "We've sent password reset instructions to your email address."
-                : "Enter your email address and we'll send you instructions to reset your password."
-              }
-            </DialogDescription>
-          </DialogHeader>
+          {/* Form Content */}
+          <div className="px-6 pb-6 pt-4">
+            {!forgotPasswordSuccess ? (
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} noValidate>
+                  <div className="mb-5">
+                    <FormField
+                      control={forgotPasswordForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[13px] font-semibold text-[#333]">
+                            Email address
+                          </FormLabel>
+                          <div className="relative group">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9ca3af] group-focus-within:text-[#10409a] transition-colors">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                <polyline points="22,6 12,13 2,6" />
+                              </svg>
+                            </div>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="email"
+                                className="w-full h-12 text-[15px] border-2 border-[#e5e7eb] rounded-xl pl-11 pr-4 text-[#1f2937] bg-[#f9fafb] focus:border-[#10409a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,64,154,0.1)] focus:outline-none transition-all font-medium"
+                                placeholder="alex@yourcompany.com"
+                                autoComplete="email"
+                              />
+                            </FormControl>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-          {!forgotPasswordSuccess ? (
-            <Form {...forgotPasswordForm}>
-              <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} noValidate>
-                <div className="mb-5">
-                  <FormField
-                    control={forgotPasswordForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[13px] font-semibold text-[#333]">
-                          Email address
-                        </FormLabel>
-                        <div className="relative">
-                          <svg
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                            <polyline points="22,6 12,13 2,6" />
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 h-11 border border-[#e5e7eb] text-[#333] font-medium"
+                      onClick={closeForgotPasswordModal}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={forgotPasswordLoading}
+                      className="flex-1 h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {forgotPasswordLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
                           </svg>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
-                              placeholder="alex@yourcompany.com"
-                              autoComplete="email"
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          Send reset link
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {/* Success icon with glow effect */}
+                <div className="flex items-center justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-400/30 blur-xl rounded-full animate-pulse" />
+                    <div className="relative flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-green-500 rounded-full shadow-[0_8px_30px_rgba(34,197,94,0.35)]">
+                      <svg
+                        className="w-8 h-8 text-white animate-bounce"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 h-11 border border-[#e5e7eb] text-[#333] font-medium"
-                    onClick={closeForgotPasswordModal}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={forgotPasswordLoading}
-                    className="flex-1 h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6]"
-                  >
-                    {forgotPasswordLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin mr-2" />
-                        Sending...
-                      </>
-                    ) : (
-                      "Send reset link"
-                    )}
-                  </Button>
+                
+                {/* Help text */}
+                <div className="text-center px-2">
+                  <p className="text-[14px] text-[#6b7280] leading-relaxed">
+                    Didn't receive the email? Check your spam folder, or{" "}
+                    <button
+                      type="button"
+                      className="text-[#10409a] font-bold no-underline hover:underline underline-offset-2"
+                      onClick={() => setForgotPasswordSuccess(false)}
+                    >
+                      try sending it again
+                    </button>
+                  </p>
                 </div>
-              </form>
-            </Form>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-center w-14 h-14 mx-auto rounded-full bg-green-100">
-                <svg
-                  className="w-7 h-7 text-green-600"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                
+                <Button
+                  type="button"
+                  className="w-full h-11 bg-[#f3f4f6] text-[#374151] text-sm font-semibold rounded-lg hover:bg-[#e5e7eb] transition-colors"
+                  onClick={closeForgotPasswordModal}
                 >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                  Back to sign in
+                </Button>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-[#6b7280]">
-                  Didn't receive the email? Check your spam folder, or{" "}
-                  <button
-                    type="button"
-                    className="text-[#10409a] font-semibold no-underline hover:underline"
-                    onClick={() => setForgotPasswordSuccess(false)}
-                  >
-                    try again
-                  </button>
-                </p>
-              </div>
-              <Button
-                type="button"
-                className="w-full h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6]"
-                onClick={closeForgotPasswordModal}
-              >
-                Back to sign in
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
