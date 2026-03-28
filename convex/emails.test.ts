@@ -110,6 +110,8 @@ describe("Commission Confirmed Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -165,6 +167,8 @@ describe("Commission Confirmed Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -400,6 +404,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -450,6 +456,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -497,6 +505,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -574,6 +584,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "test@example.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -648,6 +660,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "test@example.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -712,6 +726,8 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "test@example.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -926,6 +942,8 @@ describe("New Referral Alert Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -982,6 +1000,8 @@ describe("New Referral Alert Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -1038,6 +1058,8 @@ describe("New Referral Alert Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",
@@ -1084,6 +1106,8 @@ describe("New Referral Alert Email Tests", () => {
         const affiliateId = await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TEST123",
           status: "approved",

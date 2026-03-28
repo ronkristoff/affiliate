@@ -65,6 +65,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -157,6 +159,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF2",
           status: "active" as const,
@@ -240,6 +244,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF3",
           status: "active" as const,
@@ -313,6 +319,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF4",
           status: "active" as const,
@@ -370,6 +378,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF5",
           status: "active" as const,
@@ -428,6 +438,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF6",
           status: "active" as const,
@@ -491,6 +503,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF11",
           status: "active" as const,
@@ -563,6 +577,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF12",
           status: "active" as const,
@@ -642,6 +658,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId: tenantId1,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF7",
           status: "active" as const,
@@ -725,6 +743,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF8",
           status: "active" as const,
@@ -809,6 +829,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF9",
           status: "active" as const,
@@ -873,6 +895,8 @@ describe("Story 7.7: Manual Commission Approval", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF10",
           status: "active" as const,

@@ -65,6 +65,8 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -210,6 +212,8 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
         await ctx.db.insert("affiliates", {
           tenantId,
           email: "inactive@test.com",
+          firstName: "Inactive",
+          lastName: "Affiliate",
           name: "Inactive Affiliate",
           uniqueCode: "INACTIVE",
           status: "suspended",
@@ -488,6 +492,8 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -602,6 +608,8 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -765,6 +773,8 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -884,6 +894,8 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1006,6 +1018,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1121,6 +1135,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1239,6 +1255,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1340,6 +1358,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1444,6 +1464,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1550,6 +1572,8 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1678,6 +1702,8 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -1915,6 +1941,8 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -2066,6 +2094,8 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -2200,6 +2230,8 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -2363,6 +2395,8 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "TESTAFF",
           status: "active" as const,
@@ -2568,6 +2602,8 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
         return await ctx.db.insert("affiliates", {
           tenantId,
           email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
           name: "Test Affiliate",
           uniqueCode: "AFF123",
           status: "active",
