@@ -403,7 +403,7 @@ export default function SignIn() {
 
           {/* Form */}
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
               {/* Email */}
               <div className="mb-[18px]">
                 <FormField
@@ -636,7 +636,7 @@ export default function SignIn() {
 
           {!forgotPasswordSuccess ? (
             <Form {...forgotPasswordForm}>
-              <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} noValidate>
                 <div className="mb-5">
                   <FormField
                     control={forgotPasswordForm.control}

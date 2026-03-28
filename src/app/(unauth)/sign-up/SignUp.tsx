@@ -474,7 +474,7 @@ export default function SignUp() {
 
           {/* ── Form ── */}
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
               {/* Name row */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <FormField

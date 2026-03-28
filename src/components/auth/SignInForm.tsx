@@ -86,7 +86,7 @@ export function SignInForm({ redirectUrl = "/dashboard" }: SignInFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {error && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
             {error}
