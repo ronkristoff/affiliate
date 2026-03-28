@@ -4,18 +4,23 @@ import { Clock, Users, DollarSign } from "lucide-react";
 import { MetricCard } from "@/components/ui/MetricCard";
 
 interface PendingActionsProps {
-  pendingPromoters?: number;
+  pendingAffiliates?: number;
   pendingCommissions?: number;
-  pendingReferrals?: number;
+  pendingPayouts?: number;
   isLoading?: boolean;
 }
 
-export function PendingActions({ 
-  pendingPromoters = 0, 
-  pendingCommissions = 0, 
-  pendingReferrals = 0, 
-  isLoading 
+export function PendingActions({
+  pendingAffiliates = 0,
+  pendingCommissions = 0,
+  pendingPayouts = 0,
+  isLoading,
 }: PendingActionsProps) {
+  // Only show the section if there are actual pending items
+  const hasPending = pendingAffiliates > 0 || pendingCommissions > 0 || pendingPayouts > 0;
+
+  if (!isLoading && !hasPending) return null;
+
   return (
     <div className="mt-4">
       <h3 className="text-[12px] font-bold text-[var(--text-muted)] uppercase tracking-[0.15em] flex items-center gap-2 mb-3">
@@ -24,24 +29,27 @@ export function PendingActions({
       </h3>
       <div className="grid grid-cols-3 gap-3">
         <MetricCard
-          label="Promoters"
-          numericValue={pendingPromoters}
+          label="Affiliates"
+          numericValue={pendingAffiliates}
           variant="yellow"
           icon={<Users className="w-4 h-4" />}
+          subtext="need approval"
           isLoading={isLoading}
         />
         <MetricCard
           label="Commissions"
           numericValue={pendingCommissions}
-          variant="yellow"
+          variant="blue"
           icon={<DollarSign className="w-4 h-4" />}
+          subtext="awaiting review"
           isLoading={isLoading}
         />
         <MetricCard
-          label="Referrals"
-          numericValue={pendingReferrals}
-          variant="yellow"
+          label="Payouts"
+          numericValue={pendingPayouts}
+          variant="green"
           icon={<Clock className="w-4 h-4" />}
+          subtext="ready to pay"
           isLoading={isLoading}
         />
       </div>

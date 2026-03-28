@@ -8,5 +8,5 @@ export { DateRangeSelector } from "./DateRangeSelector";
 export { SummaryCards } from "./SummaryCards";
 export { OverviewChart } from "./OverviewChart";
 export { TrendingSection } from "./TrendingSection";
-export { CommissionsSummary } from "./CommissionsSummary";
+export { CommissionBreakdown } from "./CommissionsSummary";
 export { PendingActions } from "./PendingActions";

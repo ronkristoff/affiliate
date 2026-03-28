@@ -24,7 +24,6 @@ import type { DatePreset } from "@/lib/date-utils";
 // ─── Preset groups for section separators ─────────────────────────────────
 
 const QUICK_VALUES = new Set(["today", "thisWeek", "thisMonth"]);
-const ROLLING_VALUES = new Set(["7d", "30d", "90d"]);
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -62,7 +61,7 @@ function getMaxDateInput(): string {
 }
 
 function needsSeparatorAfter(val: string): boolean {
-  return QUICK_VALUES.has(val) || ROLLING_VALUES.has(val);
+  return QUICK_VALUES.has(val);
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -150,7 +149,7 @@ export function DateRangeSelector({ value, onChange, className }: DateRangeSelec
   // ── Trigger label ───────────────────────────────────────────────────────
   const getTriggerLabel = () => {
     const selectedOption = DATE_PRESETS.find((opt) => opt.value === value);
-    return selectedOption?.label || "Last 30 days";
+    return selectedOption?.label || "This Month";
   };
 
   return (

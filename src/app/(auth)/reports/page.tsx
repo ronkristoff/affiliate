@@ -96,7 +96,7 @@ export default function ReportsIndexPage() {
             selectedCampaignId={selectedCampaignId}
             onCampaignSelect={setSelectedCampaignId}
           />
-          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "30d")} onChange={handleDateRangeChange} />
+          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
           {canExport && (
             <Button
               variant="outline"

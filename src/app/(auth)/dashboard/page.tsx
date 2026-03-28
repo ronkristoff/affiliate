@@ -11,7 +11,7 @@ import {
   SummaryCards,
   OverviewChart,
   TrendingSection,
-  CommissionsSummary,
+  CommissionBreakdown,
   PendingActions,
 } from "./components";
 import { Button } from "@/components/ui/button";
@@ -40,10 +40,8 @@ const PRESET_VALUES = [
   "today",
   "thisWeek",
   "thisMonth",
-  "7d",
-  "30d",
-  "90d",
   "lastMonth",
+  "allTime",
   "custom",
 ] as const;
 
@@ -134,7 +132,7 @@ function DashboardContent() {
   // clearOnDefault is enabled globally in NuqsAdapter — default values won't appear in the URL
   const [range, setRange] = useQueryState(
     "range",
-    parseAsStringLiteral(PRESET_VALUES).withDefault("30d"),
+    parseAsStringLiteral(PRESET_VALUES).withDefault("thisMonth"),
   );
   const [customStart, setCustomStart] = useQueryState("start", parseAsInteger.withDefault(0));
   const [customEnd, setCustomEnd] = useQueryState("end", parseAsInteger.withDefault(0));
@@ -157,9 +155,9 @@ function DashboardContent() {
       };
     }
 
-    // Fallback: 30d default
-    const fallback = DATE_PRESETS.find((p) => p.value === "30d")!.getRange()!;
-    return { dateRange: fallback, period: "daily" as Period };
+    // Fallback: this month default
+    const fallback = DATE_PRESETS.find((p) => p.value === "thisMonth")!.getRange()!;
+    return { dateRange: fallback, period: "weekly" as Period };
   }, [range, customStart, customEnd]);
 
   // ─── Handler: DateRangeSelector → nuqs ──────────────────────────────
@@ -214,9 +212,10 @@ function DashboardContent() {
       : "skip"
   );
 
-  const stats = dashboardData?.stats;
-  const topAffiliates = dashboardData?.topAffiliates;
-  const recentCommissions = dashboardData?.recentCommissions;
+   const stats = dashboardData?.stats;
+   const topAffiliates = dashboardData?.topAffiliates;
+   const topCampaigns = dashboardData?.topCampaigns;
+   const recentCommissions = dashboardData?.recentCommissions;
 
   const setupStatus = useQuery(
     api.dashboard.getSetupStatus,
@@ -225,24 +224,31 @@ function DashboardContent() {
 
   const isLoading = !dashboardData;
 
-  // Calculate delta display values
-  const mrrDelta = stats && stats.mrrChangePercent !== 0 ? {
-    value: Math.abs(stats.mrrChangePercent),
-    isPositive: stats.mrrChangePercent >= 0,
-    label: "vs last month"
-  } : undefined;
+  // MRR delta from the query (compares current vs previous period)
+  const mrrDelta = stats && stats.mrrChangePercent !== 0
+    ? {
+        value: Math.abs(stats.mrrChangePercent),
+        isPositive: stats.mrrChangePercent >= 0,
+        label: "vs last period",
+      }
+    : undefined;
 
-  const affiliatesDelta = stats ? {
-    value: 8,
-    isPositive: true,
-    label: "this month"
-  } : undefined;
+  // Build contextual subtexts for each metric card
+  const mrrSubtext = stats && stats.activeAffiliatesCount > 0
+    ? `from ${stats.activeAffiliatesCount} active affiliate${stats.activeAffiliatesCount === 1 ? "" : "s"}`
+    : undefined;
 
-  const paidOutDelta = {
-    value: 22,
-    isPositive: true,
-    label: "all time"
-  };
+  const affiliatesSubtext = stats && stats.recentConversions > 0
+    ? `${stats.recentConversions} referral${stats.recentConversions === 1 ? "" : "s"} this period`
+    : undefined;
+
+  const organicSalesSubtext = stats && stats.recentClicks > 0
+    ? `${stats.conversionRate}% conversion rate`
+    : undefined;
+
+  const totalPaidOutSubtext = stats && stats.pendingCommissionsValue > 0
+    ? `${formatCurrency(stats.pendingCommissionsValue)} pending`
+    : undefined;
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
@@ -263,10 +269,16 @@ function DashboardContent() {
         <FadeIn>
           <SummaryCards 
             stats={{
-              revenue: stats?.mrrInfluenced,
-              referrals: stats?.recentConversions,
-              payingCustomers: stats?.recentConversions, // Example mapping
-              promoters: stats?.activeAffiliatesCount,
+              mrr: stats?.mrrInfluenced,
+              mrrDelta,
+              mrrSparkline: stats?.mrrSparkline,
+              mrrSubtext,
+              affiliates: stats?.activeAffiliatesCount,
+              affiliatesSubtext,
+              organicSales: stats?.recentOrganicConversions,
+              organicSalesSubtext,
+              totalPaidOut: stats?.totalPaidOut,
+              totalPaidOutSubtext,
             }}
             isLoading={!stats}
           />
@@ -283,30 +295,39 @@ function DashboardContent() {
                   clicksSparkline: stats.clicksSparkline,
                   conversionsSparkline: stats.conversionsSparkline
                 } : undefined}
+                period={period}
+                dateRange={dateRange}
+                periodLabel={range === "custom" ? "Custom range" : DATE_PRESETS.find((p) => p.value === range)?.label}
                 isLoading={!stats}
               />
             </FadeIn>
             <FadeIn delay={200}>
               <PendingActions 
+                pendingAffiliates={stats?.affiliatesPending}
                 pendingCommissions={stats?.pendingCommissionsCount}
-                pendingPromoters={0}
-                pendingReferrals={0}
+                pendingPayouts={stats?.pendingPayoutCount}
                 isLoading={!stats}
               />
             </FadeIn>
           </div>
 
-          {/* Right Column - Trendings & Commissions */}
+          {/* Right Column - Trending & Commission Breakdown */}
           <div className="space-y-6">
             <FadeIn delay={300}>
               <TrendingSection 
                 topAffiliates={topAffiliates}
+                topCampaigns={topCampaigns}
+                recentCommissions={recentCommissions}
                 isLoading={!topAffiliates}
               />
             </FadeIn>
             <FadeIn delay={400}>
-              <CommissionsSummary 
-                totalEarned={stats?.mrrInfluenced}
+              <CommissionBreakdown 
+                approvedCount={stats?.recentConversions ?? 0}
+                approvedValue={stats?.mrrInfluenced ?? 0}
+                pendingCount={stats?.pendingCommissionsCount}
+                pendingValue={stats?.pendingCommissionsValue}
+                totalPaidOut={stats?.totalPaidOut}
                 isLoading={!stats}
               />
             </FadeIn>

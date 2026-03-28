@@ -64,6 +64,15 @@ export const getDashboardData = query({
         mrrSparkline: v.array(v.number()),
         clicksSparkline: v.array(v.number()),
         conversionsSparkline: v.array(v.number()),
+        // Approved conversions (unique paying customers via affiliate)
+        approvedConversionsCount: v.number(),
+        previousPeriodApprovedConversions: v.number(),
+        // Conversion rate
+        conversionRate: v.number(),
+        // Pending items counts
+        affiliatesPending: v.number(),
+        pendingPayoutCount: v.number(),
+        pendingPayoutTotal: v.number(),
       }),
       topAffiliates: v.array(v.object({
         _id: v.id("affiliates"),
@@ -74,6 +83,12 @@ export const getDashboardData = query({
         conversions: v.number(),
         revenue: v.number(),
         status: v.string(),
+      })),
+      topCampaigns: v.array(v.object({
+        _id: v.id("campaigns"),
+        name: v.string(),
+        conversions: v.number(),
+        revenue: v.number(),
       })),
       recentCommissions: v.array(v.object({
         _id: v.id("commissions"),
@@ -210,6 +225,35 @@ export const getDashboardData = query({
       }
     }
 
+    // Approved conversions count (unique conversions that led to approved commissions = paying customers)
+    const approvedConversionIds = new Set<string>();
+    for (const commission of commissions) {
+      if (commission.status === "approved" &&
+          commission._creationTime >= startDate &&
+          commission._creationTime <= endDate &&
+          commission.conversionId) {
+        approvedConversionIds.add(commission.conversionId);
+      }
+    }
+    const approvedConversionsCount = approvedConversionIds.size;
+
+    // Previous period approved conversions (for delta)
+    const previousApprovedConversionIds = new Set<string>();
+    for (const commission of commissions) {
+      if (commission.status === "approved" &&
+          commission._creationTime >= previousStartDate &&
+          commission._creationTime < startDate &&
+          commission.conversionId) {
+        previousApprovedConversionIds.add(commission.conversionId);
+      }
+    }
+    const previousPeriodApprovedConversions = previousApprovedConversionIds.size;
+
+    // Conversion rate (conversions / clicks, capped at 100%)
+    const conversionRate = recentClicks > 0
+      ? Math.round((recentConversions / recentClicks) * 100)
+      : 0;
+
     // ==================== SPARKLINE DATA ====================
     // Calculate time-bucketed data for sparkline charts based on period
     const period = args.period ?? "daily";
@@ -326,6 +370,43 @@ export const getDashboardData = query({
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, topAffiliatesLimit);
 
+    // ==================== TOP CAMPAIGNS ====================
+    // Aggregate approved commissions by campaignId (no extra DB reads)
+    const campaignStatsMap = new Map<Id<"campaigns">, { conversions: number; revenue: number }>();
+    for (const commission of commissions) {
+      if (commission.status === "approved" &&
+          commission._creationTime >= startDate &&
+          commission._creationTime <= endDate) {
+        const existing = campaignStatsMap.get(commission.campaignId);
+        if (existing) {
+          existing.conversions++;
+          existing.revenue += commission.amount;
+        } else {
+          campaignStatsMap.set(commission.campaignId, { conversions: 1, revenue: commission.amount });
+        }
+      }
+    }
+
+    const topCampaignIds = [...campaignStatsMap.entries()]
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 5)
+      .map(([id]) => id);
+
+    // Fetch campaign docs for top campaigns
+    const topCampaignDocs = await Promise.all(topCampaignIds.map((id) => ctx.db.get(id)));
+
+    const topCampaignsResult = topCampaignDocs
+      .filter((c): c is Doc<"campaigns"> => c !== null)
+      .map((c) => {
+        const s = campaignStatsMap.get(c._id) ?? { conversions: 0, revenue: 0 };
+        return {
+          _id: c._id,
+          name: c.name,
+          conversions: s.conversions,
+          revenue: canViewSensitiveData ? s.revenue : 0,
+        };
+      });
+
     // ==================== RECENT COMMISSIONS ====================
     const filteredRecentCommissions = commissions
       .filter((c) => c._creationTime >= startDate && c._creationTime <= endDate)
@@ -387,8 +468,15 @@ export const getDashboardData = query({
         mrrSparkline: mrrBuckets,
         clicksSparkline: clicksBuckets,
         conversionsSparkline: conversionsBuckets,
+        approvedConversionsCount,
+        previousPeriodApprovedConversions,
+        conversionRate,
+        affiliatesPending: tenantStatsDoc?.affiliatesPending ?? 0,
+        pendingPayoutCount: tenantStatsDoc?.pendingPayoutCount ?? 0,
+        pendingPayoutTotal: tenantStatsDoc?.pendingPayoutTotal ?? 0,
       },
       topAffiliates: topAffiliatesResult,
+      topCampaigns: topCampaignsResult,
       recentCommissions: recentCommissionsResult,
     };
   },

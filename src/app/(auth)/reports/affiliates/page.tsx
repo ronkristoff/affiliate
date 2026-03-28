@@ -152,7 +152,7 @@ function AffiliatePerformancePage() {
       <div className="px-8 pt-6 pb-8 space-y-6">
         {/* Filters */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "30d")} onChange={handleDateRangeChange} />
+          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
           <CampaignFilterDropdown
             selectedCampaignId={selectedCampaignId}
             onCampaignSelect={handleCampaignChange}

@@ -20,8 +20,8 @@ export interface DatePreset {
  *
  * Groups (by value):
  *   Quick:    today, thisWeek, thisMonth
- *   Rolling:  7d, 30d, 90d
- *   Calendar: lastMonth, custom
+ *   Calendar: lastMonth, allTime
+ *   Custom:   custom
  */
 export const DATE_PRESETS: DatePreset[] = [
   // ── Quick ranges ──────────────────────────────────────────────
@@ -59,41 +59,9 @@ export const DATE_PRESETS: DatePreset[] = [
     },
   },
 
-  // ── Rolling windows ───────────────────────────────────────────
-  {
-    label: "Last 7 days",
-    value: "7d",
-    period: "daily",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 7 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-  {
-    label: "Last 30 days",
-    value: "30d",
-    period: "daily",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 30 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-  {
-    label: "Last 90 days",
-    value: "90d",
-    period: "weekly",
-    getRange: () => {
-      const end = Date.now();
-      const start = end - 90 * 24 * 60 * 60 * 1000;
-      return { start, end };
-    },
-  },
-
   // ── Calendar ranges ───────────────────────────────────────────
   {
-    label: "Last month",
+    label: "Last Month",
     value: "lastMonth",
     period: "monthly",
     getRange: () => {
@@ -104,6 +72,18 @@ export const DATE_PRESETS: DatePreset[] = [
       return { start: start.getTime(), end: end.getTime() };
     },
   },
+  {
+    label: "All Time",
+    value: "allTime",
+    period: "monthly",
+    getRange: () => {
+      // start=1 so sparkline bucketing works (epoch 0 edge case);
+      // all real data will be captured since _creationTime is always > 1
+      return { start: 1, end: Date.now() };
+    },
+  },
+
+  // ── Custom range ──────────────────────────────────────────────
   {
     label: "Custom",
     value: "custom",

@@ -22,33 +22,25 @@ describe("useDateRange", () => {
   });
 
   describe("initialization", () => {
-    it("should default to 30 days when no URL params present", () => {
+    it("should default to this month when no URL params present", () => {
       const { result } = renderHook(() => useDateRange());
 
       expect(result.current.dateRange).toBeDefined();
-      expect(result.current.dateRange?.label).toBe("Last 30 days");
+      expect(result.current.dateRange?.label).toBe("This Month");
       expect(result.current.dateRange?.isCustom).toBe(false);
-      expect(result.current.dateRange?.preset).toBe("30d");
+      expect(result.current.dateRange?.preset).toBe("thisMonth");
       expect(result.current.isCustomRange).toBe(false);
-      expect(result.current.preset).toBe("30d");
+      expect(result.current.preset).toBe("thisMonth");
     });
 
-    it("should parse 7d preset from URL", () => {
-      mockSearchParams.set("range", "7d");
+    it("should parse allTime preset from URL", () => {
+      mockSearchParams.set("range", "allTime");
 
       const { result } = renderHook(() => useDateRange());
 
-      expect(result.current.dateRange?.label).toBe("Last 7 days");
-      expect(result.current.dateRange?.preset).toBe("7d");
-    });
-
-    it("should parse 90d preset from URL", () => {
-      mockSearchParams.set("range", "90d");
-
-      const { result } = renderHook(() => useDateRange());
-
-      expect(result.current.dateRange?.label).toBe("Last 90 days");
-      expect(result.current.dateRange?.preset).toBe("90d");
+      expect(result.current.dateRange?.label).toBe("All Time");
+      expect(result.current.dateRange?.preset).toBe("allTime");
+      expect(result.current.dateRange?.start).toBe(1);
     });
 
     it("should parse custom range from URL", () => {
@@ -73,9 +65,9 @@ describe("useDateRange", () => {
       const newRange = {
         start: Date.now() - 7 * 24 * 60 * 60 * 1000,
         end: Date.now(),
-        label: "Last 7 days",
+        label: "This Week",
         isCustom: false,
-        preset: "7d",
+        preset: "thisWeek",
       };
 
       act(() => {
@@ -83,7 +75,7 @@ describe("useDateRange", () => {
       });
 
       expect(result.current.dateRange).toEqual(newRange);
-      expect(mockPush).toHaveBeenCalledWith("?range=7d", { scroll: false });
+      expect(mockPush).toHaveBeenCalledWith("?range=thisWeek", { scroll: false });
     });
 
     it("should update state and URL for custom range", () => {
@@ -122,9 +114,9 @@ describe("useDateRange", () => {
       const newRange = {
         start: Date.now() - 7 * 24 * 60 * 60 * 1000,
         end: Date.now(),
-        label: "Last 7 days",
+        label: "This Week",
         isCustom: false,
-        preset: "7d",
+        preset: "thisWeek",
       };
 
       act(() => {
@@ -140,7 +132,7 @@ describe("useDateRange", () => {
 
   describe("customStart and customEnd", () => {
     it("should return null for custom dates when using preset", () => {
-      mockSearchParams.set("range", "30d");
+      mockSearchParams.set("range", "thisMonth");
 
       const { result } = renderHook(() => useDateRange());
 

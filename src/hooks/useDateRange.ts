@@ -22,11 +22,14 @@ export interface UseDateRangeReturn {
 }
 
 /**
- * Default date range: Last 30 days
+ * Default date range: This Month
  */
-const DEFAULT_30_DAYS = {
-  start: Date.now() - 30 * 24 * 60 * 60 * 1000,
-  end: Date.now(),
+const DEFAULT_THIS_MONTH = () => {
+  const now = new Date();
+  return {
+    start: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+    end: Date.now(),
+  };
 };
 
 /**
@@ -63,36 +66,36 @@ function parseDateRangeFromParams(searchParams: URLSearchParams): DateRange {
 
   // Parse preset ranges
   switch (rangeParam) {
-    case "7d":
+    case "today": {
+      const nowDate = new Date();
+      const start = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
       return {
-        start: now - 7 * 24 * 60 * 60 * 1000,
+        start,
         end: now,
-        label: "Last 7 days",
+        label: "Today",
         isCustom: false,
-        preset: "7d",
+        preset: "today",
       };
-    case "30d":
+    }
+    case "thisWeek": {
+      const nowDate = new Date();
+      const dayOfWeek = nowDate.getDay();
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const start = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() - mondayOffset).getTime();
       return {
-        start: now - 30 * 24 * 60 * 60 * 1000,
+        start,
         end: now,
-        label: "Last 30 days",
+        label: "This Week",
         isCustom: false,
-        preset: "30d",
+        preset: "thisWeek",
       };
-    case "90d":
-      return {
-        start: now - 90 * 24 * 60 * 60 * 1000,
-        end: now,
-        label: "Last 90 days",
-        isCustom: false,
-        preset: "90d",
-      };
+    }
     case "thisMonth": {
       const nowDate = new Date();
       return {
         start: new Date(nowDate.getFullYear(), nowDate.getMonth(), 1).getTime(),
         end: now,
-        label: "This month",
+        label: "This Month",
         isCustom: false,
         preset: "thisMonth",
       };
@@ -105,19 +108,29 @@ function parseDateRangeFromParams(searchParams: URLSearchParams): DateRange {
       return {
         start: start.getTime(),
         end: end.getTime(),
-        label: "Last month",
+        label: "Last Month",
         isCustom: false,
         preset: "lastMonth",
       };
     }
-    default:
-      // Default to last 30 days
+    case "allTime": {
       return {
-        start: DEFAULT_30_DAYS.start,
-        end: DEFAULT_30_DAYS.end,
-        label: "Last 30 days",
+        start: 1,
+        end: now,
+        label: "All Time",
         isCustom: false,
-        preset: "30d",
+        preset: "allTime",
+      };
+    }
+    default:
+      // Default to this month
+      const defaultRange = DEFAULT_THIS_MONTH();
+      return {
+        start: defaultRange.start,
+        end: defaultRange.end,
+        label: "This Month",
+        isCustom: false,
+        preset: "thisMonth",
       };
   }
 }
