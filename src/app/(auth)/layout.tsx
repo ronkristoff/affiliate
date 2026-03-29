@@ -83,7 +83,10 @@ function AuthLayoutContent({
   }
 
   // ── Auth gate: don't render children until the session is confirmed ──
-  if (user === undefined) {
+  // Block on both `undefined` (query loading) and `null` (Convex auth token not
+  // yet exchanged — happens on hard refresh before ConvexProviderWithAuth has
+  // fetched the JWT from Better Auth).
+  if (!user) {
     return <AuthLayoutSkeleton />;
   }
 
