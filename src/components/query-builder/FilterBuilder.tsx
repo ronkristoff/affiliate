@@ -18,7 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBuilderSkeleton } from "./skeletons";
 import { generateId } from "@/hooks/useQueryBuilder";
 import type { QueryConfig, FilterOperator } from "@/hooks/useQueryBuilder";
-import { Plus, Trash2, Pencil, Check, X, Link2, Calendar, Sparkles } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Link2, Sparkles } from "lucide-react";
+import { DATE_PRESETS } from "@/lib/date-presets";
 
 interface ColumnMeta {
   name: string;
@@ -40,8 +41,6 @@ interface FilterBuilderProps {
   onRemoveFilter: (id: string) => void;
   onUpdateFilter: (id: string, updates: Partial<QueryConfig["filters"][0]>) => void;
   onSetFilterLogic: (logic: "and" | "or") => void;
-  dateRange?: { start: number; end: number; preset?: string } | null;
-  onSetDateRange?: (range: { start: number; end: number; preset?: string } | null) => void;
 }
 
 const OPERATORS: Array<{ value: FilterOperator; label: string }> = [
@@ -58,32 +57,6 @@ const OPERATORS: Array<{ value: FilterOperator; label: string }> = [
   { value: "is_null", label: "Is Null" },
   { value: "is_not_null", label: "Is Not Null" },
 ];
-
-const DATE_PRESETS = [
-  { label: "Today", start: () => startOfDay(), end: () => endOfDay() },
-  { label: "Yesterday", start: () => startOfDay() - 86400000, end: () => startOfDay() },
-  { label: "Last 7 days", start: () => Date.now() - 7 * 86400000, end: () => Date.now() },
-  { label: "Last 30 days", start: () => Date.now() - 30 * 86400000, end: () => Date.now() },
-  { label: "This month", start: () => startOfMonth(), end: () => Date.now() },
-  { label: "Last month", start: () => startOfLastMonth(), end: () => startOfMonth() },
-  { label: "This year", start: () => startOfYear(), end: () => Date.now() },
-] as const;
-
-function startOfDay() {
-  const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime();
-}
-function endOfDay() {
-  const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime();
-}
-function startOfMonth() {
-  const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
-}
-function startOfLastMonth() {
-  const d = new Date(); d.setDate(0); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
-}
-function startOfYear() {
-  const d = new Date(); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d.getTime();
-}
 
 function getColumnType(tables: TableMeta[], tableName: string, columnName: string): string {
   const table = tables.find((t) => t.name === tableName);
@@ -103,8 +76,6 @@ export function FilterBuilder({
   onRemoveFilter,
   onUpdateFilter,
   onSetFilterLogic,
-  dateRange,
-  onSetDateRange,
 }: FilterBuilderProps) {
   const metadata = useQuery(api.queryBuilder.getTableMetadata);
   const tables = (Array.isArray(metadata) ? metadata : metadata?.tables ?? []) as unknown as TableMeta[];
@@ -213,48 +184,6 @@ export function FilterBuilder({
 
   return (
     <div className="space-y-4">
-      {/* Date Range Presets */}
-      {relevantTables.length > 0 && (
-        <div className="space-y-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-            <Calendar className="w-3 h-3" />
-            Date Range
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {DATE_PRESETS.map((preset) => {
-              const dr = dateRange ?? null;
-              const isActive = dr !== null && dr.preset === preset.label;
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => {
-                    if (isActive) {
-                      onSetDateRange?.(null);
-                    } else {
-                      onSetDateRange?.({ start: preset.start(), end: preset.end(), preset: preset.label });
-                    }
-                  }}
-                  className={cn(
-                    "px-2 py-1 rounded-md text-[11px] font-medium transition-all",
-                    isActive
-                      ? "bg-[#10409a] text-white"
-                      : "bg-[var(--muted)] text-[var(--text-muted)] hover:text-[var(--text-heading)] hover:bg-[var(--hover)]"
-                  )}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-            {dateRange && (
-              <span className="text-[10px] text-[var(--text-muted)] self-center ml-1">
-                {new Date(dateRange.start).toLocaleDateString()} — {new Date(dateRange.end).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* AND/OR Logic Toggle */}
       {filters.length > 1 && (
         <div className="flex items-center gap-2">

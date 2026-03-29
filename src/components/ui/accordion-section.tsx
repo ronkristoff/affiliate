@@ -1,35 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 
 interface AccordionSectionProps {
   title: string;
   description?: string;
   icon?: React.ReactNode;
   defaultOpen?: boolean;
+  /** Optional status badge - "completed" shows green check, "pending" shows amber dot */
+  status?: "completed" | "pending";
+  /** Controlled mode: externally control open state. Once mounted, cannot switch between controlled/uncontrolled. */
+  open?: boolean;
+  /** Controlled mode callback */
+  onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
 }
 
 /**
  * Smooth accordion section using grid-template-rows animation.
  * No height animation jank — pure GPU-composited transform + grid transition.
+ * 
+ * Supports both uncontrolled mode (defaultOpen) and controlled mode (open/onOpenChange).
+ * Once mounted, the component cannot switch between controlled and uncontrolled mode.
  */
 export function AccordionSection({
   title,
   description,
   icon,
   defaultOpen = false,
+  status,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   children,
 }: AccordionSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  // Determine if controlled on first render and lock it in
+  const isControlledRef = useRef<boolean | null>(null);
+  const [prevOpenPresence, setPrevOpenPresence] = useState<boolean | undefined>(controlledOpen);
+
+  // Lock in controlled mode on first render
+  if (isControlledRef.current === null) {
+    isControlledRef.current = controlledOpen !== undefined;
+  }
+
+  // Dev warning if mode switches after mount
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && isControlledRef.current !== undefined) {
+      if (prevOpenPresence !== undefined && controlledOpen !== undefined && prevOpenPresence !== controlledOpen) {
+        console.warn("[AccordionSection] Cannot switch between controlled and uncontrolled mode after mount");
+      }
+      setPrevOpenPresence(controlledOpen);
+    }
+  }, [controlledOpen, prevOpenPresence]);
+
+  // Use controlled or uncontrolled state
+  const isControlled = isControlledRef.current;
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+
+  const isOpen = isControlled ? !!controlledOpen : internalOpen;
+  const handleToggle = () => {
+    const newOpen = !isOpen;
+    if (isControlled) {
+      controlledOnOpenChange?.(newOpen);
+    } else {
+      setInternalOpen(newOpen);
+    }
+  };
 
   return (
     <div className="border border-[var(--border)] rounded-xl overflow-hidden">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--hover)] transition-colors"
       >
         {icon && (
@@ -43,6 +86,25 @@ export function AccordionSection({
             <div className="text-xs text-[var(--text-muted)] mt-0.5">{description}</div>
           )}
         </div>
+        {/* Status badge - always rendered with opacity transition to avoid layout shift */}
+        <span
+          className={`shrink-0 transition-opacity duration-200 ${
+            status ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {status === "completed" && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
+              <Check className="w-3 h-3" />
+              Done
+            </span>
+          )}
+          {status === "pending" && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Pending
+            </span>
+          )}
+        </span>
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}

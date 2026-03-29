@@ -74,6 +74,12 @@ export interface UseQueryBuilderReturn {
   loadConfig: (config: QueryConfig) => void;
   configJson: string;
   isDirty: boolean;
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  clearHistory: () => void;
 }
 
 const EMPTY_CONFIG: QueryConfig = {
@@ -134,6 +140,12 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     return { ...EMPTY_CONFIG };
   });
 
+  // History state for undo/redo
+  const [history, setHistory] = useState<{ past: QueryConfig[]; future: QueryConfig[] }>({
+    past: [],
+    future: [],
+  });
+
   const initialConfigRef = useRef<QueryConfig>(config);
 
   useEffect(() => {
@@ -164,11 +176,17 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
   );
 
   const setConfig = useCallback(
-    (newConfig: QueryConfig) => {
+    (newConfig: QueryConfig, { pushToHistory = true } = {}) => {
+      if (pushToHistory) {
+        setHistory((prev) => ({
+          past: [...prev.past.slice(-19), config], // Keep last 20 states
+          future: [], // Clear future on new action
+        }));
+      }
       setConfigState(newConfig);
       syncToUrl(newConfig);
     },
-    [syncToUrl]
+    [config, syncToUrl]
   );
 
   const setTables = useCallback(
@@ -338,6 +356,36 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     [config]
   );
 
+  // Undo/Redo functions
+  const canUndo = history.past.length > 0;
+  const canRedo = history.future.length > 0;
+
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    const previous = history.past[history.past.length - 1];
+    setHistory((prev) => ({
+      past: prev.past.slice(0, -1),
+      future: [config, ...prev.future],
+    }));
+    setConfigState(previous);
+    syncToUrl(previous);
+  }, [canUndo, history.past, config, syncToUrl]);
+
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    const next = history.future[0];
+    setHistory((prev) => ({
+      past: [...prev.past, config],
+      future: prev.future.slice(1),
+    }));
+    setConfigState(next);
+    syncToUrl(next);
+  }, [canRedo, history.future, config, syncToUrl]);
+
+  const clearHistory = useCallback(() => {
+    setHistory({ past: [], future: [] });
+  }, []);
+
   return {
     config,
     setConfig,
@@ -359,6 +407,11 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     loadConfig,
     configJson,
     isDirty,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
   };
 }
 

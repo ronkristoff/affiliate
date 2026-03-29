@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback, useMemo, useEffect } from "react";
+import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/button";
 import { AccordionSection } from "@/components/ui/accordion-section";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { QueryBuilderPageSkeleton } from "@/components/query-builder/skeletons";
 import { TableSelector } from "@/components/query-builder/TableSelector";
 import { ColumnSelector } from "@/components/query-builder/ColumnSelector";
@@ -23,6 +24,7 @@ import { WizardFlow } from "@/components/query-builder/WizardFlow";
 import { SaveQueryDialog } from "@/components/query-builder/SaveQueryDialog";
 import { ShareQueryDialog } from "@/components/query-builder/ShareQueryDialog";
 import { QueryExportButton } from "@/components/query-builder/QueryExportButton";
+import { DATE_PRESETS, type DateRange } from "@/lib/date-presets";
 import {
   Play,
   Save,
@@ -43,6 +45,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
+  Calendar,
+  X,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -227,7 +233,7 @@ function ColumnCollisionWarning({ config }: { config: QueryConfig }) {
 }
 
 // ─── Query Summary ───────────────────────────────────────────────────
-function QuerySummary({ config, configJson }: { config: QueryConfig; configJson: string }) {
+const QuerySummary = React.memo(function QuerySummary({ config, configJson }: { config: QueryConfig; configJson: string }) {
   const hasAnything =
     config.tables.length > 0 ||
     config.columns.length > 0 ||
@@ -239,7 +245,7 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
   if (!hasAnything) return null;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-4 space-y-3">
+    <div className="rounded-xl border border-[var(--border)] bg-white p-4 space-y-3 max-h-[200px] overflow-y-auto">
       <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-heading)]">
         <ClipboardList className="w-4 h-4 text-[#10409a]" />
         Query Summary
@@ -353,7 +359,7 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
         )}
       </div>
 
-      <details className="group">
+      <details className="group" open>
         <summary className="text-[11px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-heading)] transition-colors select-none">
           Show raw JSON
         </summary>
@@ -363,9 +369,7 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
       </details>
     </div>
   );
-}
-
-// ─── Missing Join Warning ─────────────────────────────────────────
+}, (prevProps, nextProps) => prevProps.configJson === nextProps.configJson);
 function MissingJoinWarning({
   config,
   onApplyJoin,
@@ -465,6 +469,9 @@ function QueryBuilderContent() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [shareDialogQueryId, setShareDialogQueryId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ start: number; end: number; preset?: string } | null>(null);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  // Session persistence for date preset
+  const lastDatePresetRef = useRef<string>("");
 
   const {
     config,
@@ -486,6 +493,11 @@ function QueryBuilderContent() {
     loadConfig,
     configJson,
     isDirty,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
   } = useQueryBuilder();
 
   const queryArgs = {
@@ -504,6 +516,7 @@ function QueryBuilderContent() {
   const health = useMemo(() => computeHealth(config), [config]);
 
   const [hasRunQuery, setHasRunQuery] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
 
   const results = useQuery(
     api.queryBuilder.executeQuery,
@@ -511,6 +524,13 @@ function QueryBuilderContent() {
       ? queryArgs
       : "skip"
   );
+
+  // Auto-expand Results section when query completes
+  useEffect(() => {
+    if (results && results.rows.length > 0 && !resultsOpen) {
+      setResultsOpen(true);
+    }
+  }, [results, resultsOpen]);
 
   const handleRunQuery = () => {
     if (!hasValidConfig) {
@@ -552,11 +572,12 @@ function QueryBuilderContent() {
       if (!confirmed) return;
     }
     loadConfig(templateConfig);
+    clearHistory();
     setMode("advanced");
     setHasRunQuery(false);
     setDateRange(null);
     toast.success("Template loaded");
-  }, [loadConfig, isDirty]);
+  }, [loadConfig, isDirty, clearHistory]);
 
   const handleLoadQuery = useCallback((loadedConfig: QueryConfig) => {
     if (isDirty) {
@@ -564,21 +585,23 @@ function QueryBuilderContent() {
       if (!confirmed) return;
     }
     loadConfig(loadedConfig);
+    clearHistory();
     setHasRunQuery(false);
     setDateRange(null);
-  }, [loadConfig, isDirty]);
+  }, [loadConfig, isDirty, clearHistory]);
 
   const handleReset = useCallback(() => {
     if (!hasValidConfig) return;
     const confirmed = window.confirm("Reset your entire query? This cannot be undone.");
     if (!confirmed) return;
     resetConfig();
+    clearHistory();
     setHasRunQuery(false);
     setDateRange(null);
     toast.success("Query reset");
-  }, [hasValidConfig, resetConfig]);
+  }, [hasValidConfig, resetConfig, clearHistory]);
 
-  // Keyboard shortcuts: Ctrl/Cmd+Enter → Run, Ctrl/Cmd+S → Save
+  // Keyboard shortcuts: Ctrl/Cmd+Enter → Run, Ctrl/Cmd+S → Save, Ctrl/Cmd+Z → Undo, Ctrl/Cmd+Shift+Z → Redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -596,11 +619,25 @@ function QueryBuilderContent() {
           setSaveDialogOpen(true);
         }
       }
+      // Ctrl/Cmd+Z → Undo
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) {
+          undo();
+        }
+      }
+      // Ctrl/Cmd+Shift+Z → Redo
+      if (e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        if (canRedo) {
+          redo();
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleRunQuery, hasValidConfig, mode]);
+  }, [handleRunQuery, hasValidConfig, mode, canUndo, canRedo, undo, redo]);
 
   const resultColumns = (() => {
     if (results && results.rows.length > 0) {
@@ -669,6 +706,7 @@ function QueryBuilderContent() {
               variant="ghost"
               size="sm"
               onClick={() => setMode("wizard")}
+              title="Guided templates for quick reports"
               className={cn(
                 "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "wizard"
@@ -683,6 +721,7 @@ function QueryBuilderContent() {
               variant="ghost"
               size="sm"
               onClick={() => setMode("advanced")}
+              title="Full query control"
               className={cn(
                 "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "advanced"
@@ -701,8 +740,29 @@ function QueryBuilderContent() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={undo}
+                  disabled={!canUndo}
+                  title="Undo (⌘Z)"
+                  className="gap-1.5 text-[var(--text-muted)]"
+                >
+                  <Undo2 className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={redo}
+                  disabled={!canRedo}
+                  title="Redo (⌘⇧Z)"
+                  className="gap-1.5 text-[var(--text-muted)]"
+                >
+                  <Redo2 className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleReset}
                   disabled={!hasValidConfig}
+                  title="Reset query"
                   className="gap-1.5 text-[var(--text-muted)]"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -713,6 +773,7 @@ function QueryBuilderContent() {
                   size="sm"
                   onClick={() => setSaveDialogOpen(true)}
                   disabled={!hasValidConfig}
+                  title="⌘+S to save"
                   className="gap-1.5"
                 >
                   <Save className="w-3 h-3" />
@@ -728,6 +789,63 @@ function QueryBuilderContent() {
               </>
             )}
             <HealthIndicator health={health} />
+            {mode === "advanced" && (
+              <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "gap-1.5",
+                      dateRange && "border-[#10409a] bg-[#10409a]/5"
+                    )}
+                  >
+                    <Calendar className="w-3 h-3" />
+                    {dateRange?.preset || "Date range"}
+                    {dateRange && (
+                      <X
+                        className="w-3 h-3 ml-1 hover:bg-[var(--hover)] rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDateRange(null);
+                          lastDatePresetRef.current = "";
+                        }}
+                      />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="end">
+                  <div className="space-y-1">
+                    {DATE_PRESETS.map((preset) => {
+                      const isActive = dateRange?.preset === preset.label;
+                      return (
+                        <Button
+                          key={preset.label}
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "w-full justify-start text-[12px]",
+                            isActive && "bg-[#10409a] text-white hover:bg-[#10409a]"
+                          )}
+                          onClick={() => {
+                            const newRange = {
+                              start: preset.start(),
+                              end: preset.end(),
+                              preset: preset.label,
+                            };
+                            setDateRange(newRange);
+                            lastDatePresetRef.current = preset.label;
+                            setDatePopoverOpen(false);
+                          }}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             <Button
               size="sm"
               onClick={handleRunQuery}
@@ -774,7 +892,7 @@ function QueryBuilderContent() {
               <AccordionSection
                 title="Saved Queries"
                 icon={<Bookmark className="w-4 h-4" />}
-                defaultOpen={false}
+                defaultOpen={true}
               >
                 <SavedQueriesList
                   onLoadQuery={handleLoadQuery}
@@ -785,7 +903,7 @@ function QueryBuilderContent() {
               <AccordionSection
                 title="Templates"
                 icon={<LayoutTemplate className="w-4 h-4" />}
-                defaultOpen={false}
+                defaultOpen={true}
               >
                 <TemplateGallery onSelectTemplate={handleSelectTemplate} />
               </AccordionSection>
@@ -805,6 +923,7 @@ function QueryBuilderContent() {
                 description="Choose which tables to query"
                 icon={<Database className="w-4 h-4" />}
                 defaultOpen={true}
+                status={config.tables.length > 0 ? "completed" : undefined}
               >
                 <TableSelector
                   selectedTables={config.tables}
@@ -818,6 +937,7 @@ function QueryBuilderContent() {
                   description="Select columns to include in results"
                   icon={<Columns3 className="w-4 h-4" />}
                   defaultOpen={true}
+                  status={config.tables.length > 0 && config.columns.length > 0 ? "completed" : undefined}
                 >
                   <ColumnSelector
                     selectedTables={config.tables}
@@ -836,6 +956,7 @@ function QueryBuilderContent() {
                   description={`Add conditions to narrow results (${config.filters.length})`}
                   icon={<Filter className="w-4 h-4" />}
                   defaultOpen={true}
+                  status={config.filters.length > 0 && config.filters.every(f => f.value !== undefined && f.value !== "") ? "completed" : undefined}
                 >
                   <FilterBuilder
                     selectedTables={config.tables}
@@ -845,8 +966,6 @@ function QueryBuilderContent() {
                     onRemoveFilter={removeFilter}
                     onUpdateFilter={updateFilter}
                     onSetFilterLogic={setFilterLogic}
-                    dateRange={dateRange}
-                    onSetDateRange={setDateRange}
                   />
                 </AccordionSection>
               )}
@@ -857,6 +976,16 @@ function QueryBuilderContent() {
                   description={`Connect tables together (${config.joins.length}/3)`}
                   icon={<Link2 className="w-4 h-4" />}
                   defaultOpen={true}
+                  status={(() => {
+                    // Compute unjoined secondary tables
+                    const secondaryTables = new Set(
+                      config.columns.filter((c) => c.table !== config.tables[0]).map((c) => c.table)
+                    );
+                    const joinedTables = new Set(config.joins.flatMap((j) => [j.leftTable, j.rightTable]));
+                    const unjoinedTables = [...secondaryTables].filter((t) => !joinedTables.has(t));
+                    // Completed if no unjoined secondary tables (or no secondary tables at all)
+                    return secondaryTables.size === 0 || unjoinedTables.length === 0 ? "completed" : undefined;
+                  })()}
                 >
                   <JoinBuilder
                     selectedTables={config.tables}
@@ -873,6 +1002,7 @@ function QueryBuilderContent() {
                   description={`Aggregate and group your data (${config.aggregations.length} aggs)`}
                   icon={<Sigma className="w-4 h-4" />}
                   defaultOpen={config.aggregations.length > 0 || config.groupBy.length > 0}
+                  status={config.aggregations.length > 0 && config.groupBy.length > 0 ? "completed" : config.aggregations.length > 0 ? "pending" : undefined}
                 >
                   <AggregationBuilder
                     selectedTables={config.tables}
@@ -889,7 +1019,9 @@ function QueryBuilderContent() {
                 title="Results"
                 description={results ? `${results.totalRows.toLocaleString()} rows` : "Run a query to see results"}
                 icon={<Play className="w-4 h-4" />}
-                defaultOpen={!!results && results.rows.length > 0}
+                open={resultsOpen}
+                onOpenChange={setResultsOpen}
+                status={results && results.rows.length > 0 ? "completed" : hasRunQuery && !results ? "pending" : undefined}
               >
                 <ResultsTable
                   results={results?.rows ?? null}
