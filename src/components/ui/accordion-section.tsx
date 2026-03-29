@@ -26,27 +26,27 @@ export function AccordionSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-[var(--border)] rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50/80 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--hover)] transition-colors"
       >
         {icon && (
-          <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#10409a] text-sm shrink-0">
+          <span className="w-8 h-8 rounded-lg bg-[#10409a]/10 flex items-center justify-center text-[#10409a] text-sm shrink-0">
             {icon}
           </span>
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-gray-800">{title}</div>
+          <div className="text-sm font-semibold text-[var(--text-heading)]">{title}</div>
           {description && (
-            <div className="text-xs text-gray-500 mt-0.5">{description}</div>
+            <div className="text-xs text-[var(--text-muted)] mt-0.5">{description}</div>
           )}
         </div>
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="text-gray-400 shrink-0"
+          className="text-[var(--text-muted)] shrink-0"
         >
           <ChevronDown className="w-4 h-4" />
         </motion.span>

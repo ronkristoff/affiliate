@@ -117,44 +117,44 @@ export function SavedQueriesList({ onLoadQuery, onShareQuery }: SavedQueriesList
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5" />
-                {timeAgo(q.createdAt)}
-              </span>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-[11px] gap-1 px-2"
-                  onClick={() => handleLoad(q)}
-                >
-                  <Play className="w-3 h-3" />
-                  Load
-                </Button>
-                {onShareQuery && q.canEdit && (
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  {timeAgo(q.createdAt)}
+                </span>
+                <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-[11px] gap-1 px-2"
-                    onClick={() => onShareQuery(q._id)}
+                    className="h-7 text-[11px] gap-1 px-2 text-[#1659d6] hover:text-[#10409a]"
+                    onClick={() => handleLoad(q)}
                   >
-                    <Share2 className="w-3 h-3" />
+                    <Play className="w-3 h-3" />
+                    Load
                   </Button>
-                )}
-                {q.canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-[11px] text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
-                    onClick={() => handleDelete(q._id, q.name)}
-                    disabled={deletingId === q._id}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                )}
+                  {onShareQuery && q.canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px] gap-1 px-2 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => onShareQuery(q._id)}
+                    >
+                      <Share2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                  {q.canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px] text-red-500 hover:text-red-600 hover:bg-red-50 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDelete(q._id, q.name)}
+                      disabled={deletingId === q._id}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
           </div>
         );
       })}

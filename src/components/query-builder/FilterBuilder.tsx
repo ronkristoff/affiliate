@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -14,10 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FilterBuilderSkeleton } from "./skeletons";
 import { generateId } from "@/hooks/useQueryBuilder";
 import type { QueryConfig, FilterOperator } from "@/hooks/useQueryBuilder";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Link2, Calendar, Sparkles } from "lucide-react";
 
 interface ColumnMeta {
   name: string;
@@ -34,9 +35,13 @@ interface TableMeta {
 interface FilterBuilderProps {
   selectedTables: string[];
   filters: QueryConfig["filters"];
+  filterLogic: "and" | "or";
   onAddFilter: (filter: QueryConfig["filters"][0]) => void;
   onRemoveFilter: (id: string) => void;
   onUpdateFilter: (id: string, updates: Partial<QueryConfig["filters"][0]>) => void;
+  onSetFilterLogic: (logic: "and" | "or") => void;
+  dateRange?: { start: number; end: number; preset?: string } | null;
+  onSetDateRange?: (range: { start: number; end: number; preset?: string } | null) => void;
 }
 
 const OPERATORS: Array<{ value: FilterOperator; label: string }> = [
@@ -54,11 +59,33 @@ const OPERATORS: Array<{ value: FilterOperator; label: string }> = [
   { value: "is_not_null", label: "Is Not Null" },
 ];
 
-function getColumnType(
-  tables: TableMeta[],
-  tableName: string,
-  columnName: string
-): string {
+const DATE_PRESETS = [
+  { label: "Today", start: () => startOfDay(), end: () => endOfDay() },
+  { label: "Yesterday", start: () => startOfDay() - 86400000, end: () => startOfDay() },
+  { label: "Last 7 days", start: () => Date.now() - 7 * 86400000, end: () => Date.now() },
+  { label: "Last 30 days", start: () => Date.now() - 30 * 86400000, end: () => Date.now() },
+  { label: "This month", start: () => startOfMonth(), end: () => Date.now() },
+  { label: "Last month", start: () => startOfLastMonth(), end: () => startOfMonth() },
+  { label: "This year", start: () => startOfYear(), end: () => Date.now() },
+] as const;
+
+function startOfDay() {
+  const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+function endOfDay() {
+  const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime();
+}
+function startOfMonth() {
+  const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+function startOfLastMonth() {
+  const d = new Date(); d.setDate(0); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+function startOfYear() {
+  const d = new Date(); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+
+function getColumnType(tables: TableMeta[], tableName: string, columnName: string): string {
   const table = tables.find((t) => t.name === tableName);
   const col = table?.columns.find((c) => c.name === columnName);
   return col?.type ?? "string";
@@ -71,12 +98,15 @@ function needsValue(operator: string): boolean {
 export function FilterBuilder({
   selectedTables,
   filters,
+  filterLogic,
   onAddFilter,
   onRemoveFilter,
   onUpdateFilter,
+  onSetFilterLogic,
+  dateRange,
+  onSetDateRange,
 }: FilterBuilderProps) {
   const metadata = useQuery(api.queryBuilder.getTableMetadata);
-  // Handle both old (flat array) and new ({ tables, suggestedJoins }) return shape
   const tables = (Array.isArray(metadata) ? metadata : metadata?.tables ?? []) as unknown as TableMeta[];
 
   const [newFilterTable, setNewFilterTable] = useState("");
@@ -84,21 +114,37 @@ export function FilterBuilder({
   const [newFilterOperator, setNewFilterOperator] = useState<FilterOperator>("equals");
   const [newFilterValue, setNewFilterValue] = useState("");
   const [newFilterValueTo, setNewFilterValueTo] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Auto-select first table when selectedTables change and local state is empty
+  // All hooks before conditional return
+  const relevantTables = metadata
+    ? tables.filter((t) => selectedTables.includes(t.name))
+    : [];
+
+  const selectedTableMeta = tables.find((t) => t.name === newFilterTable);
+  const selectedColType = newFilterColumn
+    ? getColumnType(tables, newFilterTable, newFilterColumn)
+    : "string";
+
+  // Fetch distinct values for the selected column (for suggestions)
+  const showSuggestions = !!newFilterTable && !!newFilterColumn &&
+    selectedColType === "string" && newFilterOperator !== "between" &&
+    needsValue(newFilterOperator);
+
+  const distinctValues = useQuery(
+    api.queryBuilder.getDistinctColumnValues,
+    showSuggestions
+      ? { tableName: newFilterTable, columnName: newFilterColumn }
+      : "skip"
+  ) as Array<{ value: string | number | boolean; count: number }>;
+
   useEffect(() => {
     if (selectedTables.length > 0 && !newFilterTable) {
       setNewFilterTable(selectedTables[0]);
     }
   }, [selectedTables, newFilterTable]);
 
-  if (!metadata) {
-    return <FilterBuilderSkeleton />;
-  }
-
-  const relevantTables = tables.filter((t) => selectedTables.includes(t.name));
-
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     if (!newFilterTable || !newFilterColumn) return;
     const operator = newFilterOperator;
     const colType = getColumnType(tables, newFilterTable, newFilterColumn);
@@ -134,49 +180,154 @@ export function FilterBuilder({
     setNewFilterColumn("");
     setNewFilterValue("");
     setNewFilterValueTo("");
+  }, [newFilterTable, newFilterColumn, newFilterOperator, newFilterValue, newFilterValueTo, tables, onAddFilter]);
+
+  if (!metadata) {
+    return <FilterBuilderSkeleton />;
+  }
+
+  const startEditing = (filterId: string) => setEditingId(filterId);
+  const cancelEditing = () => setEditingId(null);
+
+  const handleEditSave = (filter: QueryConfig["filters"][0], updates: Record<string, unknown>) => {
+    onUpdateFilter(filter.id, updates);
+    setEditingId(null);
   };
 
-  const renderFilterValue = (filter: QueryConfig["filters"][0]) => {
-    if (filter.operator === "is_null" || filter.operator === "is_not_null") {
-      return null;
+  const handleSuggestionClick = (value: string | number | boolean) => {
+    if (newFilterOperator === "in_list") {
+      const existing = newFilterValue ? newFilterValue.split(",").map((v) => v.trim()) : [];
+      if (!existing.includes(String(value))) {
+        setNewFilterValue(existing.length > 0 ? `${newFilterValue}, ${value}` : String(value));
+      }
+    } else {
+      setNewFilterValue(String(value));
     }
-    if (filter.operator === "in_list") {
-      return (
-        <Badge variant="outline" className="text-[11px] max-w-[200px]">
-          {filter.values?.join(", ")}
-        </Badge>
-      );
-    }
-    if (filter.operator === "between") {
-      return (
-        <span className="text-[13px] text-[var(--text-body)]">
-          {String(filter.value)} — {String(filter.valueTo)}
-        </span>
-      );
-    }
-    return (
-      <span className="text-[13px] text-[var(--text-body)]">
-        {String(filter.value)}
-      </span>
-    );
   };
 
-  const selectedTableMeta = tables.find((t) => t.name === newFilterTable);
-  const selectedColType = newFilterColumn
-    ? getColumnType(tables, newFilterTable, newFilterColumn)
-    : "string";
+  // Check if a value is already selected (for in_list)
+  const isValueSelected = (value: string | number | boolean) => {
+    if (newFilterOperator !== "in_list" || !newFilterValue) return false;
+    return newFilterValue.split(",").map((v) => v.trim()).includes(String(value));
+  };
 
   return (
     <div className="space-y-4">
+      {/* Date Range Presets */}
+      {relevantTables.length > 0 && (
+        <div className="space-y-2">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <Calendar className="w-3 h-3" />
+            Date Range
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {DATE_PRESETS.map((preset) => {
+              const dr = dateRange ?? null;
+              const isActive = dr !== null && dr.preset === preset.label;
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    if (isActive) {
+                      onSetDateRange?.(null);
+                    } else {
+                      onSetDateRange?.({ start: preset.start(), end: preset.end(), preset: preset.label });
+                    }
+                  }}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                    isActive
+                      ? "bg-[#10409a] text-white"
+                      : "bg-[var(--muted)] text-[var(--text-muted)] hover:text-[var(--text-heading)] hover:bg-[var(--hover)]"
+                  )}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+            {dateRange && (
+              <span className="text-[10px] text-[var(--text-muted)] self-center ml-1">
+                {new Date(dateRange.start).toLocaleDateString()} — {new Date(dateRange.end).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AND/OR Logic Toggle */}
+      {filters.length > 1 && (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Match
+          </span>
+          <div className="flex items-center gap-1 bg-[var(--muted)] rounded-lg p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSetFilterLogic("and")}
+              className={cn(
+                "h-6 text-[11px] font-medium rounded-md px-2.5",
+                filterLogic === "and"
+                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
+              )}
+            >
+              <Link2 className="w-3 h-3 mr-1" />
+              All conditions
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSetFilterLogic("or")}
+              className={cn(
+                "h-6 text-[11px] font-medium rounded-md px-2.5",
+                filterLogic === "or"
+                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
+              )}
+            >
+              Any condition
+            </Button>
+          </div>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            ({filters.length} filter{filters.length !== 1 ? "s" : ""})
+          </span>
+        </div>
+      )}
+
+      {/* Filter List */}
       {filters.length > 0 && (
         <div className="space-y-2">
-          {filters.map((filter) => {
+          {filters.map((filter, index) => {
             const op = OPERATORS.find((o) => o.value === filter.operator);
+            const isEditing = editingId === filter.id;
+
+            if (isEditing) {
+              return (
+                <EditableFilterRow
+                  key={filter.id}
+                  filter={filter}
+                  tables={tables}
+                  index={index}
+                  filterLogic={filterLogic}
+                  onSave={handleEditSave}
+                  onCancel={cancelEditing}
+                  onRemove={onRemoveFilter}
+                />
+              );
+            }
+
             return (
               <div
                 key={filter.id}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 group"
               >
+                {index > 0 && (
+                  <span className="text-[10px] font-bold text-[#1659d6] uppercase shrink-0 w-6">
+                    {filterLogic}
+                  </span>
+                )}
                 <Badge variant="outline" className="text-[10px] shrink-0">
                   {filter.table}
                 </Badge>
@@ -187,8 +338,16 @@ export function FilterBuilder({
                   {op?.label ?? filter.operator}
                 </span>
                 <div className="flex-1 min-w-0">
-                  {renderFilterValue(filter)}
+                  <FilterValueDisplay filter={filter} />
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-[var(--text-muted)] hover:text-[#10409a] opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => startEditing(filter.id)}
+                >
+                  <Pencil className="w-3 h-3" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -203,124 +362,166 @@ export function FilterBuilder({
         </div>
       )}
 
+      {/* Add New Filter Form */}
       {relevantTables.length > 0 && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-gray-50/50">
-          <div className="min-w-[130px]">
-            <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
-              Table
-            </label>
-            <Select value={newFilterTable} onValueChange={(v) => { setNewFilterTable(v); setNewFilterColumn(""); }}>
-              <SelectTrigger size="sm" className="w-full">
-                <SelectValue placeholder="Table" />
-              </SelectTrigger>
-              <SelectContent>
-                {relevantTables.map((t) => (
-                  <SelectItem key={t.name} value={t.name}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="min-w-[130px]">
-            <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
-              Column
-            </label>
-            <Select value={newFilterColumn} onValueChange={setNewFilterColumn}>
-              <SelectTrigger size="sm" className="w-full" disabled={!newFilterTable}>
-                <SelectValue placeholder="Column" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedTableMeta?.columns.map((col) => (
-                  <SelectItem key={col.name} value={col.name}>
-                    {col.label ?? col.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="min-w-[150px]">
-            <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
-              Operator
-            </label>
-            <Select value={newFilterOperator} onValueChange={(v) => setNewFilterOperator(v as FilterOperator)}>
-              <SelectTrigger size="sm" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OPERATORS.map((op) => (
-                  <SelectItem key={op.value} value={op.value}>
-                    {op.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {needsValue(newFilterOperator) && (
+        <div className="space-y-3 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-[130px]">
               <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
-                Value
+                Table
               </label>
-              {newFilterOperator === "in_list" ? (
-                <Input
-                  size={undefined}
-                  placeholder="val1, val2, ..."
-                  value={newFilterValue}
-                  onChange={(e) => setNewFilterValue(e.target.value)}
-                  className="h-8 text-[13px]"
-                />
-              ) : (
+              <Select value={newFilterTable} onValueChange={(v) => { setNewFilterTable(v); setNewFilterColumn(""); }}>
+                <SelectTrigger size="sm" className="w-full">
+                  <SelectValue placeholder="Table" />
+                </SelectTrigger>
+                <SelectContent>
+                  {relevantTables.map((t) => (
+                    <SelectItem key={t.name} value={t.name}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-[130px]">
+              <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
+                Column
+              </label>
+              <Select value={newFilterColumn} onValueChange={setNewFilterColumn}>
+                <SelectTrigger size="sm" className="w-full" disabled={!newFilterTable}>
+                  <SelectValue placeholder="Column" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedTableMeta?.columns
+                    .filter((c) => c.type !== "id")
+                    .map((col) => (
+                      <SelectItem key={col.name} value={col.name}>
+                        {col.label ?? col.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-[150px]">
+              <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
+                Operator
+              </label>
+              <Select value={newFilterOperator} onValueChange={(v) => setNewFilterOperator(v as FilterOperator)}>
+                <SelectTrigger size="sm" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPERATORS.map((op) => (
+                    <SelectItem key={op.value} value={op.value}>
+                      {op.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {needsValue(newFilterOperator) && (
+              <div className="min-w-[130px]">
+                <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
+                  Value
+                </label>
+                {newFilterOperator === "in_list" ? (
+                  <div>
+                    <Input
+                      size={undefined}
+                      placeholder="val1, val2, ..."
+                      value={newFilterValue}
+                      onChange={(e) => setNewFilterValue(e.target.value)}
+                      className="h-8 text-[13px]"
+                    />
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                      Separate values with commas
+                    </p>
+                  </div>
+                ) : (
+                  <Input
+                    size={undefined}
+                    type={selectedColType === "number" ? "number" : selectedColType === "date" ? "date" : "text"}
+                    placeholder={selectedColType === "boolean" ? "true / false" : "Value"}
+                    value={newFilterValue}
+                    onChange={(e) => setNewFilterValue(e.target.value)}
+                    className="h-8 text-[13px]"
+                  />
+                )}
+              </div>
+            )}
+
+            {newFilterOperator === "between" && needsValue(newFilterOperator) && (
+              <div className="min-w-[130px]">
+                <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
+                  To
+                </label>
                 <Input
                   size={undefined}
                   type={selectedColType === "number" ? "number" : selectedColType === "date" ? "date" : "text"}
-                  placeholder={
-                    selectedColType === "boolean" ? "true / false" : "Value"
-                  }
-                  value={newFilterValue}
-                  onChange={(e) => setNewFilterValue(e.target.value)}
+                  placeholder="To value"
+                  value={newFilterValueTo}
+                  onChange={(e) => setNewFilterValueTo(e.target.value)}
                   className="h-8 text-[13px]"
                 />
-              )}
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAdd}
+              disabled={!newFilterTable || !newFilterColumn || (!needsValue(newFilterOperator) ? false : !newFilterValue)}
+              className="h-8"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </Button>
+          </div>
+
+          {/* Value Suggestions */}
+          {showSuggestions && distinctValues && distinctValues.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-medium text-[var(--text-muted)] flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Suggested values
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {distinctValues && distinctValues.slice(0, 15).map((dv: { value: string | number | boolean; count: number }) => (
+                  <button
+                    key={String(dv.value)}
+                    type="button"
+                    onClick={() => handleSuggestionClick(dv.value)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all",
+                      isValueSelected(dv.value)
+                        ? "bg-[#10409a] text-white"
+                        : "bg-white border border-[var(--border)] text-[var(--text-body)] hover:border-[#1659d6]/40 hover:bg-[#eff6ff]"
+                    )}
+                  >
+                    {String(dv.value)}
+                    <span className="ml-1 text-[var(--text-muted)]">({dv.count})</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {newFilterOperator === "between" && needsValue(newFilterOperator) && (
-            <div className="min-w-[130px]">
-              <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
-                To
-              </label>
-              <Input
-                size={undefined}
-                type={selectedColType === "number" ? "number" : selectedColType === "date" ? "date" : "text"}
-                placeholder="To value"
-                value={newFilterValueTo}
-                onChange={(e) => setNewFilterValueTo(e.target.value)}
-                className="h-8 text-[13px]"
-              />
+          {/* Loading skeleton for suggestions */}
+          {showSuggestions && !distinctValues && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-medium text-[var(--text-muted)] flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Loading values...
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-6 w-16 rounded-md" />
+                ))}
+              </div>
             </div>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAdd}
-            disabled={!newFilterTable || !newFilterColumn || (!needsValue(newFilterOperator) ? false : !newFilterValue)}
-            className="h-8"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add
-          </Button>
-          {!newFilterTable && (
-            <span className="text-[11px] text-[var(--text-muted)] self-center ml-1">Pick a table above</span>
-          )}
-          {newFilterTable && !newFilterColumn && (
-            <span className="text-[11px] text-[var(--text-muted)] self-center ml-1">Now pick a column</span>
-          )}
-          {newFilterTable && newFilterColumn && needsValue(newFilterOperator) && !newFilterValue && (
-            <span className="text-[11px] text-[var(--text-muted)] self-center ml-1">Enter a value to enable</span>
           )}
         </div>
       )}
@@ -330,6 +531,205 @@ export function FilterBuilder({
           Select tables first to add filters.
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Read-only filter value display ─────────────────────────────
+function FilterValueDisplay({ filter }: { filter: QueryConfig["filters"][0] }) {
+  if (filter.operator === "is_null" || filter.operator === "is_not_null") {
+    return null;
+  }
+  if (filter.operator === "in_list") {
+    return (
+      <div className="flex flex-wrap gap-1">
+        {filter.values?.map((v, i) => (
+          <Badge key={i} variant="secondary" className="text-[11px]">
+            {String(v)}
+          </Badge>
+        ))}
+      </div>
+    );
+  }
+  if (filter.operator === "between") {
+    return (
+      <span className="text-[13px] text-[var(--text-body)]">
+        {String(filter.value)} — {String(filter.valueTo)}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[13px] text-[var(--text-body)] font-medium">
+      {String(filter.value)}
+    </span>
+  );
+}
+
+// ─── Inline editable filter row ─────────────────────────────────
+function EditableFilterRow({
+  filter,
+  tables,
+  index,
+  filterLogic,
+  onSave,
+  onCancel,
+  onRemove,
+}: {
+  filter: QueryConfig["filters"][0];
+  tables: TableMeta[];
+  index: number;
+  filterLogic: "and" | "or";
+  onSave: (filter: QueryConfig["filters"][0], updates: Record<string, unknown>) => void;
+  onCancel: () => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editOperator, setEditOperator] = useState<FilterOperator>(filter.operator);
+  const [editValue, setEditValue] = useState(
+    filter.operator === "in_list" ? (filter.values ?? []).join(", ") : String(filter.value ?? "")
+  );
+  const [editValueTo, setEditValueTo] = useState(String(filter.valueTo ?? ""));
+
+  const colType = getColumnType(tables, filter.table, filter.column);
+
+  const handleSave = () => {
+    const updates: Record<string, unknown> = { operator: editOperator };
+
+    if (editOperator === "between") {
+      if (colType === "number") {
+        updates.value = parseFloat(editValue) || 0;
+        updates.valueTo = parseFloat(editValueTo) || 0;
+      } else {
+        updates.value = editValue;
+        updates.valueTo = editValueTo;
+      }
+    } else if (editOperator === "in_list") {
+      updates.values = editValue.split(",").map((v) => v.trim());
+    } else if (needsValue(editOperator)) {
+      if (colType === "number") {
+        updates.value = parseFloat(editValue) || 0;
+      } else if (colType === "boolean") {
+        updates.value = editValue.toLowerCase() === "true";
+      } else {
+        updates.value = editValue;
+      }
+    } else {
+      updates.value = undefined;
+      updates.valueTo = undefined;
+      updates.values = undefined;
+    }
+
+    onSave(filter, updates);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") onCancel();
+  };
+
+  return (
+    <div
+      key={filter.id}
+      className="rounded-lg border border-[#1659d6]/30 bg-[#eff6ff] px-3 py-2"
+      onKeyDown={handleKeyDown}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        {index > 0 && (
+          <span className="text-[10px] font-bold text-[#1659d6] uppercase shrink-0 w-6">
+            {filterLogic}
+          </span>
+        )}
+        <Badge variant="outline" className="text-[10px] shrink-0">
+          {filter.table}
+        </Badge>
+        <span className="text-[13px] text-[var(--text-heading)] font-medium">
+          {filter.column}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[150px]">
+          <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">
+            Operator
+          </label>
+          <Select value={editOperator} onValueChange={(v) => setEditOperator(v as FilterOperator)}>
+            <SelectTrigger size="sm" className="w-full h-7 text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {OPERATORS.map((op) => (
+                <SelectItem key={op.value} value={op.value}>
+                  {op.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {needsValue(editOperator) && (
+          <div className="min-w-[130px]">
+            <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">
+              Value
+            </label>
+            <Input
+              size={undefined}
+              type={colType === "number" ? "number" : "text"}
+              placeholder="Value"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-7 text-[12px]"
+              autoFocus
+            />
+          </div>
+        )}
+
+        {editOperator === "between" && (
+          <div className="min-w-[130px]">
+            <label className="text-[10px] font-medium text-[var(--text-muted)] mb-1 block">
+              To
+            </label>
+            <Input
+              size={undefined}
+              type={colType === "number" ? "number" : "text"}
+              placeholder="To value"
+              value={editValueTo}
+              onChange={(e) => setEditValueTo(e.target.value)}
+              className="h-7 text-[12px]"
+            />
+          </div>
+        )}
+
+        {editOperator === "in_list" && (
+          <p className="text-[10px] text-[var(--text-muted)] self-center">
+            Separate with commas
+          </p>
+        )}
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+            onClick={handleSave}
+          >
+            <Check className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 text-[var(--text-muted)]"
+            onClick={onCancel}
+          >
+            <X className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-[var(--text-muted)] hover:text-red-500"
+            onClick={() => onRemove(filter.id)}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

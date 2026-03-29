@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -37,11 +37,194 @@ import {
   LayoutTemplate,
   RotateCcw,
   ClipboardList,
-  X,
+  AlertCircle,
+  Zap,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type Mode = "wizard" | "advanced";
+
+// ─── Query Health Score ───────────────────────────────────────────
+type HealthStatus = "idle" | "ready" | "warning" | "error";
+
+interface HealthCheck {
+  status: HealthStatus;
+  score: number; // 0-100
+  issues: Array<{ level: "error" | "warning"; message: string }>;
+}
+
+function computeHealth(config: QueryConfig): HealthCheck {
+  const issues: HealthCheck["issues"] = [];
+  let score = 100;
+
+  if (config.tables.length === 0) {
+    return { status: "idle", score: 0, issues: [] };
+  }
+
+  // Must have columns
+  if (config.columns.length === 0) {
+    issues.push({ level: "error", message: "Select at least one column" });
+    score -= 40;
+  }
+
+  // Aggregation + no GROUP BY + non-agg columns
+  if (config.aggregations.length > 0 && config.groupBy.length === 0) {
+    const aggAliases = new Set(config.aggregations.map((a) => a.alias));
+    const nonAggCols = config.columns.filter((c) => !aggAliases.has(c.alias || c.column));
+    if (nonAggCols.length > 0) {
+      issues.push({ level: "error", message: "Add GROUP BY for per-category results" });
+      score -= 30;
+    } else {
+      issues.push({ level: "warning", message: "No GROUP BY — returns 1 summary row" });
+      score -= 5;
+    }
+  }
+
+  // Multi-table without join
+  if (config.tables.length >= 2) {
+    const secondaryTables = new Set(
+      config.columns.filter((c) => c.table !== config.tables[0]).map((c) => c.table)
+    );
+    const joinedTables = new Set(config.joins.flatMap((j) => [j.leftTable, j.rightTable]));
+    const unjoined = [...secondaryTables].filter((t) => !joinedTables.has(t));
+    if (unjoined.length > 0) {
+      issues.push({ level: "error", message: `${unjoined.join(", ")} not joined` });
+      score -= 25;
+    }
+  }
+
+  // Duplicate aggregations
+  const aggKeys = new Set(config.aggregations.map((a) => `${a.function}_${a.column}`));
+  if (aggKeys.size < config.aggregations.length) {
+    issues.push({ level: "warning", message: "Duplicate aggregation" });
+    score -= 5;
+  }
+
+  // Column name collisions across tables
+  const columnNames = config.columns.map((c) => c.column);
+  const collisions = columnNames.filter((name, i) => columnNames.indexOf(name) !== i);
+  const uniqueCollisions = [...new Set(collisions)];
+  if (uniqueCollisions.length > 0) {
+    issues.push({ level: "warning", message: `Column "${uniqueCollisions[0]}" exists in multiple tables` });
+    score -= 10;
+  }
+
+  score = Math.max(0, score);
+  const status: HealthStatus =
+    issues.some((i) => i.level === "error") ? "error" :
+    issues.some((i) => i.level === "warning") ? "warning" : "ready";
+
+  return { status, score, issues };
+}
+
+function HealthIndicator({ health }: { health: HealthCheck }) {
+  if (health.status === "idle") return null;
+
+  const colors = {
+    idle: "bg-gray-200 text-gray-500",
+    ready: "bg-emerald-100 text-emerald-700",
+    warning: "bg-amber-100 text-amber-700",
+    error: "bg-red-100 text-red-700",
+  };
+  const labels = {
+    idle: "",
+    ready: "Ready",
+    warning: "Fix issues",
+    error: "Issues found",
+  };
+  const icons = {
+    idle: null,
+    ready: <CheckCircle2 className="w-3 h-3" />,
+    warning: <AlertTriangle className="w-3 h-3" />,
+    error: <AlertCircle className="w-3 h-3" />,
+  };
+
+  const tooltipText = [
+    `Health: ${health.score}/100`,
+    ...health.issues.map((i) => `${i.level === "error" ? "•" : "◦"} ${i.message}`),
+  ].join("\n");
+
+  return (
+    <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold cursor-help", colors[health.status])} title={tooltipText}>
+      {icons[health.status]}
+      {labels[health.status]}
+    </div>
+  );
+}
+
+// ─── Next Step Hints ──────────────────────────────────────────────
+function NextStepHint({ config }: { config: QueryConfig }) {
+  const hint = useMemo(() => {
+    if (config.tables.length === 0) {
+      return { text: "Start by selecting a table to query", icon: <Database className="w-4 h-4" /> };
+    }
+    if (config.columns.length === 0) {
+      return { text: "Now pick the columns you want to see in your results", icon: <Columns3 className="w-4 h-4" /> };
+    }
+    if (config.tables.length >= 2) {
+      const secondaryTables = new Set(config.columns.filter((c) => c.table !== config.tables[0]).map((c) => c.table));
+      const joinedTables = new Set(config.joins.flatMap((j) => [j.leftTable, j.rightTable]));
+      const unjoined = [...secondaryTables].filter((t) => !joinedTables.has(t));
+      if (unjoined.length > 0) {
+        return { text: `Add a join to connect ${unjoined.join(" and ")} to your data`, icon: <Link2 className="w-4 h-4" /> };
+      }
+    }
+    if (config.aggregations.length > 0 && config.groupBy.length === 0) {
+      return { text: "Add a GROUP BY column to see per-category results instead of a single total", icon: <Sigma className="w-4 h-4" /> };
+    }
+    return null;
+  }, [config]);
+
+  if (!hint) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#10409a]/5 border border-[#10409a]/10">
+      <span className="text-[#10409a] shrink-0">{hint.icon}</span>
+      <span className="text-[12px] text-[#10409a] flex-1">{hint.text}</span>
+      <ArrowRight className="w-3.5 h-3.5 text-[#10409a]/50 shrink-0" />
+    </div>
+  );
+}
+
+// ─── Column Collision Warning ─────────────────────────────────────
+function ColumnCollisionWarning({ config }: { config: QueryConfig }) {
+  const collisions = useMemo(() => {
+    const seen = new Map<string, string[]>(); // columnName -> [tableNames]
+    for (const col of config.columns) {
+      const existing = seen.get(col.column) ?? [];
+      if (!existing.includes(col.table)) {
+        seen.set(col.column, [...existing, col.table]);
+      }
+    }
+    return [...seen.entries()].filter(([, tables]) => tables.length > 1);
+  }, [config.columns]);
+
+  if (collisions.length === 0) return null;
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-amber-900">
+          Column name collision detected
+        </div>
+        <p className="text-[12px] text-amber-800 mt-0.5">
+          {collisions.map(([col, tables]) => (
+            <span key={col}>
+              <span className="font-semibold">{col}</span> exists in both {tables.join(" and ")}
+              {collisions.indexOf([col, tables] as unknown as [string, string[]]) < collisions.length - 1 ? ". " : "."}
+            </span>
+          ))}
+          {" "}Results may show ambiguous data. Consider using aliases to distinguish them.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Query Summary ───────────────────────────────────────────────────
 function QuerySummary({ config, configJson }: { config: QueryConfig; configJson: string }) {
@@ -63,7 +246,6 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Tables */}
         {config.tables.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -80,7 +262,6 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
           </div>
         )}
 
-        {/* Columns */}
         {config.columns.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -97,15 +278,17 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
           </div>
         )}
 
-        {/* Filters */}
         {config.filters.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-              Filters ({config.filters.length})
+              Filters ({config.filters.length} — {config.filterLogic === "and" ? "match all" : "match any"})
             </span>
             <div className="flex flex-wrap gap-1">
-              {config.filters.map((f) => (
+              {config.filters.map((f, i) => (
                 <Badge key={f.id} variant="secondary" className="text-[11px] font-mono gap-0.5">
+                  {i > 0 && (
+                    <span className="text-[#1659d6] font-bold uppercase mr-0.5">{config.filterLogic}</span>
+                  )}
                   <Filter className="w-2.5 h-2.5 opacity-50" />
                   {f.column}
                   <span className="text-[var(--text-muted)] mx-0.5">{f.operator}</span>
@@ -118,7 +301,6 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
           </div>
         )}
 
-        {/* Joins */}
         {config.joins.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -127,6 +309,7 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
             <div className="flex flex-wrap gap-1">
               {config.joins.map((j) => (
                 <Badge key={j.id} variant="outline" className="text-[11px] font-mono gap-0.5">
+                  <span className="text-[#1659d6] font-bold uppercase">{j.joinType || "inner"}</span>
                   <Link2 className="w-2.5 h-2.5 opacity-50" />
                   {j.leftTable}.{j.leftField}
                   <span className="text-[#1659d6] mx-0.5">=</span>
@@ -137,7 +320,6 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
           </div>
         )}
 
-        {/* Aggregations */}
         {config.aggregations.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -155,7 +337,6 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
           </div>
         )}
 
-        {/* Group By */}
         {config.groupBy.length > 0 && (
           <div className="space-y-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -172,12 +353,11 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
         )}
       </div>
 
-      {/* Raw JSON toggle for debugging */}
       <details className="group">
         <summary className="text-[11px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-heading)] transition-colors select-none">
           Show raw JSON
         </summary>
-        <pre className="mt-2 p-3 rounded-lg bg-gray-50 border border-gray-200 text-[11px] font-mono text-gray-600 overflow-x-auto max-h-[200px] overflow-y-auto">
+        <pre className="mt-2 p-3 rounded-lg bg-[var(--muted)] border border-[var(--border)] text-[11px] font-mono text-[var(--text-muted)] overflow-x-auto max-h-[200px] overflow-y-auto">
           {configJson}
         </pre>
       </details>
@@ -185,6 +365,98 @@ function QuerySummary({ config, configJson }: { config: QueryConfig; configJson:
   );
 }
 
+// ─── Missing Join Warning ─────────────────────────────────────────
+function MissingJoinWarning({
+  config,
+  onApplyJoin,
+}: {
+  config: QueryConfig;
+  onApplyJoin: (join: QueryConfig["joins"][0]) => void;
+}) {
+  const metadata = useQuery(api.queryBuilder.getTableMetadata);
+  const suggestedJoins = metadata && !Array.isArray(metadata) ? metadata.suggestedJoins ?? [] : [];
+
+  const primaryTable = config.tables[0];
+  if (!primaryTable) return null;
+
+  const secondaryTables = new Set(
+    config.columns
+      .filter((c) => c.table !== primaryTable)
+      .map((c) => c.table)
+  );
+
+  for (const agg of config.aggregations) {
+    if (agg.table !== primaryTable) secondaryTables.add(agg.table);
+  }
+  for (const g of config.groupBy) {
+    if (g.table !== primaryTable) secondaryTables.add(g.table);
+  }
+
+  if (secondaryTables.size === 0) return null;
+
+  const joinedTables = new Set(
+    config.joins.flatMap((j) => [j.leftTable, j.rightTable])
+  );
+  const unjoinedTables = [...secondaryTables].filter((t) => !joinedTables.has(t));
+  if (unjoinedTables.length === 0) return null;
+
+  const relevantSuggestions = suggestedJoins.filter(
+    (sj) =>
+      secondaryTables.has(sj.leftTable) ||
+      secondaryTables.has(sj.rightTable)
+  );
+
+  if (relevantSuggestions.length === 0) return null;
+
+  const existingJoinKeys = new Set(
+    config.joins.map((j) => `${j.leftTable}.${j.leftField}.${j.rightTable}.${j.rightField}`)
+  );
+  const actionableSuggestions = relevantSuggestions.filter(
+    (sj) => !existingJoinKeys.has(`${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`)
+  );
+  if (actionableSuggestions.length === 0) return null;
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-amber-900">
+          Tables selected but not joined
+        </div>
+        <p className="text-[12px] text-amber-800 mt-0.5">
+          You selected columns from{" "}
+          <span className="font-semibold">{unjoinedTables.join(", ")}</span>
+          {" "}but didn't define a join. Results from those tables will be empty.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {actionableSuggestions.map((sj, i) => (
+            <Button
+              key={`${sj.leftTable}-${sj.rightTable}-${i}`}
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onApplyJoin({
+                  id: `auto-${Date.now()}-${i}`,
+                  leftTable: sj.leftTable,
+                  rightTable: sj.rightTable,
+                  leftField: sj.leftField,
+                  rightField: sj.rightField,
+                  joinType: "inner",
+                })
+              }
+              className="h-7 text-[12px] gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-100 hover:border-amber-400"
+            >
+              <Zap className="w-3 h-3" />
+              {sj.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page Component ─────────────────────────────────────────
 function QueryBuilderContent() {
   const user = useQuery(api.auth.getCurrentUser);
   const tenantId = user?.tenantId;
@@ -192,23 +464,28 @@ function QueryBuilderContent() {
   const [mode, setMode] = useState<Mode>("wizard");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [shareDialogQueryId, setShareDialogQueryId] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: number; end: number; preset?: string } | null>(null);
 
   const {
     config,
     setTables,
     addColumn,
     removeColumn,
+    updateColumnAlias,
     addFilter,
     removeFilter,
     updateFilter,
+    setFilterLogic,
     addJoin,
     removeJoin,
     addAggregation,
     removeAggregation,
     setGroupBy,
+    setRowLimit,
     resetConfig,
     loadConfig,
     configJson,
+    isDirty,
   } = useQueryBuilder();
 
   const queryArgs = {
@@ -218,10 +495,13 @@ function QueryBuilderContent() {
     joins: config.joins.length > 0 ? config.joins : undefined,
     aggregations: config.aggregations.length > 0 ? config.aggregations : undefined,
     groupBy: config.groupBy.length > 0 ? config.groupBy : undefined,
+    dateRange: dateRange ? { start: dateRange.start, end: dateRange.end } : undefined,
   };
 
   const hasValidConfig =
     config.tables.length > 0 && config.columns.length > 0;
+
+  const health = useMemo(() => computeHealth(config), [config]);
 
   const [hasRunQuery, setHasRunQuery] = useState(false);
 
@@ -237,33 +517,95 @@ function QueryBuilderContent() {
       toast.error("Select at least one table and column");
       return;
     }
+    if (config.aggregations.length > 0 && config.groupBy.length === 0) {
+      const aggAliases = new Set(config.aggregations.map((a) => a.alias));
+      const nonAggColumns = config.columns.filter(
+        (c) => !aggAliases.has(c.alias || c.column)
+      );
+      if (nonAggColumns.length > 0) {
+        toast.error("Add a GROUP BY column to see per-category results", {
+          description:
+            "You have aggregations (SUM, COUNT…) but no GROUP BY. Without it, only 1 summary row is returned and other columns will be empty.",
+          duration: 7000,
+        });
+        return;
+      }
+      toast.warning("No GROUP BY — aggregations will return a single summary row", {
+        description: "Add GROUP BY columns for per-category results.",
+        duration: 5000,
+      });
+    }
+    if (config.joins.length > 0) {
+      const joinTables = new Set(config.joins.flatMap((j) => [j.leftTable, j.rightTable]));
+      const missingTables = joinTables.difference(new Set(config.tables));
+      if (missingTables.size > 0) {
+        toast.error(`Join references table(s) not selected: ${[...missingTables].join(", ")}`);
+        return;
+      }
+    }
     setHasRunQuery(true);
   };
 
   const handleSelectTemplate = useCallback((templateConfig: QueryConfig) => {
+    if (isDirty) {
+      const confirmed = window.confirm("You have unsaved changes. Load template anyway?");
+      if (!confirmed) return;
+    }
     loadConfig(templateConfig);
     setMode("advanced");
     setHasRunQuery(false);
+    setDateRange(null);
     toast.success("Template loaded");
-  }, [loadConfig]);
+  }, [loadConfig, isDirty]);
 
   const handleLoadQuery = useCallback((loadedConfig: QueryConfig) => {
+    if (isDirty) {
+      const confirmed = window.confirm("You have unsaved changes. Load this query anyway?");
+      if (!confirmed) return;
+    }
     loadConfig(loadedConfig);
     setHasRunQuery(false);
-  }, [loadConfig]);
+    setDateRange(null);
+  }, [loadConfig, isDirty]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
+    if (!hasValidConfig) return;
+    const confirmed = window.confirm("Reset your entire query? This cannot be undone.");
+    if (!confirmed) return;
     resetConfig();
     setHasRunQuery(false);
+    setDateRange(null);
     toast.success("Query reset");
-  };
+  }, [hasValidConfig, resetConfig]);
+
+  // Keyboard shortcuts: Ctrl/Cmd+Enter → Run, Ctrl/Cmd+S → Save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      // Ctrl/Cmd+Enter → Run query
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleRunQuery();
+      }
+      // Ctrl/Cmd+S → Save query
+      if (e.key === "s") {
+        e.preventDefault();
+        if (hasValidConfig && mode === "advanced") {
+          setSaveDialogOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleRunQuery, hasValidConfig, mode]);
 
   const resultColumns = (() => {
     if (results && results.rows.length > 0) {
-      // Derive from actual data keys — always matches what's in the rows
       return Object.keys(results.rows[0]).filter((k) => !k.startsWith("_"));
     }
-    // Fallback to config columns before query runs
     return config.columns.map((c) => c.alias || `${c.table}.${c.column}`);
   })();
 
@@ -280,33 +622,35 @@ function QueryBuilderContent() {
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
             Query Builder
           </h1>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-            <button
-              type="button"
+          <div className="flex items-center gap-1 bg-[var(--muted)] rounded-lg p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setMode("wizard")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all",
+                "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "wizard"
-                  ? "bg-white text-[#10409a] shadow-sm"
+                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
               Wizard
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setMode("advanced")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all",
+                "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "advanced"
-                  ? "bg-white text-[#10409a] shadow-sm"
+                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
               <Settings2 className="w-3.5 h-3.5" />
               Advanced
-            </button>
+            </Button>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -341,15 +685,33 @@ function QueryBuilderContent() {
                 />
               </>
             )}
+            <HealthIndicator health={health} />
             <Button
               size="sm"
               onClick={handleRunQuery}
-              disabled={!hasValidConfig}
+              disabled={!hasValidConfig || health.status === "error"}
               className="gap-1.5"
+              title="⌘ Enter"
             >
               <Play className="w-3 h-3" />
               Run Query
             </Button>
+            {mode === "advanced" && hasValidConfig && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <label className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">Limit</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={config.rowLimit}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (val > 0 && val <= 1000) setRowLimit(val);
+                  }}
+                  className="w-16 h-7 text-[12px] text-center rounded-md border border-[var(--border)] bg-white px-1 focus:outline-none focus:ring-1 focus:ring-[#10409a]/30"
+                />
+              </div>
+            )}
           </div>
         </div>
       </PageTopbar>
@@ -390,6 +752,12 @@ function QueryBuilderContent() {
             <FadeIn delay={100} className="space-y-5">
               <QuerySummary config={config} configJson={configJson} />
 
+              <NextStepHint config={config} />
+
+              <MissingJoinWarning config={config} onApplyJoin={addJoin} />
+
+              <ColumnCollisionWarning config={config} />
+
               <AccordionSection
                 title="Tables"
                 description="Choose which tables to query"
@@ -415,6 +783,7 @@ function QueryBuilderContent() {
                     onSelectionChange={(cols) => {
                       loadConfig({ ...config, columns: cols });
                     }}
+                    onUpdateAlias={updateColumnAlias}
                   />
                 </AccordionSection>
               )}
@@ -429,9 +798,13 @@ function QueryBuilderContent() {
                   <FilterBuilder
                     selectedTables={config.tables}
                     filters={config.filters}
+                    filterLogic={config.filterLogic}
                     onAddFilter={addFilter}
                     onRemoveFilter={removeFilter}
                     onUpdateFilter={updateFilter}
+                    onSetFilterLogic={setFilterLogic}
+                    dateRange={dateRange}
+                    onSetDateRange={setDateRange}
                   />
                 </AccordionSection>
               )}

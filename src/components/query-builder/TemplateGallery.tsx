@@ -20,13 +20,18 @@ interface Template {
   config: QueryConfig;
 }
 
+// Helper to create a full QueryConfig with sensible defaults for new fields
+function tpl(config: Omit<QueryConfig, "filterLogic" | "rowLimit">): QueryConfig {
+  return { ...config, filterLogic: "and", rowLimit: 100 };
+}
+
 const TEMPLATES: Template[] = [
   {
     id: "top-affiliates",
     name: "Top Affiliates by Revenue",
     description: "See which affiliates generate the most commission revenue",
     icon: <TrendingUp className="w-5 h-5" />,
-    config: {
+    config: tpl({
       tables: ["commissions"],
       columns: [
         { table: "commissions", column: "affiliateId", alias: "Affiliate" },
@@ -39,14 +44,14 @@ const TEMPLATES: Template[] = [
         { id: "tpl-2", table: "commissions", column: "amount", function: "COUNT", alias: "commission_count" },
       ],
       groupBy: [{ table: "commissions", column: "affiliateId" }],
-    },
+    }),
   },
   {
     id: "campaign-performance",
     name: "Campaign Performance Summary",
     description: "Compare campaign metrics including clicks and conversions",
     icon: <BarChart3 className="w-5 h-5" />,
-    config: {
+    config: tpl({
       tables: ["campaigns"],
       columns: [
         { table: "campaigns", column: "name", alias: "Campaign" },
@@ -58,14 +63,14 @@ const TEMPLATES: Template[] = [
       joins: [],
       aggregations: [],
       groupBy: [],
-    },
+    }),
   },
   {
     id: "conversion-funnel",
     name: "Conversion Funnel Analysis",
     description: "Count conversions grouped by status to see your funnel",
     icon: <GitBranch className="w-5 h-5" />,
-    config: {
+    config: tpl({
       tables: ["conversions"],
       columns: [
         { table: "conversions", column: "status", alias: "Status" },
@@ -78,14 +83,14 @@ const TEMPLATES: Template[] = [
         { id: "tpl-4", table: "conversions", column: "amount", function: "SUM", alias: "total_amount" },
       ],
       groupBy: [{ table: "conversions", column: "status" }],
-    },
+    }),
   },
   {
     id: "payout-history",
     name: "Payout History",
     description: "Sum of payout amounts grouped by status",
     icon: <Wallet className="w-5 h-5" />,
-    config: {
+    config: tpl({
       tables: ["payouts"],
       columns: [
         { table: "payouts", column: "status", alias: "Status" },
@@ -99,14 +104,14 @@ const TEMPLATES: Template[] = [
         { id: "tpl-6", table: "payouts", column: "amount", function: "COUNT", alias: "payout_count" },
       ],
       groupBy: [{ table: "payouts", column: "status" }],
-    },
+    }),
   },
   {
     id: "commission-breakdown",
     name: "Commission Status Breakdown",
     description: "Count and sum of commissions by their current status",
     icon: <PieChart className="w-5 h-5" />,
-    config: {
+    config: tpl({
       tables: ["commissions"],
       columns: [
         { table: "commissions", column: "status", alias: "Status" },
@@ -120,7 +125,7 @@ const TEMPLATES: Template[] = [
         { id: "tpl-8", table: "commissions", column: "amount", function: "SUM", alias: "total" },
       ],
       groupBy: [{ table: "commissions", column: "status" }],
-    },
+    }),
   },
 ];
 

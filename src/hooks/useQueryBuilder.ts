@@ -17,6 +17,10 @@ export type FilterOperator =
   | "is_null"
   | "is_not_null";
 
+export type FilterLogic = "and" | "or";
+
+export type JoinType = "inner" | "left";
+
 export interface QueryConfig {
   tables: string[];
   columns: Array<{ table: string; column: string; alias?: string }>;
@@ -29,12 +33,14 @@ export interface QueryConfig {
     valueTo?: string | number;
     values?: Array<string | number>;
   }>;
+  filterLogic: FilterLogic;
   joins: Array<{
     id: string;
     leftTable: string;
     rightTable: string;
     leftField: string;
     rightField: string;
+    joinType: JoinType;
   }>;
   aggregations: Array<{
     id: string;
@@ -44,6 +50,7 @@ export interface QueryConfig {
     alias: string;
   }>;
   groupBy: Array<{ table: string; column: string }>;
+  rowLimit: number;
 }
 
 export interface UseQueryBuilderReturn {
@@ -52,14 +59,17 @@ export interface UseQueryBuilderReturn {
   setTables: (tables: string[]) => void;
   addColumn: (table: string, column: string, alias?: string) => void;
   removeColumn: (table: string, column: string) => void;
+  updateColumnAlias: (table: string, column: string, alias: string | undefined) => void;
   addFilter: (filter: QueryConfig["filters"][0]) => void;
   removeFilter: (id: string) => void;
   updateFilter: (id: string, updates: Partial<QueryConfig["filters"][0]>) => void;
+  setFilterLogic: (logic: FilterLogic) => void;
   addJoin: (join: QueryConfig["joins"][0]) => void;
   removeJoin: (id: string) => void;
   addAggregation: (agg: QueryConfig["aggregations"][0]) => void;
   removeAggregation: (id: string) => void;
   setGroupBy: (groupBy: QueryConfig["groupBy"]) => void;
+  setRowLimit: (limit: number) => void;
   resetConfig: () => void;
   loadConfig: (config: QueryConfig) => void;
   configJson: string;
@@ -70,9 +80,11 @@ const EMPTY_CONFIG: QueryConfig = {
   tables: [],
   columns: [],
   filters: [],
+  filterLogic: "and",
   joins: [],
   aggregations: [],
   groupBy: [],
+  rowLimit: 100,
 };
 
 function generateId(): string {
@@ -91,7 +103,17 @@ function configToBase64(config: QueryConfig): string {
 function configFromBase64(encoded: string): QueryConfig | null {
   try {
     const json = decodeURIComponent(atob(encoded));
-    return JSON.parse(json) as QueryConfig;
+    const parsed = JSON.parse(json);
+    // Backfill new fields for configs that don't have them yet
+    return {
+      filterLogic: parsed.filterLogic ?? "and",
+      rowLimit: parsed.rowLimit ?? 100,
+      ...parsed,
+      joins: (parsed.joins ?? []).map((j: Record<string, unknown>) => ({
+        joinType: j.joinType ?? "inner",
+        ...j,
+      })),
+    } as QueryConfig;
   } catch {
     return null;
   }
@@ -189,6 +211,18 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     [config, setConfig]
   );
 
+  const updateColumnAlias = useCallback(
+    (table: string, column: string, alias: string | undefined) => {
+      setConfig({
+        ...config,
+        columns: config.columns.map((c) =>
+          c.table === table && c.column === column ? { ...c, alias } : c
+        ),
+      });
+    },
+    [config, setConfig]
+  );
+
   const addFilter = useCallback(
     (filter: QueryConfig["filters"][0]) => {
       setConfig({ ...config, filters: [...config.filters, filter] });
@@ -212,6 +246,13 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
         ...config,
         filters: config.filters.map((f) => (f.id === id ? { ...f, ...updates } : f)),
       });
+    },
+    [config, setConfig]
+  );
+
+  const setFilterLogic = useCallback(
+    (logic: FilterLogic) => {
+      setConfig({ ...config, filterLogic: logic });
     },
     [config, setConfig]
   );
@@ -260,6 +301,13 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     [config, setConfig]
   );
 
+  const setRowLimit = useCallback(
+    (rowLimit: number) => {
+      setConfig({ ...config, rowLimit });
+    },
+    [config, setConfig]
+  );
+
   const resetConfig = useCallback(() => {
     initialConfigRef.current = { ...EMPTY_CONFIG };
     setConfig({ ...EMPTY_CONFIG });
@@ -267,8 +315,18 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
 
   const loadConfig = useCallback(
     (newConfig: QueryConfig) => {
-      initialConfigRef.current = { ...newConfig };
-      setConfig({ ...newConfig });
+      // Backfill new fields for loaded configs (e.g., from saved queries or templates)
+      const backfilled: QueryConfig = {
+        ...newConfig,
+        filterLogic: newConfig.filterLogic ?? "and",
+        rowLimit: newConfig.rowLimit ?? 100,
+        joins: (newConfig.joins ?? []).map((j) => ({
+          ...j,
+          joinType: j.joinType ?? "inner",
+        })),
+      };
+      initialConfigRef.current = { ...backfilled };
+      setConfig({ ...backfilled });
     },
     [setConfig]
   );
@@ -286,14 +344,17 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
     setTables,
     addColumn,
     removeColumn,
+    updateColumnAlias,
     addFilter,
     removeFilter,
     updateFilter,
+    setFilterLogic,
     addJoin,
     removeJoin,
     addAggregation,
     removeAggregation,
     setGroupBy,
+    setRowLimit,
     resetConfig,
     loadConfig,
     configJson,

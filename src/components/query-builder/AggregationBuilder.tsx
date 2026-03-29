@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { AggregationBuilderSkeleton } from "./skeletons";
 import { generateId } from "@/hooks/useQueryBuilder";
 import type { QueryConfig } from "@/hooks/useQueryBuilder";
-import { Plus, Trash2, Sigma } from "lucide-react";
+import { Plus, Trash2, Sigma, AlertCircle } from "lucide-react";
 
 interface TableMeta {
   name: string;
@@ -52,7 +52,6 @@ export function AggregationBuilder({
   onSetGroupBy,
 }: AggregationBuilderProps) {
   const metadata = useQuery(api.queryBuilder.getTableMetadata);
-  // Handle both old (flat array) and new ({ tables, suggestedJoins }) return shape
   const tables = (Array.isArray(metadata) ? metadata : metadata?.tables ?? []) as unknown as TableMeta[];
 
   const [aggTable, setAggTable] = useState("");
@@ -67,9 +66,15 @@ export function AggregationBuilder({
   const relevantTables = tables.filter((t) => selectedTables.includes(t.name));
   const selectedAggTableMeta = tables.find((t) => t.name === aggTable);
 
+  // Compute the auto-generated alias preview
+  const autoAlias = useMemo(() => {
+    if (!aggColumn || !aggFunction) return "";
+    return `${aggFunction.toLowerCase()}_${aggColumn}`;
+  }, [aggFunction, aggColumn]);
+
   const handleAdd = () => {
     if (!aggTable || !aggColumn) return;
-    const alias = aggAlias || `${aggFunction.toLowerCase()}_${aggColumn}`;
+    const alias = aggAlias || autoAlias;
     onAddAggregation({
       id: generateId(),
       table: aggTable,
@@ -100,8 +105,21 @@ export function AggregationBuilder({
     }
   };
 
+  const showNoGroupByWarning = aggregations.length > 0 && groupBy.length === 0;
+
   return (
     <div className="space-y-6">
+      {/* Warning when aggregations exist without GROUP BY */}
+      {showNoGroupByWarning && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-amber-800">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-medium">No GROUP BY selected</span>{" "}
+            — your aggregation will return a single summary row. Add GROUP BY columns below to get per-category results.
+          </div>
+        </div>
+      )}
+
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Sigma className="w-4 h-4 text-[#10409a]" />
@@ -147,7 +165,7 @@ export function AggregationBuilder({
         )}
 
         {relevantTables.length > 0 && (
-          <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-gray-50/50">
+          <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
             <div className="min-w-[110px]">
               <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
                 Function
@@ -206,13 +224,20 @@ export function AggregationBuilder({
               <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
                 Alias
               </label>
-              <Input
-                size={undefined}
-                placeholder="Auto-generated"
-                value={aggAlias}
-                onChange={(e) => setAggAlias(e.target.value)}
-                className="h-8 text-[13px]"
-              />
+              <div className="relative">
+                <Input
+                  size={undefined}
+                  placeholder="Auto-generated"
+                  value={aggAlias}
+                  onChange={(e) => setAggAlias(e.target.value)}
+                  className="h-8 text-[13px] pr-[72px]"
+                />
+                {autoAlias && !aggAlias && (
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-muted)] pointer-events-none">
+                    → {autoAlias}
+                  </span>
+                )}
+              </div>
             </div>
 
             <Button
@@ -248,7 +273,7 @@ export function AggregationBuilder({
                   key={`${col.table}.${col.column}`}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-1.5 cursor-pointer transition-all duration-150",
-                    checked ? "bg-[#eff6ff] border border-[#10409a]/20" : "hover:bg-gray-50 border border-transparent"
+                    checked ? "bg-[#eff6ff] border border-[#10409a]/20" : "hover:bg-[var(--hover)] border border-transparent"
                   )}
                 >
                   <Checkbox checked={checked} onCheckedChange={() => handleToggleGroupBy(col.table, col.column)} />

@@ -192,6 +192,7 @@ const joinValidator = v.object({
   rightTable: v.string(),
   leftField: v.string(),
   rightField: v.string(),
+  joinType: v.optional(v.union(v.literal("inner"), v.literal("left"))),
 });
 
 const aggregationValidator = v.object({
@@ -455,6 +456,123 @@ export const executeQuery = query({
       totalRows: selectedRows.length,
       ...paginated,
       columns: args.columns,
+    };
+  },
+});
+
+/**
+ * Get distinct values for a specific column (for filter value suggestions).
+ * Returns up to 50 unique values, sorted by frequency.
+ * Only works on columns marked as `filterable: true` in the metadata.
+ */
+export const getDistinctColumnValues = query({
+  args: {
+    tableName: v.string(),
+    columnName: v.string(),
+  },
+  returns: v.array(v.object({
+    value: v.union(v.string(), v.number(), v.boolean()),
+    count: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tableDef = QUERY_TABLES[args.tableName];
+    if (!tableDef) {
+      throw new Error(`Table "${args.tableName}" is not available`);
+    }
+
+    const columnDef = tableDef.columns.find((c) => c.name === args.columnName);
+    if (!columnDef || !columnDef.filterable) {
+      return [];
+    }
+
+    const rows = await fetchTableRows(ctx, args.tableName, authUser.tenantId, 5000);
+
+    // Count distinct values
+    const freqMap = new Map<string, { value: string | number | boolean; count: number }>();
+    for (const row of rows) {
+      const val = row[args.columnName];
+      if (val === null || val === undefined) continue;
+      const key = String(val);
+      const existing = freqMap.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        freqMap.set(key, { value: val as string | number | boolean, count: 1 });
+      }
+    }
+
+    // Sort by frequency descending, take top 50
+    return [...freqMap.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 50);
+  },
+});
+
+/**
+ * Get basic statistics for a column (for hover tooltips).
+ */
+export const getColumnStats = query({
+  args: {
+    tableName: v.string(),
+    columnName: v.string(),
+  },
+  returns: v.object({
+    totalRows: v.number(),
+    distinctValues: v.number(),
+    nullCount: v.number(),
+    sampleValues: v.array(v.union(v.string(), v.number(), v.boolean())),
+    numericStats: v.optional(v.object({
+      min: v.number(),
+      max: v.number(),
+      avg: v.number(),
+    })),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tableDef = QUERY_TABLES[args.tableName];
+    if (!tableDef) {
+      throw new Error(`Table "${args.tableName}" is not available`);
+    }
+
+    const columnDef = tableDef.columns.find((c) => c.name === args.columnName);
+    if (!columnDef) {
+      throw new Error(`Column "${args.columnName}" does not exist in table "${args.tableName}"`);
+    }
+
+    const rows = await fetchTableRows(ctx, args.tableName, authUser.tenantId, 5000);
+    const values = rows.map((r) => r[args.columnName]);
+
+    const distinctValues = new Set(values.filter((v) => v !== null && v !== undefined));
+    const nullCount = values.filter((v) => v === null || v === undefined).length;
+    const sampleValues = [...distinctValues].slice(0, 5).map((v) => v as string | number | boolean);
+
+    let numericStats: { min: number; max: number; avg: number } | undefined;
+    if (columnDef.type === "number") {
+      const nums = values.filter((v) => typeof v === "number") as number[];
+      if (nums.length > 0) {
+        numericStats = {
+          min: Math.min(...nums),
+          max: Math.max(...nums),
+          avg: Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 100) / 100,
+        };
+      }
+    }
+
+    return {
+      totalRows: values.length,
+      distinctValues: distinctValues.size,
+      nullCount,
+      sampleValues,
+      numericStats,
     };
   },
 });

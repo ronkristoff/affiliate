@@ -33,12 +33,14 @@ const QUESTIONS: WizardQuestion[] = [
         { table: "commissions", column: "amount", alias: "Amount" },
       ],
       filters: [],
+      filterLogic: "and",
       joins: [],
       aggregations: [
         { id: "w-1", table: "commissions", column: "amount", function: "SUM", alias: "total_revenue" },
         { id: "w-2", table: "commissions", column: "amount", function: "COUNT", alias: "commission_count" },
       ],
       groupBy: [{ table: "commissions", column: "affiliateId" }],
+      rowLimit: 100,
     },
   },
   {
@@ -55,9 +57,11 @@ const QUESTIONS: WizardQuestion[] = [
         { table: "campaigns", column: "commissionValue", alias: "Value" },
       ],
       filters: [],
+      filterLogic: "and",
       joins: [],
       aggregations: [],
       groupBy: [],
+      rowLimit: 100,
     },
   },
   {
@@ -72,12 +76,14 @@ const QUESTIONS: WizardQuestion[] = [
         { table: "conversions", column: "amount", alias: "Amount" },
       ],
       filters: [],
+      filterLogic: "and",
       joins: [],
       aggregations: [
         { id: "w-3", table: "conversions", column: "amount", function: "COUNT", alias: "count" },
         { id: "w-4", table: "conversions", column: "amount", function: "SUM", alias: "total" },
       ],
       groupBy: [{ table: "conversions", column: "status" }],
+      rowLimit: 100,
     },
   },
   {
@@ -93,11 +99,13 @@ const QUESTIONS: WizardQuestion[] = [
         { table: "payouts", column: "paymentSource", alias: "Method" },
       ],
       filters: [],
+      filterLogic: "and",
       joins: [],
       aggregations: [
         { id: "w-5", table: "payouts", column: "amount", function: "SUM", alias: "total_paid" },
       ],
       groupBy: [{ table: "payouts", column: "status" }],
+      rowLimit: 100,
     },
   },
 ];

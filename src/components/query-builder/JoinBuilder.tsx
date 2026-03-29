@@ -15,8 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { JoinBuilderSkeleton } from "./skeletons";
 import { generateId } from "@/hooks/useQueryBuilder";
-import type { QueryConfig } from "@/hooks/useQueryBuilder";
-import { Plus, Trash2, AlertTriangle, Zap } from "lucide-react";
+import type { QueryConfig, JoinType } from "@/hooks/useQueryBuilder";
+import { Plus, Trash2, AlertTriangle, Zap, Check } from "lucide-react";
 
 interface TableMeta {
   name: string;
@@ -41,6 +41,11 @@ interface JoinBuilderProps {
 
 const MAX_JOINS = 3;
 
+const JOIN_TYPES: Array<{ value: JoinType; label: string; description: string }> = [
+  { value: "inner", label: "INNER", description: "Only matching rows from both tables" },
+  { value: "left", label: "LEFT", description: "All rows from left table, matching from right" },
+];
+
 export function JoinBuilder({
   selectedTables,
   joins,
@@ -53,6 +58,7 @@ export function JoinBuilder({
   const [rightTable, setRightTable] = useState("");
   const [leftField, setLeftField] = useState("");
   const [rightField, setRightField] = useState("");
+  const [joinType, setJoinType] = useState<JoinType>("inner");
 
   // Auto-select first two tables when selectedTables change and locals are empty
   useEffect(() => {
@@ -73,16 +79,27 @@ export function JoinBuilder({
   const relevantTables = tables.filter((t) => selectedTables.includes(t.name));
   const isAtLimit = joins.length >= MAX_JOINS;
 
-  // Filter suggested joins to only those where both tables are selected
-  // and the join hasn't already been added
   const existingJoinKeys = new Set(
     joins.map((j) => `${j.leftTable}.${j.leftField}.${j.rightTable}.${j.rightField}`)
   );
-  const availableSuggestions = suggestedJoins.filter(
+
+  // All suggestions relevant to the selected tables (for display with applied state)
+  const allRelevantSuggestions = suggestedJoins.filter(
     (sj) =>
       selectedTables.includes(sj.leftTable) &&
-      selectedTables.includes(sj.rightTable) &&
-      !existingJoinKeys.has(`${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`)
+      selectedTables.includes(sj.rightTable)
+  );
+
+  // Which suggestions are already applied (for visual state)
+  const appliedSuggestionKeys = new Set(
+    allRelevantSuggestions
+      .filter((sj) => existingJoinKeys.has(`${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`))
+      .map((sj) => `${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`)
+  );
+
+  // Only un-applied suggestions (for clickability guard)
+  const availableSuggestions = allRelevantSuggestions.filter(
+    (sj) => !existingJoinKeys.has(`${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`)
   );
 
   const handleAddSuggested = (sj: SuggestedJoin) => {
@@ -93,6 +110,7 @@ export function JoinBuilder({
       rightTable: sj.rightTable,
       leftField: sj.leftField,
       rightField: sj.rightField,
+      joinType,
     });
   };
 
@@ -105,6 +123,7 @@ export function JoinBuilder({
       rightTable,
       leftField,
       rightField,
+      joinType,
     });
     setLeftField("");
     setRightField("");
@@ -122,11 +141,15 @@ export function JoinBuilder({
             const rightLabel = tables.find((t) => t.name === join.rightTable)?.label ?? join.rightTable;
             const leftColLabel = leftTableMeta?.columns.find((c) => c.name === join.leftField)?.label ?? join.leftField;
             const rightColLabel = tables.find((t) => t.name === join.rightTable)?.columns.find((c) => c.name === join.rightField)?.label ?? join.rightField;
+            const jt = join.joinType ?? "inner";
             return (
               <div
                 key={join.id}
                 className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
               >
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-[#1659d6] border-[#1659d6]/30 bg-[#eff6ff] font-bold uppercase">
+                  {jt}
+                </Badge>
                 <span className="text-[13px] font-medium text-[var(--text-heading)]">
                   {leftLabel}
                 </span>
@@ -158,31 +181,70 @@ export function JoinBuilder({
         </div>
       )}
 
-      {/* Suggested joins — one-click to add */}
-      {!isAtLimit && availableSuggestions.length > 0 && (
+      {/* Suggested joins — show all relevant ones with applied/applied state */}
+      {!isAtLimit && allRelevantSuggestions.length > 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             <Zap className="w-3 h-3 inline mr-1 opacity-60" />
             Suggested joins
           </span>
           <div className="flex flex-wrap gap-2">
-            {availableSuggestions.map((sj, i) => (
-              <button
-                key={`${sj.leftTable}-${sj.rightTable}-${i}`}
-                type="button"
-                onClick={() => handleAddSuggested(sj)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#1659d6]/30 bg-[#eff6ff] px-3 py-1.5 text-[12px] font-medium text-[#10409a] hover:bg-[#1659d6]/10 hover:border-[#1659d6]/50 transition-all"
-              >
-                <Plus className="w-3 h-3" />
-                {sj.label}
-              </button>
-            ))}
+            {allRelevantSuggestions.map((sj, i) => {
+              const isApplied = appliedSuggestionKeys.has(
+                `${sj.leftTable}.${sj.leftField}.${sj.rightTable}.${sj.rightField}`
+              );
+              return (
+                <div
+                  key={`${sj.leftTable}-${sj.rightTable}-${i}`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all",
+                    isApplied
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default"
+                      : "border-[#1659d6]/30 bg-[#eff6ff] text-[#10409a] hover:bg-[#1659d6]/10 hover:border-[#1659d6]/50 cursor-pointer"
+                  )}
+                >
+                  {isApplied ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      {sj.label}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddSuggested(sj)}
+                    >
+                      <Plus className="w-3 h-3" />
+                      {sj.label}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
       {!isAtLimit && relevantTables.length >= 2 && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-gray-50/50">
+        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+          <div className="min-w-[100px]">
+            <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
+              Join Type
+            </label>
+            <Select value={joinType} onValueChange={(v) => setJoinType(v as JoinType)}>
+              <SelectTrigger size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {JOIN_TYPES.map((jt) => (
+                  <SelectItem key={jt.value} value={jt.value}>
+                    <span className="font-semibold">{jt.label}</span>
+                    <span className="text-[var(--text-muted)] ml-1.5 text-[11px]">— {jt.description}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="min-w-[130px]">
             <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
               Left Table
