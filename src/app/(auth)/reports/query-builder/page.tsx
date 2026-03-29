@@ -609,6 +609,48 @@ function QueryBuilderContent() {
     return config.columns.map((c) => c.alias || `${c.table}.${c.column}`);
   })();
 
+// Resolve the actual result key for the GROUP BY column.
+  // The backend's projectToColumns may use alias or raw column name as the key,
+  // so we match case-insensitively against the actual result row keys.
+  const groupByColumn = useMemo((): string | undefined => {
+    if (config.groupBy.length === 0) return undefined;
+    if (!results || results.rows.length === 0) return config.groupBy[0].column;
+    
+    const target = config.groupBy[0].column.toLowerCase();
+    const keys = Object.keys(results.rows[0]).filter((k) => !k.startsWith("_"));
+    
+    // 1. Exact match
+    const exact = keys.find((k) => k.toLowerCase() === target);
+    if (exact) return exact;
+    
+    // 2. Suffix match (e.g., key "affiliateStatus" matches column "status")
+    const suffix = keys.find((k) => k.toLowerCase().endsWith(target));
+    if (suffix) return suffix;
+    
+    // 3. The column may have been projected under its alias — check config
+    const aliased = config.columns.find(
+      (c) => c.column === config.groupBy[0].column && c.alias
+    );
+    if (aliased?.alias) return aliased.alias;
+    
+    // 4. Fallback: try to find any key that contains the target (e.g., "affiliate" in "affiliate_id")
+    const contains = keys.find((k) => k.toLowerCase().includes(target));
+    if (contains) return contains;
+    
+    // 5. Last resort: use the first column (most likely to be the grouping key)
+    return keys[0];
+  }, [config.groupBy, config.columns, results]);
+
+  // Debug: log what we're grouping by
+  useEffect(() => {
+    if (groupByColumn) {
+      console.log("Grouping by column:", groupByColumn);
+      if (results && results.rows.length > 0) {
+        console.log("First row keys:", Object.keys(results.rows[0]).filter(k => !k.startsWith("_")));
+      }
+    }
+  }, [groupByColumn, results]);
+
   return (
     <>
       <PageTopbar
@@ -854,6 +896,7 @@ function QueryBuilderContent() {
                   columns={resultColumns}
                   isLoading={hasRunQuery && !results}
                   totalRows={results?.totalRows}
+                  groupByColumn={groupByColumn}
                 />
               </AccordionSection>
             </FadeIn>
