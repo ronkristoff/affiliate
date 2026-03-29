@@ -27,12 +27,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -55,10 +49,7 @@ import {
   DollarSign,
   Users,
   Zap,
-  ShieldCheck,
   Settings,
-  MoreHorizontal,
-  Link2,
   Copy,
   Check,
 } from "lucide-react";
@@ -433,10 +424,9 @@ function CampaignDetailContent() {
 
   const getCommissionSub = () => {
     if (campaign.commissionType === "percentage") {
-      const recurring = campaign.recurringCommissions ? " · recurring" : "";
-      return `per sale${recurring}`;
+      return "per sale";
     }
-    return "flat fee per referral · one-time";
+    return "flat fee per referral";
   };
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -464,32 +454,6 @@ function CampaignDetailContent() {
         {/* Right: Actions */}
         {campaign.status !== "archived" ? (
           <div className="flex items-center gap-2">
-            {/* Share Signup Link */}
-            {signupUrlData && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(signupUrlData.signupUrl);
-                    setSignupUrlCopied(true);
-                    toast.success("Signup link copied to clipboard!");
-                    setTimeout(() => setSignupUrlCopied(false), 2000);
-                  } catch {
-                    toast.error("Failed to copy link");
-                  }
-                }}
-                className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-              >
-                {signupUrlCopied ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <Link2 className="w-3.5 h-3.5" />
-                )}
-                {signupUrlCopied ? "Copied!" : "Signup Link"}
-              </Button>
-            )}
-
             {/* Edit — primary action */}
             <Button
               size="sm"
@@ -505,11 +469,7 @@ function CampaignDetailContent() {
               variant="outline"
               size="sm"
               onClick={handlePauseResume}
-              className={
-                campaign.status === "active"
-                  ? "gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                  : "gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-              }
+              className="gap-1.5 border-[#d1d5db] text-[#4b5563] hover:bg-gray-50 hover:text-[#1f2937]"
             >
               {campaign.status === "active" ? (
                 <>
@@ -524,24 +484,15 @@ function CampaignDetailContent() {
               )}
             </Button>
 
-            {/* More actions dropdown — keeps destructive action accessible but not prominent */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="size-8 text-[var(--text-muted)]">
-                  <MoreHorizontal className="w-4 h-4" />
-                  <span className="sr-only">More actions</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem
-                  onClick={() => setShowArchiveConfirm(true)}
-                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                >
-                  <Archive className="w-4 h-4" />
-                  Archive campaign
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Archive — tertiary action, not prominent */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowArchiveConfirm(true)}
+              className="gap-1.5 text-[#9ca3af] hover:text-destructive hover:bg-red-50"
+            >
+              <Archive className="w-3.5 h-3.5" />
+            </Button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -580,190 +531,121 @@ function CampaignDetailContent() {
           />
         </FadeIn>
 
-        {/* ── Campaign Details ───────────────────────────────────────────── */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Commission & Tracking Card */}
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-[#10409a]" />
-              </div>
-              <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                Commission & Tracking
-              </h3>
-            </div>
-
-            {/* Commission rate highlight */}
-            <div className="bg-blue-50 rounded-lg px-3.5 py-3 mb-4">
-              <div className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
-                Commission Rate
-              </div>
-              <div className="text-[22px] font-bold text-[#10409a] mt-0.5 tabular-nums">
+        {/* ── Campaign Details — compact horizontal bar ───────────────────── */}
+        <div className="bg-white border border-[#e5e7eb] rounded-xl px-5 py-3.5">
+          <div className="flex items-center gap-6 flex-wrap">
+            {/* Commission */}
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-semibold text-[#10409a] tabular-nums">
                 {formatCommission()}
-              </div>
-              <div className="text-[11px] text-gray-500 mt-0.5">{getCommissionSub()}</div>
+              </span>
+              <span className="text-[12px] text-[var(--text-muted)]">
+                {getCommissionSub()}
+              </span>
             </div>
 
-            {/* Recurring + Cookie — side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              {campaign.recurringCommissions && (
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
-                    Recurring Rate
-                  </p>
-                  <p className="text-[13px] font-medium text-[var(--text-heading)]">
+            {/* Divider */}
+            <div className="w-px h-4 bg-[#e5e7eb]" />
+
+            {/* Recurring */}
+            {campaign.recurringCommissions && campaign.recurringRateType !== "same" && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-[var(--text-muted)]">Recurring:</span>
+                  <span className="text-[12px] font-semibold text-[#1a1a1a]">
                     {getRecurringRateDescription(
-                      (campaign.recurringRateType ?? "same") as "same" | "reduced" | "custom",
+                      campaign.recurringRateType as "same" | "reduced" | "custom",
                       campaign.recurringRate,
                       campaign.commissionRate
                     )}
-                  </p>
-                  {campaign.recurringRateType &&
-                    campaign.recurringRateType !== "same" &&
-                    campaign.recurringRate && (
-                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                        Stored rate: {campaign.recurringRate}% ({campaign.recurringRateType})
-                      </p>
-                    )}
-                </div>
-              )}
-
-              <div>
-                <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
-                  Cookie Duration
-                </p>
-                <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums">
-                  {campaign.cookieDuration || 30}
-                  <span className="text-[13px] font-normal text-[var(--text-muted)] ml-1">
-                    days
                   </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Description (if present) */}
-            {campaign.description && (
-              <>
-                <div className="border-t border-[#e5e7eb] my-4" />
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
-                    Description
-                  </p>
-                  <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
-                    {campaign.description}
-                  </p>
                 </div>
+                <div className="w-px h-4 bg-[#e5e7eb]" />
               </>
             )}
 
-            {/* Signup URL section */}
-            {signupUrlData && (
-              <>
-                <div className="border-t border-[#e5e7eb] my-4" />
-                <div>
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
-                    Affiliate Signup Page
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)] mb-2">
-                    Share this link to recruit affiliates for this campaign
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-50 border border-[#e5e7eb] rounded-lg px-3 py-2 text-[12px] text-gray-600 font-mono truncate">
-                      {signupUrlData.signupUrl}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(signupUrlData.signupUrl);
-                          setSignupUrlCopied(true);
-                          toast.success("Signup link copied!");
-                          setTimeout(() => setSignupUrlCopied(false), 2000);
-                        } catch {
-                          toast.error("Failed to copy link");
-                        }
-                      }}
-                      className="flex-shrink-0 gap-1"
-                    >
-                      {signupUrlCopied ? (
-                        <>
-                          <Check className="w-3 h-3" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Approval Card */}
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4 text-green-600" />
-              </div>
-              <h3 className="text-[13px] font-semibold text-[#6b7280] uppercase tracking-[0.04em]">
-                Approval
-              </h3>
+            {/* Cookie */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] text-[var(--text-muted)]">Cookie:</span>
+              <span className="text-[12px] font-semibold text-[#1a1a1a]">
+                {campaign.cookieDuration || 30} days
+              </span>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide">
-                  Auto-approve
-                </p>
-                <div className="mt-1">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                      campaign.autoApproveCommissions
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        campaign.autoApproveCommissions ? "bg-emerald-500" : "bg-gray-400"
-                      }`}
-                    />
-                    {campaign.autoApproveCommissions ? "Enabled" : "Disabled"}
-                  </span>
-                </div>
-                <p className="text-[11px] text-[var(--text-muted)] mt-1.5">
-                  {campaign.autoApproveCommissions
-                    ? "Commissions are approved automatically"
-                    : "Commissions require manual approval"}
-                </p>
-              </div>
+            {/* Divider */}
+            <div className="w-px h-4 bg-[#e5e7eb]" />
+
+            {/* Approval */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] text-[var(--text-muted)]">Approval:</span>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                  campaign.autoApproveCommissions
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {campaign.autoApproveCommissions ? "Auto" : "Manual"}
+              </span>
               {campaign.autoApproveCommissions && campaign.approvalThreshold && (
-                <div className="border-t border-[#e5e7eb] pt-4">
-                  <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wide mb-1">
-                    Auto-approve Threshold
-                  </p>
-                  <p className="text-[22px] font-bold text-[#1a1a1a] tabular-nums">
-                    ₱{campaign.approvalThreshold.toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
-                    Commissions above this amount require manual review
-                  </p>
-                </div>
+                <span className="text-[12px] text-[var(--text-muted)]">
+                  (₱{campaign.approvalThreshold.toLocaleString()})
+                </span>
               )}
             </div>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Signup URL Copy */}
+            {signupUrlData && (
+              <div className="flex items-center gap-2">
+                <div className="max-w-[280px] sm:max-w-[350px] lg:max-w-[450px] bg-gray-50 border border-[#e5e7eb] rounded-md px-2.5 py-1.5 text-[11px] text-gray-600 font-mono truncate">
+                  {signupUrlData.signupUrl}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(signupUrlData.signupUrl);
+                      setSignupUrlCopied(true);
+                      toast.success("Link copied!");
+                      setTimeout(() => setSignupUrlCopied(false), 2000);
+                    } catch {
+                      toast.error("Failed to copy");
+                    }
+                  }}
+                  className="h-7 px-2.5 gap-1"
+                >
+                  {signupUrlCopied ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
+
+          {/* Description (if present) - below the compact bar */}
+          {campaign.description && (
+            <div className="mt-3 pt-3 border-t border-[#f3f4f6]">
+              <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
+                {campaign.description}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ── Affiliates Table ───────────────────────────────────────────── */}
-        <AffiliatesByCampaignTable
-          campaignId={campaign._id}
-          campaignName={campaign.name}
-        />
+        {/* Added top spacing (mt-8) for better section rhythm */}
+        <div className="mt-8">
+          <AffiliatesByCampaignTable
+            campaignId={campaign._id}
+            campaignName={campaign.name}
+          />
+        </div>
       </div>
 
       {/* ── Edit Campaign Sheet (Side Drawer) ─────────────────────────────── */}
@@ -847,10 +729,10 @@ function CampaignDetailContent() {
                   }
                 }}
               >
-                <SelectTrigger id="edit-commissionType">
+                <SelectTrigger id="edit-commissionType" className="w-full">
                   <SelectValue placeholder="Select commission type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-[240px]">
                   <SelectItem value="percentage">Percentage</SelectItem>
                   <SelectItem value="flatFee">Flat Fee</SelectItem>
                 </SelectContent>
@@ -987,7 +869,7 @@ function CampaignDetailContent() {
                     <SelectTrigger id="edit-recurringRateType">
                       <SelectValue placeholder="Select rate type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="w-[240px]">
                       <SelectItem value="same">Same as Initial</SelectItem>
                       <SelectItem value="reduced">Reduced Rate</SelectItem>
                       <SelectItem value="custom">Custom Rate</SelectItem>

@@ -516,6 +516,7 @@
   /* ── Button Motion ── */
   /* Subtle hover lift, click press-down, and icon slide — applied to all <Button> components */
   .btn-motion {
+    cursor: pointer;
     transition: transform 150ms cubic-bezier(0.25, 1, 0.5, 1),
                 box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1),
                 background-color 150ms cubic-bezier(0.25, 1, 0.5, 1),

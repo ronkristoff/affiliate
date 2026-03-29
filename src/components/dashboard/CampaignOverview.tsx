@@ -5,7 +5,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { CampaignCard } from "./CampaignCard";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryErrorBoundary } from "@/components/ui/QueryErrorBoundary";
 import { ArrowRight, Plus, AlertTriangle, UserX } from "lucide-react";
@@ -189,10 +188,6 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
 
       {/* Quick Actions Row — button hierarchy (AC 24) */}
       <div className="flex items-center gap-3 pt-2">
-        <Button size="sm" onClick={onCreateCampaign}>
-          <Plus className="w-3.5 h-3.5" />
-          New Campaign
-        </Button>
         <Link
           href="/campaigns/all"
           className="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold border border-[#d1d5db] text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
