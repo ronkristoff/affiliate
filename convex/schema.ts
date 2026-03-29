@@ -608,4 +608,34 @@ export default defineSchema({
     // Current month API call counter (for tier limit enforcement)
     apiCallsThisMonth: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
+
+  // Saved queries for Query Builder (custom reports)
+  // Stores user-created report configurations for reuse and sharing
+  savedQueries: defineTable({
+    tenantId: v.id("tenants"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    queryConfig: v.string(), // JSON-serialized query configuration
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    isShared: v.boolean(), // Whether query is shared with team
+    sharedWithRoles: v.array(v.string()), // Roles that can view: ["owner", "manager"]
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_created_by", ["tenantId", "createdBy"])
+    .index("by_tenant_and_shared", ["tenantId", "isShared"]),
+
+  // Query Builder async export tracking
+  queryExports: defineTable({
+    tenantId: v.id("tenants"),
+    createdBy: v.id("users"),
+    storageFileId: v.id("_storage"),
+    fileName: v.string(),
+    totalRows: v.number(),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+    createdAt: v.number(),
+    expiresAt: v.number(), // Auto-expire after 7 days
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_and_status", ["tenantId", "status"])
+    .index("by_expires_at", ["expiresAt"]),
 });

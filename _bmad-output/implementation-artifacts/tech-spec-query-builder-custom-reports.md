@@ -2,7 +2,7 @@
 title: "Query Builder for Custom Reports"
 slug: "query-builder-custom-reports"
 created: "2026-03-29"
-status: "ready-for-dev"
+status: "implementation-complete"
 stepsCompleted: [1, 2, 3, 4]
 tech_stack: ["Next.js 16 (App Router)", "Convex 1.32", "TypeScript 5.9", "Tailwind CSS v4", "Radix UI", "Sonner", "Better Auth"]
 files_to_modify: ["convex/schema.ts", "convex/queryBuilder.ts", "src/app/(auth)/reports/query-builder/page.tsx", "src/components/query-builder/*.tsx", "src/components/shared/Sidebar.tsx", "src/hooks/useQueryBuilder.ts"]
@@ -156,12 +156,12 @@ Build a **Query Builder** page under Reports where SaaS Owners can:
 
 #### Phase 1: Backend Foundation
 
-- [ ] Task 1: Add `savedQueries` table to schema
+- [x] Task 1: Add `savedQueries` table to schema
   - File: `convex/schema.ts`
   - Action: Add new table with fields: tenantId, name, description, queryConfig (JSON), createdBy, createdAt, updatedAt, isShared, sharedWithRoles
   - Notes: Index by tenant for fast lookups, index on sharedWithRoles for sharing queries
 
-- [ ] Task 2: Create query builder Convex functions
+- [x] Task 2: Create query builder Convex functions
   - File: `convex/queryBuilder.ts`
   - Action: Create new file with:
     - `getTableMetadata` query: Returns columns, types for whitelisted tables
@@ -174,100 +174,100 @@ Build a **Query Builder** page under Reports where SaaS Owners can:
     - `validateQueryConfig` internal: Validates query config structure on load
   - Notes: Must validate query config against whitelisted tables/columns, enforce tenant isolation, validate operator-column type compatibility, detect circular joins
 
-- [ ] Task 3: Create export action for query results
+- [x] Task 3: Create export action for query results
   - File: `convex/queryBuilderExport.ts`
   - Action: Create export action for CSV format
   - Notes: Use Convex storage for large exports, max 3 concurrent per tenant
 
-- [ ] Task 3c: Add export cleanup cron job
+- [x] Task 3c: Add export cleanup cron job
   - File: `convex/crons.ts`
   - Action: Add scheduled function to delete export files older than 7 days
   - Notes: Prevent storage bloat from old exports
 
-- [ ] Task 3b: Add query cost estimator
+- [x] Task 3b: Add query cost estimator
   - File: `convex/queryBuilder.ts`
   - Action: Add internal function to estimate query complexity based on tables, joins, filters
   - Notes: Return complexity score, warn if exceeds threshold
 
 #### Phase 2: Frontend Core
 
-- [ ] Task 4: Add query-builder route
+- [x] Task 4: Add query-builder route
   - File: `src/app/(auth)/reports/query-builder/page.tsx`
   - Action: Create new page with Suspense wrapper and main QueryBuilder component
   - Notes: Follow pattern from existing report pages
 
-- [ ] Task 5: Create QueryBuilder hook
+- [x] Task 5: Create QueryBuilder hook
   - File: `src/hooks/useQueryBuilder.ts`
   - Action: Create custom hook for query state management with URL state sync
   - Notes: Handle table selection, column selection, filters, joins, aggregations, groupBy, sync to URL for shareable links
 
-- [ ] Task 6: Create TableSelector component
+- [x] Task 6: Create TableSelector component
   - File: `src/components/query-builder/TableSelector.tsx`
   - Action: Create dropdown for table selection with search
   - Notes: Use existing multi-select pattern, show table description
 
-- [ ] Task 7: Create ColumnSelector component
+- [x] Task 7: Create ColumnSelector component
   - File: `src/components/query-builder/ColumnSelector.tsx`
   - Action: Create multi-select for columns based on selected table
   - Notes: Show column name, type, description
 
-- [ ] Task 8: Create FilterBuilder component
+- [x] Task 8: Create FilterBuilder component
   - File: `src/components/query-builder/FilterBuilder.tsx`
   - Action: Create UI for adding/editing filters with operators and value inputs
   - Notes: Support operators: equals, not_equals, contains, gt, lt, gte, lte, between, in_list, is_null, is_not_null. Input types: text for string, number input for numeric, date picker for date, multi-select for "in_list"
 
-- [ ] Task 9: Create JoinBuilder component
+- [x] Task 9: Create JoinBuilder component
   - File: `src/components/query-builder/JoinBuilder.tsx`
   - Action: Create UI for adding table joins with field selection
   - Notes: Support left join, show available join fields (e.g., affiliateId), allow user to select which fields to join on
 
-- [ ] Task 10: Create AggregationBuilder component
+- [x] Task 10: Create AggregationBuilder component
   - File: `src/components/query-builder/AggregationBuilder.tsx`
   - Action: Create UI for adding aggregations and GROUP BY
   - Notes: Support COUNT, SUM, AVG, MIN, MAX
 
-- [ ] Task 11: Create ResultsTable component
+- [x] Task 11: Create ResultsTable component
   - File: `src/components/query-builder/ResultsTable.tsx`
   - Action: Display query results with pagination
   - Notes: Use existing DataTable component, add pagination controls
 
 #### Phase 3: Saved Reports & Sharing
 
-- [ ] Task 12: Create SavedQueriesList component
+- [x] Task 12: Create SavedQueriesList component
   - File: `src/components/query-builder/SavedQueriesList.tsx`
   - Action: Display saved queries with load/delete/share options
   - Notes: Show query name, description, created date, share status
 
-- [ ] Task 13: Create SaveQueryDialog component
+- [x] Task 13: Create SaveQueryDialog component
   - File: `src/components/query-builder/SaveQueryDialog.tsx`
   - Action: Dialog for saving current query with name/description
   - Notes: Use existing dialog pattern
 
-- [ ] Task 14: Create ShareQueryDialog component
+- [x] Task 14: Create ShareQueryDialog component
   - File: `src/components/query-builder/ShareQueryDialog.tsx`
   - Action: Dialog for sharing with team members
   - Notes: Select roles (manager, viewer), show shared users
 
 #### Phase 4: Pre-built Templates & Export
 
-- [ ] Task 15: Create TemplateGallery component
+- [x] Task 15: Create TemplateGallery component
   - File: `src/components/query-builder/TemplateGallery.tsx`
   - Action: Display 5 pre-built templates as clickable cards
   - Notes: Templates: Top Affiliates by Revenue, Campaign Performance, Conversion Funnel, Payout History, Commission Status
 
-- [ ] Task 16: Create ExportButton component
+- [x] Task 16: Create ExportButton component
   - File: `src/components/query-builder/QueryExportButton.tsx`
   - Action: Handle both direct and async export
   - Notes: Show progress for async, provide download link
 
 #### Phase 5: Integration
 
-- [ ] Task 17: Add query-builder to sidebar
+- [x] Task 17: Add query-builder to sidebar
   - File: `src/components/shared/Sidebar.tsx`
   - Action: Add navigation link at /reports/query-builder under Reports section
   - Notes: Add after "Fraud" link
 
-- [ ] Task 18: Create WizardFlow component (optional for MVP)
+- [x] Task 18: Create WizardFlow component (optional for MVP)
   - File: `src/components/query-builder/WizardFlow.tsx`
   - Action: Create guided "What do you want to know?" wizard
   - Notes: Map questions to templates/configs
@@ -275,46 +275,46 @@ Build a **Query Builder** page under Reports where SaaS Owners can:
 ### Acceptance Criteria
 
 #### Query Execution
-- [ ] AC1: Given a user selects a table, when they click "Run Query", then results display within 60 seconds
-- [ ] AC2: Given a user adds a filter with "equals" operator, when running query, then only matching records are returned
-- [ ] AC3: Given a user adds aggregation (SUM amount), when running query, then correct aggregated value is displayed
-- [ ] AC4: Given a user adds GROUP BY on status field, when running query, then results are grouped correctly
+- [x] AC1: Given a user selects a table, when they click "Run Query", then results display within 60 seconds
+- [x] AC2: Given a user adds a filter with "equals" operator, when running query, then only matching records are returned
+- [x] AC3: Given a user adds aggregation (SUM amount), when running query, then correct aggregated value is displayed
+- [x] AC4: Given a user adds GROUP BY on status field, when running query, then results are grouped correctly
 
 #### Saved Queries
-- [ ] AC5: Given a user creates a query, when they click "Save", then query is persisted to database with name
-- [ ] AC6: Given a user has saved queries, when they visit query builder, then saved queries are listed
-- [ ] AC7: Given a user clicks on a saved query, when loading, then query config is restored
-- [ ] AC8: Given a user deletes a saved query, when confirmed, then query is removed from database
+- [x] AC5: Given a user creates a query, when they click "Save", then query is persisted to database with name
+- [x] AC6: Given a user has saved queries, when they visit query builder, then saved queries are listed
+- [x] AC7: Given a user clicks on a saved query, when loading, then query config is restored
+- [x] AC8: Given a user deletes a saved query, when confirmed, then query is removed from database
 
 #### Sharing
-- [ ] AC9: Given an owner shares a query with manager, when manager visits, then they can view (not edit) the query
-- [ ] AC10: Given a query is shared with viewer role, when viewer visits, then they can view and export but not edit/delete
+- [x] AC9: Given an owner shares a query with manager, when manager visits, then they can view (not edit) the query
+- [x] AC10: Given a query is shared with viewer role, when viewer visits, then they can view and export but not edit/delete
 
 #### Export
-- [ ] AC11: Given a query returns <=5k rows, when user clicks "Export", then file downloads immediately
-- [ ] AC12: Given a query returns >5k rows, when user clicks "Export", then export runs async and user receives download link
+- [x] AC11: Given a query returns <=5k rows, when user clicks "Export", then file downloads immediately
+- [x] AC12: Given a query returns >5k rows, when user clicks "Export", then export runs async and user receives download link
 - [ ] AC13: Given a user has 3 concurrent exports, when they start 4th, then error message is shown
 
 #### Templates
-- [ ] AC14: Given a user clicks a template card, when loaded, then query is pre-populated with template config
-- [ ] AC15: Given a user modifies a template query, when they save, then it's saved as new query (not overwriting template)
+- [x] AC14: Given a user clicks a template card, when loaded, then query is pre-populated with template config
+- [x] AC15: Given a user modifies a template query, when they save, then it's saved as new query (not overwriting template)
 
 #### Security
-- [ ] AC16: Given a user tries to query admin tables (not whitelisted), when they select, then query is rejected with error
-- [ ] AC17: Given a user from tenant A tries to access tenant B's saved query, when attempted, then access denied error shown
-- [ ] AC20: Given a user adds "contains" filter on numeric column, when running query, then error shown (operator not valid for type)
-- [ ] AC21: Given query execution exceeds 60 seconds, when timeout occurs, then error message shown with suggestion to add filters or reduce complexity
+- [x] AC16: Given a user tries to query admin tables (not whitelisted), when they select, then query is rejected with error
+- [x] AC17: Given a user from tenant A tries to access tenant B's saved query, when attempted, then access denied error shown
+- [x] AC20: Given a user adds "contains" filter on numeric column, when running query, then error shown (operator not valid for type)
+- [x] AC21: Given query execution exceeds 60 seconds, when timeout occurs, then error message shown with suggestion to add filters or reduce complexity
 
 #### Reliability
-- [ ] AC22: Given network fails during export, when user retries, then previously stored export is available for download
-- [ ] AC24: Given a saved query has corrupted queryConfig JSON, when user loads it, then error message shown and query not executed
+- [x] AC22: Given network fails during export, when user retries, then previously stored export is available for download
+- [x] AC24: Given a saved query has corrupted queryConfig JSON, when user loads it, then error message shown and query not executed
 
 #### UI/UX
-- [ ] AC18: Given a user starts in wizard mode, when they toggle to "Advanced", then they can manually edit all query parts
-- [ ] AC19: Given query returns results, when pagination exists, then user can navigate between pages
+- [x] AC18: Given a user starts in wizard mode, when they toggle to "Advanced", then they can manually edit all query parts
+- [x] AC19: Given query returns results, when pagination exists, then user can navigate between pages
 
 #### Aggregation Edge Cases
-- [ ] AC23: Given a user adds SUM aggregation without GROUP BY, when running query, then a single row with total is returned
+- [x] AC23: Given a user adds SUM aggregation without GROUP BY, when running query, then a single row with total is returned
 
 ## Additional Context
 

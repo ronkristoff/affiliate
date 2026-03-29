@@ -67,6 +67,8 @@ import type * as migrations from "../migrations.js";
 import type * as payouts from "../payouts.js";
 import type * as performance from "../performance.js";
 import type * as permissions from "../permissions.js";
+import type * as queryBuilder from "../queryBuilder.js";
+import type * as queryBuilderExport from "../queryBuilderExport.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as referralLinks from "../referralLinks.js";
 import type * as reports from "../reports.js";
@@ -163,6 +165,8 @@ declare const fullApi: ApiFromModules<{
   payouts: typeof payouts;
   performance: typeof performance;
   permissions: typeof permissions;
+  queryBuilder: typeof queryBuilder;
+  queryBuilderExport: typeof queryBuilderExport;
   rateLimit: typeof rateLimit;
   referralLinks: typeof referralLinks;
   reports: typeof reports;

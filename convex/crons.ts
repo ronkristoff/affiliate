@@ -40,4 +40,12 @@ crons.weekly(
   {}
 );
 
+// Clean up expired query builder export files — runs daily at 3 AM UTC
+crons.interval(
+  "cleanup-expired-query-exports",
+  { hours: 24 },
+  internal.queryBuilder.cleanupExpiredExports,
+  {}
+);
+
 export default crons;

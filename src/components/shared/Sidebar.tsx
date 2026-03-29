@@ -96,6 +96,7 @@ const STATIC_NAV_ITEMS = {
         { href: "/reports/affiliates", label: "Affiliates" },
         { href: "/reports/campaigns", label: "Campaigns" },
         { href: "/reports/fraud", label: "Fraud" },
+        { href: "/reports/query-builder", label: "Query Builder" },
       ],
     } as NavItemWithChildren,
     {
