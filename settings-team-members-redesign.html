@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Members Settings - Redesign Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Passion+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #10409a;
+      --brand-primary: #10409a;
+      --brand-secondary: #1659d6;
+      --brand-light: #eff6ff;
+      --text-heading: #333333;
+      --text-body: #474747;
+      --text-muted: #6b7280;
+      --bg-page: #f2f2f2;
+      --bg-surface: #ffffff;
+      --border: #e5e7eb;
+      --border-light: #f0f0f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --success-bg: #d1fae5;
+      --success-text: #065f46;
+      --warning-bg: #fef3c7;
+      --warning-text: #92400e;
+      --danger-bg: #fee2e2;
+      --danger-text: #991b1b;
+      --info-bg: #dbeafe;
+      --info-text: #1e40af;
+      --radius: 0.75rem;
+    }
+
+    * { scrollbar-width: thin; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-body);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      border: 1px solid var(--border-light);
+    }
+    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-light); }
+    .card-body { padding: 1.25rem; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.125rem 0.625rem; border-radius: 9999px;
+      font-size: 0.625rem; font-weight: 600;
+    }
+    .badge-success { background: var(--success-bg); color: var(--success-text); }
+    .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+    .badge-info { background: var(--info-bg); color: var(--info-text); }
+    .badge-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500;
+      border-radius: calc(var(--radius) - 4px); transition: all 150ms ease; cursor: pointer; border: none;
+    }
+    .btn-primary { background: var(--brand-primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: #0c3280; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-body); }
+    .btn-outline:hover:not(:disabled) { background: var(--bg-page); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .input {
+      width: 100%; padding: 0.625rem 0.875rem; font-size: 0.875rem;
+      border: 1px solid var(--border); border-radius: calc(var(--radius) - 4px);
+      background: var(--bg-surface); color: var(--text-body); transition: all 150ms ease;
+    }
+    .input:focus { outline: none; border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(16, 64, 154, 0.1); }
+
+    .section-label { font-size: 0.6875rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--brand-light); display: flex;
+      align-items: center; justify-content: center;
+      font-weight: 600; color: var(--brand-primary); font-size: 0.875rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Topbar -->
+  <div class="bg-white border-b border-gray-200 px-8 py-4">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-lg font-semibold text-gray-800">Team Management</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Invite team members and manage their roles and permissions</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-4xl mx-auto px-8 py-6 space-y-6">
+    
+    <!-- Role Permissions Info -->
+    <div class="card animate-fade-in">
+      <div class="card-body">
+        <div class="flex items-start gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-800">Role Permissions</h3>
+            <div class="grid grid-cols-3 gap-4 mt-3">
+              <div class="p-3 bg-blue-50 rounded-lg">
+                <p class="text-sm font-semibold text-blue-700">Owner</p>
+                <p class="text-xs text-blue-600 mt-1">Full access to all settings and data</p>
+              </div>
+              <div class="p-3 bg-green-50 rounded-lg">
+                <p class="text-sm font-semibold text-green-700">Manager</p>
+                <p class="text-xs text-green-600 mt-1">Can manage campaigns, affiliates & commissions</p>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-lg">
+                <p class="text-sm font-semibold text-gray-700">Viewer</p>
+                <p class="text-xs text-gray-500 mt-1">Read-only access to all data</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎯 Invite New Member Card -->
+    <div class="card animate-fade-in">
+      <div class="card-header">
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50">
+            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-gray-800">Invite Team Member</h2>
+            <p class="text-xs text-gray-500">Send an invitation to join your team</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <form class="flex gap-3">
+          <div class="flex-1">
+            <input type="email" class="input" placeholder="colleague@company.com">
+          </div>
+          <div class="w-48">
+            <select class="input">
+              <option>Select Role</option>
+              <option value="owner">Owner</option>
+              <option value="manager">Manager</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Send Invite
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 🎯 Team Members List -->
+    <div class="card animate-fade-in">
+      <div class="card-header">
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-gray-800">Team Members</h2>
+              <p class="text-xs text-gray-500">5 members in your organization</p>
+            </div>
+          </div>
+          <div class="flex gap-1">
+            <span class="badge badge-success">1 Owner</span>
+            <span class="badge badge-info">2 Managers</span>
+            <span class="badge badge-outline">2 Viewers</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Member</th>
+              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Role</th>
+              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
+              <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <!-- Row 1: Owner -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar">JD</div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-800">John Doe</p>
+                    <p class="text-xs text-gray-500">john.doe@company.com</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-success">Owner</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Active</span>
+              </td>
+              <td class="px-5 py-4 text-right">
+                <span class="text-xs text-gray-400">You</span>
+              </td>
+            </tr>
+            <!-- Row 2: Manager -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar" style="background: #dbeafe; color: #1e40af;">SM</div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-800">Sarah Miller</p>
+                    <p class="text-xs text-gray-500">sarah@company.com</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Manager</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Active</span>
+              </td>
+              <td class="px-5 py-4 text-right">
+                <button class="text-xs text-blue-600 hover:underline mr-3">Edit Role</button>
+                <button class="text-xs text-red-500 hover:text-red-600">Remove</button>
+              </td>
+            </tr>
+            <!-- Row 3: Manager -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar" style="background: #dbeafe; color: #1e40af;">MC</div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-800">Mike Chen</p>
+                    <p class="text-xs text-gray-500">mike@company.com</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Manager</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Active</span>
+              </td>
+              <td class="px-5 py-4 text-right">
+                <button class="text-xs text-blue-600 hover:underline mr-3">Edit Role</button>
+                <button class="text-xs text-red-500 hover:text-red-600">Remove</button>
+              </td>
+            </tr>
+            <!-- Row 4: Viewer -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar" style="background: #fce7f3; color: #be185d;">AL</div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-800">Anna Lee</p>
+                    <p class="text-xs text-gray-500">anna@company.com</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-outline">Viewer</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-info">Active</span>
+              </td>
+              <td class="px-5 py-4 text-right">
+                <button class="text-xs text-blue-600 hover:underline mr-3">Edit Role</button>
+                <button class="text-xs text-red-500 hover:text-red-600">Remove</button>
+              </td>
+            </tr>
+            <!-- Row 5: Viewer -->
+            <tr class="hover:bg-gray-50">
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar" style="background: #fef3c7; color: #b45309;">RJ</div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-800">Ryan Jones</p>
+                    <p class="text-xs text-gray-500">ryan@company.com</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-outline">Viewer</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="badge badge-warning">Pending</span>
+              </td>
+              <td class="px-5 py-4 text-right">
+                <span class="text-xs text-gray-400">Awaiting response</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 🎯 Pending Invitations -->
+    <div class="card animate-fade-in">
+      <div class="card-header">
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-gray-800">Pending Invitations</h2>
+            <p class="text-xs text-gray-500">Invitations sent but not yet accepted</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="space-y-3">
+          <!-- Pending Item 1 -->
+          <div class="flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-100">
+            <div class="flex items-center gap-3">
+              <div class="avatar" style="background: #fef3c7; color: #b45309;">+</div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">newuser@company.com</p>
+                <p class="text-xs text-gray-500">Invited 3 days ago</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="badge badge-warning">Pending</span>
+              <button class="btn btn-outline btn-sm">Resend</button>
+              <button class="text-xs text-red-500 hover:text-red-600">Cancel</button>
+            </div>
+          </div>
+        </div>
+        
+        <p class="text-xs text-gray-400 mt-4 text-center">No other pending invitations</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

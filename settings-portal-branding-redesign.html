@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Branding Settings - Redesign Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Passion+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #10409a;
+      --brand-primary: #10409a;
+      --brand-secondary: #1659d6;
+      --brand-dark: #022232;
+      --brand-light: #eff6ff;
+      --text-heading: #333333;
+      --text-body: #474747;
+      --text-muted: #6b7280;
+      --bg-page: #f2f2f2;
+      --bg-surface: #ffffff;
+      --border: #e5e7eb;
+      --border-light: #f0f0f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --success-bg: #d1fae5;
+      --success-text: #065f46;
+      --warning-bg: #fef3c7;
+      --warning-text: #92400e;
+      --danger-bg: #fee2e2;
+      --danger-text: #991b1b;
+      --info-bg: #dbeafe;
+      --info-text: #1e40af;
+      --radius: 0.75rem;
+    }
+
+    * { scrollbar-width: thin; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-body);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      border: 1px solid var(--border-light);
+      transition: box-shadow 200ms ease;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04); }
+    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-light); }
+    .card-body { padding: 1.25rem; }
+
+    .badge-success {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.125rem 0.625rem; border-radius: 9999px;
+      font-size: 0.625rem; font-weight: 600;
+      background: var(--success-bg); color: var(--success-text);
+    }
+    .badge-warning {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.125rem 0.625rem; border-radius: 9999px;
+      font-size: 0.625rem; font-weight: 600;
+      background: var(--warning-bg); color: var(--warning-text);
+    }
+    .badge-info {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.125rem 0.625rem; border-radius: 9999px;
+      font-size: 0.625rem; font-weight: 600;
+      background: var(--info-bg); color: var(--info-text);
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500;
+      border-radius: calc(var(--radius) - 4px); transition: all 150ms ease; cursor: pointer; border: none;
+    }
+    .btn-primary { background: var(--brand-primary); color: white; }
+    .btn-primary:hover:not(:disabled) { background: #0c3280; transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-body); }
+    .btn-outline:hover:not(:disabled) { background: var(--bg-page); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .input {
+      width: 100%; padding: 0.625rem 0.875rem; font-size: 0.875rem;
+      border: 1px solid var(--border); border-radius: calc(var(--radius) - 4px);
+      background: var(--bg-surface); color: var(--text-body); transition: all 150ms ease;
+    }
+    .input:focus { outline: none; border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(16, 64, 154, 0.1); }
+
+    .section-label { font-size: 0.6875rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    .delay-1 { animation-delay: 0.1s; opacity: 0; }
+    .delay-2 { animation-delay: 0.2s; opacity: 0; }
+    .delay-3 { animation-delay: 0.3s; opacity: 0; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Topbar -->
+  <div class="bg-white border-b border-gray-200 px-8 py-4">
+    <div class="max-w-6xl mx-auto">
+      <h1 class="text-lg font-semibold text-gray-800">Portal Branding</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Customize how your affiliate portal looks to your affiliates</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-6xl mx-auto px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- LEFT: Settings Forms -->
+      <div class="space-y-6">
+        
+        <!-- 🎨 Logo Upload Card -->
+        <div class="card animate-fade-in">
+          <div class="card-header">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+                <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-gray-800">Logo</h2>
+                <p class="text-xs text-gray-500">Your company logo displayed on the portal</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Upload Area -->
+            <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
+              <div class="flex flex-col items-center gap-3">
+                <div class="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-700">Click to upload logo</p>
+                  <p class="text-xs text-gray-400 mt-1">JPG, PNG, SVG. Max 1MB. 200x60px recommended.</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Current Logo -->
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg flex items-center gap-4">
+              <div class="w-24 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center shadow-sm">
+                <span class="text-xs font-bold text-blue-700">ACME</span>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-800">Current Logo</p>
+                <p class="text-xs text-gray-500">Uploaded on Jan 15, 2025</p>
+              </div>
+              <button class="text-xs text-red-500 hover:text-red-600 font-medium">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎨 Brand Color Card -->
+        <div class="card animate-fade-in delay-1">
+          <div class="card-header">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-50">
+                <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-gray-800">Brand Color</h2>
+                <p class="text-xs text-gray-500">Primary color used throughout the portal</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <input type="color" value="#10409a" class="w-16 h-16 rounded-lg cursor-pointer border-2 border-gray-200">
+              </div>
+              <div class="flex-1">
+                <label class="section-label">Primary Color</label>
+                <div class="flex items-center gap-2 mt-1">
+                  <input type="text" value="#10409a" class="input font-mono text-sm uppercase">
+                  <div class="w-6 h-6 rounded border border-gray-200" style="background: #10409a;"></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Color Presets -->
+            <div class="mt-4">
+              <p class="section-label mb-2">Quick Presets</p>
+              <div class="flex gap-2">
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #10409a;"></button>
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #0f766e;"></button>
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #dc2626;"></button>
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #7c3aed;"></button>
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #ea580c;"></button>
+                <button class="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform" style="background: #0891b2;"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎨 Portal Name Card -->
+        <div class="card animate-fade-in delay-2">
+          <div class="card-header">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-gray-800">Portal Name</h2>
+                <p class="text-xs text-gray-500">Name displayed in the portal header</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <input type="text" value="Acme Partner Portal" class="input" placeholder="Enter portal name">
+            <p class="text-xs text-gray-400 mt-2">This name will be visible to your affiliates on the login page and dashboard.</p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-2">
+          <button class="btn btn-outline">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Reset to Defaults
+          </button>
+          <button class="btn btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            Save Changes
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Live Preview -->
+      <div class="sticky top-6">
+        <div class="card animate-fade-in delay-1">
+          <div class="card-header">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              <h2 class="text-sm font-bold text-gray-800">Live Preview</h2>
+            </div>
+            <p class="text-xs text-gray-500">See how your portal will look to affiliates</p>
+          </div>
+          <div class="card-body p-0">
+            <!-- Simulated Affiliate Portal Preview -->
+            <div class="bg-gray-100 p-4 rounded-b-xl">
+              <div class="bg-white rounded-lg shadow-sm overflow-hidden" style="border-top: 4px solid #10409a;">
+                <!-- Portal Header -->
+                <div class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-6 bg-blue-700 rounded flex items-center justify-center">
+                      <span class="text-[8px] font-bold text-white">ACME</span>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">Acme Partner Portal</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 bg-gray-200 rounded-full"></div>
+                  </div>
+                </div>
+                
+                <!-- Portal Body -->
+                <div class="p-4">
+                  <div class="text-center py-8">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Welcome, Affiliate!</h3>
+                    <p class="text-sm text-gray-500">Start promoting and earn commissions</p>
+                  </div>
+                  
+                  <!-- Sample Cards -->
+                  <div class="grid grid-cols-2 gap-3 mt-4">
+                    <div class="bg-blue-50 rounded-lg p-3 text-center">
+                      <p class="text-xs text-blue-600 font-medium">Total Clicks</p>
+                      <p class="text-xl font-bold text-blue-700">1,234</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-3 text-center">
+                      <p class="text-xs text-green-600 font-medium">Total Earnings</p>
+                      <p class="text-xl font-bold text-green-700">₱45,000</p>
+                    </div>
+                  </div>
+                  
+                  <button class="w-full mt-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium">
+                    Get Your Links
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Preview Info -->
+            <div class="p-4 bg-gray-50 border-t border-gray-100">
+              <div class="flex items-center gap-2 text-xs text-gray-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Changes preview in real-time as you edit</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
