@@ -158,6 +158,51 @@ export function tenantMutation<Args extends Record<string, any>, ReturnType>(
 }
 
 /**
+ * Get the tenant ID for the currently authenticated affiliate.
+ * Looks up the `affiliates` table (not `users`) via Better Auth session.
+ * Returns null if the user is not authenticated or not an affiliate.
+ */
+export async function getAffiliateTenantId(
+  ctx: QueryCtx | MutationCtx
+): Promise<Id<"tenants"> | null> {
+  let betterAuthUser;
+  try {
+    betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+  } catch {
+    return null;
+  }
+
+  if (!betterAuthUser) {
+    return null;
+  }
+
+  const affiliate = await ctx.db
+    .query("affiliates")
+    .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+    .first();
+
+  if (!affiliate) {
+    return null;
+  }
+
+  return affiliate.tenantId;
+}
+
+/**
+ * Get the tenant ID for the currently authenticated affiliate.
+ * Throws an error if not authenticated or not an affiliate.
+ */
+export async function requireAffiliateTenantId(
+  ctx: QueryCtx | MutationCtx
+): Promise<Id<"tenants">> {
+  const tenantId = await getAffiliateTenantId(ctx);
+  if (!tenantId) {
+    throw new Error("Unauthorized: Affiliate authentication required");
+  }
+  return tenantId;
+}
+
+/**
  * Check if write operations are allowed for the current tenant.
  * Write operations are blocked when:
  * 1. Subscription is cancelled AND billing period has ended

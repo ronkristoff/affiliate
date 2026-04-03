@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AffiliateSignInForm } from "@/components/affiliate/AffiliateSignInForm";
+import { ResolvePortalTenant } from "@/components/affiliate/ResolvePortalTenant";
 import { Loader2, Shield, Zap, BarChart3 } from "lucide-react";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -41,14 +42,22 @@ interface PortalLoginPageContentProps {
 
 async function PortalLoginPageContent({ searchParams }: PortalLoginPageContentProps) {
   const params = await searchParams;
-  const tenantSlug = params.tenant || "default";
+  const tenantSlugParam = params.tenant;
 
-  // Fetch tenant context including branding with error handling
+  // No ?tenant= provided — resolve from the authenticated session
+  // (affiliate → redirect to /portal/login?tenant=<slug>,
+  //  owner → redirect to /dashboard,
+  //  unauthenticated → show sign-in prompt)
+  if (!tenantSlugParam) {
+    return <ResolvePortalTenant />;
+  }
+
+  // A tenant slug was explicitly provided — look it up
   let tenant = null;
 
   try {
     tenant = await fetchQuery(api.affiliateAuth.getAffiliateTenantContext, {
-      tenantSlug,
+      tenantSlug: tenantSlugParam,
     });
   } catch (error) {
     console.error("Failed to fetch tenant context:", error);
@@ -219,7 +228,7 @@ async function PortalLoginPageContent({ searchParams }: PortalLoginPageContentPr
           {/* Sign-in form */}
           <div className="animate-stagger-3 mt-8">
             <AffiliateSignInForm
-              tenantSlug={tenantSlug}
+              tenantSlug={tenantSlugParam}
               redirectUrl="/portal/home"
               tenantBranding={branding}
             />
@@ -229,7 +238,7 @@ async function PortalLoginPageContent({ searchParams }: PortalLoginPageContentPr
           <p className="animate-stagger-4 mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <a
-              href={`/portal/register${tenantSlug !== "default" ? `?tenant=${tenantSlug}` : ""}`}
+              href={`/portal/register?tenant=${tenantSlugParam}`}
               className="font-medium hover:underline"
               style={{ color: primaryColor }}
             >

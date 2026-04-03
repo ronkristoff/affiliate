@@ -1,7 +1,7 @@
 import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, requireAffiliateTenantId } from "./tenantContext";
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
@@ -583,12 +583,7 @@ export const getAffiliateCommissions = query({
     })
   ),
   handler: async (ctx, args) => {
-    const user = await getAuthenticatedUser(ctx);
-    if (!user) {
-      return [];
-    }
-
-    const tenantId = user.tenantId;
+    const tenantId = await requireAffiliateTenantId(ctx);
 
     // Verify affiliate belongs to tenant and get referral code
     const affiliate = await ctx.db.get(args.affiliateId);

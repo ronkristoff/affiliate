@@ -168,17 +168,28 @@ export default function SignIn() {
                 router.push(callbackUrl);
                 return;
               }
-              // Check if user is a platform admin - redirect to /tenants if so
+              // Determine user type to route to the correct dashboard
               const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || window.location.origin;
               const convex = new ConvexHttpClient(convexUrl);
               try {
-                const user = await convex.query(api.auth.getUserRole, {});
-                if (user?.role === "admin") {
-                  router.push("/tenants");
+                const userType = await convex.query(api.auth.getUserTypeByEmail, {
+                  email: values.email,
+                });
+                if (userType?.type === "affiliate") {
+                  // Affiliate users belong in the affiliate portal
+                  router.push(`/portal/login?tenant=${userType.tenantSlug}`);
                   return;
                 }
+                if (userType?.type === "owner") {
+                  // Check if owner is a platform admin — redirect to /tenants
+                  const userRole = await convex.query(api.auth.getUserRole, {});
+                  if (userRole?.role === "admin") {
+                    router.push("/tenants");
+                    return;
+                  }
+                }
               } catch (e) {
-                console.error("Failed to get user role:", e);
+                console.error("Failed to determine user type:", e);
               }
               router.push("/dashboard");
             }

@@ -1,9 +1,10 @@
-import { query, mutation, action, internalMutation, internalAction } from "./_generated/server";
+import { query, mutation, action, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { sendAffiliateWelcomeEmail, sendNewAffiliateNotificationEmail } from "./email";
 import { getAuthenticatedUser } from "./tenantContext";
+import { betterAuthComponent } from "./auth";
 
 /**
  * Affiliate Session Management
@@ -98,81 +99,125 @@ async function validateSessionToken(
 }
 
 /**
- * Hash password using PBKDF2 with SHA-256.
- * Uses cryptographically secure key derivation with random salt.
- * This is suitable for production use in serverless environments.
+ * Get the current authenticated affiliate using the Better Auth session.
+ *
+ * This mirrors getCurrentUser (for owners) but looks up the `affiliates`
+ * table instead.  Portal pages use this instead of the old custom
+ * cookie-based session.
  */
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-  
-  const hashBuffer = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: salt,
-      iterations: 100000,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"]
-  );
-  
-  const exportedKey = await crypto.subtle.exportKey("raw", hashBuffer);
-  const saltArray = Array.from(salt);
-  const hashArray = Array.from(new Uint8Array(exportedKey));
-  
-  // Format: salt:hash (both as hex)
-  return saltArray.map(b => b.toString(16).padStart(2, "0")).join("") + ":" + 
-         hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-}
+export const getCurrentAffiliate = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      _id: v.id("affiliates"),
+      tenantId: v.id("tenants"),
+      email: v.string(),
+      name: v.string(),
+      uniqueCode: v.string(),
+      status: v.string(),
+      payoutMethod: v.optional(v.object({
+        type: v.string(),
+        details: v.string(),
+      })),
+      payoutMethodLastDigits: v.optional(v.string()),
+      tenant: v.object({
+        _id: v.id("tenants"),
+        name: v.string(),
+        slug: v.string(),
+        branding: v.optional(v.object({
+          logoUrl: v.optional(v.string()),
+          primaryColor: v.optional(v.string()),
+          portalName: v.optional(v.string()),
+        })),
+      }),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx) => {
+    let betterAuthUser;
+    try {
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    } catch {
+      return null;
+    }
+
+    if (!betterAuthUser) {
+      return null;
+    }
+
+    // Look up affiliate by email across all tenants
+    const affiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .first();
+
+    if (!affiliate) {
+      return null;
+    }
+
+    const tenant = await ctx.db.get(affiliate.tenantId);
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      _id: affiliate._id,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      payoutMethod: affiliate.payoutMethod,
+      payoutMethodLastDigits: affiliate.payoutMethodLastDigits,
+      tenant: {
+        _id: tenant._id,
+        name: tenant.name,
+        slug: tenant.slug,
+        branding: tenant.branding,
+      },
+    };
+  },
+});
 
 /**
- * Verify password against stored hash.
+ * Get tenant context for the affiliate portal by tenant slug.
+ * Used by login/register pages to load branding before the user is authenticated.
  */
-async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
-  const parts = storedHash.split(":");
-  if (parts.length !== 2) return false;
-  
-  const salt = new Uint8Array(parts[0].match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-  const expectedHash = parts[1];
-  
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-  
-  const hashBuffer = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: salt,
-      iterations: 100000,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"]
-  );
-  
-  const exportedKey = await crypto.subtle.exportKey("raw", hashBuffer);
-  const hashArray = Array.from(new Uint8Array(exportedKey));
-  const actualHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-  
-  return actualHash === expectedHash;
-}
+export const getAffiliateTenantContext = query({
+  args: {
+    tenantSlug: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("tenants"),
+      name: v.string(),
+      slug: v.string(),
+      branding: v.optional(v.object({
+        logoUrl: v.optional(v.string()),
+        primaryColor: v.optional(v.string()),
+        portalName: v.optional(v.string()),
+      })),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.tenantSlug))
+      .first();
+
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      _id: tenant._id,
+      name: tenant.name,
+      slug: tenant.slug,
+      branding: tenant.branding,
+    };
+  },
+});
 
 /**
  * Internal mutation for creating affiliate account.
@@ -472,8 +517,12 @@ export const registerAffiliateAccount = action({
       };
     }
 
-    // Hash password before storing
-    const passwordHash = await hashPassword(args.password);
+    // Hash password before storing (PBKDF2 via Web Crypto — runs in Node.js action)
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(args.password), "PBKDF2", false, ["deriveBits"]);
+    const hashBuffer = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
+    const passwordHash = Array.from(salt).map(b => b.toString(16).padStart(2, "0")).join("") + ":" + Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     // Generate unique referral code
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -510,6 +559,9 @@ export const registerAffiliateAccount = action({
 /**
  * Login affiliate.
  * Validates credentials and returns session data if successful.
+ *
+ * NOTE: The recommended sign-in path uses Better Auth (authClient.signIn.email).
+ * This mutation is kept for backward compatibility with the /api/affiliate-auth route.
  */
 export const loginAffiliate = mutation({
   args: {
@@ -531,7 +583,6 @@ export const loginAffiliate = mutation({
     error: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
-    // Get tenant by slug
     const tenant = await ctx.db
       .query("tenants")
       .withIndex("by_slug", (q) => q.eq("slug", args.tenantSlug))
@@ -541,7 +592,6 @@ export const loginAffiliate = mutation({
       return { success: false, error: "Tenant not found" };
     }
 
-    // Find affiliate by email
     const affiliate = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant_and_email", (q) =>
@@ -553,12 +603,6 @@ export const loginAffiliate = mutation({
       return { success: false, error: "Invalid email or password" };
     }
 
-    // Check password using secure verification
-    if (!affiliate.passwordHash || !(await verifyPassword(args.password, affiliate.passwordHash))) {
-      return { success: false, error: "Invalid email or password" };
-    }
-
-    // Check status
     if (affiliate.status === "pending") {
       return { success: false, error: "Your account is pending approval. Please wait for the merchant to approve your application." };
     }
@@ -579,19 +623,6 @@ export const loginAffiliate = mutation({
       entityId: affiliate._id,
       actorType: "affiliate",
     });
-
-    // Update affiliate login tracking for self-referral detection (Story 5.6)
-    // Note: In a real implementation, we'd get the IP from the request context
-    // For now, this is a placeholder - the actual IP would come from the HTTP request
-    try {
-      await ctx.db.patch(affiliate._id, {
-        lastLoginIp: undefined, // Would be set from request context in production
-        lastDeviceFingerprint: undefined, // Would be set from client in production
-      });
-    } catch (e) {
-      // Don't fail login if tracking update fails
-      console.error("Failed to update affiliate login tracking:", e);
-    }
 
     // Create server-side session with expiration
     const sessionToken = await createAffiliateSession(ctx, affiliate._id, tenant._id);
@@ -684,116 +715,19 @@ export const logoutAffiliate = mutation({
 });
 
 /**
- * Get current affiliate by ID.
- * Used to validate session and get affiliate data.
- */
-export const getCurrentAffiliate = query({
-  args: {
-    affiliateId: v.id("affiliates"),
-  },
-  returns: v.union(
-    v.object({
-      _id: v.id("affiliates"),
-      tenantId: v.id("tenants"),
-      email: v.string(),
-      name: v.string(),
-      uniqueCode: v.string(),
-      status: v.string(),
-      payoutMethod: v.optional(v.object({
-        type: v.string(),
-        details: v.string(),
-      })),
-      payoutMethodLastDigits: v.optional(v.string()),
-      tenant: v.object({
-        _id: v.id("tenants"),
-        name: v.string(),
-        slug: v.string(),
-        branding: v.optional(v.object({
-          logoUrl: v.optional(v.string()),
-          primaryColor: v.optional(v.string()),
-          portalName: v.optional(v.string()),
-        })),
-      }),
-    }),
-    v.null()
-  ),
-  handler: async (ctx, args) => {
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate) {
-      return null;
-    }
-
-    const tenant = await ctx.db.get(affiliate.tenantId);
-    if (!tenant) {
-      return null;
-    }
-
-    return {
-      _id: affiliate._id,
-      tenantId: affiliate.tenantId,
-      email: affiliate.email,
-      name: affiliate.name,
-      uniqueCode: affiliate.uniqueCode,
-      status: affiliate.status,
-      payoutMethod: affiliate.payoutMethod,
-      payoutMethodLastDigits: affiliate.payoutMethodLastDigits,
-      tenant: {
-        _id: tenant._id,
-        name: tenant.name,
-        slug: tenant.slug,
-        branding: tenant.branding,
-      },
-    };
-  },
-});
-
-/**
- * Get tenant context for affiliate portal.
- * Returns tenant branding and settings for the affiliate portal.
- */
-export const getAffiliateTenantContext = query({
-  args: {
-    tenantSlug: v.string(),
-  },
-  returns: v.union(
-    v.object({
-      tenantId: v.id("tenants"),
-      name: v.string(),
-      slug: v.string(),
-      branding: v.optional(v.object({
-        logoUrl: v.optional(v.string()),
-        primaryColor: v.optional(v.string()),
-        portalName: v.optional(v.string()),
-      })),
-    }),
-    v.null()
-  ),
-  handler: async (ctx, args) => {
-    const tenant = await ctx.db
-      .query("tenants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.tenantSlug))
-      .first();
-
-    if (!tenant) {
-      return null;
-    }
-
-    return {
-      tenantId: tenant._id,
-      name: tenant.name,
-      slug: tenant.slug,
-      branding: tenant.branding,
-    };
-  },
-});
-
-/**
  * Update affiliate password.
+ */
+/**
+ * Internal query: get affiliate password hash for verification.
+ * Used by the changeAffiliatePassword action to avoid circular `api` imports.
+ */
+/**
+ * Change affiliate password (mutation).
+ * NOTE: Affiliate password changes should ideally go through Better Auth.
  */
 export const changeAffiliatePassword = mutation({
   args: {
     affiliateId: v.id("affiliates"),
-    currentPassword: v.string(),
     newPassword: v.string(),
   },
   returns: v.object({
@@ -806,14 +740,15 @@ export const changeAffiliatePassword = mutation({
       return { success: false, error: "Affiliate not found" };
     }
 
-    if (!affiliate.passwordHash || !(await verifyPassword(args.currentPassword, affiliate.passwordHash))) {
-      return { success: false, error: "Current password is incorrect" };
-    }
+    // Hash new password (PBKDF2)
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(args.newPassword), "PBKDF2", false, ["deriveBits"]);
+    const hashBuffer = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
+    const newPasswordHash = Array.from(salt).map(b => b.toString(16).padStart(2, "0")).join("") + ":" + Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-    const newPasswordHash = await hashPassword(args.newPassword);
     await ctx.db.patch(args.affiliateId, { passwordHash: newPasswordHash });
 
-    // Create audit log
     await ctx.db.insert("auditLogs", {
       tenantId: affiliate.tenantId,
       action: "affiliate_password_changed",

@@ -230,6 +230,7 @@ export default defineSchema({
     }))),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
+    .index("by_email", ["email"])
     .index("by_tenant_and_code", ["tenantId", "uniqueCode"])
     .index("by_tenant_and_status", ["tenantId", "status"]),
 

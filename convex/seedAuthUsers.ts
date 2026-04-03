@@ -51,6 +51,24 @@ const ALL_USERS: Array<{ email: string; name: string }> = [
   { email: "raj@seasiatech.test", name: "Raj Patel" },
   // Bicol Digital Solutions
   { email: "marco@bicoldigital.test", name: "Marco Imperial" },
+  // Affiliate users
+  { email: "jamie@email.com", name: "Jamie Wilson" },
+  { email: "sarah@email.com", name: "Sarah Miller" },
+  { email: "mike@email.com", name: "Mike Johnson" },
+  { email: "lisa@email.com", name: "Lisa Brown" },
+  { email: "mark.t@digitalgen.test", name: "Mark Thompson" },
+  { email: "jen.k@smartsol.test", name: "Jennifer Kim" },
+  { email: "tom.hanks@influencer.test", name: "Tom Richards" },
+  { email: "carlo.m@saaspro.test", name: "Carlo Mendoza" },
+  { email: "anna.l@digimarket.test", name: "Anna Lim" },
+  { email: "daniel.g@cebudigi.test", name: "Daniel Garcia" },
+  { email: "michelle.s@creativeph.test", name: "Michelle Santos" },
+  { email: "paolo.v@growthph.test", name: "Paolo Villanueva" },
+  { email: "chen.w@seasia.test", name: "Chen Wei" },
+  { email: "priya.s@seasia.test", name: "Priya Sharma" },
+  { email: "ahmed.h@seasia.test", name: "Ahmed Hassan" },
+  { email: "rosa.d@bicoldigi.test", name: "Rosa Dela Torre" },
+  { email: "jose.r@bicoldigi.test", name: "Jose Rizalino" },
 ];
 
 export const seedAuthUsers = action({

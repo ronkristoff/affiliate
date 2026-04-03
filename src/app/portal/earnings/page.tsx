@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Loader2 } from "lucide-react";
@@ -16,70 +16,48 @@ import { CommissionList } from "./components/CommissionList";
 import { PortalHeader } from "@/components/affiliate/PortalHeader";
 import { PortalBottomNav } from "@/components/affiliate/PortalBottomNav";
 import { PortalSidebar } from "@/components/affiliate/PortalSidebar";
-
-interface AffiliateSession {
-  affiliateId: string;
-  tenantId: string;
-  email: string;
-  name: string;
-  uniqueCode: string;
-  status: string;
-  payoutMethod?: {
-    type: string;
-    details: string;
-  };
-  payoutMethodLastDigits?: string;
-}
+import { authClient } from "@/lib/auth-client";
 
 export default function PortalEarningsPage() {
   const searchParams = useSearchParams();
-  const [session, setSession] = useState<AffiliateSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState(searchParams.get("period") || "all");
   const [selectedStatus, setSelectedStatus] = useState("all");
 
-  // Get session from cookie via API on mount
-  useEffect(() => {
-    async function fetchSession() {
-      try {
-        const response = await fetch("/api/affiliate-auth/session", {
-          method: "GET",
-          credentials: "include",
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.session) {
-            setSession(data.session);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    fetchSession();
-  }, []);
-
-  // Fetch tenant context for branding
-  const tenantContext = useQuery(
-    api.affiliateAuth.getAffiliateTenantContext,
-    session ? { tenantSlug: "default" } : "skip"
-  );
+  // ── Auth: use Better Auth session via getCurrentAffiliate query ──
+  const affiliate = useQuery(api.affiliateAuth.getCurrentAffiliate);
+  const isLoading = affiliate === undefined;
+  const isAuthenticated = affiliate !== null && affiliate !== undefined;
 
   // Fetch earnings summary for payout banner
   const earningsSummary = useQuery(
     api.affiliateAuth.getAffiliateEarningsSummary,
-    session ? { affiliateId: session.affiliateId as Id<'affiliates'> } : "skip"
+    affiliate ? { affiliateId: affiliate._id } : "skip"
   );
 
   // Fetch tenant payout schedule for next payout date
   const tenantPayoutSchedule = useQuery(
     api.tenants.getTenantPayoutSchedule,
-    session?.tenantId ? { tenantId: session.tenantId as Id<'tenants'> } : "skip"
+    affiliate?.tenantId ? { tenantId: affiliate.tenantId } : "skip"
   );
+
+  // Redirect unauthenticated affiliates to portal login
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/portal/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Handle logout — sign out of Better Auth
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    router.push("/portal/login");
+    router.refresh();
+  };
 
   const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
@@ -97,7 +75,7 @@ export default function PortalEarningsPage() {
     );
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)]">
         <div className="text-center">
@@ -107,14 +85,15 @@ export default function PortalEarningsPage() {
     );
   }
 
-  const tenantPrimaryColor = tenantContext?.branding?.primaryColor || "#1c2260";
-  const portalName = tenantContext?.branding?.portalName || "Affiliate Portal";
+  // Get tenant branding from the authenticated affiliate (already resolved)
+  const tenantPrimaryColor = affiliate?.tenant?.branding?.primaryColor || "#1c2260";
+  const portalName = affiliate?.tenant?.branding?.portalName || affiliate?.tenant?.name || "Affiliate Portal";
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Desktop Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 h-full w-[220px]">
-        <PortalSidebar 
+        <PortalSidebar
           portalName={portalName}
           primaryColor={tenantPrimaryColor}
           currentPath="/portal/earnings"
@@ -124,7 +103,7 @@ export default function PortalEarningsPage() {
       {/* Main Content */}
       <div className="md:ml-[220px] pb-20 md:pb-0">
         {/* Header */}
-        <PortalHeader 
+        <PortalHeader
           portalName={portalName}
           primaryColor={tenantPrimaryColor}
           pageTitle="Earnings"
@@ -153,7 +132,7 @@ export default function PortalEarningsPage() {
           `}</style>
 
           {/* Payout Banner - Shows when there's a confirmed balance ready for payout */}
-          <PayoutBanner 
+          <PayoutBanner
             confirmedBalance={earningsSummary?.confirmedBalance || 0}
             nextPayoutDate={tenantPayoutSchedule?.nextPayoutDate}
             isLoading={earningsSummary === undefined}
@@ -161,33 +140,33 @@ export default function PortalEarningsPage() {
 
           {/* Earnings Hero */}
           <div className="mb-6">
-            <EarningsHero 
-              affiliateId={session.affiliateId}
+            <EarningsHero
+              affiliateId={affiliate._id}
               tenantPrimaryColor={tenantPrimaryColor}
             />
           </div>
 
           {/* Payout Method Info */}
           <div className="mb-4">
-            <PayoutMethodInfo 
-              payoutMethod={session.payoutMethod}
-              payoutMethodLastDigits={session.payoutMethodLastDigits}
+            <PayoutMethodInfo
+              payoutMethod={affiliate.payoutMethod}
+              payoutMethodLastDigits={affiliate.payoutMethodLastDigits}
             />
           </div>
 
           {/* Payout History */}
           <div className="mb-6">
-            <PayoutHistory affiliateId={session.affiliateId} />
+            <PayoutHistory affiliateId={affiliate._id} />
           </div>
 
           {/* Filters */}
           <div className="mb-6 space-y-4">
-            <PeriodFilterTabs 
+            <PeriodFilterTabs
               selectedPeriod={selectedPeriod}
               onPeriodChange={handlePeriodChange}
             />
             <div className="flex justify-end">
-              <StatusFilter 
+              <StatusFilter
                 selectedStatus={selectedStatus}
                 onStatusChange={handleStatusChange}
               />
@@ -195,8 +174,8 @@ export default function PortalEarningsPage() {
           </div>
 
           {/* Commission List */}
-          <CommissionList 
-            affiliateId={session.affiliateId}
+          <CommissionList
+            affiliateId={affiliate._id}
             period={selectedPeriod}
             status={selectedStatus}
             tenantPrimaryColor={tenantPrimaryColor}
@@ -206,7 +185,7 @@ export default function PortalEarningsPage() {
 
       {/* Mobile Bottom Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0">
-        <PortalBottomNav 
+        <PortalBottomNav
           portalName={portalName}
           primaryColor={tenantPrimaryColor}
           currentPath="/portal/earnings"

@@ -15,124 +15,70 @@ import { RecentActivityFeed } from "./components/RecentActivityFeed";
 import { PortalHeader } from "@/components/affiliate/PortalHeader";
 import { PortalBottomNav } from "@/components/affiliate/PortalBottomNav";
 import { PortalSidebar } from "@/components/affiliate/PortalSidebar";
-
-interface AffiliateSession {
-  affiliateId: string;
-  tenantId: string;
-  email: string;
-  name: string;
-  uniqueCode: string;
-  status: string;
-}
-
-interface QueryError {
-  message: string;
-  retry: () => void;
-}
+import { authClient } from "@/lib/auth-client";
 
 export default function PortalHomePage() {
   const router = useRouter();
-  const [session, setSession] = useState<AffiliateSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [queryErrors, setQueryErrors] = useState<Record<string, string>>({});
 
-  // Get session from cookie via API on mount
-  useEffect(() => {
-    async function fetchSession() {
-      try {
-        const response = await fetch("/api/affiliate-auth/session", {
-          method: "GET",
-          credentials: "include", // Include cookies
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.session) {
-            setSession(data.session);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    fetchSession();
-  }, []);
+  // ── Auth: use Better Auth session via getCurrentAffiliate query ──
+  const affiliate = useQuery(api.affiliateAuth.getCurrentAffiliate);
+  const isLoading = affiliate === undefined;
+  const isAuthenticated = affiliate !== null && affiliate !== undefined;
 
-  // Fetch affiliate data
-  const affiliateData = useQuery(
-    api.affiliateAuth.getCurrentAffiliate,
-    session ? { affiliateId: session.affiliateId as Id<"affiliates"> } : "skip"
-  );
+  // Get tenant slug from the authenticated affiliate (for sub-queries)
+  const tenantSlug = affiliate?.tenant?.slug;
 
-  // Fetch tenant context for branding
-  const tenantContext = useQuery(
-    api.affiliateAuth.getAffiliateTenantContext,
-    session ? { tenantSlug: "default" } : "skip"
-  );
-
-  // Fetch dashboard stats using the new query
+  // Fetch dashboard stats
   const dashboardStats = useQuery(
     api.affiliateAuth.getAffiliatePortalDashboardStats,
-    session ? { affiliateId: session.affiliateId as Id<"affiliates"> } : "skip"
+    affiliate ? { affiliateId: affiliate._id } : "skip"
   );
 
   // Fetch recent activity
   const recentActivity = useQuery(
     api.affiliateAuth.getAffiliateRecentActivity,
-    session ? { affiliateId: session.affiliateId as Id<"affiliates">, limit: 5 } : "skip"
+    affiliate ? { affiliateId: affiliate._id, limit: 5 } : "skip"
   );
 
   // Fetch referral links for QuickLinkCard
   const affiliateLinks = useQuery(
     api.referralLinks.getAffiliatePortalLinks,
-    session ? { affiliateId: session.affiliateId as Id<"affiliates"> } : "skip"
+    affiliate ? { affiliateId: affiliate._id } : "skip"
   );
+
+  // Redirect unauthenticated affiliates to portal login
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/portal/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Track query errors
   useEffect(() => {
     const errors: Record<string, string> = {};
-    
-    if (dashboardStats === null && session) {
+
+    if (dashboardStats === null && isAuthenticated) {
       errors.dashboardStats = "Failed to load dashboard statistics";
     }
-    if (recentActivity === null && session) {
+    if (recentActivity === null && isAuthenticated) {
       errors.recentActivity = "Failed to load recent activity";
     }
-    if (affiliateLinks === null && session) {
+    if (affiliateLinks === null && isAuthenticated) {
       errors.affiliateLinks = "Failed to load referral links";
     }
-    if (tenantContext === null && session) {
-      errors.tenantContext = "Failed to load tenant branding";
-    }
-    
+
     setQueryErrors(errors);
-  }, [dashboardStats, recentActivity, affiliateLinks, tenantContext, session]);
+  }, [dashboardStats, recentActivity, affiliateLinks, isAuthenticated]);
 
-  // Check if affiliate is authenticated
-  useEffect(() => {
-    if (!isLoading && !session) {
-      router.push("/portal/login");
-    }
-  }, [isLoading, session, router]);
-
-  // Handle logout - call API to clear httpOnly cookie
+  // Handle logout — sign out of Better Auth
   const handleLogout = async () => {
     try {
-      await fetch("/api/affiliate-auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "logout" }),
-        credentials: "include", // Include cookies
-      });
+      await authClient.signOut();
     } catch (error) {
       console.error("Logout error:", error);
     }
-    
+
     router.push("/portal/login");
     router.refresh();
   };
@@ -145,22 +91,22 @@ export default function PortalHomePage() {
     );
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return null;
   }
 
-  // Get tenant branding
-  const primaryColor = tenantContext?.branding?.primaryColor || "#1c2260";
-  const portalName = tenantContext?.branding?.portalName || "Affiliate Portal";
-  const tenantLogo = tenantContext?.branding?.logoUrl;
+  // Get tenant branding from the authenticated affiliate (already resolved)
+  const primaryColor = affiliate?.tenant?.branding?.primaryColor || "#1c2260";
+  const portalName = affiliate?.tenant?.branding?.portalName || affiliate?.tenant?.name || "Affiliate Portal";
+  const tenantLogo = affiliate?.tenant?.branding?.logoUrl;
 
   // Get primary referral link (first link in the list)
   const primaryLink = affiliateLinks?.[0]?.shortUrl;
 
   // Check if any dashboard data is loading
-  const isDashboardLoading = dashboardStats === undefined && session !== null;
-  const isActivityLoading = recentActivity === undefined && session !== null;
-  const isLinksLoading = affiliateLinks === undefined && session !== null;
+  const isDashboardLoading = dashboardStats === undefined;
+  const isActivityLoading = recentActivity === undefined;
+  const isLinksLoading = affiliateLinks === undefined;
 
   // Check if there are any critical errors
   const hasCriticalError = Object.keys(queryErrors).length > 0;
@@ -216,7 +162,7 @@ export default function PortalHomePage() {
             </Card>
           )}
 
-          {session.status === "pending" ? (
+          {affiliate.status === "pending" ? (
             <Card>
               <CardHeader>
                 <CardTitle>Account Pending Approval</CardTitle>
@@ -235,7 +181,7 @@ export default function PortalHomePage() {
             <div className="max-w-3xl mx-auto space-y-6">
               {/* Welcome Banner */}
               <WelcomeBanner
-                affiliateName={session.name}
+                affiliateName={affiliate.name}
                 totalEarnings={dashboardStats?.totalEarnings || 0}
                 totalClicks={dashboardStats?.totalClicks || 0}
                 totalConversions={dashboardStats?.totalConversions || 0}
@@ -245,7 +191,7 @@ export default function PortalHomePage() {
               {/* Quick Link Card */}
               <QuickLinkCard
                 primaryLink={primaryLink}
-                affiliateId={session.affiliateId}
+                affiliateId={affiliate._id}
               />
 
               {/* Earnings Summary Grid */}

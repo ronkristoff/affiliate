@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireTenantId, getAuthenticatedUser } from "./tenantContext";
+import { requireTenantId, requireAffiliateTenantId, getAuthenticatedUser } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
@@ -513,7 +513,7 @@ export const getAffiliatePortalLinks = query({
     conversionRate: v.number(),
   })),
   handler: async (ctx, args) => {
-    const tenantId = await requireTenantId(ctx);
+    const tenantId = await requireAffiliateTenantId(ctx);
 
     // Verify affiliate belongs to tenant
     const affiliate = await ctx.db.get(args.affiliateId);
@@ -617,7 +617,7 @@ export const getAffiliateDailyClicks = query({
     isToday: v.boolean(),
   })),
   handler: async (ctx, args) => {
-    const tenantId = await requireTenantId(ctx);
+    const tenantId = await requireAffiliateTenantId(ctx);
 
     // Verify affiliate belongs to tenant
     const affiliate = await ctx.db.get(args.affiliateId);
@@ -693,7 +693,7 @@ export const updateVanitySlug = mutation({
     message: v.string(),
   }),
   handler: async (ctx, args) => {
-    const tenantId = await requireTenantId(ctx);
+    const tenantId = await requireAffiliateTenantId(ctx);
 
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate || affiliate.tenantId !== tenantId) {

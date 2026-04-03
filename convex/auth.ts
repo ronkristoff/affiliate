@@ -197,6 +197,99 @@ export const getCurrentTenantId = query({
 });
 
 /**
+ * Determine whether an email belongs to a SaaS Owner (users table) or
+ * an Affiliate (affiliates table).  Used by the sign-in flow to redirect
+ * affiliate users to the affiliate portal instead of the owner dashboard.
+ *
+ * This query does NOT require authentication — it is called from the browser
+ * via ConvexHttpClient right after a successful Better Auth sign-in, before
+ * the Convex auth token has been exchanged.
+ */
+export const getUserTypeByEmail = query({
+  args: { email: v.string() },
+  returns: v.union(
+    v.object({ type: v.literal("owner") }),
+    v.object({ type: v.literal("affiliate"), tenantSlug: v.string() }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    // 1. Check users table (SaaS Owners)
+    const appUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (appUser && appUser.status !== "removed") {
+      return { type: "owner" as const };
+    }
+
+    // 2. Check affiliates table — resolve tenant slug for portal redirect
+    const affiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (affiliate) {
+      const tenant = await ctx.db.get(affiliate.tenantId);
+      return { type: "affiliate" as const, tenantSlug: tenant?.slug ?? "default" };
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Determine the authenticated user's type (owner vs affiliate) using the
+ * Convex auth session.  Used by the (auth) layout to redirect affiliate
+ * users who land on owner pages (e.g. via bookmark or direct URL).
+ */
+export const getAuthenticatedUserType = query({
+  args: {},
+  returns: v.union(
+    v.object({ type: v.literal("owner") }),
+    v.object({ type: v.literal("affiliate"), tenantSlug: v.string() }),
+    v.null(),
+  ),
+  handler: async (ctx) => {
+    let betterAuthUser;
+    try {
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    } catch {
+      return null;
+    }
+
+    if (!betterAuthUser) {
+      return null;
+    }
+
+    const email = betterAuthUser.email;
+
+    // 1. Check users table (SaaS Owners)
+    const appUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+
+    if (appUser && appUser.status !== "removed") {
+      return { type: "owner" as const };
+    }
+
+    // 2. Check affiliates table — resolve tenant slug for portal redirect
+    const affiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+
+    if (affiliate) {
+      const tenant = await ctx.db.get(affiliate.tenantId);
+      return { type: "affiliate" as const, tenantSlug: tenant?.slug ?? "default" };
+    }
+
+    return null;
+  },
+});
+
+/**
  * Get the current user's role for client-side redirect logic.
  * Returns "admin" for platform admins, or null if not authenticated.
  */

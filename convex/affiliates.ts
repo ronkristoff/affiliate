@@ -180,6 +180,38 @@ export const getAffiliateByEmail = query({
 });
 
 /**
+ * Get affiliate by ID including passwordHash (for password verification in actions).
+ */
+export const getAffiliateWithPasswordHash = query({
+  args: { affiliateId: v.id("affiliates") },
+  returns: v.union(
+    v.object({
+      _id: v.id("affiliates"),
+      tenantId: v.id("tenants"),
+      email: v.string(),
+      name: v.string(),
+      uniqueCode: v.string(),
+      status: v.string(),
+      passwordHash: v.optional(v.string()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) return null;
+    return {
+      _id: affiliate._id,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
+      status: affiliate.status,
+      passwordHash: affiliate.passwordHash,
+    };
+  },
+});
+
+/**
  * Get affiliate by referral code.
  * Used for tracking clicks and conversions.
  */

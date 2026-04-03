@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AffiliateSignUpForm } from "@/components/affiliate/AffiliateSignUpForm";
+import { ResolvePortalTenant } from "@/components/affiliate/ResolvePortalTenant";
 import { ReCaptchaWrapper } from "@/components/ui/ReCaptchaWrapper";
 import { Loader2, Repeat, Shield, Zap, BarChart3 } from "lucide-react";
 import { fetchQuery } from "convex/nextjs";
@@ -36,19 +37,24 @@ interface PortalRegisterPageContentProps {
 
 async function PortalRegisterPageContent({ searchParams }: PortalRegisterPageContentProps) {
   const params = await searchParams;
-  const tenantSlug = params.tenant || "default";
+  const tenantSlugParam = params.tenant;
   const campaignSlug = params.campaign;
+
+  // No ?tenant= provided — resolve from the authenticated session
+  if (!tenantSlugParam) {
+    return <ResolvePortalTenant />;
+  }
 
   // Fetch tenant context including branding
   const tenant = await fetchQuery(api.affiliateAuth.getAffiliateTenantContext, {
-    tenantSlug,
+    tenantSlug: tenantSlugParam,
   });
 
   // Fetch campaign info if campaign slug is provided
   let campaign = null;
   if (campaignSlug) {
     campaign = await fetchQuery(api.campaigns.getCampaignBySlug, {
-      tenantSlug,
+      tenantSlug: tenantSlugParam,
       campaignSlug,
     });
   }
@@ -61,7 +67,7 @@ async function PortalRegisterPageContent({ searchParams }: PortalRegisterPageCon
   // Compute dynamic brand colors
   const heroBg = darkenColor(primaryColor, 0.22);
   const textColor = getContrastColor(heroBg);
-  const signInUrl = `/portal/login${tenantSlug !== "default" ? `?tenant=${tenantSlug}` : ""}`;
+  const signInUrl = `/portal/login?tenant=${tenantSlugParam}`;
 
   return (
     <div className="min-h-screen grid lg:grid-cols-5">
@@ -267,7 +273,7 @@ async function PortalRegisterPageContent({ searchParams }: PortalRegisterPageCon
           <div className="animate-stagger-3 mt-8">
             <ReCaptchaWrapper>
               <AffiliateSignUpForm
-                tenantSlug={tenantSlug}
+                tenantSlug={tenantSlugParam}
                 redirectUrl="/portal/login"
                 tenantBranding={{
                   portalName,

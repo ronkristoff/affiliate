@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/form";
 import { Loader2, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
 const signInSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -66,39 +69,20 @@ export function AffiliateSignInForm({
     setErrorType(null);
 
     try {
-      const response = await fetch("/api/affiliate-auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "login",
-          tenantSlug,
-          email: data.email,
-          password: data.password,
-        }),
+      // Sign in via Better Auth (same as SaaS owners)
+      const { error: authError } = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
       });
 
-      const result = await response.json();
-
-      if (!result.success) {
-        const errorMessage = result.error || "Invalid email or password";
-        setError(errorMessage);
-
-        if (errorMessage.includes("pending approval")) {
-          setErrorType("pending");
-        } else if (errorMessage.includes("suspended")) {
-          setErrorType("suspended");
-        } else if (errorMessage.includes("rejected")) {
-          setErrorType("rejected");
-        } else {
-          setErrorType("invalid");
-        }
-
+      if (authError) {
+        setError(authError.message || "Invalid email or password");
+        setErrorType("invalid");
         return;
       }
 
-      router.push(redirectUrl);
+      // After successful Better Auth sign-in, redirect to portal
+      router.push(`${redirectUrl}?tenant=${tenantSlug}`);
       router.refresh();
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -187,7 +171,7 @@ export function AffiliateSignInForm({
                   style={{ color: primaryColor }}
                   onClick={(e) => {
                     e.preventDefault();
-                    // TODO: Implement password reset flow
+                  // TODO: Implement password reset flow
                   }}
                 >
                   Forgot password?

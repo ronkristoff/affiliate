@@ -56,6 +56,7 @@ function AuthLayoutContent({
 }) {
   const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
+  const authenticatedUserType = useQuery(api.auth.getAuthenticatedUserType);
   const impersonationStatus = useQuery(api.admin.impersonation.getImpersonationStatus);
   const isImpersonating = !!impersonationStatus;
 
@@ -74,6 +75,16 @@ function AuthLayoutContent({
     handleAdminRedirect();
   }, [handleAdminRedirect]);
 
+  // Redirect affiliate users who land on owner pages to the affiliate portal
+  useEffect(() => {
+    if (
+      user === null &&
+      authenticatedUserType?.type === "affiliate"
+    ) {
+      router.replace(`/portal/login?tenant=${authenticatedUserType.tenantSlug}`);
+    }
+  }, [user, authenticatedUserType, router]);
+
   if (isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -86,6 +97,9 @@ function AuthLayoutContent({
   // Block on both `undefined` (query loading) and `null` (Convex auth token not
   // yet exchanged — happens on hard refresh before ConvexProviderWithAuth has
   // fetched the JWT from Better Auth).
+  //
+  // Exception: if we've confirmed the user is an affiliate, show the skeleton
+  // briefly while the redirect kicks in (handled by the useEffect above).
   if (!user) {
     return <AuthLayoutSkeleton />;
   }
