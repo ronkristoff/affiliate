@@ -8,7 +8,13 @@ import { useState } from "react";
 interface LogoProps {
   href?: string;
   className?: string;
-  /** "full" = full logo, "icon" = icon only. Legacy "light"/"dark" accepted for backward compat. */
+  /**
+   * Controls both shape and color variant:
+   * - "full"       → full logo, dark text (for light backgrounds)
+   * - "icon"       → icon only, dark (for light backgrounds)
+   * - "light"      → full logo, light text (for dark backgrounds)
+   * - "dark"       → full logo, dark text (alias for "full")
+   */
   variant?: "full" | "icon" | "light" | "dark";
   size?: "sm" | "md" | "lg" | "xl";
   /** @deprecated Use variant="icon" instead */
@@ -26,9 +32,17 @@ export function Logo({ href = "/dashboard", className, variant = "full", size = 
   const [imgError, setImgError] = useState(false);
   const { height, iconHeight } = sizeMap[size];
 
-  // Resolve effective variant — legacy props map to new system
+  // Resolve effective variant
   const isIcon = variant === "icon" || collapsed;
-  const src = isIcon ? "/logo-icon.png" : "/logo.png";
+  const isLight = variant === "light"; // light-colored logo for dark backgrounds
+
+  // Pick the correct image source based on shape and color variant
+  const src = isIcon
+    ? "/logo-icon.png" // icon uses same file for both backgrounds
+    : isLight
+      ? "/logo-light.png" // light logo for dark backgrounds
+      : "/logo.png";      // dark logo for light backgrounds
+
   const imgHeight = isIcon ? iconHeight : height;
   const imgWidth = isIcon ? Math.round(iconHeight * 1.2) : Math.round(height * 2.2);
 
@@ -37,7 +51,7 @@ export function Logo({ href = "/dashboard", className, variant = "full", size = 
     const fallback = (
       <div className={cn("flex items-center", isIcon ? "justify-center" : "gap-2", className)}>
         <span
-          className="font-black text-brand-primary"
+          className={cn("font-black", isLight ? "text-white" : "text-brand-primary")}
           style={{
             fontSize: iconHeight * 0.6,
             fontFamily: "var(--font-passion), 'Poppins', sans-serif",
