@@ -192,7 +192,7 @@ export function CampaignFilters({
           variant={showDateRange ? "default" : "outline"}
           size="sm"
           onClick={() => setShowDateRange(!showDateRange)}
-          className={`h-9 gap-1.5 text-[13px] ${showDateRange ? "bg-[#1659d6] text-white" : ""}`}
+          className={`h-9 gap-1.5 text-[13px] ${showDateRange ? "bg-[#1fb5a5] text-white" : ""}`}
         >
           <Calendar className="w-3.5 h-3.5" />
           Date Range
@@ -208,7 +208,7 @@ export function CampaignFilters({
             }}
             className={`flex items-center justify-center w-9 h-9 transition-colors ${
               viewMode === "cards"
-                ? "bg-[#1659d6] text-white"
+                ? "bg-[#1fb5a5] text-white"
                 : "bg-white text-[#6b7280] hover:bg-gray-50"
             }`}
             title="Card view"
@@ -223,7 +223,7 @@ export function CampaignFilters({
             }}
             className={`flex items-center justify-center w-9 h-9 transition-colors ${
               viewMode === "table"
-                ? "bg-[#1659d6] text-white"
+                ? "bg-[#1fb5a5] text-white"
                 : "bg-white text-[#6b7280] hover:bg-gray-50"
             }`}
             title="Table view"
@@ -242,7 +242,7 @@ export function CampaignFilters({
               type="date"
               value={createdAfter}
               onChange={(e) => setCreatedAfter(e.target.value)}
-              className="h-8 px-2 text-[13px] border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#1659d6]"
+              className="h-8 px-2 text-[13px] border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#1fb5a5]"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export function CampaignFilters({
               type="date"
               value={createdBefore}
               onChange={(e) => setCreatedBefore(e.target.value)}
-              className="h-8 px-2 text-[13px] border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#1659d6]"
+              className="h-8 px-2 text-[13px] border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#1fb5a5]"
             />
           </div>
           {(createdAfter || createdBefore) && (
@@ -324,7 +324,7 @@ function FilterPill({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#10409a]">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#1c2260]">
       {label}
       <button
         type="button"

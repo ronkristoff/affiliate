@@ -48,7 +48,7 @@ export default function CheckoutAttributionPage() {
                 Attribution Settings
               </Link>
             </Button>
-            <Button asChild className="bg-[#10409a] hover:bg-[#1659d6]">
+            <Button asChild className="bg-[#1c2260] hover:bg-[#1fb5a5]">
               <Link href="/dashboard">
                 Complete Setup
                 <ArrowRight className="w-4 h-4 ml-2" />

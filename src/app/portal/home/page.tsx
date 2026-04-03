@@ -150,7 +150,7 @@ export default function PortalHomePage() {
   }
 
   // Get tenant branding
-  const primaryColor = tenantContext?.branding?.primaryColor || "#10409a";
+  const primaryColor = tenantContext?.branding?.primaryColor || "#1c2260";
   const portalName = tenantContext?.branding?.portalName || "Affiliate Portal";
   const tenantLogo = tenantContext?.branding?.logoUrl;
 

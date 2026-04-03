@@ -120,7 +120,7 @@ export function NumberRangeFilter({
             <Button variant="outline" size="sm" className="h-7 text-[12px]" onClick={handleClear}>
               Clear
             </Button>
-            <Button size="sm" className="h-7 text-[12px] bg-[#10409a] hover:bg-[#1659d6]" onClick={handleApply}>
+            <Button size="sm" className="h-7 text-[12px] bg-[#1c2260] hover:bg-[#1fb5a5]" onClick={handleApply}>
               Apply
             </Button>
           </div>

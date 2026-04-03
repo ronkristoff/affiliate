@@ -48,7 +48,7 @@ export class QueryErrorBoundary extends Component<
               variant="link"
               size="sm"
               onClick={this.handleRetry}
-              className="text-[12px] font-semibold text-[#10409a]"
+              className="text-[12px] font-semibold text-[#1c2260]"
             >
               Retry
             </Button>

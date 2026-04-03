@@ -261,7 +261,7 @@ export function AdminSubscriptionActions({
                   onClick={() => setSelectedPlan(plan.value)}
                   className={`flex items-center justify-between rounded-lg border p-3 text-left transition-colors ${
                     selectedPlan === plan.value
-                      ? "border-[#10409a] bg-[#eff6ff]"
+                      ? "border-[#1c2260] bg-[#eff6ff]"
                       : "border-[#e5e7eb] hover:border-[#9ca3af]"
                   }`}
                 >

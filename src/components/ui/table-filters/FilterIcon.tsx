@@ -18,7 +18,7 @@ export function FilterIcon({ isActive }: FilterIconProps) {
       className={cn(
         "inline-flex items-center justify-center h-6 px-1.5 rounded-md transition-all duration-150 ml-1",
         isActive
-          ? "bg-[#eff6ff] text-[#10409a] ring-1 ring-[#10409a]/20"
+          ? "bg-[#eff6ff] text-[#1c2260] ring-1 ring-[#1c2260]/20"
           : "text-[#9ca3af] hover:bg-[#f3f4f6] hover:text-[#6b7280]"
       )}
     >

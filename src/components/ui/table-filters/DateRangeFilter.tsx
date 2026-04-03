@@ -125,8 +125,8 @@ export function DateRangeFilter({
                 className={cn(
                   "text-[11px] px-2 py-1 rounded-full border transition-colors",
                   selectedPreset === preset.value
-                    ? "border-[#10409a] bg-[#eff6ff] text-[#10409a]"
-                    : "border-[#e5e7eb] text-[#6b7280] hover:border-[#1659d6]"
+                    ? "border-[#1c2260] bg-[#eff6ff] text-[#1c2260]"
+                    : "border-[#e5e7eb] text-[#6b7280] hover:border-[#1fb5a5]"
                 )}
               >
                 {preset.label}
@@ -151,7 +151,7 @@ export function DateRangeFilter({
                     setSelectedPreset(null);
                   }}
                   max={new Date().toISOString().split("T")[0]}
-                  className="w-full h-8 px-2 text-[12px] border border-[#e5e7eb] rounded-md focus:outline-none focus:border-[#10409a]"
+                  className="w-full h-8 px-2 text-[12px] border border-[#e5e7eb] rounded-md focus:outline-none focus:border-[#1c2260]"
                 />
               </div>
               <div className="flex-1">
@@ -165,7 +165,7 @@ export function DateRangeFilter({
                     setSelectedPreset(null);
                   }}
                   max={new Date().toISOString().split("T")[0]}
-                  className="w-full h-8 px-2 text-[12px] border border-[#e5e7eb] rounded-md focus:outline-none focus:border-[#10409a]"
+                  className="w-full h-8 px-2 text-[12px] border border-[#e5e7eb] rounded-md focus:outline-none focus:border-[#1c2260]"
                 />
               </div>
             </div>
@@ -179,7 +179,7 @@ export function DateRangeFilter({
             </Button>
             <Button
               size="sm"
-              className="h-7 text-[12px] bg-[#10409a] hover:bg-[#1659d6]"
+              className="h-7 text-[12px] bg-[#1c2260] hover:bg-[#1fb5a5]"
               onClick={handleCustomApply}
             >
               Apply

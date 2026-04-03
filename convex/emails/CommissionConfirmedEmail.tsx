@@ -26,7 +26,7 @@ export default function CommissionConfirmedEmail({
   customerPlanType,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   portalEarningsUrl,
   contactEmail,
   currency = "PHP",

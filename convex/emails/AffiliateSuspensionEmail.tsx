@@ -15,7 +15,7 @@ export default function AffiliateSuspensionEmail({
   affiliateName,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   reason,
   contactEmail,
 }: AffiliateSuspensionEmailProps) {

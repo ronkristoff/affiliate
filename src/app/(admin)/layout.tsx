@@ -12,7 +12,7 @@ function AdminLayoutSkeleton() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar skeleton */}
-      <div className="w-[240px] bg-[#022232] min-h-screen hidden md:block">
+      <div className="w-[240px] bg-[#0e1333] min-h-screen hidden md:block">
         <Skeleton className="h-6 w-32 mx-5 my-6" />
       </div>
 

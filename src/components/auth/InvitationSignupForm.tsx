@@ -69,7 +69,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
     return (
       <div className="min-h-screen bg-[#f2f2f2] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#10409a]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#1c2260]" />
           <p className="text-[#6b7280]">Validating invitation...</p>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
         <Logo href="/" />
         <div className="text-[13px] text-[#6b7280]">
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
+          <Link href="/sign-in" className="text-[#1c2260] font-semibold no-underline hover:underline">
             Sign in
           </Link>
         </div>
@@ -240,7 +240,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
                           type="text"
                           placeholder="Your full name"
                           disabled={loading}
-                          className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                          className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-3 text-sm text-[#333] bg-white focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)] focus:outline-none transition-all"
                           autoComplete="name"
                           {...field}
                         />
@@ -276,7 +276,7 @@ export default function InvitationSignupForm({ token }: InvitationSignupFormProp
                           type={showPassword ? "text" : "password"}
                           placeholder="Create a secure password"
                           disabled={loading}
-                          className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                          className="w-full h-[42px] border border-[#e5e7eb] rounded-lg pl-9 pr-10 text-sm text-[#333] bg-white focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)] focus:outline-none transition-all"
                           autoComplete="new-password"
                           {...field}
                         />

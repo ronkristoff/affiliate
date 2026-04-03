@@ -215,7 +215,7 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
           <div className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
             Commission Rate
           </div>
-          <div className="text-[22px] font-bold text-[#10409a] mt-0.5 tabular-nums">
+          <div className="text-[22px] font-bold text-[#1c2260] mt-0.5 tabular-nums">
             {formatCommission()}
           </div>
           <div className="text-[11px] text-gray-500 mt-0.5">{getCommissionSub()}</div>

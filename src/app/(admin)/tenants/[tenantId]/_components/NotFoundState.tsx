@@ -20,7 +20,7 @@ export function NotFoundState() {
         </p>
         <Button
           onClick={() => router.push("/tenants")}
-          className="gap-2 bg-[#10409a] text-white hover:bg-[#0d347a]"
+          className="gap-2 bg-[#1c2260] text-white hover:bg-[#0d347a]"
         >
           <ArrowLeft className="h-4 w-4" />
           Return to Tenants

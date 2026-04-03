@@ -82,7 +82,7 @@ export function SearchField({
 
   return (
     <div className={cn(styles.wrapper, className)}>
-      <div className="flex items-center bg-white border border-[#e5e7eb] rounded-lg focus-within:border-[#10409a]/40 transition-colors">
+      <div className="flex items-center bg-white border border-[#e5e7eb] rounded-lg focus-within:border-[#1c2260]/40 transition-colors">
         <div className={cn("flex items-center flex-1", styles.container)}>
           <Search className={cn("shrink-0 text-[#6b7280]", styles.icon)} />
           <input

@@ -79,8 +79,8 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
             className={cn(
               "relative flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all duration-200",
               isSelected
-                ? "border-[#10409a] bg-[#eff6ff] shadow-sm ring-1 ring-[#10409a]/20"
-                : "border-[var(--border)] bg-white hover:border-[#1659d6]/40 hover:bg-[#fafbfe] hover:shadow-sm"
+                ? "border-[#1c2260] bg-[#eff6ff] shadow-sm ring-1 ring-[#1c2260]/20"
+                : "border-[var(--border)] bg-white hover:border-[#1fb5a5]/40 hover:bg-[#fafbfe] hover:shadow-sm"
             )}
           >
             <div className="flex items-start gap-3 w-full">

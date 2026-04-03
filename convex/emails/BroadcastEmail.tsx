@@ -16,7 +16,7 @@ export default function BroadcastEmail({
   body,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   unsubscribeUrl,
 }: BroadcastEmailProps) {
   const primaryColor = brandPrimaryColor;

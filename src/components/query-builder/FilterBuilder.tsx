@@ -198,7 +198,7 @@ export function FilterBuilder({
               className={cn(
                 "h-6 text-[11px] font-medium rounded-md px-2.5",
                 filterLogic === "and"
-                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  ? "bg-white text-[#1c2260] shadow-sm hover:bg-white hover:text-[#1c2260]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
@@ -212,7 +212,7 @@ export function FilterBuilder({
               className={cn(
                 "h-6 text-[11px] font-medium rounded-md px-2.5",
                 filterLogic === "or"
-                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  ? "bg-white text-[#1c2260] shadow-sm hover:bg-white hover:text-[#1c2260]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
@@ -253,7 +253,7 @@ export function FilterBuilder({
                 className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 group"
               >
                 {index > 0 && (
-                  <span className="text-[10px] font-bold text-[#1659d6] uppercase shrink-0 w-6">
+                  <span className="text-[10px] font-bold text-[#1fb5a5] uppercase shrink-0 w-6">
                     {filterLogic}
                   </span>
                 )}
@@ -272,7 +272,7 @@ export function FilterBuilder({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 shrink-0 text-[var(--text-muted)] hover:text-[#10409a] opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-7 w-7 shrink-0 text-[var(--text-muted)] hover:text-[#1c2260] opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => startEditing(filter.id)}
                 >
                   <Pencil className="w-3 h-3" />
@@ -426,8 +426,8 @@ export function FilterBuilder({
                     className={cn(
                       "px-2 py-0.5 rounded-md text-[11px] font-medium transition-all",
                       isValueSelected(dv.value)
-                        ? "bg-[#10409a] text-white"
-                        : "bg-white border border-[var(--border)] text-[var(--text-body)] hover:border-[#1659d6]/40 hover:bg-[#eff6ff]"
+                        ? "bg-[#1c2260] text-white"
+                        : "bg-white border border-[var(--border)] text-[var(--text-body)] hover:border-[#1fb5a5]/40 hover:bg-[#eff6ff]"
                     )}
                   >
                     {String(dv.value)}
@@ -558,12 +558,12 @@ function EditableFilterRow({
   return (
     <div
       key={filter.id}
-      className="rounded-lg border border-[#1659d6]/30 bg-[#eff6ff] px-3 py-2"
+      className="rounded-lg border border-[#1fb5a5]/30 bg-[#eff6ff] px-3 py-2"
       onKeyDown={handleKeyDown}
     >
       <div className="flex items-center gap-2 mb-2">
         {index > 0 && (
-          <span className="text-[10px] font-bold text-[#1659d6] uppercase shrink-0 w-6">
+          <span className="text-[10px] font-bold text-[#1fb5a5] uppercase shrink-0 w-6">
             {filterLogic}
           </span>
         )}

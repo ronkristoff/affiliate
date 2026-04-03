@@ -243,7 +243,7 @@ export function RevenueDashboard({
               <div className="pt-3 border-t border-[#e5e7eb]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#9ca3af]">Trial Conversion Rate</span>
-                  <span className="text-sm font-semibold text-[#10409a]">
+                  <span className="text-sm font-semibold text-[#1c2260]">
                     {metrics.trialConversionRate}%
                   </span>
                 </div>
@@ -312,7 +312,7 @@ export function RevenueDashboard({
               <div className="pt-3 border-t border-[#e5e7eb]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#9ca3af]">Total Paying</span>
-                  <span className="text-sm font-semibold text-[#10409a]">
+                  <span className="text-sm font-semibold text-[#1c2260]">
                     {metrics.growthCount + metrics.scaleCount}
                   </span>
                 </div>
@@ -364,7 +364,7 @@ export function RevenueDashboard({
                     {/* Tenant name (link) */}
                     <Link
                       href={`/tenants/${activity.tenantId}`}
-                      className="text-sm font-medium text-[#10409a] hover:text-[#1659d6] hover:underline truncate min-w-0"
+                      className="text-sm font-medium text-[#1c2260] hover:text-[#1fb5a5] hover:underline truncate min-w-0"
                     >
                       {activity.tenantName}
                     </Link>

@@ -280,9 +280,9 @@ export function ResultsTable({
                     <span>{col}</span>
                     {sort.column === col && sort.direction ? (
                       sort.direction === "asc" ? (
-                        <ChevronUp className="w-3 h-3 text-[#10409a]" />
+                        <ChevronUp className="w-3 h-3 text-[#1c2260]" />
                       ) : (
-                        <ChevronDown className="w-3 h-3 text-[#10409a]" />
+                        <ChevronDown className="w-3 h-3 text-[#1c2260]" />
                       )
                     ) : (
                       <ChevronDown className="w-3 h-3 opacity-0 group-hover:opacity-30 transition-opacity" />
@@ -363,7 +363,7 @@ function GroupedRows({
     <>
       {/* ─── Group Header Row ─────────────────────────────── */}
       <TableRow
-        className="bg-[#10409a]/[0.04] hover:bg-[#10409a]/[0.06] cursor-pointer select-none border-b-[var(--border)]"
+        className="bg-[#1c2260]/[0.04] hover:bg-[#1c2260]/[0.06] cursor-pointer select-none border-b-[var(--border)]"
         onClick={onToggle}
       >
         {columns.map((col, colIdx) => {
@@ -374,12 +374,12 @@ function GroupedRows({
                 <div className="flex items-center gap-2">
                   <ChevronRight
                     className={cn(
-                      "w-3.5 h-3.5 text-[#10409a] transition-transform duration-200 shrink-0",
+                      "w-3.5 h-3.5 text-[#1c2260] transition-transform duration-200 shrink-0",
                       !isCollapsed && "rotate-90"
                     )}
                   />
                   <span>{group.label}</span>
-                  <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-[#10409a]/10 text-[10px] font-bold text-[#10409a] tabular-nums">
+                  <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-[#1c2260]/10 text-[10px] font-bold text-[#1c2260] tabular-nums">
                     {group.rows.length}
                   </span>
                 </div>

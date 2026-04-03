@@ -1247,7 +1247,7 @@ export function PayoutsContent() {
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#10409a]">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#1c2260]">
                         {getInitials(affiliate.name)}
                       </div>
                       <div>

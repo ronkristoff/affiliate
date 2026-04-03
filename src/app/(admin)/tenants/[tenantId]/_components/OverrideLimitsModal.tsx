@@ -307,7 +307,7 @@ export function OverrideLimitsModal({
                 type="number"
                 className={cn(
                   "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors",
-                  "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                  "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                   errors.maxAffiliates
                     ? "border-[#ef4444] bg-red-50"
                     : "border-[#d1d5db] bg-white"
@@ -336,7 +336,7 @@ export function OverrideLimitsModal({
                 type="number"
                 className={cn(
                   "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors",
-                  "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                  "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                   errors.maxCampaigns
                     ? "border-[#ef4444] bg-red-50"
                     : "border-[#d1d5db] bg-white"
@@ -365,7 +365,7 @@ export function OverrideLimitsModal({
                 type="number"
                 className={cn(
                   "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors",
-                  "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                  "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                   errors.maxTeamMembers
                     ? "border-[#ef4444] bg-red-50"
                     : "border-[#d1d5db] bg-white"
@@ -394,7 +394,7 @@ export function OverrideLimitsModal({
                 type="number"
                 className={cn(
                   "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors",
-                  "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                  "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                   errors.maxPayoutsPerMonth
                     ? "border-[#ef4444] bg-red-50"
                     : "border-[#d1d5db] bg-white"
@@ -424,7 +424,7 @@ export function OverrideLimitsModal({
               type="date"
               className={cn(
                 "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors",
-                "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                 errors.expiresAt
                   ? "border-[#ef4444] bg-red-50"
                   : "border-[#d1d5db] bg-white"
@@ -449,7 +449,7 @@ export function OverrideLimitsModal({
             <textarea
               className={cn(
                 "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors resize-none",
-                "focus:border-[#10409a] focus:ring-1 focus:ring-[#10409a]",
+                "focus:border-[#1c2260] focus:ring-1 focus:ring-[#1c2260]",
                 errors.reason
                   ? "border-[#ef4444] bg-red-50"
                   : "border-[#d1d5db] bg-white"

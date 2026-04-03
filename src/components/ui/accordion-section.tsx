@@ -76,7 +76,7 @@ export function AccordionSection({
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--hover)] transition-colors"
       >
         {icon && (
-          <span className="w-8 h-8 rounded-lg bg-[#10409a]/10 flex items-center justify-center text-[#10409a] text-sm shrink-0">
+          <span className="w-8 h-8 rounded-lg bg-[#1c2260]/10 flex items-center justify-center text-[#1c2260] text-sm shrink-0">
             {icon}
           </span>
         )}

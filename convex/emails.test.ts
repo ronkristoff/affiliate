@@ -101,7 +101,7 @@ describe("Commission Confirmed Email Tests", () => {
         domain: "test.example.com",
           branding: {
             portalName: "Test Affiliate Portal",
-            primaryColor: "#10409a",
+            primaryColor: "#1c2260",
             logoUrl: "https://example.com/logo.png",
           },
         });
@@ -267,7 +267,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
           currency: "PHP",
           portalName: "Test Portal",
           brandLogoUrl: "https://example.com/logo.png",
-          brandPrimaryColor: "#10409a",
+          brandPrimaryColor: "#1c2260",
           portalEarningsUrl: "https://portal.example.com/earnings",
           contactEmail: "support@example.com",
           batchGeneratedAt: Date.now(),
@@ -395,7 +395,7 @@ describe("Payout Sent Email Tests (Story 10.3)", () => {
         domain: "test.example.com",
           branding: {
             portalName: "Test Affiliate Portal",
-            primaryColor: "#10409a",
+            primaryColor: "#1c2260",
             logoUrl: "https://example.com/logo.png",
           },
         });
@@ -835,7 +835,7 @@ describe("New Referral Alert Email Tests", () => {
           commissionAmount: 200,
           portalName: "Test Portal",
           brandLogoUrl: "https://example.com/logo.png",
-          brandPrimaryColor: "#10409a",
+          brandPrimaryColor: "#1c2260",
           dashboardAffiliateUrl: "https://portal.example.com/affiliates/123",
           dashboardConversionUrl: "https://portal.example.com/conversions/456",
           contactEmail: "support@example.com",

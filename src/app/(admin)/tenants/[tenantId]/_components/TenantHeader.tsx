@@ -106,7 +106,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-[#10409a] hover:bg-[#10409a]/5 hover:text-[#10409a]"
+            className="gap-1.5 text-[#1c2260] hover:bg-[#1c2260]/5 hover:text-[#1c2260]"
           >
             <Mail className="h-4 w-4" />
             Send Email
@@ -114,7 +114,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-[#10409a] hover:bg-[#10409a]/5 hover:text-[#10409a]"
+            className="gap-1.5 text-[#1c2260] hover:bg-[#1c2260]/5 hover:text-[#1c2260]"
             onClick={() => setImpersonateOpen(true)}
           >
             <UserCog className="h-4 w-4" />

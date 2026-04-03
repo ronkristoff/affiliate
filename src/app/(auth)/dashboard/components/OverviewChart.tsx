@@ -162,8 +162,8 @@ export function OverviewChart({ data, period = "daily", dateRange, periodLabel, 
             <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10409a" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#10409a" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#1c2260" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#1c2260" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -188,12 +188,12 @@ export function OverviewChart({ data, period = "daily", dateRange, periodLabel, 
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke="#10409a"
+                stroke="#1c2260"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorValue)"
                 animationDuration={1000}
-                activeDot={{ r: 5, strokeWidth: 0, fill: "#10409a" }}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "#1c2260" }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -207,12 +207,12 @@ export function OverviewChart({ data, period = "daily", dateRange, periodLabel, 
               className={cn(
                 "flex-1 flex flex-col items-center justify-center py-4 px-6 transition-all duration-200 border-r border-[var(--border-light)] last:border-r-0 min-w-[140px]",
                 activeTab === tab.id
-                  ? "bg-blue-50/30 border-b-2 border-b-[#10409a]"
+                  ? "bg-blue-50/30 border-b-2 border-b-[#1c2260]"
                   : "hover:bg-[var(--bg-page)]/30 border-b-2 border-b-transparent"
               )}
             >
               <span className={cn("text-[11px] font-bold uppercase tracking-wider mb-1 px-2 py-0.5 rounded transition-colors",
-                activeTab === tab.id ? "text-[#10409a] bg-blue-50/50" : "text-[var(--text-muted)]")}>
+                activeTab === tab.id ? "text-[#1c2260] bg-blue-50/50" : "text-[var(--text-muted)]")}>
                 {tab.label}
               </span>
               <span className={cn("text-[20px] font-bold tabular-nums transition-colors",

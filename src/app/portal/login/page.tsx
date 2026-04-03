@@ -74,7 +74,7 @@ async function PortalLoginPageContent({ searchParams }: PortalLoginPageContentPr
 
   const tenantBranding = tenant?.branding;
   const portalName = tenantBranding?.portalName || tenant?.name || "Affiliate Program";
-  const primaryColor = tenantBranding?.primaryColor || "#10409a";
+  const primaryColor = tenantBranding?.primaryColor || "#1c2260";
   const logoUrl = tenantBranding?.logoUrl;
 
   // Compute dynamic brand colors

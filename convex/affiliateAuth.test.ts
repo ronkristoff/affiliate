@@ -492,12 +492,12 @@ describe("Tenant Branding Integration", () => {
   it("should use default branding when tenant branding not set", () => {
     const defaultBranding = {
       portalName: "Affiliate Program",
-      primaryColor: "#10409a",
+      primaryColor: "#1c2260",
       logoUrl: undefined,
     };
 
     expect(defaultBranding.portalName).toBe("Affiliate Program");
-    expect(defaultBranding.primaryColor).toBe("#10409a");
+    expect(defaultBranding.primaryColor).toBe("#1c2260");
     expect(defaultBranding.logoUrl).toBeUndefined();
   });
 });

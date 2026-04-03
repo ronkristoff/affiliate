@@ -42,7 +42,7 @@ export default function NewReferralAlertEmail({
   commissionAmount,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   dashboardAffiliateUrl,
   dashboardConversionUrl,
   contactEmail,

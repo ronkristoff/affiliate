@@ -322,7 +322,7 @@ export const sendFraudAlertEmail = internalAction({
       const ownerEmail = ownerUser.email;
       const brandName = tenant.branding?.portalName || tenant.name || "Your Portal";
       const brandLogo = tenant.branding?.logoUrl;
-      const brandColor = tenant.branding?.primaryColor || "#10409a";
+      const brandColor = tenant.branding?.primaryColor || "#1c2260";
 
       // Build dashboard URL
       const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.boboddy.business"}/commissions/${args.commissionId}`;

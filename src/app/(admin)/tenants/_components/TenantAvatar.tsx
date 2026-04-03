@@ -7,8 +7,8 @@ interface TenantAvatarProps {
 
 // Deterministic color from tenant name hash
 const AVATAR_COLORS = [
-  "bg-[#10409a]",
-  "bg-[#1659d6]",
+  "bg-[#1c2260]",
+  "bg-[#1fb5a5]",
   "bg-[#6d28d9]",
   "bg-[#0e7490]",
   "bg-[#b45309]",

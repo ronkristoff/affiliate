@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Getting Started | salig-affiliate",
+  title: "Getting Started | Affilio",
   description: "Set up your affiliate program in a few easy steps",
 };
 

@@ -99,7 +99,7 @@ function getBarColor(level: WarningLevel): string {
     case "critical":
       return "bg-[#ef4444]";
     default:
-      return "bg-[#10409a]";
+      return "bg-[#1c2260]";
   }
 }
 
@@ -172,7 +172,7 @@ function UsageBar({
           onClick={onToggle}
           className={cn(
             "flex items-center gap-1 text-left",
-            onToggle && "hover:text-[#10409a] transition-colors cursor-pointer"
+            onToggle && "hover:text-[#1c2260] transition-colors cursor-pointer"
           )}
         >
           {onToggle ? (
@@ -311,7 +311,7 @@ export function PlanUsageCard({ tenantId }: PlanUsageCardProps) {
             <h2 className="text-base font-semibold text-[#111827]">
               Plan &amp; Limits
             </h2>
-            <span className="inline-flex items-center rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-medium text-[#10409a]">
+            <span className="inline-flex items-center rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-medium text-[#1c2260]">
               {tierLabel}
             </span>
             {/* AC4: Override Active badge */}
@@ -337,7 +337,7 @@ export function PlanUsageCard({ tenantId }: PlanUsageCardProps) {
 
         {/* Plan info badge */}
         <div className="mb-4 rounded-lg bg-[#f9fafb] px-3 py-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-[#10409a]">
+          <span className="text-sm font-medium text-[#1c2260]">
             {tierLabel} Plan
           </span>
           <span className="text-sm font-semibold text-[#111827]">
@@ -414,7 +414,7 @@ export function PlanUsageCard({ tenantId }: PlanUsageCardProps) {
                   {u.customDomain?.configured ? "Configured" : "Not configured"}
                 </p>
                 {u.customDomain?.configured && u.customDomain.status && (
-                  <span className="text-xs font-medium text-[#10409a]">
+                  <span className="text-xs font-medium text-[#1c2260]">
                     {u.customDomain.status}
                   </span>
                 )}

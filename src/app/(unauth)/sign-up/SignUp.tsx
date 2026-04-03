@@ -141,13 +141,13 @@ export default function SignUp() {
   if (allTiers === undefined) {
     return (
       <div className="flex min-h-screen">
-        <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#022232] relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#0e1333] relative overflow-hidden">
           <div className="relative z-10">
             <Logo href="/" variant="light" />
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center bg-white">
-          <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#1c2260]" />
         </div>
       </div>
     );
@@ -270,7 +270,7 @@ export default function SignUp() {
   return (
     <div className="flex min-h-screen">
       {/* ── Left Panel — Brand ── */}
-      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:pt-12 lg:px-12 lg:pb-12 bg-[#022232] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:pt-12 lg:px-12 lg:pb-12 bg-[#0e1333] relative overflow-hidden">
         {/* Animated Network Constellation */}
         <SidebarNetwork />
 
@@ -292,14 +292,14 @@ export default function SignUp() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-3 h-3 text-[#7dd3fc]"
+              className="w-3 h-3 text-[#1fb5a5]"
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
             14-day free trial — no credit card required
           </div>
           <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
-            Launch your<br />affiliate<br /><span className="text-[#7dd3fc]">empire.</span>
+            Launch your<br />affiliate<br /><span className="text-[#1fb5a5]">empire.</span>
           </h1>
           <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
             Full access to commission tracking, payout management, and a branded affiliate portal —
@@ -318,7 +318,7 @@ export default function SignUp() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                 <polyline points="17 6 23 6 23 12" />
@@ -338,7 +338,7 @@ export default function SignUp() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
@@ -358,7 +358,7 @@ export default function SignUp() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
@@ -381,7 +381,7 @@ export default function SignUp() {
           <Logo href="/" />
           <div className="text-[13px] text-[#6b7280]">
             Already have an account?{" "}
-            <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
+            <Link href="/sign-in" className="text-[#1c2260] font-semibold no-underline hover:underline">
               Sign in
             </Link>
           </div>
@@ -392,8 +392,8 @@ export default function SignUp() {
           <div className="hidden lg:block mb-8">
             <h2 className="text-[26px] font-bold text-[#333] tracking-tight mb-2">Create your account</h2>
             <p className="text-sm text-[#6b7280] leading-relaxed">
-              Already using salig-affiliate?{" "}
-              <Link href="/sign-in" className="text-[#10409a] font-semibold no-underline hover:underline">
+              Already using Affilio?{" "}
+              <Link href="/sign-in" className="text-[#1c2260] font-semibold no-underline hover:underline">
                 Sign in →
               </Link>
             </p>
@@ -410,7 +410,7 @@ export default function SignUp() {
                 type="button"
                 onClick={() => setIsAnnual(!isAnnual)}
                 className={`w-[42px] h-[22px] rounded-full relative cursor-pointer transition-colors border-none ${
-                  isAnnual ? "bg-[#10409a]" : "bg-[#d1d5db]"
+                  isAnnual ? "bg-[#1c2260]" : "bg-[#d1d5db]"
                 }`}
                 aria-label="Toggle billing period"
               >
@@ -442,18 +442,18 @@ export default function SignUp() {
                     onClick={() => setSelectedPlan(planKey)}
                     className={`relative rounded-xl p-3.5 text-left transition-all border-2 ${
                       isSelected
-                        ? "border-[#10409a] bg-[#f0f5ff] shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                        ? "border-[#1c2260] bg-[#f0f5ff] shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                         : "border-[#e5e7eb] bg-white hover:border-[#c7d5f0] hover:bg-[#fafbff]"
                     }`}
                   >
                     {isPopular && (
-                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#10409a] text-white text-[9px] font-bold uppercase tracking-wider rounded-full px-2.5 py-[2px] whitespace-nowrap leading-tight">
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#1c2260] text-white text-[9px] font-bold uppercase tracking-wider rounded-full px-2.5 py-[2px] whitespace-nowrap leading-tight">
                         Popular
                       </div>
                     )}
                     <div className="text-[13px] font-bold text-[#333] mb-1">{plan.name}</div>
                     <div className="mb-0.5">
-                      <span className="text-[20px] font-extrabold text-[#022232] tracking-tight leading-none">
+                      <span className="text-[20px] font-extrabold text-[#0e1333] tracking-tight leading-none">
                         {isAnnual ? plan.annual : plan.monthly}
                       </span>
                       <span className="text-[11px] text-[#6b7280]">/mo</span>
@@ -501,7 +501,7 @@ export default function SignUp() {
                         <FormControl>
                           <Input
                             {...field}
-                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                             placeholder="Alex"
                             autoComplete="given-name"
                           />
@@ -522,7 +522,7 @@ export default function SignUp() {
                       <FormControl>
                         <Input
                           {...field}
-                          className="w-full h-11 rounded-lg px-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                          className="w-full h-11 rounded-lg px-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                           placeholder="Reyes"
                           autoComplete="family-name"
                         />
@@ -559,7 +559,7 @@ export default function SignUp() {
                         <FormControl>
                           <Input
                             {...field}
-                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                             placeholder="My SaaS Co."
                             autoComplete="organization"
                           />
@@ -598,7 +598,7 @@ export default function SignUp() {
                         <FormControl>
                           <Input
                             {...field}
-                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                             placeholder="yourcompany.com"
                             autoComplete="url"
                           />
@@ -640,7 +640,7 @@ export default function SignUp() {
                           <Input
                             {...field}
                             type="email"
-                            className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                             placeholder="alex@yourcompany.com"
                             autoComplete="email"
                           />
@@ -679,7 +679,7 @@ export default function SignUp() {
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
-                            className="w-full h-11 rounded-lg pl-10 pr-10 text-sm border-[#e5e7eb] focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)]"
+                            className="w-full h-11 rounded-lg pl-10 pr-10 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
                             placeholder="Min. 8 characters"
                             autoComplete="new-password"
                           />
@@ -777,14 +777,14 @@ export default function SignUp() {
                         </FormControl>
                         <label className="text-[12px] text-[#6b7280] leading-relaxed cursor-pointer">
                           I agree to the{" "}
-                          <Link href="/terms" className="text-[#10409a] font-medium no-underline hover:underline">
+                          <Link href="/terms" className="text-[#1c2260] font-medium no-underline hover:underline">
                             Terms of Service
                           </Link>{" "}
                           and{" "}
-                          <Link href="/privacy" className="text-[#10409a] font-medium no-underline hover:underline">
+                          <Link href="/privacy" className="text-[#1c2260] font-medium no-underline hover:underline">
                             Privacy Policy
                           </Link>
-                          . I understand salig-affiliate processes affiliate personal data on my behalf as a data
+                          . I understand Affilio processes affiliate personal data on my behalf as a data
                           processor under the Philippine Data Privacy Act.
                         </label>
                       </div>
@@ -798,7 +798,7 @@ export default function SignUp() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full h-[46px] bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -856,8 +856,8 @@ export default function SignUp() {
             </div>
             <p className="text-[11px] text-[#6b7280] text-center mt-4 leading-relaxed">
               By signing up, you agree to our{" "}
-              <a href="#" className="text-[#10409a] no-underline hover:underline">Terms of Service</a> and{" "}
-              <a href="#" className="text-[#10409a] no-underline hover:underline">Privacy Policy</a>.
+              <a href="#" className="text-[#1c2260] no-underline hover:underline">Terms of Service</a> and{" "}
+              <a href="#" className="text-[#1c2260] no-underline hover:underline">Privacy Policy</a>.
             </p>
           </div>
         </div>

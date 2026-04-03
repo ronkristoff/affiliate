@@ -41,7 +41,7 @@ describe("AffiliateSignUpForm Component (Task 8)", () => {
     redirectUrl: "/portal/login",
     tenantBranding: {
       portalName: "Test Portal",
-      primaryColor: "#10409a",
+      primaryColor: "#1c2260",
     },
   };
 

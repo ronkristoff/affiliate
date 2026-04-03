@@ -29,7 +29,7 @@ interface FraudAlertEmailProps {
 export default function FraudAlertEmail({
   brandName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   affiliateName,
   affiliateEmail,
   affiliateId,

@@ -114,7 +114,7 @@ export function OverrideHistoryDrawer({
         <div className="mx-auto w-full max-w-2xl">
           <DrawerHeader className="text-left">
             <DrawerTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-[#10409a]" />
+              <History className="h-5 w-5 text-[#1c2260]" />
               Override History
             </DrawerTitle>
             <DrawerDescription>

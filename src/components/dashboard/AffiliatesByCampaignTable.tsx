@@ -410,7 +410,7 @@ export function AffiliatesByCampaignTable({
             return (
               <span
                 key={filter.columnKey}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#10409a]"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#1c2260]"
               >
                 {label}
                 <button

@@ -140,7 +140,7 @@ export function FilterTabs({
                   countSizeStyles[size],
                   isActive
                     ? "bg-white/20 text-white"
-                    : "bg-[var(--brand-light, #e8edfa)] text-[var(--brand-primary, #10409a)]",
+                    : "bg-[var(--brand-light, #e8edfa)] text-[var(--brand-primary, #1c2260)]",
                 )}
               >
                 {tab.count}

@@ -128,7 +128,7 @@ export function OnboardingWizard() {
             className={`
               flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all
               ${index === currentStep 
-                ? "bg-[#10409a] text-white" 
+                ? "bg-[#1c2260] text-white" 
                 : completedSteps.includes(index) 
                   ? "bg-green-500 text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -198,7 +198,7 @@ export function OnboardingWizard() {
               )}
               <Button
                 onClick={handleNext}
-                className="bg-[#10409a] hover:bg-[#1659d6]"
+                className="bg-[#1c2260] hover:bg-[#1fb5a5]"
               >
                 {currentStep === steps.length - 1 ? (
                   <>
@@ -237,7 +237,7 @@ function WelcomeStepContent() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
-        Welcome to salig-affiliate! Let&apos;s set up your affiliate program in just a few minutes.
+        Welcome to Affilio! Let&apos;s set up your affiliate program in just a few minutes.
       </p>
       <ul className="space-y-3">
         {features.map((feature, index) => (
@@ -373,7 +373,7 @@ function SaligPayStepContent() {
           <Button
             onClick={handleConnect}
             disabled={isConnecting}
-            className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+            className="w-full bg-[#1c2260] hover:bg-[#1fb5a5]"
           >
             {isConnecting ? (
               <>
@@ -439,7 +439,7 @@ function SnippetStepContent() {
         </p>
         <Button
           onClick={() => router.push("/onboarding/snippet")}
-          className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+          className="w-full bg-[#1c2260] hover:bg-[#1fb5a5]"
         >
           Continue to Snippet Setup
         </Button>
@@ -466,7 +466,7 @@ function AttributionStepContent() {
         </p>
         <Button
           onClick={() => router.push("/onboarding/checkout-attribution")}
-          className="w-full bg-[#10409a] hover:bg-[#1659d6]"
+          className="w-full bg-[#1c2260] hover:bg-[#1fb5a5]"
         >
           Configure Attribution
         </Button>

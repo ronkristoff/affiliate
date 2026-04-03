@@ -49,10 +49,10 @@ describe("Affiliate Registration Page Integration", () => {
       };
 
       const portalName = tenantContext.branding?.portalName || tenantContext.name || "Affiliate Program";
-      const primaryColor = tenantContext.branding?.primaryColor || "#10409a";
+      const primaryColor = tenantContext.branding?.primaryColor || "#1c2260";
 
       expect(portalName).toBe("Test Tenant");
-      expect(primaryColor).toBe("#10409a");
+      expect(primaryColor).toBe("#1c2260");
     });
   });
 
@@ -106,8 +106,8 @@ describe("Affiliate Registration Page Integration", () => {
           brandPrimaryColor: undefined,
         };
 
-        const primaryColor = emailProps.brandPrimaryColor || "#10409a";
-        expect(primaryColor).toBe("#10409a");
+        const primaryColor = emailProps.brandPrimaryColor || "#1c2260";
+        expect(primaryColor).toBe("#1c2260");
       });
 
       it("should include contact email when available", () => {

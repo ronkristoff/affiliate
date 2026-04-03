@@ -45,7 +45,7 @@ export function SaligPayCallout() {
   }, [prefersReducedMotion]);
 
   return (
-    <section id="saligpay" ref={sectionRef} className="py-24 bg-[#022232] text-white relative overflow-hidden">
+    <section id="saligpay" ref={sectionRef} className="py-24 bg-[#0e1333] text-white relative overflow-hidden">
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{
           backgroundImage: `linear-gradient(90deg, white 1px, transparent 1px), linear-gradient(white 1px, transparent 1px)`,
@@ -53,7 +53,7 @@ export function SaligPayCallout() {
         }} />
       </div>
       
-      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[#10409a]/30 rounded-full blur-3xl -translate-y-1/2" />
+      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[#1c2260]/30 rounded-full blur-3xl -translate-y-1/2" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -92,7 +92,7 @@ export function SaligPayCallout() {
               }}
             >
               Most affiliate tools connect via webhooks — fragile pipes that break, lag, or miss events entirely. 
-              salig-affiliate runs directly on SaligPay's infrastructure, so every payment event flows through instantly and reliably.
+              Affilio runs directly on SaligPay's infrastructure, so every payment event flows through instantly and reliably.
             </p>
 
             <div 
@@ -128,7 +128,7 @@ export function SaligPayCallout() {
                 transition: 'opacity 0.6s ease-out 0.7s, transform 0.6s ease-out 0.7s',
               }}
             >
-              <Button className="bg-white text-[#022232] hover:bg-white/90 font-bold px-8 py-5 text-lg btn-motion">
+              <Button className="bg-white text-[#0e1333] hover:bg-white/90 font-bold px-8 py-5 text-lg btn-motion">
                 Start your free trial
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
@@ -143,7 +143,7 @@ export function SaligPayCallout() {
               transition: 'opacity 0.8s ease-out 0.5s, transform 0.8s ease-out 0.5s',
             }}
           >
-            <div className="absolute -inset-4 bg-gradient-to-br from-[#22d3ee]/20 to-[#10409a]/20 rounded-3xl blur-xl" />
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#22d3ee]/20 to-[#1c2260]/20 rounded-3xl blur-xl" />
             
             <div className="relative bg-[#0a1929] rounded-2xl border border-white/10 p-8 shadow-2xl">
               <div className="flex items-center gap-2 mb-6">

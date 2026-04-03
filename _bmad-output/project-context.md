@@ -216,7 +216,7 @@ When implementing, AI agents MUST load relevant skills:
 - Clean, command-center dashboard aesthetic
 - Data visualization focus (metrics, charts, tables)
 - Professional but not boring — modern tooling feel
-- Brand primary: `#10409a`, Secondary: `#1659d6`
+- Brand primary: `#1c2260`, Secondary: `#1fb5a5`
 - Typography: Poppins (body), Passion One (display headings)
 - Border radius: 12px (0.75rem) default
 - Status colors: success (green), warning (amber), danger (red), info (blue)

@@ -15,7 +15,7 @@ export default function AffiliateReactivationEmail({
   affiliateName,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   portalLoginUrl,
   contactEmail,
 }: AffiliateReactivationEmailProps) {

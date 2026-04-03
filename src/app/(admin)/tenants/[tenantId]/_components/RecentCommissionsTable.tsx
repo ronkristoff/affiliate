@@ -158,7 +158,7 @@ export function RecentCommissionsTable({
           variant="ghost"
           size="sm"
           asChild
-          className="text-xs text-[#6b7280] hover:text-[#10409a]"
+          className="text-xs text-[#6b7280] hover:text-[#1c2260]"
         >
           <Link href={`/tenants/${tenantId}?tab=payouts`}>View All</Link>
         </Button>

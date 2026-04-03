@@ -307,7 +307,7 @@ export const sendBroadcastEmails = internalAction({
       });
       const portalName = tenant?.branding?.portalName || tenant?.name || "Affiliate Portal";
       const brandLogoUrl = tenant?.branding?.logoUrl;
-      const brandPrimaryColor = tenant?.branding?.primaryColor || "#10409a";
+      const brandPrimaryColor = tenant?.branding?.primaryColor || "#1c2260";
 
       let sentCount = 0;
       let failedCount = 0;
@@ -519,7 +519,7 @@ export const retryFailedBroadcastEmail = internalAction({
       });
       const portalName = args.portalName || tenant?.branding?.portalName || tenant?.name || "Affiliate Portal";
       const brandLogoUrl = args.brandLogoUrl || tenant?.branding?.logoUrl;
-      const brandPrimaryColor = args.brandPrimaryColor || tenant?.branding?.primaryColor || "#10409a";
+      const brandPrimaryColor = args.brandPrimaryColor || tenant?.branding?.primaryColor || "#1c2260";
 
       // Construct unsubscribe URL
       const unsubscribeUrl = `${APP_URL}/api/unsubscribe?affiliate=${args.affiliateId}`;

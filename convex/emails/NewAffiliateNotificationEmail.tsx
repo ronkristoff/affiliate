@@ -32,7 +32,7 @@ export default function NewAffiliateNotificationEmail({
   merchantName,
   portalName,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   dashboardUrl,
 }: NewAffiliateNotificationEmailProps) {
   const primaryColor = brandPrimaryColor;

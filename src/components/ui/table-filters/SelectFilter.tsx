@@ -93,7 +93,7 @@ export function SelectFilter({
                     >
                       <Checkbox checked={isSelected} />
                       <span className="flex-1 truncate text-[13px]">{option.label}</span>
-                      {isSelected && <CheckIcon className="h-3.5 w-3.5 text-[#10409a]" />}
+                      {isSelected && <CheckIcon className="h-3.5 w-3.5 text-[#1c2260]" />}
                     </CommandItem>
                   );
                 })

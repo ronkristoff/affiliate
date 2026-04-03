@@ -298,8 +298,8 @@ pnpm convex env set BETTER_AUTH_SECRET your-prod-secret --prod
 - Professional but not boring — modern tooling feel
 
 **Design System Established:**
-- Brand primary: `#10409a` (trustworthy blue)
-- Secondary: `#1659d6`
+- Brand primary: `#1c2260` (trustworthy navy)
+- Secondary: `#1fb5a5`
 - Typography: Poppins (body), Passion One (display headings)
 - Spacing: 8px base scale
 - Border radius: 12px (0.75rem) default
@@ -326,8 +326,8 @@ pnpm convex env set BETTER_AUTH_SECRET your-prod-secret --prod
 
 ```css
 /* Brand Colors */
---brand-primary: #10409a;   /* Primary buttons, active states */
---brand-secondary: #1659d6;  /* Hover states, accents */
+--brand-primary: #1c2260;   /* Primary buttons, active states */
+--brand-secondary: #1fb5a5;  /* Hover states, accents */
 --brand-dark: #022232;       /* Sidebar background */
 --brand-light: #eff6ff;     /* Light backgrounds */
 --brand-link: #2b7bb9;       /* Links */

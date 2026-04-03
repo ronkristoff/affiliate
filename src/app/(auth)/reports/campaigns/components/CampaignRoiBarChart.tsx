@@ -37,8 +37,8 @@ export function CampaignRoiBarChart({
     : ["Clicks", "Conversions"];
 
   const colors = canViewSensitiveData
-    ? ["#10409a", "#16a34a", "#f59e0b"]
-    : ["#10409a", "#16a34a"];
+    ? ["#1c2260", "#16a34a", "#f59e0b"]
+    : ["#1c2260", "#16a34a"];
 
   return (
     <FadeIn>

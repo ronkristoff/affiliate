@@ -95,8 +95,8 @@ export function ShareQueryDialog({
                     className={cn(
                       "flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
                       checked
-                        ? "border-[#10409a] bg-[#eff6ff]"
-                        : "border-[var(--border)] hover:border-[#1659d6]/40"
+                        ? "border-[#1c2260] bg-[#eff6ff]"
+                        : "border-[var(--border)] hover:border-[#1fb5a5]/40"
                     )}
                   >
                     <Checkbox checked={checked} onCheckedChange={() => handleToggleRole(role.value)} />

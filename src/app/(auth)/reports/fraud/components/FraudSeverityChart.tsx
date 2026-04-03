@@ -31,7 +31,7 @@ export function FraudSeverityChart({ data }: FraudSeverityChartProps) {
               <Tooltip />
               <Bar dataKey="count">
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={SEVERITY_COLORS[entry.name.toLowerCase()] || "#10409a"} />
+                  <Cell key={`cell-${index}`} fill={SEVERITY_COLORS[entry.name.toLowerCase()] || "#1c2260"} />
                 ))}
               </Bar>
             </BarChart>

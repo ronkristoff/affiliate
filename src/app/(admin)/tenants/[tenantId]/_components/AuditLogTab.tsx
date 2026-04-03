@@ -15,7 +15,7 @@ interface AuditLogTabProps {
 const ACTION_TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; bgColor: string }> = {
   impersonation_start: { icon: UserCog, color: "text-[#f59e0b]", bgColor: "bg-[#fef3c7]" },
   impersonation_end: { icon: UserCog, color: "text-[#6b7280]", bgColor: "bg-[#f3f4f6]" },
-  admin_note_added: { icon: MessageSquare, color: "text-[#10409a]", bgColor: "bg-[#dbeafe]" },
+  admin_note_added: { icon: MessageSquare, color: "text-[#1c2260]", bgColor: "bg-[#dbeafe]" },
   plan_change: { icon: CreditCard, color: "text-[#7c3aed]", bgColor: "bg-[#ede9fe]" },
   status_change: { icon: Shield, color: "text-[#ef4444]", bgColor: "bg-[#fee2e2]" },
   tenant_suspended: { icon: AlertTriangle, color: "text-[#ef4444]", bgColor: "bg-[#fee2e2]" },
@@ -110,7 +110,7 @@ export function AuditLogTab({ tenantId }: AuditLogTabProps) {
               variant="ghost"
               size="sm"
               onClick={() => setLogCursor(logResult.continueCursor ?? null)}
-              className="text-[#10409a] hover:bg-[#10409a]/10"
+              className="text-[#1c2260] hover:bg-[#1c2260]/10"
             >
               <ChevronDown className="mr-1 h-4 w-4" />
               Load More

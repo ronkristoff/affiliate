@@ -11,13 +11,13 @@
 /* Brand theme variables - Single source of truth */
 :root {
   /* Primary Brand Colors */
-  --brand: #10409a;
-  --brand-primary: #10409a;
-  --brand-secondary: #1659d6;
-  --brand-dark: #022232;
+  --brand: #1c2260;
+  --brand-primary: #1c2260;
+  --brand-secondary: #1fb5a5;
+  --brand-dark: #0e1333;
   --brand-light: #eff6ff;
-  --brand-link: #2b7bb9;
-  --brand-hover: #0c3280;
+  --brand-link: #1fb5a5;
+  --brand-hover: #161c50;
   
   /* Text Colors */
   --text-heading: #333333;
@@ -210,9 +210,9 @@
   --card-foreground: #f8fafc;
   --popover: #0f172a;
   --popover-foreground: #f8fafc;
-  --primary: #3b82f6;
+  --primary: #1c2260;
   --primary-foreground: #ffffff;
-  --secondary: #60a5fa;
+  --secondary: #1fb5a5;
   --secondary-foreground: #0f172a;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
@@ -222,20 +222,20 @@
   --destructive-foreground: #ffffff;
   --border: #334155;
   --input: #334155;
-  --ring: #3b82f6;
-  --chart-1: #3b82f6;
-  --chart-2: #60a5fa;
+  --ring: #1c2260;
+  --chart-1: #1c2260;
+  --chart-2: #1fb5a5;
   --chart-3: #10b981;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
   --sidebar: #1e293b;
   --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #3b82f6;
+  --sidebar-primary: #1c2260;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #334155;
   --sidebar-accent-foreground: #f8fafc;
   --sidebar-border: #334155;
-  --sidebar-ring: #3b82f6;
+  --sidebar-ring: #1c2260;
   --font-sans: var(--font-poppins);
   --font-serif: serif;
   --font-mono: var(--font-mono);
@@ -643,7 +643,7 @@
   
   /* ── Glow Effect ── */
   .glow-brand {
-    box-shadow: 0 0 20px rgba(16, 64, 154, 0.15), 0 0 40px rgba(16, 64, 154, 0.1);
+    box-shadow: 0 0 20px rgba(28, 34, 96, 0.15), 0 0 40px rgba(28, 34, 96, 0.1);
   }
 
   /* ── Sidebar Background Animation: Network Constellation ── */
@@ -758,10 +758,10 @@
 
 @keyframes glow {
   0%, 100% { 
-    box-shadow: 0 0 20px 5px rgba(16, 64, 154, 0.15), 0 0 40px 10px rgba(16, 64, 154, 0.1); 
+    box-shadow: 0 0 20px 5px rgba(28, 34, 96, 0.15), 0 0 40px 10px rgba(28, 34, 96, 0.1); 
   }
   50% { 
-    box-shadow: 0 0 30px 8px rgba(16, 64, 154, 0.25), 0 0 60px 15px rgba(16, 64, 154, 0.15); 
+    box-shadow: 0 0 30px 8px rgba(28, 34, 96, 0.25), 0 0 60px 15px rgba(28, 34, 96, 0.15); 
   }
 }
 
@@ -837,10 +837,10 @@
 
 @keyframes pulse-glow {
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(16, 64, 154, 0.2);
+    box-shadow: 0 0 20px rgba(28, 34, 96, 0.2);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(16, 64, 154, 0.35);
+    box-shadow: 0 0 30px rgba(28, 34, 96, 0.35);
   }
 }
 

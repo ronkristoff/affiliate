@@ -141,13 +141,13 @@ export function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps) {
           key={template.id}
           type="button"
           onClick={() => onSelectTemplate(template.config)}
-          className="group w-full flex items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-3 text-left transition-all hover:border-[#1659d6]/40 hover:shadow-sm"
+          className="group w-full flex items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-3 text-left transition-all hover:border-[#1fb5a5]/40 hover:shadow-sm"
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#10409a]/10 to-[#1659d6]/10 flex items-center justify-center text-[#10409a] shrink-0 group-hover:from-[#10409a]/20 group-hover:to-[#1659d6]/20 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1c2260]/10 to-[#1fb5a5]/10 flex items-center justify-center text-[#1c2260] shrink-0 group-hover:from-[#1c2260]/20 group-hover:to-[#1fb5a5]/20 transition-colors">
             {template.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-[var(--text-heading)] group-hover:text-[#10409a] transition-colors">
+            <div className="text-[13px] font-semibold text-[var(--text-heading)] group-hover:text-[#1c2260] transition-colors">
               {template.name}
             </div>
             <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">

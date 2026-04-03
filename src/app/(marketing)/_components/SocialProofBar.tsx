@@ -66,7 +66,7 @@ export function SocialProofBar(): React.JSX.Element {
   return (
     <section
       ref={sectionRef}
-      className="py-12 bg-[#10409a] relative overflow-hidden"
+      className="py-12 bg-[#1c2260] relative overflow-hidden"
       aria-labelledby="social-proof-heading"
     >
       <div className="absolute inset-0 opacity-10">

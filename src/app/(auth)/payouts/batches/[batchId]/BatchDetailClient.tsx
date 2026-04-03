@@ -518,7 +518,7 @@ export function BatchDetailContent() {
 
   const avatarColors = detailPayout
     ? getAvatarColor(detailPayout.name)
-    : { bg: "#dbeafe", text: "#10409a" };
+    : { bg: "#dbeafe", text: "#1c2260" };
 
   // ── Render ────────────────────────────────────────────────────────────
   return (

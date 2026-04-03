@@ -45,7 +45,7 @@ export default function DomainChangeNotificationEmail({
         <Text style={{ ...styles.text, margin: "8px 0" }}>
           <span style={{ textDecoration: "line-through", color: "#999" }}>{oldDomain}</span>
           {" → "}
-          <span style={{ fontWeight: 600, color: "#10409a" }}>{newDomain}</span>
+          <span style={{ fontWeight: 600, color: "#1c2260" }}>{newDomain}</span>
         </Text>
       </div>
 

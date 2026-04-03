@@ -68,7 +68,7 @@ export function PricingSection() {
       <section id="pricing" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#10409a]" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#1c2260]" />
           </div>
         </div>
       </section>
@@ -80,18 +80,18 @@ export function PricingSection() {
   return (
     <section id="pricing" className="py-24 bg-[#f8fafc] relative overflow-hidden">
       {/* Background accent */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#10409a] to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#1c2260] to-transparent" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#10409a]/10 text-[#10409a] text-sm font-bold mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1c2260]/10 text-[#1c2260] text-sm font-bold mb-6">
             <Zap className="w-4 h-4" />
             Pricing
           </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#10409a] mb-6 leading-[1.05]">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#1c2260] mb-6 leading-[1.05]">
             Simple, transparent{" "}
-            <span className="text-[#022232]">pricing</span>
+            <span className="text-[#0e1333]">pricing</span>
           </h2>
           <p className="text-xl text-[#6b7280]">
             Start free, scale as you grow. No hidden fees, no surprises.
@@ -100,16 +100,16 @@ export function PricingSection() {
 
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-4 mb-16">
-          <span className={cn("text-sm font-bold", !isAnnual ? 'text-[#10409a]' : 'text-[#6b7280]')}>
+          <span className={cn("text-sm font-bold", !isAnnual ? 'text-[#1c2260]' : 'text-[#6b7280]')}>
             Monthly
           </span>
           <Switch
             checked={isAnnual}
             onCheckedChange={setIsAnnual}
             aria-label="Toggle annual billing"
-            className="data-[state=checked]:bg-[#10409a] data-[state=unchecked]:bg-[#e5e7eb]"
+            className="data-[state=checked]:bg-[#1c2260] data-[state=unchecked]:bg-[#e5e7eb]"
           />
-          <span className={cn("text-sm font-bold", isAnnual ? 'text-[#10409a]' : 'text-[#6b7280]')}>
+          <span className={cn("text-sm font-bold", isAnnual ? 'text-[#1c2260]' : 'text-[#6b7280]')}>
             Annual
           </span>
           {isAnnual && (
@@ -133,7 +133,7 @@ export function PricingSection() {
                 {/* Featured badge */}
                 {isHighlighted && (
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
-                    <div className="px-4 py-1.5 bg-[#10409a] text-white text-xs font-bold rounded-full shadow-lg">
+                    <div className="px-4 py-1.5 bg-[#1c2260] text-white text-xs font-bold rounded-full shadow-lg">
                       Most Popular
                     </div>
                   </div>
@@ -144,8 +144,8 @@ export function PricingSection() {
                   className={cn(
                     "relative h-full rounded-3xl transition-all duration-500",
                     isHighlighted 
-                      ? "bg-[#022232] text-white scale-[1.05] shadow-2xl shadow-[#022232]/20 animate-[glow_3s_ease-in-out_infinite]" 
-                      : "bg-white border-2 border-[#e5e7eb] hover:border-[#10409a]/30 hover:shadow-xl"
+                      ? "bg-[#0e1333] text-white scale-[1.05] shadow-2xl shadow-[#0e1333]/20 animate-[glow_3s_ease-in-out_infinite]" 
+                      : "bg-white border-2 border-[#e5e7eb] hover:border-[#1c2260]/30 hover:shadow-xl"
                   )}
                 >
 
@@ -170,11 +170,11 @@ export function PricingSection() {
                     <div className="mb-8">
                       {tier.price === 0 ? (
                         <div className="flex items-baseline gap-2">
-                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#022232]")}>Free</span>
+                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#0e1333]")}>Free</span>
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-2">
-                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#022232]")}>
+                          <span className={cn("text-5xl font-black", isHighlighted ? "text-white" : "text-[#0e1333]")}>
                             ₱{getPrice(tier.price).toLocaleString()}
                           </span>
                           <span className={cn(
@@ -259,8 +259,8 @@ export function PricingSection() {
                         className={cn(
                           "w-full font-bold min-h-[52px] text-base rounded-xl transition-all duration-300",
                           isHighlighted
-                            ? "bg-white text-[#022232] hover:bg-white/90 shadow-lg"
-                            : "bg-[#10409a] text-white hover:bg-[#0c3280]"
+                            ? "bg-white text-[#0e1333] hover:bg-white/90 shadow-lg"
+                            : "bg-[#1c2260] text-white hover:bg-[#161c50]"
                         )}
                       >
                         {tier.price === 0 ? "Get Started Free" : "Start free trial"}
@@ -278,7 +278,7 @@ export function PricingSection() {
         <div className="text-center mt-16">
           <p className="text-[#6b7280]">
             Need something custom?{" "}
-            <Link href="mailto:hello@saligaffiliate.com" className="text-[#10409a] font-bold hover:underline">
+            <Link href="mailto:hello@saligaffiliate.com" className="text-[#1c2260] font-bold hover:underline">
               Contact us
             </Link>{" "}
             for enterprise pricing.

@@ -28,7 +28,7 @@ export function WelcomeBanner({
   totalEarnings,
   totalClicks,
   totalConversions,
-  primaryColor = "#10409a",
+  primaryColor = "#1c2260",
 }: WelcomeBannerProps) {
   const [greeting, setGreeting] = useState<GreetingResult>({ greeting: "Hello", emoji: "" });
 

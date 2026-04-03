@@ -122,7 +122,7 @@ export function AggregationBuilder({
 
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Sigma className="w-4 h-4 text-[#10409a]" />
+          <Sigma className="w-4 h-4 text-[#1c2260]" />
           <span className="text-sm font-semibold text-[var(--text-heading)]">Aggregations</span>
           {aggregations.length > 0 && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -273,7 +273,7 @@ export function AggregationBuilder({
                   key={`${col.table}.${col.column}`}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-1.5 cursor-pointer transition-all duration-150",
-                    checked ? "bg-[#eff6ff] border border-[#10409a]/20" : "hover:bg-[var(--hover)] border border-transparent"
+                    checked ? "bg-[#eff6ff] border border-[#1c2260]/20" : "hover:bg-[var(--hover)] border border-transparent"
                   )}
                 >
                   <Checkbox checked={checked} onCheckedChange={() => handleToggleGroupBy(col.table, col.column)} />

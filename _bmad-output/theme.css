@@ -34,10 +34,10 @@ body {
    ============================================ */
 :root {
   /* Brand Colors */
-  --brand-primary: #10409a;
-  --brand-secondary: #1659d6;
-  --brand-dark: #022232;
-  --brand-link: #2b7bb9;
+  --brand-primary: #1c2260;
+  --brand-secondary: #1fb5a5;
+  --brand-dark: #0e1333;
+  --brand-link: #1fb5a5;
   
   /* Text Colors */
   --text-heading: #333333;
@@ -67,7 +67,7 @@ body {
   
   /* Brand Tints */
   --brand-light: #eff6ff;
-  --brand-hover: #0c3280;
+  --brand-hover: #161c50;
   
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);

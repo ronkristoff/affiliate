@@ -78,7 +78,7 @@ export function AffiliateSignUpForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const primaryColor = tenantBranding?.primaryColor || "#10409a";
+  const primaryColor = tenantBranding?.primaryColor || "#1c2260";
   const portalName = tenantBranding?.portalName || "our affiliate program";
 
   const form = useForm<SignUpFormData>({

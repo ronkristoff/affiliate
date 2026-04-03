@@ -51,7 +51,7 @@ export function FilterChips<T>({ filters, columns, onRemove, onClearAll }: Filte
       {filters.map((filter) => (
         <span
           key={filter.columnKey}
-          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-[#eff6ff] text-[#10409a] border border-[#10409a]/20"
+          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-[#eff6ff] text-[#1c2260] border border-[#1c2260]/20"
         >
           {formatFilterLabel(filter, columns)}
           <button

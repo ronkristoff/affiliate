@@ -188,10 +188,10 @@ function NextStepHint({ config }: { config: QueryConfig }) {
   if (!hint) return null;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#10409a]/5 border border-[#10409a]/10">
-      <span className="text-[#10409a] shrink-0">{hint.icon}</span>
-      <span className="text-[12px] text-[#10409a] flex-1">{hint.text}</span>
-      <ArrowRight className="w-3.5 h-3.5 text-[#10409a]/50 shrink-0" />
+    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c2260]/5 border border-[#1c2260]/10">
+      <span className="text-[#1c2260] shrink-0">{hint.icon}</span>
+      <span className="text-[12px] text-[#1c2260] flex-1">{hint.text}</span>
+      <ArrowRight className="w-3.5 h-3.5 text-[#1c2260]/50 shrink-0" />
     </div>
   );
 }
@@ -247,7 +247,7 @@ const QuerySummary = React.memo(function QuerySummary({ config, configJson }: { 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-4 space-y-3 max-h-[200px] overflow-y-auto">
       <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-heading)]">
-        <ClipboardList className="w-4 h-4 text-[#10409a]" />
+        <ClipboardList className="w-4 h-4 text-[#1c2260]" />
         Query Summary
       </div>
 
@@ -293,7 +293,7 @@ const QuerySummary = React.memo(function QuerySummary({ config, configJson }: { 
               {config.filters.map((f, i) => (
                 <Badge key={f.id} variant="secondary" className="text-[11px] font-mono gap-0.5">
                   {i > 0 && (
-                    <span className="text-[#1659d6] font-bold uppercase mr-0.5">{config.filterLogic}</span>
+                    <span className="text-[#1fb5a5] font-bold uppercase mr-0.5">{config.filterLogic}</span>
                   )}
                   <Filter className="w-2.5 h-2.5 opacity-50" />
                   {f.column}
@@ -315,10 +315,10 @@ const QuerySummary = React.memo(function QuerySummary({ config, configJson }: { 
             <div className="flex flex-wrap gap-1">
               {config.joins.map((j) => (
                 <Badge key={j.id} variant="outline" className="text-[11px] font-mono gap-0.5">
-                  <span className="text-[#1659d6] font-bold uppercase">{j.joinType || "inner"}</span>
+                  <span className="text-[#1fb5a5] font-bold uppercase">{j.joinType || "inner"}</span>
                   <Link2 className="w-2.5 h-2.5 opacity-50" />
                   {j.leftTable}.{j.leftField}
-                  <span className="text-[#1659d6] mx-0.5">=</span>
+                  <span className="text-[#1fb5a5] mx-0.5">=</span>
                   {j.rightTable}.{j.rightField}
                 </Badge>
               ))}
@@ -710,7 +710,7 @@ function QueryBuilderContent() {
               className={cn(
                 "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "wizard"
-                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  ? "bg-white text-[#1c2260] shadow-sm hover:bg-white hover:text-[#1c2260]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
@@ -725,7 +725,7 @@ function QueryBuilderContent() {
               className={cn(
                 "gap-1.5 h-7 text-[12px] font-medium rounded-md",
                 mode === "advanced"
-                  ? "bg-white text-[#10409a] shadow-sm hover:bg-white hover:text-[#10409a]"
+                  ? "bg-white text-[#1c2260] shadow-sm hover:bg-white hover:text-[#1c2260]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-heading)]"
               )}
             >
@@ -797,7 +797,7 @@ function QueryBuilderContent() {
                     size="sm"
                     className={cn(
                       "gap-1.5",
-                      dateRange && "border-[#10409a] bg-[#10409a]/5"
+                      dateRange && "border-[#1c2260] bg-[#1c2260]/5"
                     )}
                   >
                     <Calendar className="w-3 h-3" />
@@ -825,7 +825,7 @@ function QueryBuilderContent() {
                           size="sm"
                           className={cn(
                             "w-full justify-start text-[12px]",
-                            isActive && "bg-[#10409a] text-white hover:bg-[#10409a]"
+                            isActive && "bg-[#1c2260] text-white hover:bg-[#1c2260]"
                           )}
                           onClick={() => {
                             const newRange = {
@@ -868,7 +868,7 @@ function QueryBuilderContent() {
                     const val = parseInt(e.target.value, 10);
                     if (val > 0 && val <= 1000) setRowLimit(val);
                   }}
-                  className="w-16 h-7 text-[12px] text-center rounded-md border border-[var(--border)] bg-white px-1 focus:outline-none focus:ring-1 focus:ring-[#10409a]/30"
+                  className="w-16 h-7 text-[12px] text-center rounded-md border border-[var(--border)] bg-white px-1 focus:outline-none focus:ring-1 focus:ring-[#1c2260]/30"
                 />
               </div>
             )}

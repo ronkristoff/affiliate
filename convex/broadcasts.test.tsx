@@ -143,7 +143,7 @@ describe("Broadcast Email Tests", () => {
           subject="Complex HTML"
           body="<h2>Announcement</h2><ul><li>Feature 1</li><li>Feature 2</li></ul><p>Thank you!</p>"
           portalName="Test Portal"
-          brandPrimaryColor="#1659d6"
+          brandPrimaryColor="#1fb5a5"
         />
       );
 
@@ -178,7 +178,7 @@ describe("Broadcast Email Tests", () => {
           body="<p>Full content</p>"
           portalName="Full Portal"
           brandLogoUrl="https://example.com/logo.png"
-          brandPrimaryColor="#10409a"
+          brandPrimaryColor="#1c2260"
           unsubscribeUrl="https://example.com/unsubscribe"
         />
       );

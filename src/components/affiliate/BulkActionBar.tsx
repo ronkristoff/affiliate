@@ -23,7 +23,7 @@ export function BulkActionBar({
   }
 
   return (
-    <div className="bg-[#10409a] text-white px-5 py-2.5 flex items-center gap-4 rounded-t-xl">
+    <div className="bg-[#1c2260] text-white px-5 py-2.5 flex items-center gap-4 rounded-t-xl">
       <span className="text-[13px] font-semibold">
         {selectedCount} selected
       </span>

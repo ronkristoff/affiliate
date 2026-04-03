@@ -1807,7 +1807,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       const { jamiePayoutId } = await setupBatchWithBranding(t, {
         portalName: "My Portal",
         logoUrl: "https://example.com/logo.png",
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
         customDomain: "portal.mybrand.com",
       });
 
@@ -1829,7 +1829,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       const { jamiePayoutId } = await setupBatchWithBranding(t, {
         portalName: "Branded Portal",
         logoUrl: "https://example.com/logo.png",
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
         customDomain: "earnings.mybrand.com",
       });
 

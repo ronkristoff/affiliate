@@ -21,7 +21,7 @@ export default function TeamWelcomeEmail({
   brandName,
   brandTagline,
   brandLogoUrl,
-  primaryColor = "#10409a",
+  primaryColor = "#1c2260",
 }: TeamWelcomeEmailProps) {
   const roleDisplayName = role.charAt(0).toUpperCase() + role.slice(1);
 

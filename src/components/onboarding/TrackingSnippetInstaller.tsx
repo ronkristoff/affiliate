@@ -112,7 +112,7 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
   const snippetCode = configLoading
     ? "Loading..."
     : snippetConfig
-      ? `<!-- salig-affiliate tracking -->
+      ? `<!-- Affilio tracking -->
 <script src="${snippetConfig.cdnUrl}?v=2" data-key="${snippetConfig.publicKey}" data-tenant="${snippetConfig.tenantId}" async></script>`
       : "Error loading configuration";
 
@@ -396,7 +396,7 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
           </Button>
         )}
         <div className="ml-auto">
-          <Button onClick={onComplete} className="bg-[#10409a] hover:bg-[#1659d6]">
+          <Button onClick={onComplete} className="bg-[#1c2260] hover:bg-[#1fb5a5]">
             {isVerified ? "Finish Setup" : "Skip & Go to Dashboard"}
             <Check className="w-4 h-4 ml-2" />
           </Button>

@@ -25,7 +25,7 @@ export default function TeamAcceptedNotificationEmail({
   brandName,
   brandTagline,
   brandLogoUrl,
-  primaryColor = "#10409a",
+  primaryColor = "#1c2260",
 }: TeamAcceptedNotificationEmailProps) {
   const roleDisplayName = newMemberRole.charAt(0).toUpperCase() + newMemberRole.slice(1);
 

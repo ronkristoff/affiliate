@@ -86,10 +86,10 @@ export function TrialWarningBanner({
           </AlertTitle>
           <AlertDescription className="mt-1">
             {isExpired
-              ? "Your trial has expired. Upgrade now to restore access to salig-affiliate."
+              ? "Your trial has expired. Upgrade now to restore access to Affilio."
               : `Your trial ends in ${formatDaysRemaining(daysRemaining)}.${
                   isUrgent
-                    ? " Upgrade now to avoid losing access to salig-affiliate."
+                    ? " Upgrade now to avoid losing access to Affilio."
                     : " Upgrade now to continue using all features without interruption."
                 }`}
           </AlertDescription>

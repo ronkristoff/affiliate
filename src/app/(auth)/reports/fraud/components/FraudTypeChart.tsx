@@ -8,7 +8,7 @@ interface FraudTypeChartProps {
   data: { name: string; count: number }[];
 }
 
-const COLORS = ["#10409a", "#1659d6", "#3b82f6", "#60a5fa", "#93c5fd"];
+const COLORS = ["#1c2260", "#1fb5a5", "#3b82f6", "#60a5fa", "#93c5fd"];
 
 export function FraudTypeChart({ data }: FraudTypeChartProps) {
   const hasData = data.some((d) => d.count > 0);
@@ -25,7 +25,7 @@ export function FraudTypeChart({ data }: FraudTypeChartProps) {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} width={48} />
               <Tooltip />
-              <Bar dataKey="count" fill="#10409a">
+              <Bar dataKey="count" fill="#1c2260">
                 {data.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}

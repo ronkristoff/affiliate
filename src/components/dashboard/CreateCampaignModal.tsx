@@ -312,7 +312,7 @@ export function CreateCampaignModal({
               {/* ── Section 1: Identity ────────────────────────────── */}
               <motion.div variants={itemVariants} className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-6 h-6 rounded-full bg-[#10409a] text-white text-[11px] font-bold flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-full bg-[#1c2260] text-white text-[11px] font-bold flex items-center justify-center">
                     1
                   </span>
                   <span className="text-sm font-semibold text-gray-800">
@@ -335,7 +335,7 @@ export function CreateCampaignModal({
                     className={`h-10 text-sm transition-all duration-200 ${
                       errors.name
                         ? "border-rose-500 ring-1 ring-rose-100"
-                        : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
+                        : "border-gray-200 focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100"
                     }`}
                   />
                   <AnimatePresence mode="wait">
@@ -376,7 +376,7 @@ export function CreateCampaignModal({
                     placeholder="What's this campaign about?"
                     {...register("description")}
                     rows={2}
-                    className="text-sm border-gray-200 resize-none focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100 transition-all duration-200"
+                    className="text-sm border-gray-200 resize-none focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100 transition-all duration-200"
                   />
                 </div>
               </motion.div>
@@ -384,7 +384,7 @@ export function CreateCampaignModal({
               {/* ── Section 2: Commission (THE CENTERPIECE) ────────── */}
               <motion.div variants={itemVariants} className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-6 h-6 rounded-full bg-[#10409a] text-white text-[11px] font-bold flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-full bg-[#1c2260] text-white text-[11px] font-bold flex items-center justify-center">
                     2
                   </span>
                   <span className="text-sm font-semibold text-gray-800">
@@ -399,14 +399,14 @@ export function CreateCampaignModal({
                     onClick={() => setValue("commissionType", "percentage")}
                     className={`relative rounded-xl p-4 text-left transition-all duration-200 border-2 ${
                       commissionType === "percentage"
-                        ? "border-[#10409a] bg-blue-50/60 shadow-sm"
+                        ? "border-[#1c2260] bg-blue-50/60 shadow-sm"
                         : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                     }`}
                   >
                     {commissionType === "percentage" && (
                       <motion.div
                         layoutId="commission-type-indicator"
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#10409a] flex items-center justify-center"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1c2260] flex items-center justify-center"
                         transition={{
                           type: "spring",
                           stiffness: 400,
@@ -420,7 +420,7 @@ export function CreateCampaignModal({
                       <span
                         className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-colors duration-200 ${
                           commissionType === "percentage"
-                            ? "bg-[#10409a]/10 text-[#10409a]"
+                            ? "bg-[#1c2260]/10 text-[#1c2260]"
                             : "bg-gray-100 text-gray-400"
                         }`}
                       >
@@ -442,14 +442,14 @@ export function CreateCampaignModal({
                     onClick={() => setValue("commissionType", "flatFee")}
                     className={`relative rounded-xl p-4 text-left transition-all duration-200 border-2 ${
                       commissionType === "flatFee"
-                        ? "border-[#10409a] bg-blue-50/60 shadow-sm"
+                        ? "border-[#1c2260] bg-blue-50/60 shadow-sm"
                         : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                     }`}
                   >
                     {commissionType === "flatFee" && (
                       <motion.div
                         layoutId="commission-type-indicator"
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#10409a] flex items-center justify-center"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1c2260] flex items-center justify-center"
                         transition={{
                           type: "spring",
                           stiffness: 400,
@@ -463,7 +463,7 @@ export function CreateCampaignModal({
                       <span
                         className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-colors duration-200 ${
                           commissionType === "flatFee"
-                            ? "bg-[#10409a]/10 text-[#10409a]"
+                            ? "bg-[#1c2260]/10 text-[#1c2260]"
                             : "bg-gray-100 text-gray-400"
                         }`}
                       >
@@ -498,7 +498,7 @@ export function CreateCampaignModal({
                         className={`h-10 text-sm pr-8 transition-all duration-200 ${
                           errors.commissionRate
                             ? "border-rose-500 ring-1 ring-rose-100"
-                            : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
+                            : "border-gray-200 focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100"
                         }`}
                         min={commissionType === "percentage" ? 1 : 0}
                         max={
@@ -615,7 +615,7 @@ export function CreateCampaignModal({
                       className={`h-10 text-sm transition-all duration-200 ${
                         errors.cookieDuration
                           ? "border-rose-500 ring-1 ring-rose-100"
-                          : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
+                          : "border-gray-200 focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100"
                       }`}
                       min={1}
                       max={365}
@@ -720,7 +720,7 @@ export function CreateCampaignModal({
                                   className={`h-10 text-sm pr-8 transition-all duration-200 ${
                                     errors.recurringRate
                                       ? "border-rose-500 ring-1 ring-rose-100"
-                                      : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
+                                      : "border-gray-200 focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100"
                                   }`}
                                   min={1}
                                   max={100}
@@ -803,7 +803,7 @@ export function CreateCampaignModal({
                             className={`h-10 text-sm transition-all duration-200 ${
                               errors.approvalThreshold
                                 ? "border-rose-500 ring-1 ring-rose-100"
-                                : "border-gray-200 focus:border-[#1659d6] focus:ring-1 focus:ring-blue-100"
+                                : "border-gray-200 focus:border-[#1fb5a5] focus:ring-1 focus:ring-blue-100"
                             }`}
                             min={0}
                             max={10000000}
@@ -838,7 +838,7 @@ export function CreateCampaignModal({
               <Button
                 type="submit"
                 disabled={loading || isLimitReached}
-                className="h-10 px-5 text-sm bg-[#10409a] hover:bg-[#1659d6]"
+                className="h-10 px-5 text-sm bg-[#1c2260] hover:bg-[#1fb5a5]"
               >
                 {loading ? (
                   <>

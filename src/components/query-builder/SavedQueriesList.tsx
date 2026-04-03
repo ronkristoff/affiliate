@@ -95,7 +95,7 @@ export function SavedQueriesList({ onLoadQuery, onShareQuery }: SavedQueriesList
         return (
           <div
             key={q._id}
-            className="group rounded-xl border border-[var(--border)] bg-white p-3 transition-all hover:border-[#1659d6]/30 hover:shadow-sm"
+            className="group rounded-xl border border-[var(--border)] bg-white p-3 transition-all hover:border-[#1fb5a5]/30 hover:shadow-sm"
           >
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="min-w-0 flex-1">
@@ -126,7 +126,7 @@ export function SavedQueriesList({ onLoadQuery, onShareQuery }: SavedQueriesList
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-[11px] gap-1 px-2 text-[#1659d6] hover:text-[#10409a]"
+                    className="h-7 text-[11px] gap-1 px-2 text-[#1fb5a5] hover:text-[#1c2260]"
                     onClick={() => handleLoad(q)}
                   >
                     <Play className="w-3 h-3" />

@@ -100,7 +100,7 @@ export default function PortalLinksPage() {
     return null;
   }
 
-  const primaryColor = tenantContext?.branding?.primaryColor || "#10409a";
+  const primaryColor = tenantContext?.branding?.primaryColor || "#1c2260";
   const portalName = tenantContext?.branding?.portalName || tenantContext?.name || "Affiliate Program";
   const logoUrl = tenantContext?.branding?.logoUrl;
 

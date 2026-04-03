@@ -155,8 +155,8 @@ export function SaveQueryDialog({
                         className={cn(
                           "flex items-center gap-2 rounded-lg border px-3 py-1.5 cursor-pointer transition-all text-[13px]",
                           checked
-                            ? "border-[#10409a] bg-[#eff6ff] text-[#10409a]"
-                            : "border-[var(--border)] hover:border-[#1659d6]/40"
+                            ? "border-[#1c2260] bg-[#eff6ff] text-[#1c2260]"
+                            : "border-[var(--border)] hover:border-[#1fb5a5]/40"
                         )}
                       >
                         <Checkbox checked={checked} onCheckedChange={() => handleToggleRole(role.value)} />

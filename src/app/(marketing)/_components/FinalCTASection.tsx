@@ -39,7 +39,7 @@ export function FinalCTASection() {
   }, [prefersReducedMotion]);
 
   return (
-    <section ref={sectionRef} className="py-24 bg-[#10409a] text-white relative overflow-hidden">
+    <section ref={sectionRef} className="py-24 bg-[#1c2260] text-white relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
           backgroundImage: `radial-gradient(circle at 3px 3px, white 1px, transparent 0)`,
@@ -48,7 +48,7 @@ export function FinalCTASection() {
       </div>
       
       <div className="absolute top-0 left-0 w-64 h-64 bg-[#22d3ee]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#1659d6]/30 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#1fb5a5]/30 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
       
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
         <div 
@@ -96,7 +96,7 @@ export function FinalCTASection() {
           <Link href="/sign-up">
             <Button 
               size="lg"
-              className="bg-white text-[#10409a] hover:bg-white/90 font-black text-xl px-14 py-8 h-auto shadow-2xl shadow-black/20 btn-motion"
+              className="bg-white text-[#1c2260] hover:bg-white/90 font-black text-xl px-14 py-8 h-auto shadow-2xl shadow-black/20 btn-motion"
             >
               Start your free trial
               <ArrowRight className="ml-3 w-6 h-6" />

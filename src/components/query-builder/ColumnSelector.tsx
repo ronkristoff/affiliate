@@ -245,7 +245,7 @@ export function ColumnSelector({
                   <button
                     type="button"
                     onClick={() => handleSelectAll(table.name, table.columns)}
-                    className="text-xs font-medium text-[#1659d6] hover:text-[#10409a] transition-colors"
+                    className="text-xs font-medium text-[#1fb5a5] hover:text-[#1c2260] transition-colors"
                   >
                     {allSelected ? "Deselect All" : "Select All"}
                   </button>
@@ -265,7 +265,7 @@ export function ColumnSelector({
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-150",
                           checked
-                            ? "bg-[#eff6ff] border border-[#10409a]/20"
+                            ? "bg-[#eff6ff] border border-[#1c2260]/20"
                             : "hover:bg-[var(--hover)] border border-transparent"
                         )}
                         onMouseEnter={() => handleMouseEnter(table.name, col.name)}
@@ -340,7 +340,7 @@ export function ColumnSelector({
                                   setEditingAlias({ table: table.name, column: col.name });
                                   setAliasDraft(currentAlias ?? "");
                                 }}
-                                className="p-0.5 text-[var(--text-muted)] hover:text-[#1659d6] opacity-0 hover:opacity-100 transition-opacity"
+                                className="p-0.5 text-[var(--text-muted)] hover:text-[#1fb5a5] opacity-0 hover:opacity-100 transition-opacity"
                                 title="Set column alias"
                               >
                                 <Pencil className="w-3 h-3" />

@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "salig-affiliate — Affiliate Program Management for SaaS on SaligPay",
+    title: "Affilio — Affiliate Program Management for SaaS on SaligPay",
     description: "Launch, manage, and track your SaaS affiliate program natively on SaligPay. 14-day free trial.",
     url: "/",
     images: [
@@ -82,12 +82,12 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "salig-affiliate — Affiliate Program Management for SaaS on SaligPay",
+        alt: "Affilio — Affiliate Program Management for SaaS on SaligPay",
       },
     ],
   },
   twitter: {
-    title: "salig-affiliate — Affiliate Program Management for SaaS",
+    title: "Affilio — Affiliate Program Management for SaaS",
     description: "Launch, manage, and track your SaaS affiliate program natively on SaligPay. 14-day free trial.",
     images: ["/opengraph-image"],
   },
@@ -99,18 +99,18 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      "name": "salig-affiliate",
-      "url": "https://saligaffiliate.com",
-      "logo": "https://saligaffiliate.com/logo.png",
+      "name": "Affilio",
+      "url": "https://affilio.com",
+      "logo": "https://affilio.com/logo.png",
     },
     {
       "@type": "WebSite",
-      "name": "salig-affiliate",
-      "url": "https://saligaffiliate.com",
+      "name": "Affilio",
+      "url": "https://affilio.com",
     },
     {
       "@type": "SoftwareApplication",
-      "name": "salig-affiliate",
+      "name": "Affilio",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "description": "Affiliate program management with native SaligPay integration for SaaS businesses.",

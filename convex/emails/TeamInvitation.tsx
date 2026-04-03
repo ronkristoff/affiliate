@@ -25,7 +25,7 @@ export default function TeamInvitationEmail({
   brandName,
   brandTagline,
   brandLogoUrl,
-  primaryColor = "#10409a",
+  primaryColor = "#1c2260",
 }: TeamInvitationEmailProps) {
   const roleDisplayName = role.charAt(0).toUpperCase() + role.slice(1);
 

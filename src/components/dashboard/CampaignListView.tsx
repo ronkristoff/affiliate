@@ -124,7 +124,7 @@ export function CampaignListView({ viewMode = "cards", filterState, onCreateCamp
         cell: (row: any) => (
           <Link
             href={`/campaigns/${row._id}`}
-            className="text-[13px] font-semibold text-[#10409a] hover:text-[#1e40af] hover:underline transition-colors"
+            className="text-[13px] font-semibold text-[#1c2260] hover:text-[#1e40af] hover:underline transition-colors"
           >
             {row.name}
           </Link>
@@ -203,7 +203,7 @@ export function CampaignListView({ viewMode = "cards", filterState, onCreateCamp
         cell: (row: any) => (
           <Link
             href={`/campaigns/${row._id}`}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[12px] font-medium text-[#1659d6] hover:text-[#10409a] hover:bg-blue-50 rounded-md transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 text-[12px] font-medium text-[#1fb5a5] hover:text-[#1c2260] hover:bg-blue-50 rounded-md transition-colors"
           >
             View
             <ExternalLink className="w-3 h-3" />

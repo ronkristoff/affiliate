@@ -56,7 +56,7 @@ export function PayoutTrendChart({
               <Tooltip 
                 formatter={(value) => canViewSensitiveData ? formatCurrency(Number(value) || 0) : "—"} 
               />
-              <Area type="monotone" dataKey="Total Paid" stroke="#10409a" fill="#10409a" fillOpacity={0.1} />
+              <Area type="monotone" dataKey="Total Paid" stroke="#1c2260" fill="#1c2260" fillOpacity={0.1} />
             </AreaChart>
           </ResponsiveContainer>
         ) : (

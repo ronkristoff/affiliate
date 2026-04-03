@@ -21,7 +21,7 @@ export default function AffiliateWelcomeEmail({
   portalName,
   referralUrl,
   brandLogoUrl,
-  brandPrimaryColor = "#10409a",
+  brandPrimaryColor = "#1c2260",
   approvalTimeframe = "1-2 business days",
   contactEmail,
 }: AffiliateWelcomeEmailProps) {

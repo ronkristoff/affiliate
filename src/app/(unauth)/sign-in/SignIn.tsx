@@ -254,7 +254,7 @@ export default function SignIn() {
   return (
     <div className="flex min-h-screen">
       {/* Left Panel - Brand */}
-      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#022232] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[480px] lg:flex-col lg:justify-between lg:p-12 bg-[#0e1333] relative overflow-hidden">
         {/* Animated Network Constellation */}
         <SidebarNetwork />
 
@@ -269,7 +269,7 @@ export default function SignIn() {
         {/* Hero */}
         <div className="flex flex-col justify-center relative z-10 py-8 sidebar-enter-delay-1">
           <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
-            Your affiliate<br />program,<br /><span className="text-[#7dd3fc]">on autopilot.</span>
+            Your affiliate<br />program,<br /><span className="text-[#1fb5a5]">on autopilot.</span>
           </h1>
           <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
             Commission tracking, payout management, and a branded affiliate portal — all natively
@@ -288,7 +288,7 @@ export default function SignIn() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                 <polyline points="17 6 23 6 23 12" />
@@ -308,7 +308,7 @@ export default function SignIn() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
@@ -328,7 +328,7 @@ export default function SignIn() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[18px] h-[18px] text-[#7dd3fc]"
+                className="w-[18px] h-[18px] text-[#1fb5a5]"
               >
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
@@ -351,8 +351,8 @@ export default function SignIn() {
           <div className="mb-9">
             <h2 className="text-[26px] font-bold text-[#333] tracking-tight mb-2">Welcome back</h2>
             <p className="text-sm text-[#6b7280] leading-relaxed">
-              Sign in to your salig-affiliate account. New here?{" "}
-              <Link href="/sign-up" className="text-[#10409a] font-semibold no-underline hover:underline">
+              Sign in to your Affilio account. New here?{" "}
+              <Link href="/sign-up" className="text-[#1c2260] font-semibold no-underline hover:underline">
                 Start your free 14-day trial →
               </Link>
             </p>
@@ -427,7 +427,7 @@ export default function SignIn() {
                           <Input
                             {...field}
                             type="email"
-                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-3 text-sm text-[#333] bg-white focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)] focus:outline-none transition-all"
                             placeholder="alex@yourcompany.com"
                             autoComplete="email"
                           />
@@ -449,7 +449,7 @@ export default function SignIn() {
                     type="button"
                     variant="link"
                     size="sm"
-                    className="text-[12px] h-auto p-0 text-[#10409a] font-medium no-underline"
+                    className="text-[12px] h-auto p-0 text-[#1c2260] font-medium no-underline"
                     onClick={openForgotPasswordModal}
                   >
                     Forgot password?
@@ -477,7 +477,7 @@ export default function SignIn() {
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
-                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-10 text-sm text-[#333] bg-white focus:border-[#10409a] focus:shadow-[0_0_0_3px_rgba(16,64,154,0.1)] focus:outline-none transition-all"
+                            className="w-full h-11 border border-[#e5e7eb] rounded-lg pl-10 pr-10 text-sm text-[#333] bg-white focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)] focus:outline-none transition-all"
                             placeholder="Enter your password"
                             autoComplete="current-password"
                           />
@@ -529,7 +529,7 @@ export default function SignIn() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-[46px] bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full h-[46px] bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -554,7 +554,7 @@ export default function SignIn() {
           <div className="text-center pt-6 border-t border-[#e5e7eb]">
             <p className="text-[13px] text-[#6b7280]">
               Don&apos;t have an account?{" "}
-              <Link href="/sign-up" className="text-[#10409a] font-semibold no-underline hover:underline">
+              <Link href="/sign-up" className="text-[#1c2260] font-semibold no-underline hover:underline">
                 Start free trial — no credit card required
               </Link>
             </p>
@@ -563,8 +563,8 @@ export default function SignIn() {
           {/* Terms */}
           <p className="text-[11px] text-[#6b7280] text-center mt-4 leading-relaxed">
             By signing in, you agree to our{" "}
-            <a href="#" className="text-[#10409a] no-underline hover:underline">Terms of Service</a> and{" "}
-            <a href="#" className="text-[#10409a] no-underline hover:underline">Privacy Policy</a>.
+            <a href="#" className="text-[#1c2260] no-underline hover:underline">Terms of Service</a> and{" "}
+            <a href="#" className="text-[#1c2260] no-underline hover:underline">Privacy Policy</a>.
           </p>
         </div>
       </div>
@@ -575,7 +575,7 @@ export default function SignIn() {
       }}>
         <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden" showCloseButton={false}>
           {/* Visual Header - Dark sidebar aesthetic with network animation */}
-          <div className="relative bg-[#022232] px-5 pt-5 pb-4 overflow-hidden">
+          <div className="relative bg-[#0e1333] px-5 pt-5 pb-4 overflow-hidden">
             {/* Animated Network Constellation - smaller */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
@@ -690,7 +690,7 @@ export default function SignIn() {
                             Email address
                           </FormLabel>
                           <div className="relative group">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9ca3af] group-focus-within:text-[#10409a] transition-colors">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9ca3af] group-focus-within:text-[#1c2260] transition-colors">
                               <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -707,7 +707,7 @@ export default function SignIn() {
                               <Input
                                 {...field}
                                 type="email"
-                                className="w-full h-12 text-[15px] border-2 border-[#e5e7eb] rounded-xl pl-11 pr-4 text-[#1f2937] bg-[#f9fafb] focus:border-[#10409a] focus:bg-white focus:shadow-[0_0_0_4px_rgba(16,64,154,0.1)] focus:outline-none transition-all font-medium"
+                                className="w-full h-12 text-[15px] border-2 border-[#e5e7eb] rounded-xl pl-11 pr-4 text-[#1f2937] bg-[#f9fafb] focus:border-[#1c2260] focus:bg-white focus:shadow-[0_0_0_4px_rgba(28,34,96,0.1)] focus:outline-none transition-all font-medium"
                                 placeholder="alex@yourcompany.com"
                                 autoComplete="email"
                               />
@@ -731,7 +731,7 @@ export default function SignIn() {
                     <Button
                       type="submit"
                       disabled={forgotPasswordLoading}
-                      className="flex-1 h-11 bg-[#10409a] text-white text-sm font-semibold rounded-lg hover:bg-[#1659d6] hover:shadow-[0_4px_14px_rgba(16,64,154,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="flex-1 h-11 bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {forgotPasswordLoading ? (
                         <>
@@ -779,7 +779,7 @@ export default function SignIn() {
                     Didn't receive the email? Check your spam folder, or{" "}
                     <button
                       type="button"
-                      className="text-[#10409a] font-bold no-underline hover:underline underline-offset-2"
+                      className="text-[#1c2260] font-bold no-underline hover:underline underline-offset-2"
                       onClick={() => setForgotPasswordSuccess(false)}
                     >
                       try sending it again

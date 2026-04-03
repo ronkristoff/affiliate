@@ -88,9 +88,9 @@ export function FeaturesSection() {
     <section id="features" ref={sectionRef} className="py-24 bg-white relative overflow-hidden">
       <div className="absolute top-0 left-0 w-96 h-96 opacity-[0.03] -translate-x-1/2 -translate-y-1/2">
         <svg viewBox="0 0 400 400" fill="none" className="w-full h-full">
-          <circle cx="200" cy="200" r="200" stroke="#10409a" strokeWidth="1"/>
-          <circle cx="200" cy="200" r="150" stroke="#10409a" strokeWidth="1"/>
-          <circle cx="200" cy="200" r="100" stroke="#10409a" strokeWidth="1"/>
+          <circle cx="200" cy="200" r="200" stroke="#1c2260" strokeWidth="1"/>
+          <circle cx="200" cy="200" r="150" stroke="#1c2260" strokeWidth="1"/>
+          <circle cx="200" cy="200" r="100" stroke="#1c2260" strokeWidth="1"/>
         </svg>
       </div>
       
@@ -103,12 +103,12 @@ export function FeaturesSection() {
             transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
           }}
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[#10409a]/10 text-[#10409a] text-sm font-bold mb-6">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-[#1c2260]/10 text-[#1c2260] text-sm font-bold mb-6">
             Features
           </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#10409a] mb-6 leading-[1.1]">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#1c2260] mb-6 leading-[1.1]">
             Everything you need to run a{" "}
-            <span className="text-[#022232]">professional</span> affiliate program
+            <span className="text-[#0e1333]">professional</span> affiliate program
           </h2>
           <p className="text-xl text-[#6b7280] leading-relaxed">
             From tracking to payouts, we've handled the hard stuff so you can focus on growing your business.
@@ -128,10 +128,10 @@ export function FeaturesSection() {
                 transition: `opacity 0.6s ease-out ${index * 100}ms, transform 0.6s ease-out ${index * 100}ms`,
               }}
             >
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#10409a] to-[#1659d6] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#1c2260] to-[#1fb5a5] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
               <div className={`flex flex-col ${index === 0 ? 'h-full' : ''}`}>
-                <div className={`relative ${index === 0 ? 'w-20 h-20' : 'w-14 h-14'} rounded-2xl bg-gradient-to-br from-[#10409a] to-[#1659d6] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-[#10409a]/20`}>
+                <div className={`relative ${index === 0 ? 'w-20 h-20' : 'w-14 h-14'} rounded-2xl bg-gradient-to-br from-[#1c2260] to-[#1fb5a5] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-[#1c2260]/20`}>
                   <feature.icon className={`${index === 0 ? 'w-10 h-10' : 'w-7 h-7'} text-white`} />
                 </div>
                 
@@ -143,8 +143,8 @@ export function FeaturesSection() {
                   {feature.description}
                 </p>
                 
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10409a]/5 text-[#10409a] text-sm font-semibold w-fit">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10409a]"></span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1c2260]/5 text-[#1c2260] text-sm font-semibold w-fit">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1c2260]"></span>
                   {feature.highlight}
                 </div>
               </div>
@@ -161,7 +161,7 @@ export function FeaturesSection() {
           }}
         >
           <Link href="/sign-up">
-            <Button className="bg-[#10409a] hover:bg-[#0c3280] text-white font-bold px-12 py-6 text-lg shadow-lg shadow-[#10409a]/20 btn-motion">
+            <Button className="bg-[#1c2260] hover:bg-[#161c50] text-white font-bold px-12 py-6 text-lg shadow-lg shadow-[#1c2260]/20 btn-motion">
               Start your free trial
             </Button>
           </Link>

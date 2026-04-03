@@ -147,14 +147,14 @@ export function JoinBuilder({
                 key={join.id}
                 className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
               >
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-[#1659d6] border-[#1659d6]/30 bg-[#eff6ff] font-bold uppercase">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-[#1fb5a5] border-[#1fb5a5]/30 bg-[#eff6ff] font-bold uppercase">
                   {jt}
                 </Badge>
                 <span className="text-[13px] font-medium text-[var(--text-heading)]">
                   {leftLabel}
                 </span>
                 <span className="text-[11px] text-[var(--text-muted)]">.{leftColLabel}</span>
-                <span className="text-[11px] font-semibold text-[#1659d6] mx-1">=</span>
+                <span className="text-[11px] font-semibold text-[#1fb5a5] mx-1">=</span>
                 <span className="text-[13px] font-medium text-[var(--text-heading)]">
                   {rightLabel}
                 </span>
@@ -200,7 +200,7 @@ export function JoinBuilder({
                     "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all",
                     isApplied
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default"
-                      : "border-[#1659d6]/30 bg-[#eff6ff] text-[#10409a] hover:bg-[#1659d6]/10 hover:border-[#1659d6]/50 cursor-pointer"
+                      : "border-[#1fb5a5]/30 bg-[#eff6ff] text-[#1c2260] hover:bg-[#1fb5a5]/10 hover:border-[#1fb5a5]/50 cursor-pointer"
                   )}
                 >
                   {isApplied ? (

@@ -12,36 +12,36 @@ const ReducedMotionHero = () => (
       <div className="absolute inset-0 bg-gradient-to-br from-[#f8f9ff] via-white to-[#f0f4ff]" />
       <div className="absolute -top-20 -right-20 w-[600px] h-[600px] opacity-[0.03]">
         <svg viewBox="0 0 600 600" fill="none" className="w-full h-full">
-          <circle cx="300" cy="300" r="300" stroke="#10409a" strokeWidth="2"/>
-          <circle cx="300" cy="300" r="200" stroke="#10409a" strokeWidth="2"/>
-          <circle cx="300" cy="300" r="100" stroke="#10409a" strokeWidth="2"/>
+          <circle cx="300" cy="300" r="300" stroke="#1c2260" strokeWidth="2"/>
+          <circle cx="300" cy="300" r="200" stroke="#1c2260" strokeWidth="2"/>
+          <circle cx="300" cy="300" r="100" stroke="#1c2260" strokeWidth="2"/>
         </svg>
       </div>
       <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] opacity-[0.04]">
         <svg viewBox="0 0 500 500" fill="none" className="w-full h-full">
-          <rect x="50" y="50" width="400" height="400" stroke="#10409a" strokeWidth="1.5" transform="rotate(15 250 250)"/>
-          <rect x="100" y="100" width="300" height="300" stroke="#10409a" strokeWidth="1.5" transform="rotate(15 250 250)"/>
+          <rect x="50" y="50" width="400" height="400" stroke="#1c2260" strokeWidth="1.5" transform="rotate(15 250 250)"/>
+          <rect x="100" y="100" width="300" height="300" stroke="#1c2260" strokeWidth="1.5" transform="rotate(15 250 250)"/>
         </svg>
       </div>
     </div>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         <div className="lg:col-span-7 text-left">
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#10409a]/5 border border-[#10409a]/10 mb-8">
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#1c2260]/5 border border-[#1c2260]/10 mb-8">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10409a] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10409a]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1c2260] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1c2260]"></span>
             </span>
-            <span className="text-sm font-semibold text-[#10409a] tracking-wide">
+            <span className="text-sm font-semibold text-[#1c2260] tracking-wide">
               14-day free trial · No credit card required
             </span>
           </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black text-[#10409a] leading-[0.95] mb-8">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black text-[#1c2260] leading-[0.95] mb-8">
             Track every<br />
-            <span className="text-[#022232]">commission.</span>{" "}
+            <span className="text-[#0e1333]">commission.</span>{" "}
             <span className="relative inline-block">
               <span className="relative z-10">Down to the last peso.</span>
-              <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#10409a]/10 -skew-x-3 -z-0" />
+              <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#1c2260]/10 -skew-x-3 -z-0" />
             </span>
           </h1>
           <p className="text-xl sm:text-2xl text-[#474747] mb-10 max-w-xl leading-relaxed font-medium">
@@ -52,7 +52,7 @@ const ReducedMotionHero = () => (
             <Link href="/sign-up">
               <Button 
                 size="lg"
-                className="bg-[#10409a] hover:bg-[#0c3280] text-white font-bold text-lg px-10 py-7 h-auto shadow-lg shadow-[#10409a]/20 btn-motion"
+                className="bg-[#1c2260] hover:bg-[#161c50] text-white font-bold text-lg px-10 py-7 h-auto shadow-lg shadow-[#1c2260]/20 btn-motion"
               >
                 Start your free trial
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -62,7 +62,7 @@ const ReducedMotionHero = () => (
               <Button 
                 variant="outline" 
                 size="lg"
-                className="text-[#10409a] border-2 border-[#10409a]/20 hover:border-[#10409a]/40 hover:bg-[#10409a]/5 font-semibold text-lg px-10 py-7 h-auto btn-motion"
+                className="text-[#1c2260] border-2 border-[#1c2260]/20 hover:border-[#1c2260]/40 hover:bg-[#1c2260]/5 font-semibold text-lg px-10 py-7 h-auto btn-motion"
               >
                 See how it works
               </Button>
@@ -73,11 +73,11 @@ const ReducedMotionHero = () => (
           </p>
         </div>
         <div className="lg:col-span-5 relative">
-          <div className="absolute -top-8 -right-8 -bottom-8 -left-8 bg-gradient-to-br from-[#10409a]/5 to-[#10409a]/10 rounded-3xl -z-10" />
-          <div className="relative rounded-2xl shadow-2xl shadow-[#10409a]/15 overflow-hidden bg-white border border-[#e5e7eb] transform lg:translate-x-6">
+          <div className="absolute -top-8 -right-8 -bottom-8 -left-8 bg-gradient-to-br from-[#1c2260]/5 to-[#1c2260]/10 rounded-3xl -z-10" />
+          <div className="relative rounded-2xl shadow-2xl shadow-[#1c2260]/15 overflow-hidden bg-white border border-[#e5e7eb] transform lg:translate-x-6">
             <Image
               src="/dashboard-preview.svg"
-              alt="salig-affiliate dashboard showing affiliate program analytics"
+              alt="Affilio dashboard showing affiliate program analytics"
               width={700}
               height={460}
               priority
@@ -86,7 +86,7 @@ const ReducedMotionHero = () => (
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
-          <div className="absolute -left-4 top-1/4 bg-white rounded-2xl shadow-xl shadow-[#10409a]/10 border border-[#e5e7eb] p-5 w-72">
+          <div className="absolute -left-4 top-1/4 bg-white rounded-2xl shadow-xl shadow-[#1c2260]/10 border border-[#e5e7eb] p-5 w-72">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-[#d1fae5] flex items-center justify-center flex-shrink-0">
                 <span className="text-[#065f46] text-lg font-bold">₱</span>
@@ -101,7 +101,7 @@ const ReducedMotionHero = () => (
               <div className="h-full w-3/4 bg-gradient-to-r from-[#10b981] to-[#34d399] rounded-full" />
             </div>
           </div>
-          <div className="absolute -right-2 bottom-1/4 bg-[#022232] rounded-2xl shadow-xl border border-white/10 p-4 w-48">
+          <div className="absolute -right-2 bottom-1/4 bg-[#0e1333] rounded-2xl shadow-xl border border-white/10 p-4 w-48">
             <p className="text-white/60 text-xs font-medium mb-1">Total Earnings</p>
             <p className="text-white text-2xl font-black">₱48,295</p>
             <p className="text-[#34d399] text-xs font-semibold mt-1">↑ 12.5% this month</p>
@@ -155,15 +155,15 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#f8f9ff] via-white to-[#f0f4ff]" />
         <div className="absolute -top-20 -right-20 w-[600px] h-[600px] opacity-[0.03]">
           <svg viewBox="0 0 600 600" fill="none" className="w-full h-full">
-            <circle cx="300" cy="300" r="300" stroke="#10409a" strokeWidth="2"/>
-            <circle cx="300" cy="300" r="200" stroke="#10409a" strokeWidth="2"/>
-            <circle cx="300" cy="300" r="100" stroke="#10409a" strokeWidth="2"/>
+            <circle cx="300" cy="300" r="300" stroke="#1c2260" strokeWidth="2"/>
+            <circle cx="300" cy="300" r="200" stroke="#1c2260" strokeWidth="2"/>
+            <circle cx="300" cy="300" r="100" stroke="#1c2260" strokeWidth="2"/>
           </svg>
         </div>
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] opacity-[0.04]">
           <svg viewBox="0 0 500 500" fill="none" className="w-full h-full">
-            <rect x="50" y="50" width="400" height="400" stroke="#10409a" strokeWidth="1.5" transform="rotate(15 250 250)"/>
-            <rect x="100" y="100" width="300" height="300" stroke="#10409a" strokeWidth="1.5" transform="rotate(15 250 250)"/>
+            <rect x="50" y="50" width="400" height="400" stroke="#1c2260" strokeWidth="1.5" transform="rotate(15 250 250)"/>
+            <rect x="100" y="100" width="300" height="300" stroke="#1c2260" strokeWidth="1.5" transform="rotate(15 250 250)"/>
           </svg>
         </div>
       </div>
@@ -172,7 +172,7 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           <div className="lg:col-span-7 text-left">
             <div 
-              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#10409a]/5 border border-[#10409a]/10 mb-8"
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#1c2260]/5 border border-[#1c2260]/10 mb-8"
               style={{
                 opacity: isVisible ? 1 : 0,
                 transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
@@ -180,16 +180,16 @@ export function HeroSection() {
               }}
             >
               <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10409a] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10409a]"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1c2260] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1c2260]"></span>
               </span>
-              <span className="text-sm font-semibold text-[#10409a] tracking-wide">
+              <span className="text-sm font-semibold text-[#1c2260] tracking-wide">
                 14-day free trial · No credit card required
               </span>
             </div>
 
             <h1 
-              className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black text-[#10409a] leading-[0.95] mb-8"
+              className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black text-[#1c2260] leading-[0.95] mb-8"
               style={{
                 opacity: isVisible ? 1 : 0,
                 transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
@@ -197,10 +197,10 @@ export function HeroSection() {
               }}
             >
               Track every<br />
-              <span className="text-[#022232]">commission.</span>{" "}
+              <span className="text-[#0e1333]">commission.</span>{" "}
               <span className="relative inline-block">
                 <span className="relative z-10">Down to the last peso.</span>
-                <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#10409a]/10 -skew-x-3 -z-0" />
+                <span className="absolute -bottom-2 left-0 right-0 h-4 bg-[#1c2260]/10 -skew-x-3 -z-0" />
               </span>
             </h1>
 
@@ -227,7 +227,7 @@ export function HeroSection() {
               <Link href="/sign-up">
                 <Button 
                   size="lg"
-                  className="bg-[#10409a] hover:bg-[#0c3280] text-white font-bold text-lg px-10 py-7 h-auto shadow-lg shadow-[#10409a]/20 btn-motion"
+                  className="bg-[#1c2260] hover:bg-[#161c50] text-white font-bold text-lg px-10 py-7 h-auto shadow-lg shadow-[#1c2260]/20 btn-motion"
                 >
                   Start your free trial
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -237,7 +237,7 @@ export function HeroSection() {
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="text-[#10409a] border-2 border-[#10409a]/20 hover:border-[#10409a]/40 hover:bg-[#10409a]/5 font-semibold text-lg px-10 py-7 h-auto btn-motion"
+                  className="text-[#1c2260] border-2 border-[#1c2260]/20 hover:border-[#1c2260]/40 hover:bg-[#1c2260]/5 font-semibold text-lg px-10 py-7 h-auto btn-motion"
                 >
                   See how it works
                 </Button>
@@ -264,11 +264,11 @@ export function HeroSection() {
               transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s',
             }}
           >
-            <div className="absolute -top-8 -right-8 -bottom-8 -left-8 bg-gradient-to-br from-[#10409a]/5 to-[#10409a]/10 rounded-3xl -z-10" />
-            <div className="relative rounded-2xl shadow-2xl shadow-[#10409a]/15 overflow-hidden bg-white border border-[#e5e7eb] transform lg:translate-x-6">
+            <div className="absolute -top-8 -right-8 -bottom-8 -left-8 bg-gradient-to-br from-[#1c2260]/5 to-[#1c2260]/10 rounded-3xl -z-10" />
+            <div className="relative rounded-2xl shadow-2xl shadow-[#1c2260]/15 overflow-hidden bg-white border border-[#e5e7eb] transform lg:translate-x-6">
               <Image
                 src="/dashboard-preview.svg"
-                alt="salig-affiliate dashboard showing affiliate program analytics"
+                alt="Affilio dashboard showing affiliate program analytics"
                 width={700}
                 height={460}
                 priority
@@ -277,7 +277,7 @@ export function HeroSection() {
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
-            <div className="absolute -left-4 top-1/4 bg-white rounded-2xl shadow-xl shadow-[#10409a]/10 border border-[#e5e7eb] p-5 w-72 animate-[float_4s_ease-in-out_infinite]">
+            <div className="absolute -left-4 top-1/4 bg-white rounded-2xl shadow-xl shadow-[#1c2260]/10 border border-[#e5e7eb] p-5 w-72 animate-[float_4s_ease-in-out_infinite]">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#d1fae5] flex items-center justify-center flex-shrink-0">
                   <span className="text-[#065f46] text-lg font-bold">₱</span>
@@ -292,7 +292,7 @@ export function HeroSection() {
                 <div className="h-full w-3/4 bg-gradient-to-r from-[#10b981] to-[#34d399] rounded-full" />
               </div>
             </div>
-            <div className="absolute -right-2 bottom-1/4 bg-[#022232] rounded-2xl shadow-xl border border-white/10 p-4 w-48 animate-[float_4s_ease-in-out_infinite_1s]">
+            <div className="absolute -right-2 bottom-1/4 bg-[#0e1333] rounded-2xl shadow-xl border border-white/10 p-4 w-48 animate-[float_4s_ease-in-out_infinite_1s]">
               <p className="text-white/60 text-xs font-medium mb-1">Total Earnings</p>
               <p className="text-white text-2xl font-black">₱48,295</p>
               <p className="text-[#34d399] text-xs font-semibold mt-1">↑ 12.5% this month</p>

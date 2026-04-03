@@ -77,7 +77,7 @@ export interface TableAction<T> {
 
 export function getAvatarColor(name: string): { bg: string; text: string } {
   const colors = [
-    { bg: "#dbeafe", text: "#10409a" },
+    { bg: "#dbeafe", text: "#1c2260" },
     { bg: "#fce7f3", text: "#9d174d" },
     { bg: "#ecfdf5", text: "#065f46" },
     { bg: "#ede9fe", text: "#5b21b6" },
@@ -253,8 +253,8 @@ function SortIcon({ columnKey, sortField, activeSortBy, activeSortOrder, onSort 
       aria-label={isActive ? `Sort ${activeSortOrder === "asc" ? "ascending" : "descending"}` : "Sort"}
     >
       {!isActive && <ArrowUpDown className="w-3.5 h-3.5 text-[#9ca3af]" />}
-      {isActive && activeSortOrder === "asc" && <ArrowUp className="w-3.5 h-3.5 text-[#10409a]" />}
-      {isActive && activeSortOrder === "desc" && <ArrowDown className="w-3.5 h-3.5 text-[#10409a]" />}
+      {isActive && activeSortOrder === "asc" && <ArrowUp className="w-3.5 h-3.5 text-[#1c2260]" />}
+      {isActive && activeSortOrder === "desc" && <ArrowDown className="w-3.5 h-3.5 text-[#1c2260]" />}
     </button>
   );
 }

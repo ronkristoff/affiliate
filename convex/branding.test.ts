@@ -134,15 +134,15 @@ describe("Portal Brand Configuration - WCAG Contrast (AC3)", () => {
       expect(ratio).toBeLessThan(1.5);
     });
     
-    it("should calculate contrast for brand color #10409a on white", () => {
-      const ratio = contrastRatio("#10409a", "#ffffff");
+    it("should calculate contrast for brand color #1c2260 on white", () => {
+      const ratio = contrastRatio("#1c2260", "#ffffff");
       expect(ratio).toBeGreaterThan(4.5); // Should pass AA
     });
   });
   
   describe("WCAG AA Compliance (4.5:1)", () => {
     it("should pass AA for dark blue on white", () => {
-      const ratio = contrastRatio("#10409a", "#ffffff");
+      const ratio = contrastRatio("#1c2260", "#ffffff");
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
     
@@ -208,7 +208,7 @@ describe("Portal Brand Configuration - Portal Name (AC4)", () => {
 describe("Portal Brand Configuration - Color Format (AC3)", () => {
   describe("Hex Color Validation", () => {
     it("should accept valid 6-digit hex colors", () => {
-      const color = "#10409a";
+      const color = "#1c2260";
       const isValid = /^#[0-9A-Fa-f]{6}$/.test(color);
       expect(isValid).toBe(true);
     });
@@ -264,7 +264,7 @@ describe("Portal Brand Configuration - Reset (AC7)", () => {
     it("should reset all branding fields to empty", () => {
       const originalBranding = {
         logoUrl: "https://example.com/logo.png",
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
         portalName: "My Portal",
       };
       
@@ -285,7 +285,7 @@ describe("Portal Brand Configuration - Save (AC6)", () => {
     it("should validate all fields before saving", () => {
       const branding = {
         logoUrl: "https://example.com/logo.png",
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
         portalName: "My Portal",
       };
       
@@ -299,7 +299,7 @@ describe("Portal Brand Configuration - Save (AC6)", () => {
     it("should handle partial updates", () => {
       const existing = {
         logoUrl: "https://example.com/old.png",
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
         portalName: "Old Name",
       };
       
@@ -313,7 +313,7 @@ describe("Portal Brand Configuration - Save (AC6)", () => {
       };
       
       expect(merged.portalName).toBe("New Name");
-      expect(merged.primaryColor).toBe("#10409a");
+      expect(merged.primaryColor).toBe("#1c2260");
     });
   });
 });

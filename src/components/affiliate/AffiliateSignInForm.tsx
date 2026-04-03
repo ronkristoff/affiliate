@@ -50,7 +50,7 @@ export function AffiliateSignInForm({
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<"pending" | "suspended" | "rejected" | "invalid" | null>(null);
 
-  const primaryColor = tenantBranding?.primaryColor || "#10409a";
+  const primaryColor = tenantBranding?.primaryColor || "#1c2260";
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),

@@ -703,7 +703,7 @@ export const createTestTenantWithUsers = internalMutation({
       trackingVerifiedAt: Date.now(),
       branding: {
         portalName: args.name,
-        primaryColor: "#10409a",
+        primaryColor: "#1c2260",
       },
     });
 
@@ -1251,7 +1251,7 @@ export const seedAllTestData = internalMutation({
           deletionScheduledDate: sub?.deletionScheduledDate,
           branding: {
             portalName: tenantConfig.name,
-            primaryColor: "#10409a",
+            primaryColor: "#1c2260",
           },
         });
         stats.tenantsCreated++;
@@ -1590,7 +1590,7 @@ export const seedAllTestData = internalMutation({
         trackingVerifiedAt: Date.now(),
         branding: {
           portalName: PLATFORM_ADMIN.name,
-          primaryColor: "#10409a",
+          primaryColor: "#1c2260",
         },
       });
       stats.tenantsCreated++;

@@ -212,9 +212,9 @@ describe("Brand Asset Library - Business Logic", () => {
         };
       };
 
-      const styles = getPrimaryColorStyles("#10409a");
-      expect(styles.backgroundColor).toBe("#10409a");
-      expect(styles.borderColor).toBe("#10409a");
+      const styles = getPrimaryColorStyles("#1c2260");
+      expect(styles.backgroundColor).toBe("#1c2260");
+      expect(styles.borderColor).toBe("#1c2260");
     });
 
     it("should use tenant portal name", () => {
@@ -232,12 +232,12 @@ describe("Brand Asset Library - Business Logic", () => {
 
     it("should fall back to default color when not provided", () => {
       const getPrimaryColor = (brandingColor?: string): string => {
-        return brandingColor || "#10409a";
+        return brandingColor || "#1c2260";
       };
 
       expect(getPrimaryColor("#ff0000")).toBe("#ff0000");
-      expect(getPrimaryColor(undefined)).toBe("#10409a");
-      expect(getPrimaryColor("")).toBe("#10409a");
+      expect(getPrimaryColor(undefined)).toBe("#1c2260");
+      expect(getPrimaryColor("")).toBe("#1c2260");
     });
   });
 

@@ -33,7 +33,7 @@ export default function BrandingSettingsPage() {
   
   // Form state
   const [logoUrl, setLogoUrl] = useState("");
-  const [primaryColor, setPrimaryColor] = useState("#10409a");
+  const [primaryColor, setPrimaryColor] = useState("#1c2260");
   const [portalName, setPortalName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -43,7 +43,7 @@ export default function BrandingSettingsPage() {
   useEffect(() => {
     if (tenantContext?.branding) {
       setLogoUrl(tenantContext.branding.logoUrl || "");
-      setPrimaryColor(tenantContext.branding.primaryColor || "#10409a");
+      setPrimaryColor(tenantContext.branding.primaryColor || "#1c2260");
       setPortalName(tenantContext.branding.portalName || tenantContext.name || "");
     }
   }, [tenantContext]);
@@ -54,11 +54,11 @@ export default function BrandingSettingsPage() {
       const original = tenantContext.branding;
       const changed = 
         logoUrl !== (original.logoUrl || "") ||
-        primaryColor !== (original.primaryColor || "#10409a") ||
+        primaryColor !== (original.primaryColor || "#1c2260") ||
         portalName !== (original.portalName || tenantContext.name || "");
       setHasChanges(changed);
     } else {
-      setHasChanges(logoUrl !== "" || primaryColor !== "#10409a" || portalName !== (tenantContext?.name || ""));
+      setHasChanges(logoUrl !== "" || primaryColor !== "#1c2260" || portalName !== (tenantContext?.name || ""));
     }
   }, [logoUrl, primaryColor, portalName, tenantContext]);
   
@@ -119,7 +119,7 @@ export default function BrandingSettingsPage() {
       
       if (result.success) {
         setLogoUrl("");
-        setPrimaryColor("#10409a");
+        setPrimaryColor("#1c2260");
         setPortalName(tenantContext.name || "");
         toast.success("Branding reset to defaults");
         setHasChanges(false);
@@ -210,7 +210,7 @@ export default function BrandingSettingsPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Reset Branding?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will clear all your branding settings and restore the default salig-affiliate branding. This action cannot be undone.
+                        This will clear all your branding settings and restore the default Affilio branding. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

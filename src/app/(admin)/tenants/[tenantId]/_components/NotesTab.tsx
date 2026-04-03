@@ -63,7 +63,7 @@ export function NotesTab({ tenantId }: NotesTabProps) {
           <Button
             onClick={handleSubmitNote}
             disabled={!noteContent.trim() || isSubmitting}
-            className="gap-2 bg-[#10409a] text-white hover:bg-[#0d347a]"
+            className="gap-2 bg-[#1c2260] text-white hover:bg-[#0d347a]"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

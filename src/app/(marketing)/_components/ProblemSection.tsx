@@ -69,7 +69,7 @@ export function ProblemSection() {
 
   return (
     <section ref={sectionRef} className="py-24 bg-[#f8fafc] relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#10409a]/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#1c2260]/[0.02] to-transparent pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div 
@@ -83,7 +83,7 @@ export function ProblemSection() {
           <span className="inline-block px-4 py-1.5 rounded-full bg-[#fef3c7] text-[#92400e] text-sm font-bold mb-6">
             The Problem
           </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#10409a] mb-6 leading-[1.1]">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#1c2260] mb-6 leading-[1.1]">
             Managing commissions manually is{" "}
             <span className="text-[#ef4444]">costing you</span> — and your affiliates.
           </h2>

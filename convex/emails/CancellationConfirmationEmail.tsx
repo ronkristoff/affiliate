@@ -140,7 +140,7 @@ const bulletList = {
 };
 
 const button = {
-  backgroundColor: "#10409a",
+  backgroundColor: "#1c2260",
   borderRadius: "8px",
   color: "#ffffff",
   fontSize: "16px",

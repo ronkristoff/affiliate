@@ -221,7 +221,7 @@ export const scheduleInvitationEmail = internalMutation({
 
     // Get tenant branding - MEDIUM fix: use tenant branding consistently
     const logoUrl = tenant.branding?.logoUrl;
-    const primaryColor = tenant.branding?.primaryColor || "#10409a";
+    const primaryColor = tenant.branding?.primaryColor || "#1c2260";
 
     try {
       // AC2: Actually send the invitation email via Resend
@@ -483,7 +483,7 @@ export const scheduleAcceptanceEmails = internalMutation({
 
     // Get tenant branding
     const logoUrl = tenant.branding?.logoUrl;
-    const primaryColor = tenant.branding?.primaryColor || "#10409a";
+    const primaryColor = tenant.branding?.primaryColor || "#1c2260";
     const portalName = tenant.branding?.portalName || tenant.name;
 
     // Send welcome email to new team member

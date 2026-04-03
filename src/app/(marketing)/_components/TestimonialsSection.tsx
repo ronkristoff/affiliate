@@ -61,7 +61,7 @@ export function TestimonialsSection(): React.JSX.Element {
       className="py-24 bg-[#f8fafc] relative overflow-hidden"
       aria-labelledby="testimonials-heading"
     >
-      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#10409a]/[0.03] to-transparent pointer-events-none" />
+      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#1c2260]/[0.03] to-transparent pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div 
@@ -72,15 +72,15 @@ export function TestimonialsSection(): React.JSX.Element {
             transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
           }}
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[#10409a]/10 text-[#10409a] text-sm font-bold mb-6">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-[#1c2260]/10 text-[#1c2260] text-sm font-bold mb-6">
             Testimonials
           </span>
           <h2
             id="testimonials-heading"
-            className="text-4xl sm:text-5xl font-black text-[#10409a] mb-4 leading-[1.1]"
+            className="text-4xl sm:text-5xl font-black text-[#1c2260] mb-4 leading-[1.1]"
           >
             Loved by SaaS founders in{" "}
-            <span className="text-[#022232]">Southeast Asia</span>
+            <span className="text-[#0e1333]">Southeast Asia</span>
           </h2>
         </div>
 
@@ -102,7 +102,7 @@ export function TestimonialsSection(): React.JSX.Element {
                   transition: `opacity 0.6s ease-out ${index * 150}ms, transform 0.6s ease-out ${index * 150}ms`,
                 }}
               >
-                <div className="absolute -top-4 left-8 w-10 h-10 rounded-xl bg-[#10409a] flex items-center justify-center shadow-lg">
+                <div className="absolute -top-4 left-8 w-10 h-10 rounded-xl bg-[#1c2260] flex items-center justify-center shadow-lg">
                   <Quote className="w-5 h-5 text-white" />
                 </div>
                 
@@ -123,7 +123,7 @@ export function TestimonialsSection(): React.JSX.Element {
 
                 <figcaption className="flex items-center gap-4 not-italic">
                   <div
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#10409a] to-[#1659d6] text-white flex items-center justify-center font-bold text-lg shadow-lg"
+                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1c2260] to-[#1fb5a5] text-white flex items-center justify-center font-bold text-lg shadow-lg"
                     aria-hidden="true"
                   >
                     {testimonial.initials}

@@ -105,12 +105,12 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <div
             onClick={onCreateCampaign}
-            className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center gap-2.5 cursor-pointer min-h-[200px] transition-all hover:border-[#1659d6] hover:bg-blue-50/50"
+            className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center gap-2.5 cursor-pointer min-h-[200px] transition-all hover:border-[#1fb5a5] hover:bg-blue-50/50"
           >
-            <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-[#10409a] text-2xl">
+            <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-[#1c2260] text-2xl">
               <Plus className="w-5 h-5" />
             </div>
-            <div className="text-sm font-semibold text-[#10409a]">
+            <div className="text-sm font-semibold text-[#1c2260]">
               Create New Campaign
             </div>
             <div className="text-xs text-gray-500 text-center">
@@ -138,7 +138,7 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
                 {attentionData.pausedTotal > 5 && (
                   <Link
                     href="/campaigns/all?status=paused"
-                    className="text-[12px] font-medium text-[#1659d6] hover:text-[#10409a] flex items-center gap-1 transition-colors"
+                    className="text-[12px] font-medium text-[#1fb5a5] hover:text-[#1c2260] flex items-center gap-1 transition-colors"
                   >
                     View All <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -174,7 +174,7 @@ function CampaignOverviewInner({ onCreateCampaign }: { onCreateCampaign: () => v
                 {zeroAffiliateIds.length > 5 && (
                   <Link
                     href="/campaigns/all"
-                    className="text-[12px] font-medium text-[#1659d6] hover:text-[#10409a] flex items-center gap-1 transition-colors"
+                    className="text-[12px] font-medium text-[#1fb5a5] hover:text-[#1c2260] flex items-center gap-1 transition-colors"
                   >
                     View All <ArrowRight className="w-3 h-3" />
                   </Link>

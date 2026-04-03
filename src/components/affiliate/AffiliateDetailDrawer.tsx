@@ -59,7 +59,7 @@ interface AffiliateDetailDrawerProps {
 // Helper to get avatar color based on name
 function getAvatarColor(name: string): { bg: string; text: string } {
   const colors = [
-    { bg: "#dbeafe", text: "#10409a" },
+    { bg: "#dbeafe", text: "#1c2260" },
     { bg: "#fce7f3", text: "#9d174d" },
     { bg: "#ecfdf5", text: "#065f46" },
     { bg: "#ede9fe", text: "#5b21b6" },
@@ -285,7 +285,7 @@ export function AffiliateDetailDrawer({
                 ))}
                 <a
                   href="#"
-                  className="inline-flex items-center gap-1 mt-2 text-[12px] text-[#2b7bb9] hover:underline"
+                  className="inline-flex items-center gap-1 mt-2 text-[12px] text-[#1fb5a5] hover:underline"
                 >
                   View all commissions →
                 </a>
@@ -302,7 +302,7 @@ export function AffiliateDetailDrawer({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Add a private note about this affiliate (not visible to them)…"
-              className="min-h-[80px] text-[13px] border-[#e5e7eb] focus:border-[#1659d6] resize-none"
+              className="min-h-[80px] text-[13px] border-[#e5e7eb] focus:border-[#1fb5a5] resize-none"
             />
             <Button
               variant="outline"
@@ -349,7 +349,7 @@ export function AffiliateDetailDrawer({
           )}
           <Button
             size="sm"
-            className="flex-1 h-8 text-[12px] bg-[#10409a] hover:bg-[#1659d6] hover:shadow-[0_2px_8px_rgba(16,64,154,0.25)]"
+            className="flex-1 h-8 text-[12px] bg-[#1c2260] hover:bg-[#1fb5a5] hover:shadow-[0_2px_8px_rgba(28,34,96,0.25)]"
             asChild
           >
             <a href={`/affiliates/${affiliate._id}`}>

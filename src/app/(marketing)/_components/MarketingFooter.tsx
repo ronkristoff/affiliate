@@ -25,7 +25,7 @@ const footerLinks = {
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-[#022232] text-white pt-20 pb-8 relative overflow-hidden">
+    <footer className="bg-[#0e1333] text-white pt-20 pb-8 relative overflow-hidden">
       {/* Background accent */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       
@@ -101,7 +101,7 @@ export function MarketingFooter() {
         <div className="pt-8 border-t border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <p className="text-sm text-white/40">
-              © {currentYear} salig-affiliate. All rights reserved.
+              © {currentYear} Affilio. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-sm text-white/40">

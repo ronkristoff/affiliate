@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://saligaffiliate.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://affilio.com"),
   title: {
-    template: "%s | salig-affiliate",
-    default: "salig-affiliate — Affiliate Program Management for SaaS",
+    template: "%s | Affilio",
+    default: "Affilio — Affiliate Program Management for SaaS",
   },
   description: "Launch, manage, and pay your affiliate program natively on SaligPay. Set up in under 15 minutes with zero webhook configuration.",
   keywords: [
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "salig-affiliate",
+    siteName: "Affilio",
   },
   twitter: {
     card: "summary_large_image",

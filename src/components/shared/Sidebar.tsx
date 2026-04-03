@@ -305,7 +305,7 @@ export function Sidebar({ className }: SidebarProps) {
         )}>
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[12px] text-white shrink-0"
-            style={{ background: "linear-gradient(135deg, #1659d6 0%, #10409a 100%)" }}
+            style={{ background: "linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%)" }}
           >
             {user.tenant.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
           </div>
@@ -362,7 +362,7 @@ export function Sidebar({ className }: SidebarProps) {
                     ? "justify-center px-0 py-2.5"
                     : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_var(--brand-secondary)]"
                     : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
@@ -377,7 +377,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc] scale-110"
+                      ? "text-[#1fb5a5] scale-110"
                       : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
@@ -427,7 +427,7 @@ export function Sidebar({ className }: SidebarProps) {
                     className={cn(
                       "group flex items-center text-[13px] rounded-lg transition-all duration-200 justify-center px-0 py-2.5",
                       isActive
-                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#1fb5a5]"
                         : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                     )}
                   >
@@ -435,7 +435,7 @@ export function Sidebar({ className }: SidebarProps) {
                       className={cn(
                         "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                         isActive
-                          ? "text-[#7dd3fc] scale-110"
+                          ? "text-[#1fb5a5] scale-110"
                           : "text-white/[0.35] group-hover:text-white/[0.6]"
                       )}
                     >
@@ -452,7 +452,7 @@ export function Sidebar({ className }: SidebarProps) {
                     className={cn(
                       "group flex items-center gap-2.5 px-3 py-2.5 text-[13px] rounded-lg transition-all duration-200 w-full text-left",
                       isActive
-                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                        ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#1fb5a5]"
                         : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                     )}
                   >
@@ -460,7 +460,7 @@ export function Sidebar({ className }: SidebarProps) {
                       className={cn(
                         "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                         isActive
-                          ? "text-[#7dd3fc] scale-110"
+                          ? "text-[#1fb5a5] scale-110"
                           : "text-white/[0.35] group-hover:text-white/[0.6]"
                       )}
                     >
@@ -495,7 +495,7 @@ export function Sidebar({ className }: SidebarProps) {
                             <span
                               className={cn(
                                 "w-1.5 h-1.5 rounded-full mr-3 shrink-0 transition-colors duration-150",
-                                isChildActive ? "bg-[#7dd3fc] shadow-[0_0_6px_#7dd3fc]" : "bg-white/[0.15]"
+                                isChildActive ? "bg-[#1fb5a5] shadow-[0_0_6px_#1fb5a5]" : "bg-white/[0.15]"
                               )}
                             />
                             {child.label}
@@ -519,7 +519,7 @@ export function Sidebar({ className }: SidebarProps) {
                     ? "justify-center px-0 py-2.5"
                     : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#1fb5a5]"
                     : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
@@ -527,7 +527,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc] scale-110"
+                      ? "text-[#1fb5a5] scale-110"
                       : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
@@ -560,7 +560,7 @@ export function Sidebar({ className }: SidebarProps) {
                     ? "justify-center px-0 py-2.5"
                     : "px-3 py-2.5 mx-0",
                   isActive
-                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#7dd3fc]"
+                    ? "text-white bg-gradient-to-r from-[var(--brand-primary)]/30 to-transparent font-semibold shadow-[inset_3px_0_0_0_#1fb5a5]"
                     : "text-white/[0.45] hover:text-white hover:bg-white/[0.06]"
                 )}
               >
@@ -568,7 +568,7 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-[18px] h-[18px] shrink-0 transition-all duration-200",
                     isActive
-                      ? "text-[#7dd3fc] scale-110"
+                      ? "text-[#1fb5a5] scale-110"
                       : "text-white/[0.35] group-hover:text-white/[0.6]"
                   )}
                 >
@@ -621,7 +621,7 @@ export function Sidebar({ className }: SidebarProps) {
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black text-white"
               style={{ 
-                background: 'linear-gradient(135deg, #0a2e5c 0%, #1e4a8c 100%)',
+                background: 'linear-gradient(135deg, #0e1333 0%, #1c2260 100%)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
               }}
             >

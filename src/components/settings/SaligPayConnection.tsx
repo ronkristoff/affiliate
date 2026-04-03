@@ -280,7 +280,7 @@ export function SaligPayConnection({ tenantId, compact = false }: SaligPayConnec
           <Button
             onClick={handleConnect}
             disabled={isConnecting}
-            className="bg-[#10409a] hover:bg-[#1659d6]"
+            className="bg-[#1c2260] hover:bg-[#1fb5a5]"
           >
             {isConnecting ? (
               <>

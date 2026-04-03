@@ -75,7 +75,7 @@ function getComplianceLevel(ratio: number): {
  */
 function suggestAccessibleColor(hex: string): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return "#10409a";
+  if (!rgb) return "#1c2260";
   
   // Simple algorithm: if too light, darken; if too dark, lighten
   const lum = luminance(rgb.r, rgb.g, rgb.b);

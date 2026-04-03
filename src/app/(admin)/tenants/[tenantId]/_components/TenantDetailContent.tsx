@@ -86,7 +86,7 @@ export function TenantDetailContent({ tenant }: TenantDetailContentProps) {
         <nav className="flex items-center gap-1 text-sm">
           <Link
             href="/tenants"
-            className="text-[var(--text-muted)] hover:text-[#10409a] transition-colors"
+            className="text-[var(--text-muted)] hover:text-[#1c2260] transition-colors"
           >
             Tenants
           </Link>

@@ -50,7 +50,7 @@ export function EarningsSummaryGrid({
   pendingEarnings,
   conversionRate,
   earningsChangePercent,
-  primaryColor = "#10409a",
+  primaryColor = "#1c2260",
   isLoading = false,
 }: EarningsSummaryGridProps) {
   if (isLoading) {

@@ -107,7 +107,7 @@ export default function PortalEarningsPage() {
     );
   }
 
-  const tenantPrimaryColor = tenantContext?.branding?.primaryColor || "#10409a";
+  const tenantPrimaryColor = tenantContext?.branding?.primaryColor || "#1c2260";
   const portalName = tenantContext?.branding?.portalName || "Affiliate Portal";
 
   return (

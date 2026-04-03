@@ -71,7 +71,7 @@ export const styles = {
     color: "#333",
   },
   button: {
-    backgroundColor: "#10409a",
+    backgroundColor: "#1c2260",
     borderRadius: "5px",
     color: "#fff",
     fontFamily:

@@ -536,7 +536,7 @@ function CampaignDetailContent() {
           <div className="flex items-center gap-6 flex-wrap">
             {/* Commission */}
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-semibold text-[#10409a] tabular-nums">
+              <span className="text-[12px] font-semibold text-[#1c2260] tabular-nums">
                 {formatCommission()}
               </span>
               <span className="text-[12px] text-[var(--text-muted)]">

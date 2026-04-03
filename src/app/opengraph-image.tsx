@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "salig-affiliate — Affiliate Program Management for SaaS on SaligPay";
+export const alt = "Affilio — Affiliate Program Management for SaaS on SaligPay";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -27,7 +27,7 @@ export default async function Image() {
             left: 0,
             right: 0,
             height: "8px",
-            background: "linear-gradient(90deg, #10409a 0%, #1659d6 100%)",
+            background: "linear-gradient(90deg, #1c2260 0%, #1fb5a5 100%)",
           }}
         />
 
@@ -45,7 +45,7 @@ export default async function Image() {
                 width: "48px",
                 height: "48px",
                 borderRadius: "12px",
-                background: "#1659d6",
+                background: "#1fb5a5",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -65,20 +65,12 @@ export default async function Image() {
               <span
                 style={{
                   fontSize: "36px",
-                  fontWeight: "700",
-                  color: "#022232",
+                  fontWeight: "900",
+                  color: "#1c2260",
+                  letterSpacing: "-0.5px",
                 }}
               >
-                salig
-              </span>
-              <span
-                style={{
-                  fontSize: "36px",
-                  fontWeight: "700",
-                  color: "#7dd3fc",
-                }}
-              >
-                affiliate
+                affilio
               </span>
             </span>
           </div>
@@ -88,7 +80,7 @@ export default async function Image() {
           style={{
             fontSize: "56px",
             fontWeight: "800",
-            color: "#022232",
+            color: "#0e1333",
             textAlign: "center",
             lineHeight: "1.2",
             marginBottom: "24px",
@@ -121,14 +113,14 @@ export default async function Image() {
             background: "#f0f7ff",
             padding: "16px 32px",
             borderRadius: "12px",
-            border: "2px solid #10409a",
+            border: "2px solid #1c2260",
           }}
         >
           <span
             style={{
               fontSize: "20px",
               fontWeight: "600",
-              color: "#10409a",
+              color: "#1c2260",
             }}
           >
             14-day free trial
@@ -157,7 +149,7 @@ export default async function Image() {
           <span
             style={{
               fontSize: "16px",
-              color: "#1659d6",
+              color: "#1fb5a5",
               fontWeight: "500",
             }}
           >

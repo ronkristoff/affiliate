@@ -119,8 +119,8 @@ export function WizardFlow({ onSelectQuestion, onSwitchToAdvanced }: WizardFlowP
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#10409a]/10 to-[#1659d6]/10 flex items-center justify-center mx-auto mb-3">
-          <Sparkles className="w-6 h-6 text-[#10409a]" />
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1c2260]/10 to-[#1fb5a5]/10 flex items-center justify-center mx-auto mb-3">
+          <Sparkles className="w-6 h-6 text-[#1c2260]" />
         </div>
         <h2 className="text-lg font-bold text-[var(--text-heading)]">
           What do you want to know?
@@ -136,10 +136,10 @@ export function WizardFlow({ onSelectQuestion, onSwitchToAdvanced }: WizardFlowP
             key={q.question}
             type="button"
             onClick={() => onSelectQuestion(q.config)}
-            className="group relative flex flex-col items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-5 text-left transition-all hover:border-[#1659d6]/40 hover:shadow-md hover:-translate-y-0.5"
+            className="group relative flex flex-col items-start gap-3 rounded-xl border border-[var(--border)] bg-white p-5 text-left transition-all hover:border-[#1fb5a5]/40 hover:shadow-md hover:-translate-y-0.5"
           >
             <div className="flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#10409a]/10 to-[#1659d6]/10 flex items-center justify-center text-[#10409a] group-hover:from-[#10409a] group-hover:to-[#1659d6] group-hover:text-white transition-all shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#1c2260]/10 to-[#1fb5a5]/10 flex items-center justify-center text-[#1c2260] group-hover:from-[#1c2260] group-hover:to-[#1fb5a5] group-hover:text-white transition-all shrink-0">
                 {q.icon}
               </div>
               <Badge variant="outline" className="text-[10px] shrink-0">
@@ -147,7 +147,7 @@ export function WizardFlow({ onSelectQuestion, onSwitchToAdvanced }: WizardFlowP
               </Badge>
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--text-heading)] group-hover:text-[#10409a] transition-colors">
+              <p className="text-sm font-semibold text-[var(--text-heading)] group-hover:text-[#1c2260] transition-colors">
                 {q.question}
               </p>
               <p className="text-xs text-[var(--text-muted)] mt-1">
@@ -162,7 +162,7 @@ export function WizardFlow({ onSelectQuestion, onSwitchToAdvanced }: WizardFlowP
         <button
           type="button"
           onClick={onSwitchToAdvanced}
-          className="text-sm text-[#1659d6] hover:text-[#10409a] font-medium transition-colors"
+          className="text-sm text-[#1fb5a5] hover:text-[#1c2260] font-medium transition-colors"
         >
           Switch to Advanced Mode for full query control
         </button>

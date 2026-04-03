@@ -105,13 +105,13 @@ export function MultiSelectCombobox({
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-[12px] font-medium transition-all",
             selected.length > 0
-              ? "border-[#10409a] bg-[#eff6ff] text-[#10409a]"
-              : "border-[#e5e7eb] bg-white text-[#474747] hover:border-[#1659d6] hover:text-[#1659d6]",
+              ? "border-[#1c2260] bg-[#eff6ff] text-[#1c2260]"
+              : "border-[#e5e7eb] bg-white text-[#474747] hover:border-[#1fb5a5] hover:text-[#1fb5a5]",
             className
           )}
         >
           {selected.length > 1 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-[#10409a] text-white text-[10px] font-bold px-1">
+            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-[#1c2260] text-white text-[10px] font-bold px-1">
               {selected.length}
             </span>
           )}
@@ -153,7 +153,7 @@ export function MultiSelectCombobox({
                     <span className="flex-1 truncate text-[13px]">
                       {option.label}
                     </span>
-                    {isSelected && <CheckIcon className="h-3.5 w-3.5 text-[#10409a]" />}
+                    {isSelected && <CheckIcon className="h-3.5 w-3.5 text-[#1c2260]" />}
                   </CommandItem>
                 );
               })}

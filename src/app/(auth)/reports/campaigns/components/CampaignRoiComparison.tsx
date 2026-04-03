@@ -49,7 +49,7 @@ export function CampaignRoiComparison({
         {comparisonData.map((campaign) => (
           <Card key={campaign.campaignId} className="overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold text-[var(--brand-primary,#10409a)]">
+              <CardTitle className="text-sm font-bold text-[var(--brand-primary,#1c2260)]">
                 {campaign.name}
               </CardTitle>
             </CardHeader>
