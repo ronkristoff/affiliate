@@ -1323,3 +1323,68 @@ export const getAffiliatePayoutHistory = query({
     return payoutsWithBatches;
   },
 });
+
+/**
+ * Self-service: Update affiliate profile from the portal.
+ * Only allows updating payout method. Name/email changes are handled through the SaaS Owner's admin panel.
+ * Auth is enforced via the affiliate session cookie + Better Auth user lookup.
+ */
+export const updateMyAffiliateProfile = mutation({
+  args: {
+    payoutMethod: v.optional(v.object({
+      type: v.string(),
+      details: v.string(),
+    })),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    // Authenticate via Better Auth component
+    let betterAuthUser;
+    try {
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    } catch {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    if (!betterAuthUser) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Look up affiliate by email
+    const affiliate = await ctx.db
+      .query("affiliates")
+      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .first();
+
+    if (!affiliate) {
+      return { success: false, error: "Affiliate not found" };
+    }
+
+    const updates: Record<string, any> = {};
+
+    if (args.payoutMethod !== undefined) {
+      updates.payoutMethod = args.payoutMethod;
+      // Extract last digits for masked display
+      const details = args.payoutMethod.details || "";
+      updates.payoutMethodLastDigits = details.length > 4 ? details.slice(-4) : details;
+    }
+
+    await ctx.db.patch(affiliate._id, updates);
+
+    // Audit log
+    await ctx.db.insert("auditLogs", {
+      tenantId: affiliate.tenantId,
+      action: "affiliate_self_profile_updated",
+      entityType: "affiliate",
+      entityId: affiliate._id,
+      actorType: "affiliate",
+      previousValue: { payoutMethod: affiliate.payoutMethod },
+      newValue: updates,
+    });
+
+    return { success: true };
+  },
+});
