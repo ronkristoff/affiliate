@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
-import { useState, useCallback } from "react";
+import { SignOutIconButton } from "@/components/shared/SignOutIconButton";
 
 interface AdminNavItem {
   href: string;
@@ -84,22 +83,7 @@ function getInitials(name: string): string {
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const user = useQuery(api.auth.getCurrentUser);
-
-  const handleSignOut = useCallback(async () => {
-    setIsSigningOut(true);
-    try {
-      await authClient.signOut();
-      router.push("/sign-in");
-      router.refresh();
-    } catch (error) {
-      console.error("Sign out failed:", error);
-    } finally {
-      setIsSigningOut(false);
-    }
-  }, [router]);
 
   const userInitials = user?.name ? getInitials(user.name) : user?.email[0]?.toUpperCase() || "U";
   const displayName = user?.name || "Admin";
@@ -197,16 +181,7 @@ export function AdminSidebar() {
               {displayEmail}
             </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="shrink-0 p-1.5 rounded-md text-white/[0.35] hover:text-white/[0.7] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
-            title="Sign out"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
+          <SignOutIconButton />
         </div>
       </div>
     </aside>

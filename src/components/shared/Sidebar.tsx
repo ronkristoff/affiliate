@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
 import { ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
+import { SignOutIconButton } from "@/components/shared/SignOutIconButton";
 
 interface NavItem {
   href: string;
@@ -198,9 +198,7 @@ function SidebarSkeleton() {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const user = useQuery(api.auth.getCurrentUser);
@@ -232,19 +230,6 @@ export function Sidebar({ className }: SidebarProps) {
       // localStorage unavailable
     }
   }, [isCollapsed, isMounted]);
-
-  const handleSignOut = useCallback(async () => {
-    setIsSigningOut(true);
-    try {
-      await authClient.signOut();
-      router.push("/sign-in");
-      router.refresh();
-    } catch (error) {
-      console.error("Sign out failed:", error);
-    } finally {
-      setIsSigningOut(false);
-    }
-  }, [router]);
 
   const toggleExpanded = useCallback((href: string) => {
     setExpandedItems((prev) => {
@@ -641,21 +626,7 @@ export function Sidebar({ className }: SidebarProps) {
                   {displayEmail}
                 </div>
               </div>
-              <button
-                onClick={handleSignOut}
-                disabled={isSigningOut}
-                className="shrink-0 p-2 rounded-lg text-white/[0.3] hover:text-white hover:bg-white/[0.1] transition-all duration-150 disabled:opacity-50 group"
-                title="Sign out"
-              >
-                <svg className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.75"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-              </button>
+              <SignOutIconButton />
             </>
           )}
         </div>
