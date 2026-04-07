@@ -540,7 +540,7 @@ export default function SignIn() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-[46px] bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full h-[46px] text-sm font-semibold disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -742,7 +742,7 @@ export default function SignIn() {
                     <Button
                       type="submit"
                       disabled={forgotPasswordLoading}
-                      className="flex-1 h-11 bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="flex-1 h-11 text-sm font-semibold"
                     >
                       {forgotPasswordLoading ? (
                         <>

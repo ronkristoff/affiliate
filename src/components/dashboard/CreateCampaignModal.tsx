@@ -838,7 +838,7 @@ export function CreateCampaignModal({
               <Button
                 type="submit"
                 disabled={loading || isLimitReached}
-                className="h-10 px-5 text-sm bg-[#1c2260] hover:bg-[#1fb5a5]"
+                className="h-10 px-5 text-sm"
               >
                 {loading ? (
                   <>
