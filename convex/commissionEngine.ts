@@ -162,34 +162,52 @@ export const processPaymentUpdatedToCommission = internalAction({
     // Commission-level idempotency is maintained via findCommissionByTransactionIdInternal in createCommissionFromConversionInternal
 
     // AC #1: Normalize event to BillingEvent format (already done by caller)
-    // AC #2: Handle no-attribution case (log as organic, skip commission)
+    // AC #2: Handle no-attribution case — try lead matching first
     if (!event.attribution?.affiliateCode) {
-      console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
+      // Attempt email-based lead matching (universal billing provider integration)
+      if (event.payment.customerEmail && event.tenantId) {
+        const leadAttribution = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: event.tenantId as Id<"tenants">,
+          email: event.payment.customerEmail,
+        });
+        if (leadAttribution) {
+          event.attribution = {
+            affiliateCode: leadAttribution.affiliateCode,
+            clickId: leadAttribution.clickId ?? undefined,
+          };
+          console.log(`Webhook ${event.eventId}: Attribution resolved via lead matching for ${event.payment.customerEmail}`);
+        }
+      }
 
-      // Create organic conversion
-      const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
-        tenantId: event.tenantId as Id<"tenants">,
-        customerEmail: event.payment.customerEmail,
-        amount: event.payment.amount / 100, // Convert from cents
-        status: CONFIRMED_PAYMENT_STATUSES.includes(event.payment.status as any) ? "completed" : "pending",
-        metadata: {
-          orderId: event.payment.id,
-        },
-      });
+      // If still no attribution after lead matching, create organic conversion
+      if (!event.attribution?.affiliateCode) {
+        console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
-      // Update webhook status
-      await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
-        webhookId: rawWebhookId,
-        status: "processed",
-        errorMessage: "No attribution data - logged as organic",
-      });
+        // Create organic conversion
+        const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: event.tenantId as Id<"tenants">,
+          customerEmail: event.payment.customerEmail,
+          amount: event.payment.amount / 100, // Convert from cents
+          status: CONFIRMED_PAYMENT_STATUSES.includes(event.payment.status as any) ? "completed" : "pending",
+          metadata: {
+            orderId: event.payment.id,
+          },
+        });
 
-      return {
-        conversionId,
-        commissionId: null,
-        processed: true,
-        organic: true,
-      };
+        // Update webhook status
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: rawWebhookId,
+          status: "processed",
+          errorMessage: "No attribution data - logged as organic",
+        });
+
+        return {
+          conversionId,
+          commissionId: null,
+          processed: true,
+          organic: true,
+        };
+      }
     }
 
     // AC #5: Validate affiliate status - get affiliate by code
@@ -395,35 +413,52 @@ export const processSubscriptionCreatedEvent = internalAction({
     // Note: Raw webhook deduplication is now handled at HTTP handler level (Story 7.5)
     // Commission-level idempotency is maintained via findCommissionByTransactionIdInternal in createCommissionFromConversionInternal
 
-    // AC #6: Handle no-attribution case (log as organic, skip commission)
+    // AC #6: Handle no-attribution case — try lead matching first
     if (!event.attribution?.affiliateCode) {
-      console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
+      // Attempt email-based lead matching
+      if (event.payment.customerEmail && event.tenantId) {
+        const leadAttribution = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: event.tenantId as Id<"tenants">,
+          email: event.payment.customerEmail,
+        });
+        if (leadAttribution) {
+          event.attribution = {
+            affiliateCode: leadAttribution.affiliateCode,
+            clickId: leadAttribution.clickId ?? undefined,
+          };
+          console.log(`Webhook ${event.eventId}: Attribution resolved via lead matching for ${event.payment.customerEmail}`);
+        }
+      }
 
-      // Create organic conversion
-      const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
-        tenantId: event.tenantId as Id<"tenants">,
-        customerEmail: event.payment.customerEmail,
-        amount: event.payment.amount / 100,
-        status: event.payment.status === "paid" ? "completed" : "pending",
-        metadata: {
-          orderId: event.payment.id,
-          subscriptionId: event.subscription?.id,
-          planId: event.subscription?.planId,
-        },
-      });
+      if (!event.attribution?.affiliateCode) {
+        console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
-      await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
-        webhookId: rawWebhookId,
-        status: "processed",
-        errorMessage: "No attribution data - logged as organic",
-      });
+        // Create organic conversion
+        const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: event.tenantId as Id<"tenants">,
+          customerEmail: event.payment.customerEmail,
+          amount: event.payment.amount / 100,
+          status: event.payment.status === "paid" ? "completed" : "pending",
+          metadata: {
+            orderId: event.payment.id,
+            subscriptionId: event.subscription?.id,
+            planId: event.subscription?.planId,
+          },
+        });
 
-      return {
-        conversionId,
-        commissionId: null,
-        processed: true,
-        organic: true,
-      };
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: rawWebhookId,
+          status: "processed",
+          errorMessage: "No attribution data - logged as organic",
+        });
+
+        return {
+          conversionId,
+          commissionId: null,
+          processed: true,
+          organic: true,
+        };
+      }
     }
 
     // Validate affiliate
@@ -729,36 +764,52 @@ export const processSubscriptionUpdatedEvent = internalAction({
     // Note: Raw webhook deduplication is now handled at HTTP handler level (Story 7.5)
     // Commission-level idempotency is maintained via findCommissionByTransactionIdInternal in createCommissionFromConversionInternal
 
-    // Handle no-attribution case
+    // Handle no-attribution case — try lead matching first
     if (!event.attribution?.affiliateCode) {
-      console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
+      if (event.payment.customerEmail && event.tenantId) {
+        const leadAttribution = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: event.tenantId as Id<"tenants">,
+          email: event.payment.customerEmail,
+        });
+        if (leadAttribution) {
+          event.attribution = {
+            affiliateCode: leadAttribution.affiliateCode,
+            clickId: leadAttribution.clickId ?? undefined,
+          };
+          console.log(`Webhook ${event.eventId}: Attribution resolved via lead matching for ${event.payment.customerEmail}`);
+        }
+      }
 
-      const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
-        tenantId: event.tenantId as Id<"tenants">,
-        customerEmail: event.payment.customerEmail,
-        amount: event.payment.amount / 100,
-        status: event.payment.status === "paid" ? "completed" : "pending",
-        metadata: {
-          orderId: event.payment.id,
-          subscriptionId: event.subscription?.id,
-          planId: event.subscription?.planId,
-          subscriptionStatus: event.subscription?.status,
-        },
-      });
+      if (!event.attribution?.affiliateCode) {
+        console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
-      await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
-        webhookId: rawWebhookId,
-        status: "processed",
-        errorMessage: "No attribution data - logged as organic",
-      });
+        const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
+          tenantId: event.tenantId as Id<"tenants">,
+          customerEmail: event.payment.customerEmail,
+          amount: event.payment.amount / 100,
+          status: event.payment.status === "paid" ? "completed" : "pending",
+          metadata: {
+            orderId: event.payment.id,
+            subscriptionId: event.subscription?.id,
+            planId: event.subscription?.planId,
+            subscriptionStatus: event.subscription?.status,
+          },
+        });
 
-      return {
-        conversionId,
-        commissionId: null,
-        processed: true,
-        organic: true,
-        adjustmentType: null,
-      };
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: rawWebhookId,
+          status: "processed",
+          errorMessage: "No attribution data - logged as organic",
+        });
+
+        return {
+          conversionId,
+          commissionId: null,
+          processed: true,
+          organic: true,
+          adjustmentType: null,
+        };
+      }
     }
 
     // Validate affiliate
@@ -1500,5 +1551,105 @@ export const processChargebackCreatedEvent = internalAction({
       reversed: true,
       fraudSignalAdded: true,
     };
+  },
+});
+
+// =============================================================================
+// Lead Matching Helper & Shared Routing
+// =============================================================================
+
+/**
+ * Internal Query: Find commission by transaction ID for dedup
+ * Used by Stripe webhook handler to prevent duplicate commissions from
+ * out-of-order events with the same payment_intent_id
+ */
+export const findCommissionByTransactionId = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+    transactionId: v.string(),
+  },
+  returns: v.nullable(v.id("commissions")),
+  handler: async (ctx, args) => {
+    const commission = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_transaction", (q) =>
+        q.eq("tenantId", args.tenantId).eq("transactionId", args.transactionId)
+      )
+      .first();
+
+    return commission ? commission._id : null;
+  },
+});
+
+/**
+ * Internal Action: Route a BillingEvent to the appropriate commission engine handler.
+ * This is the shared routing layer used by both SaligPay and Stripe webhook handlers.
+ * Must be an action (Node.js runtime) because it calls other internalActions.
+ */
+export const routeBillingEvent = internalAction({
+  args: {
+    webhookId: v.id("rawWebhooks"),
+    billingEvent: v.any(),
+    tenantId: v.id("tenants"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const event = args.billingEvent as BillingEvent;
+
+    switch (event.eventType) {
+      case "payment.updated":
+        await ctx.runAction(internal.commissionEngine.processPaymentUpdatedToCommission, {
+          webhookId: args.webhookId,
+          billingEvent: event as any,
+        });
+        break;
+
+      case "subscription.created":
+        await ctx.runAction(internal.commissionEngine.processSubscriptionCreatedEvent, {
+          webhookId: args.webhookId,
+          billingEvent: event as any,
+        });
+        break;
+
+      case "subscription.updated":
+        await ctx.runAction(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+          webhookId: args.webhookId,
+          billingEvent: event as any,
+        });
+        break;
+
+      case "subscription.cancelled":
+        // Subscription cancellations are currently a no-op for commission creation
+        // (commissions already created are not affected by subscription cancellation)
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: args.webhookId,
+          status: "processed",
+          errorMessage: "Subscription cancelled — no commission action required",
+        });
+        break;
+
+      case "refund.created":
+        await ctx.runAction(internal.commissionEngine.processRefundCreatedEvent, {
+          webhookId: args.webhookId,
+          billingEvent: event as any,
+        });
+        break;
+
+      case "chargeback.created":
+        await ctx.runAction(internal.commissionEngine.processChargebackCreatedEvent, {
+          webhookId: args.webhookId,
+          billingEvent: event as any,
+        });
+        break;
+
+      default:
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: args.webhookId,
+          status: "failed",
+          errorMessage: `Unhandled event type: ${event.eventType}`,
+        });
+    }
+
+    return null;
   },
 });

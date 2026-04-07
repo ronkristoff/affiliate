@@ -116,6 +116,14 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
 <script src="${snippetConfig.cdnUrl}?v=2" data-key="${snippetConfig.publicKey}" data-tenant="${snippetConfig.tenantId}" async></script>`
       : "Error loading configuration";
 
+  // Referral method snippet for signup form
+  const referralSnippet = `// Add to your signup form's submit handler:
+if (window.Affilio) {
+  Affilio.referral({ email: customerEmail });
+}`;
+
+  const [copiedReferral, setCopiedReferral] = useState(false);
+
   // Copy to clipboard
   const handleCopy = async () => {
     try {
@@ -125,6 +133,18 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast.error("Failed to copy snippet");
+    }
+  };
+
+  // Copy referral snippet to clipboard
+  const handleCopyReferral = async () => {
+    try {
+      await navigator.clipboard.writeText(referralSnippet);
+      setCopiedReferral(true);
+      toast.success("Referral code copied to clipboard!");
+      setTimeout(() => setCopiedReferral(false), 2000);
+    } catch (err) {
+      toast.error("Failed to copy referral code");
     }
   };
 
@@ -241,6 +261,53 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
             <p>
               Paste the snippet in the &lt;head&gt; section on every page of your website.
               This ensures the tracking script loads before your page content.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Referral Tracking Snippet */}
+      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-600" />
+            Enable Commission Tracking
+          </CardTitle>
+          <CardDescription>
+            After installing the tracking snippet above, add one line to your signup form to enable automatic commission tracking.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Referral Code Block */}
+          <div className="relative">
+            <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
+              <code>{referralSnippet}</code>
+            </pre>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={handleCopyReferral}
+            >
+              {copiedReferral ? (
+                <>
+                  <Check className="w-4 h-4 mr-1" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <p>
+              Add this line to every signup form on your site. When a customer signs up, Affilio
+              captures their email and matches it to the affiliate who referred them. When a payment
+              arrives, the commission is automatically attributed.
             </p>
           </div>
         </CardContent>

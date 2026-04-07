@@ -31,6 +31,7 @@ interface TestTenant {
   slug: string;
   domain: string;
   plan: string;
+  billingProvider?: "saligpay" | "stripe";
   subscription?: {
     status?: "trial" | "active" | "past_due" | "cancelled";
     subscriptionId?: string;
@@ -72,13 +73,14 @@ interface TestTenant {
 
 const TEST_TENANTS: TestTenant[] = [
   // =========================================================================
-  // 1. TechFlow SaaS — growth plan, active (converted Nov 2025)
+  // 1. TechFlow SaaS — growth plan, active (converted Nov 2025) — Stripe
   // =========================================================================
   {
     name: "TechFlow SaaS",
     slug: "techflow",
     domain: "techflow.test",
     plan: "growth",
+    billingProvider: "stripe",
     subscription: {
       status: "active",
       subscriptionId: "sub_techflow_growth",
@@ -112,13 +114,14 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 2. GHL Agency Pro — scale plan, active (converted Nov 2025)
+  // 2. GHL Agency Pro — scale plan, active (converted Nov 2025) — SaligPay
   // =========================================================================
   {
     name: "GHL Agency Pro",
     slug: "ghlagency",
     domain: "ghlagency.test",
     plan: "scale",
+    billingProvider: "saligpay",
     subscription: {
       status: "active",
       subscriptionId: "sub_ghl_scale",
@@ -170,13 +173,14 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 4. Manila SaaS Labs — growth plan, past_due (converted Dec 2025)
+  // 4. Manila SaaS Labs — growth plan, past_due (converted Dec 2025) — SaligPay
   // =========================================================================
   {
     name: "Manila SaaS Labs",
     slug: "manila-saas",
     domain: "manila-saas.test",
     plan: "growth",
+    billingProvider: "saligpay",
     subscription: {
       status: "past_due",
       subscriptionId: "sub_manila_growth",
@@ -238,13 +242,14 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 6. GrowthHacks PH — growth plan, active (converted Jan 2026)
+  // 6. GrowthHacks PH — growth plan, active (converted Jan 2026) — Stripe
   // =========================================================================
   {
     name: "GrowthHacks PH",
     slug: "growthhacks",
     domain: "growthhacks.test",
     plan: "growth",
+    billingProvider: "stripe",
     subscription: {
       status: "active",
       subscriptionId: "sub_growthhacks_growth",
@@ -293,13 +298,14 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 8. SEAsia Tech Ventures — scale plan, active (converted Dec 2025)
+  // 8. SEAsia Tech Ventures — scale plan, active (converted Dec 2025) — SaligPay
   // =========================================================================
   {
     name: "SEAsia Tech Ventures",
     slug: "seasia-tech",
     domain: "seasia-tech.test",
     plan: "scale",
+    billingProvider: "saligpay",
     subscription: {
       status: "active",
       subscriptionId: "sub_seasia_scale",
@@ -329,13 +335,14 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 9. Bicol Digital Solutions — growth plan, active (converted Nov 2025)
+  // 9. Bicol Digital Solutions — growth plan, active (converted Nov 2025) — Stripe
   // =========================================================================
   {
     name: "Bicol Digital Solutions",
     slug: "bicol-digital",
     domain: "bicol-digital.test",
     plan: "growth",
+    billingProvider: "stripe",
     subscription: {
       status: "active",
       subscriptionId: "sub_bicol_growth",
@@ -500,6 +507,9 @@ export const clearAllTestData = internalMutation({
       affiliateSessions: v.number(),
       authUsers: v.number(),
       authAccounts: v.number(),
+      referralLeads: v.number(),
+      referralPings: v.number(),
+      trackingPings: v.number(),
     }),
   }),
   handler: async (ctx) => {
@@ -521,6 +531,9 @@ export const clearAllTestData = internalMutation({
       affiliateSessions: 0,
       authUsers: 0,
       authAccounts: 0,
+      referralLeads: 0,
+      referralPings: 0,
+      trackingPings: 0,
     };
 
     // Delete in order respecting foreign key dependencies
@@ -616,6 +629,27 @@ export const clearAllTestData = internalMutation({
     for (const link of referralLinks) {
       await ctx.db.delete(link._id);
       deleted.referralLinks++;
+    }
+
+    // Delete referral leads (new table)
+    const referralLeads = await ctx.db.query("referralLeads").take(500);
+    for (const lead of referralLeads) {
+      await ctx.db.delete(lead._id);
+      deleted.referralLeads++;
+    }
+
+    // Delete referral pings (new table)
+    const referralPings = await ctx.db.query("referralPings").take(500);
+    for (const ping of referralPings) {
+      await ctx.db.delete(ping._id);
+      deleted.referralPings++;
+    }
+
+    // Delete tracking pings (existing table)
+    const trackingPings = await ctx.db.query("trackingPings").take(500);
+    for (const ping of trackingPings) {
+      await ctx.db.delete(ping._id);
+      deleted.trackingPings++;
     }
 
     // Delete affiliates
@@ -1170,6 +1204,8 @@ export const seedAllTestData = internalMutation({
       brandAssetsCreated: v.number(),
       billingHistoryCreated: v.number(),
       auditLogsCreated: v.number(),
+      referralLeadsCreated: v.number(),
+      referralPingsCreated: v.number(),
     }),
     errors: v.array(v.string()),
   }),
@@ -1218,6 +1254,8 @@ export const seedAllTestData = internalMutation({
       brandAssetsCreated: 0,
       billingHistoryCreated: 0,
       auditLogsCreated: 0,
+      referralLeadsCreated: 0,
+      referralPingsCreated: 0,
     };
 
     const errors: string[] = [];
@@ -1257,6 +1295,56 @@ export const seedAllTestData = internalMutation({
           },
         });
         stats.tenantsCreated++;
+
+        // Set up billing provider credentials based on config
+        if (tenantConfig.billingProvider === "saligpay") {
+          const mockMerchantId = `mock-merchant-${slug}-${Date.now()}`;
+          const mockAccessToken = `mock-access-${slug}-${Date.now()}`;
+          const mockRefreshToken = `mock-refresh-${slug}-${Date.now()}`;
+          await ctx.db.patch(tenantId, {
+            billingProvider: "saligpay",
+            saligPayCredentials: {
+              mode: "mock",
+              connectedAt: Date.now() - 30 * 24 * 60 * 60 * 1000, // Connected 30 days ago
+              mockMerchantId,
+              clientId: `mock-client-${slug}`,
+              clientSecret: `mock-secret-${slug}`,
+              mockAccessToken,
+              mockRefreshToken,
+              expiresAt: Date.now() + 3600 * 1000,
+            },
+          });
+
+          await ctx.db.insert("auditLogs", {
+            tenantId,
+            action: "saligpay_connected",
+            entityType: "tenant",
+            entityId: tenantId,
+            actorType: "system",
+            newValue: { mode: "mock", merchantId: mockMerchantId, source: "test_seed" },
+          });
+          stats.auditLogsCreated++;
+        } else if (tenantConfig.billingProvider === "stripe") {
+          await ctx.db.patch(tenantId, {
+            billingProvider: "stripe",
+            stripeAccountId: `acct_${slug.replace(/[^a-z0-9]/g, "")}`,
+            stripeCredentials: {
+              signingSecret: `whsec_test_${slug}_secret`,
+              mode: "live",
+              connectedAt: Date.now() - 30 * 24 * 60 * 60 * 1000, // Connected 30 days ago
+            },
+          });
+
+          await ctx.db.insert("auditLogs", {
+            tenantId,
+            action: "stripe_connected",
+            entityType: "tenant",
+            entityId: tenantId,
+            actorType: "system",
+            newValue: { stripeAccountId: `acct_${slug.replace(/[^a-z0-9]/g, "")}`, mode: "live", source: "test_seed" },
+          });
+          stats.auditLogsCreated++;
+        }
 
         // Create tenant users
         const tenantUsers: Array<{ email: string; name: string; role: string }> = [];
@@ -1566,6 +1654,64 @@ export const seedAllTestData = internalMutation({
                   await ctx.db.patch(commission._id, { batchId });
                 }
               }
+            }
+          }
+        }
+
+        // Seed referral leads and referral pings for tenants with a billing provider
+        // This simulates the Affilio.referral() flow: merchant's signup form captures leads
+        if (tenantConfig.billingProvider) {
+          // Get all active affiliates and referral links for this tenant
+          const tenantReferralLinks = await ctx.db
+            .query("referralLinks")
+            .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+            .take(20);
+
+          if (tenantReferralLinks.length > 0) {
+            // Create 3-8 referral leads per tenant (simulating merchant signups)
+            const leadCount = 3 + Math.floor(Math.random() * 6);
+            const leadEmails = [
+              "lead.alice@example.com",
+              "lead.bob@example.com",
+              "lead.charlie@example.com",
+              "lead.diana@example.com",
+              "lead.edward@example.com",
+              "lead.fiona@example.com",
+              "lead.george@example.com",
+              "lead.hannah@example.com",
+            ];
+
+            for (let i = 0; i < Math.min(leadCount, leadEmails.length); i++) {
+              const link = tenantReferralLinks[i % tenantReferralLinks.length];
+              const leadTimestamp = randomDate(
+                new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // Last 60 days
+                new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)  // At least 2 days ago
+              );
+
+              const isConverted = Math.random() > 0.4; // 60% conversion rate for leads
+
+              await ctx.db.insert("referralLeads", {
+                tenantId,
+                email: leadEmails[i],
+                affiliateId: link.affiliateId,
+                referralLinkId: link._id,
+                campaignId: link.campaignId,
+                status: isConverted ? "converted" : "active",
+                // Note: conversionId not set here since conversionIds are per-affiliate
+                // The lead matching flow still works via email lookup regardless
+              });
+              stats.referralLeadsCreated++;
+
+              // Create a referral ping for each lead (simulates Affilio.referral() call)
+              await ctx.db.insert("referralPings", {
+                tenantId,
+                trackingKey: slug,
+                timestamp: leadTimestamp,
+                domain: tenantConfig.domain,
+                pingType: "referral",
+                email: leadEmails[i],
+              });
+              stats.referralPingsCreated++;
             }
           }
         }

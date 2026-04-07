@@ -128,9 +128,6 @@ export function FeaturesSection() {
     transition: `opacity 0.6s ease-out ${index * 100}ms, transform 0.6s ease-out ${index * 100}ms`,
   }}
 >
-  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-[#1c2260] to-[#1fb5a5] opacity-0 group-hover:opacity-100 transition-opacity duration-300" 
-       style={{ borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }} />
-  
   <div className={`flex flex-col ${index === 0 ? 'h-full' : ''}`}>
                 <div className={`relative ${index === 0 ? 'w-20 h-20' : 'w-14 h-14'} rounded-2xl bg-gradient-to-br from-[#1c2260] to-[#1fb5a5] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-[#1c2260]/20`}>
                   <feature.icon className={`${index === 0 ? 'w-10 h-10' : 'w-7 h-7'} text-white`} />

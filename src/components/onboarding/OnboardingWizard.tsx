@@ -8,7 +8,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Check, CreditCard, Users, Code, ArrowRight, SkipForward, Loader2, TrendingUp } from "lucide-react";
+import { Check, CreditCard, Users, Code, ArrowRight, SkipForward, Loader2, TrendingUp, Zap, CheckCircle2 } from "lucide-react";
 import { TeamInvitationForm } from "@/components/settings/TeamInvitationForm";
 
 interface OnboardingStep {
@@ -30,10 +30,9 @@ const steps: OnboardingStep[] = [
   },
   {
     id: 2,
-    title: "Connect SaligPay",
-    description: "Set up your payment integration",
+    title: "Connect Payment Provider",
+    description: "Choose your payment provider for automatic commission tracking",
     icon: <CreditCard className="w-5 h-5" />,
-    href: "/onboarding/saligpay",
     skippable: true,
   },
   {
@@ -41,7 +40,6 @@ const steps: OnboardingStep[] = [
     title: "Invite Team",
     description: "Add team members to help manage your program",
     icon: <Users className="w-5 h-5" />,
-    href: "/onboarding/team",
     skippable: true,
   },
   {
@@ -54,11 +52,17 @@ const steps: OnboardingStep[] = [
   },
   {
     id: 5,
-    title: "Checkout Attribution",
-    description: "Configure conversion attribution through checkout",
+    title: "Referral Tracking",
+    description: "Add one line of code to your signup form",
     icon: <TrendingUp className="w-5 h-5" />,
-    href: "/onboarding/checkout-attribution",
-    skippable: true,
+    skippable: false, // Dynamic: will be conditionally set
+  },
+  {
+    id: 6,
+    title: "Complete Setup",
+    description: "Review and launch your affiliate program",
+    icon: <CheckCircle2 className="w-5 h-5" />,
+    skippable: false,
   },
 ];
 
@@ -66,10 +70,19 @@ export function OnboardingWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [connectedProvider, setConnectedProvider] = useState<"saligpay" | "stripe" | null>(null);
 
   const progress = ((currentStep + 1) / steps.length) * 100;
 
+  // Determine if Step 5 (Referral Tracking) is skippable
+  const isStep5Skippable = !connectedProvider;
+
   const handleNext = () => {
+    // Block navigation from Step 5 if provider connected and not completed
+    if (currentStep === 4 && connectedProvider && !completedSteps.includes(4)) {
+      return; // User must complete Step 5
+    }
+
     if (!completedSteps.includes(currentStep)) {
       setCompletedSteps([...completedSteps, currentStep]);
     }
@@ -77,12 +90,10 @@ export function OnboardingWizard() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding
       router.push("/dashboard");
     }
   };
 
-  // Task 4.4: Helper to mark team step (step 2) as complete
   const markTeamStepComplete = () => {
     if (!completedSteps.includes(2)) {
       setCompletedSteps([...completedSteps, 2]);
@@ -90,10 +101,17 @@ export function OnboardingWizard() {
   };
 
   const handleSkip = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      router.push("/dashboard");
+    const step = steps[currentStep];
+    // Step 5 is not skippable when provider is connected
+    if (currentStep === 4 && connectedProvider) {
+      return;
+    }
+    if (step.skippable || (currentStep === 4 && !connectedProvider)) {
+      if (currentStep < steps.length - 1) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        router.push("/dashboard");
+      }
     }
   };
 
@@ -105,6 +123,11 @@ export function OnboardingWizard() {
 
   const goToDashboard = () => {
     router.push("/dashboard");
+  };
+
+  const canSkipStep = (stepIndex: number) => {
+    if (stepIndex === 4 && connectedProvider) return false; // Step 5 not skippable when provider connected
+    return steps[stepIndex].skippable;
   };
 
   return (
@@ -158,12 +181,24 @@ export function OnboardingWizard() {
           <CardDescription>{steps[currentStep].description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Step-specific content */}
           {currentStep === 0 && (
             <WelcomeStepContent />
           )}
           {currentStep === 1 && (
-            <SaligPayStepContent />
+            <ProviderChoiceStepContent
+              onConnected={(provider) => {
+                setConnectedProvider(provider);
+                if (!completedSteps.includes(1)) {
+                  setCompletedSteps([...completedSteps, 1]);
+                }
+              }}
+              onSkip={() => {
+                if (!completedSteps.includes(1)) {
+                  setCompletedSteps([...completedSteps, 1]);
+                }
+                setCurrentStep(2);
+              }}
+            />
           )}
           {currentStep === 2 && (
             <TeamStepContent onComplete={markTeamStepComplete} />
@@ -172,12 +207,22 @@ export function OnboardingWizard() {
             <SnippetStepContent />
           )}
           {currentStep === 4 && (
-            <AttributionStepContent />
+            <ReferralTrackingStepContent
+              connectedProvider={connectedProvider}
+              onCompleted={() => {
+                if (!completedSteps.includes(4)) {
+                  setCompletedSteps([...completedSteps, 4]);
+                }
+              }}
+            />
+          )}
+          {currentStep === 5 && (
+            <CompletionStepContent connectedProvider={connectedProvider} completedSteps={completedSteps} />
           )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-4 border-t">
-            {steps[currentStep].skippable && (
+            {canSkipStep(currentStep) && (
               <Button
                 variant="ghost"
                 onClick={handleSkip}
@@ -187,6 +232,7 @@ export function OnboardingWizard() {
                 Skip for now
               </Button>
             )}
+            {!canSkipStep(currentStep) && <div />}
             <div className="flex items-center gap-2 ml-auto">
               {currentStep === 0 && (
                 <Button
@@ -229,7 +275,7 @@ export function OnboardingWizard() {
 function WelcomeStepContent() {
   const features = [
     "Track affiliate commissions automatically",
-    "Pay affiliates via SaligPay",
+    "Connect Stripe or SaligPay for payments",
     "Invite team members to help manage",
     "Monitor performance with real-time analytics",
   ];
@@ -253,64 +299,93 @@ function WelcomeStepContent() {
   );
 }
 
-// SaligPay Step Content
-function SaligPayStepContent() {
+// Provider Choice Step — Two equal cards for Stripe and SaligPay
+function ProviderChoiceStepContent({ onConnected, onSkip }: { onConnected: (provider: "saligpay" | "stripe") => void; onSkip?: () => void }) {
   const router = useRouter();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Get current user with tenant context
   const currentUser = useQuery(api.auth.getCurrentUser);
   
-  // Get connection status for the user's tenant
   const connectionStatus = useQuery(
     api.tenants.getSaligPayConnectionStatus,
     currentUser?.tenantId ? { tenantId: currentUser.tenantId as Id<"tenants"> } : "skip"
   );
 
-  // Mutations for connect/disconnect
+  const stripeStatus = useQuery(
+    api.tenants.getStripeConnectionStatus,
+    currentUser?.tenantId ? { tenantId: currentUser?.tenantId as Id<"tenants"> } : "skip"
+  );
+
   const connectMockSaligPay = useMutation(api.tenants.connectMockSaligPay);
   const disconnectSaligPay = useMutation(api.tenants.disconnectSaligPay);
+  const connectStripe = useMutation(api.tenants.connectStripe);
+  const disconnectStripe = useMutation(api.tenants.disconnectStripe);
 
-  const isConnected = connectionStatus?.isConnected ?? false;
+  const isSaligPayConnected = connectionStatus?.isConnected ?? false;
+  const isStripeConnected = stripeStatus?.isConnected ?? false;
 
-  const handleConnect = async () => {
-    if (!currentUser?.tenantId) {
-      setConnectionError("Unable to get tenant information. Please refresh the page.");
-      return;
-    }
-    
+  // Notify parent of existing connection on mount
+  if (connectionStatus !== undefined && connectionStatus?.isConnected) {
+    // Connection already exists — no action needed in render
+  }
+
+  const handleConnectSaligPay = async () => {
+    if (!currentUser?.tenantId) return;
     try {
-      setIsConnecting(true);
+      setIsConnecting("saligpay");
       setConnectionError(null);
-      
       await connectMockSaligPay({ tenantId: currentUser.tenantId as Id<"tenants"> });
+      onConnected("saligpay");
     } catch (error) {
-      setConnectionError(error instanceof Error ? error.message : "Failed to connect");
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect SaligPay");
     } finally {
-      setIsConnecting(false);
+      setIsConnecting(null);
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!currentUser?.tenantId) {
-      setConnectionError("Unable to get tenant information. Please refresh the page.");
-      return;
-    }
-    
+  const handleConnectStripe = async () => {
+    if (!currentUser?.tenantId) return;
     try {
-      setIsConnecting(true);
+      setIsConnecting("stripe");
       setConnectionError(null);
-      
-      await disconnectSaligPay({ tenantId: currentUser.tenantId as Id<"tenants"> });
+      await connectStripe({
+        tenantId: currentUser.tenantId as Id<"tenants">,
+        signingSecret: "whsec_placeholder",
+      });
+      onConnected("stripe");
+    } catch (error) {
+      setConnectionError(error instanceof Error ? error.message : "Failed to connect Stripe");
+    } finally {
+      setIsConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (provider: "saligpay" | "stripe") => {
+    if (!currentUser?.tenantId) return;
+    try {
+      setIsConnecting(provider);
+      setConnectionError(null);
+      if (provider === "saligpay") {
+        await disconnectSaligPay({ tenantId: currentUser.tenantId as Id<"tenants"> });
+      } else {
+        await disconnectStripe({ tenantId: currentUser.tenantId as Id<"tenants"> });
+      }
     } catch (error) {
       setConnectionError(error instanceof Error ? error.message : "Failed to disconnect");
     } finally {
-      setIsConnecting(false);
+      setIsConnecting(null);
     }
   };
 
+  const isConnected = isSaligPayConnected || isStripeConnected;
+
   if (isConnected) {
+    const providerName = isSaligPayConnected ? "SaligPay" : "Stripe";
+    const modeLabel = isSaligPayConnected
+      ? (connectionStatus?.mode === "real" ? "Live Mode" : "Mock Mode")
+      : (stripeStatus?.mode || "Live Mode");
+
     return (
       <div className="space-y-4">
         <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -320,33 +395,26 @@ function SaligPayStepContent() {
             </div>
             <div>
               <h4 className="font-medium text-green-900 dark:text-green-100">
-                Connected (Mock Mode)
+                Connected ({modeLabel})
               </h4>
               <p className="text-sm text-green-700 dark:text-green-300">
-                Your SaligPay account is connected for testing
+                {providerName} is connected for commission tracking
               </p>
             </div>
           </div>
         </div>
         
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleDisconnect}
-            disabled={isConnecting}
-            className="flex-1"
-          >
-            {isConnecting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              "Disconnect"
-            )}
-          </Button>
-        </div>
-        
-        <p className="text-sm text-muted-foreground text-center">
-          You can now proceed to the next step or configure more settings in Settings &gt; SaligPay
-        </p>
+        <Button
+          variant="outline"
+          onClick={() => handleDisconnect(isSaligPayConnected ? "saligpay" : "stripe")}
+          disabled={isConnecting !== null}
+        >
+          {isConnecting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            `Disconnect ${providerName}`
+          )}
+        </Button>
       </div>
     );
   }
@@ -354,54 +422,80 @@ function SaligPayStepContent() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
-        Connect your SaligPay account to receive payments from your affiliate program.
-        For testing purposes, you can use the mock integration.
+        Connect your payment provider to enable automatic commission tracking when customers pay.
       </p>
-      
+
       {connectionError && (
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
           <p className="text-sm text-red-600 dark:text-red-400">{connectionError}</p>
         </div>
       )}
-      
+
       {!currentUser ? (
         <div className="flex items-center justify-center p-4">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-3">
-          <Button
-            onClick={handleConnect}
-            disabled={isConnecting}
-            className="w-full bg-[#1c2260] hover:bg-[#1fb5a5]"
+        <div className="grid grid-cols-2 gap-4">
+          {/* Stripe Card */}
+          <div
+            className="border rounded-xl p-4 space-y-3 hover:border-[#1fb5a5] transition-colors cursor-pointer"
+            onClick={handleConnectStripe}
           >
-            {isConnecting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-4 h-4 mr-2" />
-                Connect SaligPay (Mock)
-              </>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <span className="font-medium">Stripe</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Accept payments from customers worldwide via Stripe.
+            </p>
+            {isConnecting === "stripe" && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
             )}
-          </Button>
-          
-          <p className="text-xs text-muted-foreground text-center">
-            Using mock integration for development/testing
-          </p>
+          </div>
+
+          {/* SaligPay Card */}
+          <div
+            className="border rounded-xl p-4 space-y-3 hover:border-[#1fb5a5] transition-colors cursor-pointer"
+            onClick={handleConnectSaligPay}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+              </div>
+              <span className="font-medium">SaligPay</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Local payment integration for PH/SEA markets.
+            </p>
+            {isConnecting === "saligpay" && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      <div className="text-center pt-2">
+        <Button variant="link" onClick={() => onSkip?.()} className="text-muted-foreground">
+          I&apos;ll set this up later
+        </Button>
+        <p className="text-xs text-muted-foreground mt-1">
+          You can still track clicks and use the API. Connect a provider anytime from Settings.
+        </p>
+      </div>
     </div>
   );
 }
 
-// Team Step Content - Task 4.2: Integrated invitation form into onboarding flow
-// Task 4.4: Mark step complete when invitation sent
+// Team Step Content
 function TeamStepContent({ onComplete }: { onComplete?: () => void }) {
   const handleInvitationSent = () => {
-    // Mark step complete when invitation is sent successfully
     onComplete?.();
   };
 
@@ -410,10 +504,7 @@ function TeamStepContent({ onComplete }: { onComplete?: () => void }) {
       <p className="text-sm text-muted-foreground text-center">
         Invite team members to help manage your affiliate program.
       </p>
-      
-      {/* Task 4.2: Integrate invitation form into onboarding flow */}
       <TeamInvitationForm onInvitationSent={handleInvitationSent} />
-      
       <p className="text-xs text-muted-foreground text-center">
         You can skip this step for now and invite team members later from the Settings page.
       </p>
@@ -421,18 +512,18 @@ function TeamStepContent({ onComplete }: { onComplete?: () => void }) {
   );
 }
 
-// Snippet Step Content - Redirect to dedicated snippet page
+// Snippet Step Content
 function SnippetStepContent() {
   const router = useRouter();
   
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
-        Add tracking code to your website to track affiliate referrals.
+        Add the Affilio tracking snippet to your website to track referral clicks.
       </p>
       <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          Step 3: Install Tracking Snippet
+          Install Tracking Snippet
         </h4>
         <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
           Configure and install your tracking snippet to enable click and conversion attribution.
@@ -448,29 +539,149 @@ function SnippetStepContent() {
   );
 }
 
-// Attribution Step Content - Redirect to checkout attribution page
-function AttributionStepContent() {
-  const router = useRouter();
-  
+// Referral Tracking Step — Single code snippet + best practices
+function ReferralTrackingStepContent({
+  connectedProvider,
+  onCompleted,
+}: {
+  connectedProvider: "saligpay" | "stripe" | null;
+  onCompleted?: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const snippet = `Affilio.referral({ email: customerEmail });`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(snippet);
+    setCopied(true);
+    onCompleted?.();
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground text-center">
-        Configure how referral data flows through your SaligPay checkout sessions.
+        When a customer signs up on your website, add this line to capture their referral.
+        That&apos;s it &mdash; we handle the rest.
       </p>
-      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-          Step 4: Checkout Attribution Setup
-        </h4>
-        <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-          Pass attribution metadata through checkout to track conversions and attribute commissions automatically.
-        </p>
+
+      {/* Code Snippet */}
+      <div className="relative rounded-lg bg-gray-900 p-4">
+        <code className="text-sm text-green-400 block">
+          {snippet}
+        </code>
         <Button
-          onClick={() => router.push("/onboarding/checkout-attribution")}
-          className="w-full bg-[#1c2260] hover:bg-[#1fb5a5]"
+          size="sm"
+          variant="outline"
+          onClick={handleCopy}
+          className="absolute top-2 right-2 bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300"
         >
-          Configure Attribution
+          {copied ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            "Copy"
+          )}
         </Button>
       </div>
+
+      {/* Best Practices */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Best practices:</p>
+        <ul className="text-xs text-muted-foreground space-y-1">
+          <li className="flex items-start gap-2">
+            <span className="text-green-500">+</span>
+            Add this to every signup form on your site, not just one
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-500">+</span>
+            Call after email verification for best results
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-500">+</span>
+            The customer&apos;s email links them to the affiliate who referred them
+          </li>
+        </ul>
+      </div>
+
+      {/* SaligPay Advanced (collapsible) */}
+      {connectedProvider === "saligpay" && (
+        <div className="space-y-2">
+          <details className="text-sm">
+            <summary className="text-muted-foreground cursor-pointer hover:text-foreground">
+              Advanced: Metadata Enhancement
+            </summary>
+            <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+              <p>
+                For click-level precision, you can optionally pass attribution metadata
+                through your SaligPay checkout:
+              </p>
+              <div className="rounded bg-gray-900 p-2">
+                <code className="text-xs text-green-400 block break-all">
+                  {`Affilio.referral({ email: customerEmail });`}
+                </code>
+              </div>
+              <p className="text-xs">
+                Most merchants will never need this. The simple approach above works for all providers.
+              </p>
+            </div>
+          </details>
+        </div>
+      )}
+
+      {!connectedProvider && (
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Connecting a payment provider enables automatic commission tracking via webhooks.
+            The referral snippet still works without one &mdash; you&apos;ll just track signups manually.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Completion Step — Summary of setup
+function CompletionStepContent({
+  connectedProvider,
+  completedSteps,
+}: {
+  connectedProvider: "saligpay" | "stripe" | null;
+  completedSteps: number[];
+}) {
+  return (
+    <div className="space-y-4 text-center">
+      <div className="flex items-center justify-center space-x-1 mb-2">
+        <Check className="w-6 h-6 text-green-500" />
+        <span className="text-lg font-medium text-green-700 dark:text-green-300">
+          Setup Complete
+        </span>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        Your affiliate program is ready to go! Here&apos;s what&apos;s configured:
+      </p>
+
+      <div className="space-y-2 text-left max-w-sm mx-auto">
+        <div className="flex items-center gap-2 text-sm">
+          <Check className={`w-4 h-4 ${completedSteps.includes(1) ? "text-green-500" : "text-muted-foreground"}`} />
+          <span>Payment Provider: {connectedProvider ? connectedProvider.charAt(0).toUpperCase() + connectedProvider.slice(1) : "Not connected"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Check className={`w-4 h-4 ${completedSteps.includes(2) ? "text-green-500" : "text-muted-foreground"}`} />
+          <span>Team Invitations</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Check className={`w-4 h-4 ${completedSteps.includes(3) ? "text-green-500" : "text-muted-foreground"}`} />
+          <span>Tracking Snippet</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Check className={`w-4 h-4 ${completedSteps.includes(4) ? "text-green-500" : "text-muted-foreground"}`} />
+          <span>Referral Tracking</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        You can configure additional settings from the Dashboard or Settings page at any time.
+      </p>
     </div>
   );
 }

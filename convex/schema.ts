@@ -18,6 +18,13 @@ export default defineSchema({
     trialEndsAt: v.optional(v.number()),
     trackingPublicKey: v.optional(v.string()),
     trackingVerifiedAt: v.optional(v.number()),
+    // Universal billing provider: "saligpay" | "stripe" | undefined (no provider)
+    billingProvider: v.optional(v.union(
+      v.literal("saligpay"),
+      v.literal("stripe"),
+    )),
+    // Top-level field for Stripe tenant resolution via webhook (indexed for lookup)
+    stripeAccountId: v.optional(v.string()),
     payoutSchedule: v.optional(v.object({
       payoutDayOfMonth: v.optional(v.number()),
       minimumPayoutAmount: v.optional(v.number()),
@@ -34,6 +41,13 @@ export default defineSchema({
       expiresAt: v.optional(v.number()),
       mockAccessToken: v.optional(v.string()),
       mockRefreshToken: v.optional(v.string()),
+    })),
+    stripeCredentials: v.optional(v.object({
+      signingSecret: v.string(),       // Webhook signing secret (manual input for MVP)
+      mode: v.optional(v.string()),     // "test" or "live"
+      connectedAt: v.optional(v.number()),
+      // OAuth fields deferred to post-MVP:
+      // accessToken, refreshToken, tokenExpiresAt, webhookEndpointId
     })),
     branding: v.optional(v.object({
       logoUrl: v.optional(v.string()),
@@ -56,7 +70,8 @@ export default defineSchema({
     .index("by_domain", ["domain"])
     .index("by_tracking_key", ["trackingPublicKey"])
     .index("by_status", ["status"])
-    .index("by_plan", ["plan"]),
+    .index("by_plan", ["plan"])
+    .index("by_stripe_account_id", ["stripeAccountId"]),
 
   // Brand Asset Library table (Story 8.6)
   // Stores marketing assets uploaded by SaaS Owner for affiliates to access
@@ -283,6 +298,46 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_tracking_key", ["trackingKey"])
     .index("by_tenant_and_time", ["tenantId", "timestamp"]),
+
+  // Referral pings table for referral health monitoring
+  // Mirrors trackingPings — fired when Affilio.referral() is called on merchant's site
+  referralPings: defineTable({
+    tenantId: v.id("tenants"),
+    trackingKey: v.string(),
+    timestamp: v.number(),
+    domain: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    pingType: v.optional(v.string()), // "referral" distinguishes from snippet pings
+    email: v.optional(v.string()),    // Customer email from referral() call
+  }).index("by_tenant", ["tenantId"])
+    .index("by_tracking_key", ["trackingKey"])
+    .index("by_tenant_and_time", ["tenantId", "timestamp"]),
+
+  // Referral leads table for universal lead matching
+  // Created when Affilio.referral({email}) is called on merchant's signup form
+  // Used by webhook handlers to match customer email → affiliate attribution
+  referralLeads: defineTable({
+    tenantId: v.id("tenants"),           // Which merchant this lead belongs to
+    email: v.string(),                    // Customer email (primary lookup key)
+    uid: v.optional(v.string()),          // Optional stable customer ID (e.g., Stripe customer ID)
+    affiliateId: v.id("affiliates"),      // Which affiliate referred this customer
+    referralLinkId: v.id("referralLinks"), // Which referral link was clicked
+    campaignId: v.optional(v.id("campaigns")), // Which campaign (if any)
+    clickId: v.optional(v.id("clicks")),  // Which click record (if tracked)
+    status: v.union(                      // Lead lifecycle
+      v.literal("active"),                // Signup recorded, no conversion yet
+      v.literal("converted"),             // Conversion created and linked
+      v.literal("expired"),               // Past attribution window, no conversion
+    ),
+    convertedAt: v.optional(v.number()),  // Timestamp when conversion was linked
+    conversionId: v.optional(v.id("conversions")), // Linked conversion record
+  })
+    .index("by_tenant_email", ["tenantId", "email"])         // UNIQUE: upsert + webhook lookup
+    .index("by_tenant_affiliate", ["tenantId", "affiliateId"]) // Query affiliate's leads
+    .index("by_tenant_uid", ["tenantId", "uid"])              // UID-based lookup fallback
+    .index("by_tenant", ["tenantId"])                         // General tenant queries
+    .index("by_tenant_and_status", ["tenantId", "status"]),   // Status-based queries (cleanup cron)
 
   conversions: defineTable({
     tenantId: v.id("tenants"),
@@ -606,8 +661,13 @@ export default defineSchema({
     organicConversionsThisMonth: v.optional(v.number()),
     organicConversionsLastMonth: v.optional(v.number()),
     organicConversionsLast3Months: v.optional(v.number()),
+    // Last month lead counters (copied from leadsCreatedThisMonth on month boundary)
+    leadsCreatedLastMonth: v.optional(v.number()),
     // Current month API call counter (for tier limit enforcement)
     apiCallsThisMonth: v.optional(v.number()),
+    // Referral lead counters (universal billing provider integration)
+    leadsCreatedThisMonth: v.optional(v.number()),
+    leadsConvertedThisMonth: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
 
   // Saved queries for Query Builder (custom reports)

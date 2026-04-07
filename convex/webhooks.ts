@@ -18,7 +18,8 @@ export type BillingEventType =
   | "subscription.created"
   | "subscription.updated"
   | "subscription.cancelled"
-  | "refund.created";
+  | "refund.created"
+  | "chargeback.created";
 
 /**
  * Payment status types
@@ -91,11 +92,12 @@ export function normalizeToBillingEvent(payload: any): BillingEvent | null {
     }
 
     // Extract metadata for attribution
+    // Support both old (_salig_aff_*) and new (_affilio_*) metadata keys
     const metadata = dataObject.metadata || {};
-    const tenantId = metadata._salig_aff_tenant;
+    const tenantId = metadata._affilio_tenant || metadata._salig_aff_tenant;
     const attribution = {
-      affiliateCode: metadata._salig_aff_ref,
-      clickId: metadata._salig_aff_click_id,
+      affiliateCode: metadata._affilio_ref || metadata._salig_aff_ref,
+      clickId: metadata._affilio_click_id || metadata._salig_aff_click_id,
     };
 
     // Extract payment data
@@ -665,3 +667,109 @@ export const processWebhookToConversion = internalMutation({
     return conversionId;
   },
 });
+
+// ============================================
+// Stripe Event Normalizer
+// ============================================
+
+/**
+ * Stripe event type to BillingEventType mapping
+ */
+const STRIPE_EVENT_MAP: Record<string, BillingEventType> = {
+  "checkout.session.completed": "payment.updated",
+  "invoice.paid": "payment.updated",
+  "customer.subscription.created": "subscription.created",
+  "customer.subscription.updated": "subscription.updated",
+  "customer.subscription.deleted": "subscription.cancelled",
+  "charge.refunded": "refund.created",
+  "charge.dispute.created": "chargeback.created",
+};
+
+/**
+ * Normalize a Stripe webhook payload to BillingEvent format.
+ * Stripe events don't contain Affilio metadata — tenant is resolved via stripeAccountId.
+ * Customer email is extracted for lead matching (email-based attribution).
+ * Returns null if the payload structure is invalid or event type is unhandled.
+ */
+export function normalizeStripeToBillingEvent(payload: any): BillingEvent | null {
+  try {
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    const stripeEventType: string = payload.type;
+    const billingEventType = STRIPE_EVENT_MAP[stripeEventType];
+
+    if (!billingEventType) {
+      // Unhandled Stripe event type — skip silently
+      return null;
+    }
+
+    const dataObj = payload.data?.object;
+    if (!dataObj) {
+      return null;
+    }
+
+    // Extract customer email from various Stripe event structures
+    const customerEmail =
+      dataObj.customer_details?.email ||
+      dataObj.customer_email ||
+      dataObj.receipt_email ||
+      undefined;
+
+    // Extract payment ID — Stripe uses different fields per event type
+    const paymentId =
+      dataObj.payment_intent ||
+      dataObj.id ||
+      `pay_stripe_${Date.now()}`;
+
+    // Extract amount (Stripe uses cents, same as BillingEvent)
+    const amount =
+      dataObj.amount_total ??
+      dataObj.amount ??
+      0;
+
+    // Extract currency
+    const currency = dataObj.currency || "usd";
+
+    // Extract subscription data if applicable
+    let subscription: BillingEvent["subscription"] | undefined;
+    if (
+      stripeEventType.startsWith("customer.subscription") &&
+      dataObj.id
+    ) {
+      subscription = {
+        id: dataObj.id,
+        status: dataObj.status === "active" ? "active" : "cancelled",
+        planId: dataObj.plan?.id,
+      };
+    }
+
+    // Determine payment status
+    let paymentStatus: PaymentStatus = "paid";
+    if (billingEventType === "refund.created" || billingEventType === "chargeback.created") {
+      paymentStatus = "failed"; // Refunds/chargebacks are negative events
+    }
+
+    return {
+      eventId: payload.id || `evt_stripe_${Date.now()}`,
+      eventType: billingEventType,
+      timestamp: (payload.created || Date.now()) * 1000, // Stripe uses seconds → ms
+      // No tenantId — resolved from stripeAccountId after normalization
+      attribution: undefined, // Will be populated by lead matching in webhook handler
+      payment: {
+        id: paymentId,
+        amount,
+        currency,
+        status: paymentStatus,
+        customerEmail,
+      },
+      subscription,
+      rawPayload: JSON.stringify(payload),
+      // Store Stripe-specific data for dedup
+    };
+  } catch (error) {
+    console.error("Error normalizing Stripe webhook payload:", error);
+    return null;
+  }
+}

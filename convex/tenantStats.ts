@@ -48,6 +48,8 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       apiCallsThisMonth: 0,
       totalConversionsThisMonth: 0,
       organicConversionsThisMonth: 0,
+      leadsCreatedThisMonth: 0,
+      leadsConvertedThisMonth: 0,
     });
     return (await ctx.db.get(id))!;
   }
@@ -60,6 +62,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       totalClicksLastMonth: stats.totalClicksLastMonth ?? 0,
       totalConversionsLastMonth: stats.totalConversionsThisMonth ?? 0,
       organicConversionsLastMonth: stats.organicConversionsThisMonth ?? 0,
+      leadsCreatedLastMonth: stats.leadsCreatedThisMonth ?? 0,
       // Now zero ThisMonth fields
       commissionsConfirmedThisMonth: 0,
       commissionsConfirmedValueThisMonth: 0,
@@ -69,6 +72,8 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       totalConversionsThisMonth: 0,
       currentMonthStart: monthStart,
       apiCallsThisMonth: 0,
+      leadsCreatedThisMonth: 0,
+      leadsConvertedThisMonth: 0,
     });
     // Re-fetch after reset to avoid returning stale in-memory values
     return (await ctx.db.get(stats._id))!;
@@ -198,6 +203,8 @@ export const seedStats = internalMutation({
       apiCallsThisMonth: 0,
       totalConversionsThisMonth: 0,
       organicConversionsThisMonth: 0,
+      leadsCreatedThisMonth: 0,
+      leadsConvertedThisMonth: 0,
     });
     return null;
   },
@@ -231,6 +238,11 @@ export const backfillStats = internalMutation({
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
       .take(5000);
+
+    const referralLeads = await ctx.db
+      .query("referralLeads")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .take(1000);
 
     const monthStart = getMonthStart();
     const lastMonthStart = new Date(
@@ -312,6 +324,17 @@ export const backfillStats = internalMutation({
       }
     }
 
+    // Compute lead counters
+    let leadsCreatedThisMonth = 0, leadsConvertedThisMonth = 0;
+    for (const lead of referralLeads) {
+      if (lead._creationTime >= monthStart) {
+        leadsCreatedThisMonth++;
+      }
+      if (lead.status === "converted" && lead.convertedAt && lead.convertedAt >= monthStart) {
+        leadsConvertedThisMonth++;
+      }
+    }
+
     const existing = await ctx.db
       .query("tenantStats")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
@@ -343,6 +366,9 @@ export const backfillStats = internalMutation({
       organicConversionsThisMonth,
       organicConversionsLastMonth,
       organicConversionsLast3Months,
+      // Lead counters
+      leadsCreatedThisMonth,
+      leadsConvertedThisMonth,
     };
 
     if (existing) {
@@ -595,6 +621,34 @@ export async function onCommissionAmountChanged(
 }
 
 /**
+ * Called when a new referral lead is created.
+ * Increments leadsCreatedThisMonth counter.
+ */
+export async function onLeadCreated(
+  ctx: MutationCtx,
+  tenantId: Id<"tenants">,
+) {
+  const stats = await getOrCreateStats(ctx, tenantId);
+  await ctx.db.patch(stats._id, {
+    leadsCreatedThisMonth: (stats.leadsCreatedThisMonth ?? 0) + 1,
+  });
+}
+
+/**
+ * Called when a referral lead is marked as converted.
+ * Increments leadsConvertedThisMonth counter.
+ */
+export async function onLeadConverted(
+  ctx: MutationCtx,
+  tenantId: Id<"tenants">,
+) {
+  const stats = await getOrCreateStats(ctx, tenantId);
+  await ctx.db.patch(stats._id, {
+    leadsConvertedThisMonth: (stats.leadsConvertedThisMonth ?? 0) + 1,
+  });
+}
+
+/**
  * Internal mutation: get or create stats (for use in actions).
  */
 export const getOrCreateStatsInternal = internalMutation({
@@ -627,6 +681,8 @@ export const getOrCreateStatsInternal = internalMutation({
         apiCallsThisMonth: 0,
         totalConversionsThisMonth: 0,
         organicConversionsThisMonth: 0,
+        leadsCreatedThisMonth: 0,
+        leadsConvertedThisMonth: 0,
       });
     }
 
@@ -640,6 +696,7 @@ export const getOrCreateStatsInternal = internalMutation({
         totalClicksLastMonth: stats.totalClicksLastMonth ?? 0,
         totalConversionsLastMonth: stats.totalConversionsThisMonth ?? 0,
         organicConversionsLastMonth: stats.organicConversionsThisMonth ?? 0,
+        leadsCreatedLastMonth: stats.leadsCreatedThisMonth ?? 0,
         // Now zero ThisMonth fields
         commissionsConfirmedThisMonth: 0,
         commissionsConfirmedValueThisMonth: 0,
@@ -649,6 +706,8 @@ export const getOrCreateStatsInternal = internalMutation({
         totalConversionsThisMonth: 0,
         currentMonthStart: monthStart,
         apiCallsThisMonth: 0,
+        leadsCreatedThisMonth: 0,
+        leadsConvertedThisMonth: 0,
       });
     }
 

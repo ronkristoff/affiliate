@@ -27,51 +27,73 @@ interface CodeExample {
 
 const codeExamples: CodeExample[] = [
   {
+    id: "referral-method",
+    label: "Affilio.referral()",
+    icon: <Code2 className="w-4 h-4" />,
+    description: "The simplest way — add one line to your signup form to capture referral attribution",
+    code: `// When a customer signs up on your website:
+Affilio.referral({ email: customerEmail });
+
+// That's it! Affilio handles:
+// ✅ Reading the referral cookie automatically
+// ✅ Storing the lead in your account
+// ✅ Matching the lead to commissions when payments arrive
+// ✅ Working with both Stripe and SaligPay
+
+// Example in a form submit handler:
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+
+  // Capture referral before anything else
+  if (window.Affilio) {
+    Affilio.referral({ email });
+  }
+
+  // ... continue with your signup logic
+});`,
+  },
+  {
     id: "js-sdk",
     label: "JavaScript SDK",
-    icon: <Code2 className="w-4 h-4" />,
-    description: "Use the SaligPay JavaScript SDK for seamless integration",
-    code: `// Initialize SaligPay SDK
-const saligpay = new SaligPay({
-  publicKey: 'your_public_key',
-});
+    icon: <Globe className="w-4 h-4" />,
+    description: "Server-side integration using your payment provider's REST API",
+    code: `// Get attribution from cookie (provided by track.js)
+const attribution = window.Affilio?.getAttributionData?.() || {};
 
-// Get attribution from cookie (provided by track.js)
-const attribution = window.SaligAffiliate?.getAttributionData?.() || {};
-
-// Create checkout with attribution metadata
-const checkout = await saligpay.checkout.create({
-  amount: 1000,
-  currency: 'PHP',
+// Pass attribution metadata to your payment provider
+// Example with Stripe:
+const session = await stripe.checkout.sessions.create({
+  mode: 'subscription',
+  line_items: [{ price: 'price_xxx', quantity: 1 }],
   metadata: {
-    // Required: Affiliate referral code
-    _salig_aff_ref: attribution.code || '',
-    // Optional: Click tracking ID
-    _salig_aff_click_id: attribution.clickId || '',
-    // Optional: Your tenant ID
-    _salig_aff_tenant: attribution.tenantId || '',
+    // Affilio metadata keys for attribution
+    _affilio_ref: attribution.code || '',
+    _affilio_click_id: attribution.clickId || '',
+    _affilio_tenant: attribution.tenantId || '',
   },
+  success_url: 'https://yoursite.com/success',
 });
 
 // Redirect to checkout
-await checkout.redirect();`,
+window.location.href = session.url;`,
   },
   {
     id: "rest-api",
     label: "REST API",
     icon: <Globe className="w-4 h-4" />,
-    description: "Server-side integration using the SaligPay REST API",
-    code: `# Python example
+    description: "Server-side integration using your payment provider's REST API",
+    code: `# Python / Flask example
 import requests
 from flask import request
 
 # Get attribution from cookie
-attribution_code = request.cookies.get('_salig_aff')
-click_id = request.cookies.get('_salig_click_id')
+attribution_code = request.cookies.get('_affilio')
+click_id = request.cookies.get('_affilio_click_id')
 
 # Create checkout session with attribution
 response = requests.post(
-    'https://api.saligpay.com/v1/checkout',
+    'https://api.your-provider.com/v1/checkout',
     headers={
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
@@ -80,8 +102,8 @@ response = requests.post(
         'amount': 1000,
         'currency': 'PHP',
         'metadata': {
-            '_salig_aff_ref': attribution_code or '',
-            '_salig_aff_click_id': click_id or '',
+            '_affilio_ref': attribution_code or '',
+            '_affilio_click_id': click_id or '',
         }
     }
 )
@@ -93,25 +115,23 @@ checkout_session = response.json()
     id: "checkout-overlay",
     label: "Checkout Overlay",
     icon: <ShoppingCart className="w-4 h-4" />,
-    description: "Use the embedded checkout overlay for a seamless experience",
-    code: `<!-- Include SaligPay SDK -->
-<script src="https://js.saligpay.com/v1.js"></script>
-
-<!-- Your tracking snippet (already installed) -->
+    description: "Use an embedded checkout overlay for a seamless experience",
+    code: `<!-- Your tracking snippet (already installed) -->
 <script src="/track.js" data-key="YOUR_PUBLIC_KEY" async></script>
 
 <script>
 function openCheckout(amount) {
   // Get attribution data from the tracking library
-  const attribution = window.SaligAffiliate?.getAttributionData?.() || {};
+  const attribution = window.Affilio?.getAttributionData?.() || {};
   
   // Open checkout overlay with attribution
-  SaligPay.open({
+  // (Replace with your provider's SDK call)
+  YourProvider.open({
     amount: amount,
     currency: 'PHP',
     metadata: {
-      _salig_aff_ref: attribution.code || '',
-      _salig_aff_click_id: attribution.clickId || '',
+      _affilio_ref: attribution.code || '',
+      _affilio_click_id: attribution.clickId || '',
     },
     onSuccess: function(result) {
       console.log('Payment successful:', result);
@@ -148,7 +168,7 @@ export function CheckoutAttributionGuide() {
           Configure Checkout Attribution
         </h2>
         <p className="text-muted-foreground">
-          Pass referral attribution data through your SaligPay checkout sessions to automatically 
+          Pass referral attribution data through your payment provider checkout sessions to automatically 
           track conversions and attribute commissions to affiliates.
         </p>
       </div>
@@ -159,18 +179,18 @@ export function CheckoutAttributionGuide() {
         <AlertTitle>How Attribution Works</AlertTitle>
         <AlertDescription className="text-sm">
           When a customer clicks an affiliate link, the tracking snippet stores the affiliate code 
-          in a cookie. During checkout, you pass this code through SaligPay&apos;s metadata field. 
+          in a cookie. During checkout, you pass this code through your payment provider&apos;s metadata field. 
           When the payment webhook fires, we extract the attribution data and link the conversion 
-          to the correct affiliate.
+          to the correct affiliate.           Alternatively, use <code className="text-xs bg-muted px-1 py-0.5 rounded">Affilio.referral(&#123;email&#125;)</code> on your signup form for automatic lead matching.
         </AlertDescription>
       </Alert>
 
       {/* Required Metadata Fields */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Required Metadata Fields</CardTitle>
+          <CardTitle className="text-lg">Metadata Fields (Advanced)</CardTitle>
           <CardDescription>
-            Include these fields in your SaligPay checkout metadata
+            Include these fields in your payment provider checkout metadata for enhanced attribution
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -178,7 +198,7 @@ export function CheckoutAttributionGuide() {
             <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
               <Badge variant="default" className="mt-0.5">Required</Badge>
               <div>
-                <code className="text-sm font-semibold">_salig_aff_ref</code>
+                <code className="text-sm font-semibold">_affilio_ref</code>
                 <p className="text-sm text-muted-foreground mt-1">
                   The affiliate referral code from the tracking cookie
                 </p>
@@ -187,7 +207,7 @@ export function CheckoutAttributionGuide() {
             <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
               <Badge variant="secondary" className="mt-0.5">Optional</Badge>
               <div>
-                <code className="text-sm font-semibold">_salig_aff_click_id</code>
+                <code className="text-sm font-semibold">_affilio_click_id</code>
                 <p className="text-sm text-muted-foreground mt-1">
                   Unique click tracking ID for detailed analytics
                 </p>
@@ -196,7 +216,7 @@ export function CheckoutAttributionGuide() {
             <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
               <Badge variant="secondary" className="mt-0.5">Optional</Badge>
               <div>
-                <code className="text-sm font-semibold">_salig_aff_tenant</code>
+                <code className="text-sm font-semibold">_affilio_tenant</code>
                 <p className="text-sm text-muted-foreground mt-1">
                   Your tenant identifier (auto-populated by track.js)
                 </p>
@@ -297,8 +317,8 @@ export function CheckoutAttributionGuide() {
         <AlertTitle className="text-amber-800 dark:text-amber-200">Troubleshooting Tips</AlertTitle>
         <AlertDescription className="text-sm text-amber-700 dark:text-amber-300">
           If conversions aren&apos;t being attributed, verify that: (1) The tracking snippet is installed 
-          and working, (2) You&apos;re passing metadata in the correct format, (3) The webhook endpoint 
-          is receiving events, and (4) The SaligPay integration is connected in Settings.
+          and working, (2) You&apos;re passing metadata in the correct format (or using <code className="text-xs bg-muted px-1 rounded">Affilio.referral()</code> on your signup form), (3) The webhook endpoint 
+          is receiving events, and (4) Your payment provider is connected in Settings.
         </AlertDescription>
       </Alert>
     </div>

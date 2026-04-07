@@ -71,6 +71,7 @@ import type * as permissions from "../permissions.js";
 import type * as queryBuilder from "../queryBuilder.js";
 import type * as queryBuilderExport from "../queryBuilderExport.js";
 import type * as rateLimit from "../rateLimit.js";
+import type * as referralLeads from "../referralLeads.js";
 import type * as referralLinks from "../referralLinks.js";
 import type * as reports from "../reports.js";
 import type * as reports_affiliates from "../reports/affiliates.js";
@@ -170,6 +171,7 @@ declare const fullApi: ApiFromModules<{
   queryBuilder: typeof queryBuilder;
   queryBuilderExport: typeof queryBuilderExport;
   rateLimit: typeof rateLimit;
+  referralLeads: typeof referralLeads;
   referralLinks: typeof referralLinks;
   reports: typeof reports;
   "reports/affiliates": typeof reports_affiliates;

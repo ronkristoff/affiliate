@@ -842,6 +842,7 @@ export const connectMockSaligPay = mutation({
 
     // Store mock credentials (obfuscated)
     await ctx.db.patch(args.tenantId, {
+      billingProvider: "saligpay",
       saligPayCredentials: {
         mode: "mock",
         connectedAt: Date.now(),
@@ -898,9 +899,10 @@ export const disconnectSaligPay = mutation({
 
     const wasConnected = !!tenant.saligPayCredentials;
 
-    // Remove SaligPay credentials
+    // Remove SaligPay credentials and billing provider
     await ctx.db.patch(args.tenantId, {
       saligPayCredentials: undefined,
+      billingProvider: undefined,
     });
 
     // Create audit log entry if there was a connection
@@ -917,6 +919,203 @@ export const disconnectSaligPay = mutation({
     }
 
     return true;
+  },
+});
+
+// =============================================================================
+// Stripe Connection (MVP — Manual Signing Secret)
+// =============================================================================
+
+/**
+ * Connect Stripe integration (MVP: manual signing secret input)
+ * Merchant pastes their Stripe webhook signing secret from Stripe Dashboard.
+ */
+export const connectStripe = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    signingSecret: v.string(),
+    stripeAccountId: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    connectedAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    if (authUser.tenantId !== args.tenantId) {
+      throw new Error("Access denied: Cannot connect Stripe for another tenant");
+    }
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // If a different provider is already connected, disconnect it first
+    if (tenant.billingProvider && tenant.billingProvider !== "stripe") {
+      if (tenant.billingProvider === "saligpay" && tenant.saligPayCredentials) {
+        await ctx.db.patch(args.tenantId, {
+          saligPayCredentials: undefined,
+        });
+        await ctx.db.insert("auditLogs", {
+          tenantId: args.tenantId,
+          action: "saligpay_disconnected",
+          entityType: "tenant",
+          entityId: args.tenantId,
+          actorId: authUser.userId,
+          actorType: "user",
+          previousValue: { reason: "switched_to_stripe" },
+        });
+      }
+    }
+
+    const connectedAt = Date.now();
+
+    // Obfuscate the signing secret before storing
+    const obfuscatedSecret = obfuscate(args.signingSecret);
+
+    await ctx.db.patch(args.tenantId, {
+      billingProvider: "stripe",
+      stripeCredentials: {
+        signingSecret: obfuscatedSecret,
+        mode: "live",
+        connectedAt,
+      },
+      stripeAccountId: args.stripeAccountId || undefined,
+    });
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "stripe_connected",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      newValue: { stripeAccountId: args.stripeAccountId, mode: "live" },
+    });
+
+    return { success: true, connectedAt };
+  },
+});
+
+/**
+ * Disconnect Stripe integration
+ */
+export const disconnectStripe = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    if (authUser.tenantId !== args.tenantId) {
+      throw new Error("Access denied: Cannot disconnect Stripe for another tenant");
+    }
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const wasConnected = !!tenant.stripeCredentials;
+
+    await ctx.db.patch(args.tenantId, {
+      stripeCredentials: undefined,
+      stripeAccountId: undefined,
+      billingProvider: undefined,
+    });
+
+    if (wasConnected) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: args.tenantId,
+        action: "stripe_disconnected",
+        entityType: "tenant",
+        entityId: args.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        previousValue: { stripeAccountId: tenant.stripeAccountId },
+      });
+    }
+
+    return true;
+  },
+});
+
+/**
+ * Get Stripe connection status for a tenant
+ */
+export const getStripeConnectionStatus = query({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.union(
+    v.object({
+      isConnected: v.literal(true),
+      stripeAccountId: v.optional(v.string()),
+      mode: v.optional(v.string()),
+      connectedAt: v.optional(v.number()),
+    }),
+    v.object({
+      isConnected: v.literal(false),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant || !tenant.stripeCredentials) {
+      return { isConnected: false as const };
+    }
+
+    return {
+      isConnected: true as const,
+      stripeAccountId: tenant.stripeAccountId,
+      mode: tenant.stripeCredentials.mode,
+      connectedAt: tenant.stripeCredentials.connectedAt,
+    };
+  },
+});
+
+/**
+ * Internal Query: Get tenant by Stripe Account ID
+ * Used by Stripe webhook handler to resolve tenant from event payload
+ */
+export const getTenantByStripeAccountId = internalQuery({
+  args: {
+    stripeAccountId: v.string(),
+  },
+  returns: v.nullable(
+    v.object({
+      _id: v.id("tenants"),
+      name: v.string(),
+      stripeCredentials: v.optional(v.object({
+        signingSecret: v.string(),
+        mode: v.optional(v.string()),
+        connectedAt: v.optional(v.number()),
+      })),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_stripe_account_id", (q) => q.eq("stripeAccountId", args.stripeAccountId))
+      .first();
+
+    if (!tenant) {
+      return null;
+    }
+
+    return {
+      _id: tenant._id,
+      name: tenant.name,
+      stripeCredentials: tenant.stripeCredentials,
+    };
   },
 });
 
@@ -1100,6 +1299,36 @@ export const deleteTenantData = internalMutation({
 
     for (const user of users) {
       await ctx.db.delete(user._id);
+    }
+
+    // Delete all referral leads (universal billing provider integration)
+    const referralLeads = await ctx.db
+      .query("referralLeads")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .take(1000);
+
+    for (const lead of referralLeads) {
+      await ctx.db.delete(lead._id);
+    }
+
+    // Delete all tracking pings
+    const trackingPings = await ctx.db
+      .query("trackingPings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .take(1000);
+
+    for (const ping of trackingPings) {
+      await ctx.db.delete(ping._id);
+    }
+
+    // Delete all referral pings
+    const referralPings = await ctx.db
+      .query("referralPings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .take(1000);
+
+    for (const rPing of referralPings) {
+      await ctx.db.delete(rPing._id);
     }
 
     // Finally, delete the tenant record itself

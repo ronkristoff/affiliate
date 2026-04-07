@@ -17,6 +17,8 @@ If your mutation changes a **status field** on `affiliates`, `commissions`, or `
 | `commissions` | Status change | `onCommissionStatusChange(ctx, tenantId, amount, oldStatus, newStatus, wasFlagged, isFlagged)` | `convex/tenantStats.ts` |
 | `commissions` | Amount change (no status) | `onCommissionAmountChanged(ctx, tenantId, oldAmount, newAmount, status)` | `convex/tenantStats.ts` |
 | `payouts` | Marked as paid | `incrementTotalPaidOut(ctx, tenantId, amount)` | `convex/tenantStats.ts` |
+| `referralLeads` | Created | `onLeadCreated(ctx, tenantId)` | `convex/tenantStats.ts` |
+| `referralLeads` | Marked converted | `onLeadConverted(ctx, tenantId)` | `convex/tenantStats.ts` |
 
 **Checklist for any new mutation:**
 - [ ] Does it change `affiliate.status`? → Call `updateAffiliateCount`
@@ -27,7 +29,7 @@ If your mutation changes a **status field** on `affiliates`, `commissions`, or `
 
 ### Rule 2: No Unbounded `.collect()` on High-Volume Tables
 
-**High-volume tables** (clicks, conversions, commissions, payouts, affiliates) must NEVER use unbounded `.collect()`. Always use one of:
+**High-volume tables** (clicks, conversions, commissions, payouts, affiliates, referralLeads) must NEVER use unbounded `.collect()`. Always use one of:
 
 1. **`.take(N)`** — for bounded non-paginated queries (dashboard widgets, stats)
 2. **`.paginate(paginationOpts)`** — for user-facing lists (tables, feeds)
@@ -100,6 +102,9 @@ All capped queries and their limits with worst-case size calculations against Co
 | `getConversionStatsByTenant` | conversions | 800 | ~800B | 640KB | 1.6x |
 | `listCommissions` (legacy) | commissions | 500 | ~500B | 250KB | 4x |
 | `getPlanUsage` | campaigns | 500 | ~657B | 329KB | 3x |
+| `findLeadByEmail` | referralLeads | 1 | ~800B | 800B | 1250x |
+| `getLeadsByAffiliate` | referralLeads | 500 | ~800B | 400KB | 2.5x |
+| `expireStaleLeads` | referralLeads | 100 | ~800B | 80KB | 12.5x |
 
 ---
 

@@ -49,9 +49,9 @@ export function AttributionVerifier() {
     // Step 1: Check tracking snippet
     results.push({
       step: "Tracking Snippet",
-      status: typeof window !== 'undefined' && (window as any).SaligAffiliate ? "success" : "error",
-      message: typeof window !== 'undefined' && (window as any).SaligAffiliate 
-        ? "Tracking library loaded successfully" 
+      status: typeof window !== 'undefined' && (window as any).Affilio ? "success" : "error",
+      message: typeof window !== 'undefined' && (window as any).Affilio
+        ? "Tracking library loaded successfully"
         : "Tracking library not found - ensure track.js is installed",
     });
 
@@ -59,8 +59,8 @@ export function AttributionVerifier() {
     setTestResults([...results]);
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    const saligAff = typeof window !== 'undefined' ? (window as any).SaligAffiliate : null;
-    const hasAttributionData = saligAff?.getAttributionData?.() || saligAff?.getAffiliateCode?.();
+    const affilio = typeof window !== 'undefined' ? (window as any).Affilio : null;
+    const hasAttributionData = affilio?.getAttributionData?.() || affilio?.getAffiliateCode?.();
     
     results.push({
       step: "Attribution Data",
@@ -75,9 +75,9 @@ export function AttributionVerifier() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     results.push({
-      step: "SaligPay Integration",
+      step: "Payment Integration",
       status: "success",
-      message: "SaligPay integration configured for webhook processing",
+      message: "Payment integration configured for webhook processing",
     });
 
     // Step 4: Summary

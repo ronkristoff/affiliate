@@ -6,7 +6,7 @@ import { createAuth } from "../src/lib/auth";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { normalizeToBillingEvent } from "./webhooks";
+import { normalizeToBillingEvent, normalizeStripeToBillingEvent } from "./webhooks";
 
 const http = httpRouter();
 
@@ -16,7 +16,7 @@ betterAuthComponent.registerRoutes(http, createAuth as any);
 const webhookCorsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Saligpay-Signature",
+  "Access-Control-Allow-Headers": "Content-Type, X-Saligpay-Signature, Stripe-Signature",
 };
 
 // CORS headers for public tracking endpoints
@@ -913,6 +913,190 @@ http.route({
   }),
 });
 
+// =============================================================================
+// Stripe Webhook Handler — POST /api/webhooks/stripe
+// Processes Stripe Connect webhooks with signature verification
+// Tenant resolved via stored stripeAccountId (Stripe events have no Affilio metadata)
+// Attribution via email-based lead matching (referralLeads table)
+// =============================================================================
+http.route({
+  path: "/api/webhooks/stripe",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // 1. Read raw body first (needed for signature verification)
+      const rawBody = await req.text();
+
+      // 2. Extract Stripe-Signature header
+      const signature = req.headers.get("Stripe-Signature");
+
+      // 3. Parse payload as JSON
+      let payload: any;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        console.error("[Stripe Webhook] Invalid JSON payload");
+        return new Response(JSON.stringify({ received: true, error: "Invalid JSON" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 4. Extract Stripe account ID from payload (for tenant resolution)
+      // In Stripe Connect, this is payload.account
+      const stripeAccountId = payload.account;
+
+      if (!stripeAccountId) {
+        console.error("[Stripe Webhook] No Stripe account ID in payload");
+        return new Response(JSON.stringify({ received: true, error: "No account ID" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 5. Resolve tenant by stripeAccountId
+      const tenant = await ctx.runQuery(internal.tenants.getTenantByStripeAccountId, {
+        stripeAccountId,
+      });
+
+      if (!tenant) {
+        console.warn(`[Stripe Webhook] No tenant found for Stripe account: ${stripeAccountId}`);
+        return new Response(JSON.stringify({ received: true, error: "Tenant not found" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 6. Signature verification (MVP: verify against stored signing secret)
+      if (signature && tenant.stripeCredentials?.signingSecret) {
+        // Dynamic import for Stripe SDK (httpAction runs in Node.js)
+        try {
+          const stripe = (await import("stripe")).default;
+          const webhookSecret = tenant.stripeCredentials.signingSecret;
+          stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        } catch (err: any) {
+          console.error(`[Stripe Webhook] Signature verification failed for tenant ${tenant._id}:`, err.message);
+          return new Response(JSON.stringify({ received: true, error: "Invalid signature" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+          });
+        }
+      } else if (signature) {
+        console.warn(`[Stripe Webhook] No signing secret configured for tenant ${tenant._id}`);
+      }
+
+      // 7. Test mode check
+      if (payload.livemode === false) {
+        console.log(`[Stripe Webhook] Test mode event, skipping: ${payload.type}`);
+        return new Response(JSON.stringify({ received: true, testMode: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 8. Deduplication
+      const dedupResult = await ctx.runMutation(internal.webhooks.ensureEventNotProcessed, {
+        source: "stripe",
+        eventId: payload.id,
+        eventType: payload.type,
+        rawPayload: rawBody,
+        signatureValid: true,
+        tenantId: tenant._id,
+      });
+
+      if (dedupResult.isDuplicate) {
+        console.log(`[Stripe Webhook] Duplicate event: ${payload.id}`);
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 9. Normalize to BillingEvent
+      const billingEvent = normalizeStripeToBillingEvent(payload);
+      if (!billingEvent) {
+        console.warn(`[Stripe Webhook] Unhandled event type: ${payload.type}`);
+        await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+          webhookId: dedupResult.webhookId!,
+          status: "failed",
+          errorMessage: `Unhandled Stripe event type: ${payload.type}`,
+        });
+        return new Response(JSON.stringify({ received: true, error: "Unhandled event type" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+        });
+      }
+
+      // 10. Stripe-specific dedup: check for existing commission with same transactionId
+      if (billingEvent.eventType === "payment.updated" && billingEvent.payment.id) {
+        const existingCommission = await ctx.runQuery(internal.commissionEngine.findCommissionByTransactionId, {
+          tenantId: tenant._id,
+          transactionId: billingEvent.payment.id,
+        });
+        if (existingCommission) {
+          console.log(`[Stripe Webhook] Duplicate payment_intent: ${billingEvent.payment.id}`);
+          await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+            webhookId: dedupResult.webhookId!,
+            status: "processed",
+            errorMessage: `Duplicate payment_intent_id: ${billingEvent.payment.id}`,
+          });
+          return new Response(JSON.stringify({ received: true, duplicate: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+          });
+        }
+      }
+
+      // 11. Email-based lead matching (attribution fallback)
+      if (!billingEvent.attribution?.affiliateCode && billingEvent.payment.customerEmail) {
+        const attribution = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: tenant._id,
+          email: billingEvent.payment.customerEmail,
+        });
+        if (attribution) {
+          billingEvent.attribution = {
+            affiliateCode: attribution.affiliateCode,
+            clickId: attribution.clickId ?? undefined,
+          };
+        }
+      }
+
+      // Set tenantId on the billing event
+      billingEvent.tenantId = tenant._id;
+
+      // 12. Route to commission engine
+      await ctx.runAction(internal.commissionEngine.routeBillingEvent, {
+        webhookId: dedupResult.webhookId!,
+        billingEvent,
+        tenantId: tenant._id,
+      });
+
+      return new Response(JSON.stringify({ received: true, processed: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+      });
+    } catch (error) {
+      console.error("[Stripe Webhook] Error:", error);
+      return new Response(JSON.stringify({ received: true, error: "Internal error" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+      });
+    }
+  }),
+});
+
+// OPTIONS handler for Stripe webhook CORS
+http.route({
+  path: "/api/webhooks/stripe",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: webhookCorsHeaders,
+    });
+  }),
+});
+
 // Mock Payment Webhook Trigger Endpoint
 // Story 6.5: Mock Payment Webhook Processing
 // AC #1: Create mock webhook trigger endpoint for testing
@@ -1292,6 +1476,137 @@ http.route({
   }),
 });
 
+// =============================================================================
+// Mock Stripe Webhook Trigger — POST /api/mock/stripe-webhook
+// Local development endpoint for testing the Stripe webhook pipeline
+// Mirrors existing POST /api/mock/trigger-payment pattern for SaligPay
+// =============================================================================
+http.route({
+  path: "/api/mock/stripe-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // Auth check
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        return new Response(JSON.stringify({ received: true, success: false, error: "Authentication required" }), {
+          status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+        });
+      }
+
+      const body = await req.json();
+      const { tenantId, eventType, amount, customerEmail, currency, paymentIntentId } = body;
+
+      if (!tenantId || !eventType) {
+        return new Response(JSON.stringify({ received: true, success: false, error: "tenantId and eventType required" }), {
+          status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+        });
+      }
+
+      // Validate tenant exists
+      const tenant = await ctx.runQuery(internal.webhooks.validateTenantIdInternal, { tenantId });
+      if (!tenant) {
+        return new Response(JSON.stringify({ received: true, success: false, error: "Invalid tenant" }), {
+          status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+        });
+      }
+
+      // Construct mock Stripe event payload
+      const mockStripeEvent: any = {
+        id: `evt_mock_stripe_${Date.now()}`,
+        object: "event",
+        type: eventType,
+        livemode: true,
+        created: Math.floor(Date.now() / 1000),
+        account: "acct_mock",
+        data: {
+          object: {
+            id: paymentIntentId || `pi_mock_${Date.now()}`,
+            amount: amount || 10000, // Default $100 in cents
+            currency: currency || "usd",
+            customer_details: {
+              email: customerEmail || null,
+            },
+            customer_email: customerEmail || null,
+            status: "succeeded",
+          },
+        },
+      };
+
+      // Add subscription fields for subscription events
+      if (eventType.startsWith("customer.subscription")) {
+        mockStripeEvent.data.object.subscription = {
+          id: `sub_mock_${Date.now()}`,
+          status: eventType === "customer.subscription.deleted" ? "canceled" : "active",
+        };
+      }
+
+      // Normalize to BillingEvent
+      const billingEvent = normalizeStripeToBillingEvent(mockStripeEvent);
+      if (!billingEvent) {
+        return new Response(JSON.stringify({ received: true, success: false, error: `Unhandled event type: ${eventType}` }), {
+          status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+        });
+      }
+
+      // Dedup
+      const dedupResult = await ctx.runMutation(internal.webhooks.ensureEventNotProcessed, {
+        source: "stripe_mock",
+        eventId: mockStripeEvent.id,
+        eventType: billingEvent.eventType,
+        rawPayload: JSON.stringify(mockStripeEvent),
+        signatureValid: true,
+        tenantId: tenant._id,
+      });
+
+      if (dedupResult.isDuplicate) {
+        return new Response(JSON.stringify({ received: true, success: true, duplicate: true }), {
+          status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+        });
+      }
+
+      // Email-based lead matching
+      if (!billingEvent.attribution?.affiliateCode && billingEvent.payment.customerEmail) {
+        const attribution = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: tenant._id,
+          email: billingEvent.payment.customerEmail,
+        });
+        if (attribution) {
+          billingEvent.attribution = {
+            affiliateCode: attribution.affiliateCode,
+            clickId: attribution.clickId ?? undefined,
+          };
+        }
+      }
+
+      billingEvent.tenantId = tenant._id;
+
+      // Route to commission engine
+      await ctx.runAction(internal.commissionEngine.routeBillingEvent, {
+        webhookId: dedupResult.webhookId!,
+        billingEvent,
+        tenantId: tenant._id,
+      });
+
+      return new Response(JSON.stringify({
+        received: true,
+        success: true,
+        eventId: mockStripeEvent.id,
+        eventType: billingEvent.eventType,
+        attributed: !!billingEvent.attribution?.affiliateCode,
+        customerEmail: billingEvent.payment.customerEmail,
+      }), {
+        status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+      });
+    } catch (error) {
+      console.error("[Mock Stripe Webhook] Error:", error);
+      return new Response(JSON.stringify({ received: true, success: false, error: "Internal error" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...mockCorsHeaders },
+      });
+    }
+  }),
+});
+
 // Public Referral Link Resolution Endpoint
 // Story 4.5 AC #3: Archived campaigns return 404 for referral links
 http.route({
@@ -1661,6 +1976,228 @@ http.route({
           "X-Error": "tracking_failed",
         },
       });
+    }
+  }),
+});
+
+// =============================================================================
+// Referral Tracking Endpoint — POST /track/referral
+// Called by Affilio.referral({email}) from merchant's signup form
+// Creates/updates a referralLeads record linking customer email to affiliate
+// =============================================================================
+http.route({
+  path: "/track/referral",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // Parse body
+      let body: {
+        tenantId?: string;
+        email?: string;
+        uid?: string;
+        affiliateCode?: string;
+        publicKey?: string;
+      };
+      try {
+        body = await req.json();
+      } catch {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid JSON body" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const { email, uid, affiliateCode, publicKey } = body;
+
+      // Validate email — always return 200 to not break merchant's signup
+      if (!email || typeof email !== "string" || !email.includes("@")) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invalid or missing email" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Resolve tenant — by publicKey (from X-Tracking-Key header or body) or tenantId
+      let tenantId: Id<"tenants"> | null = null;
+      const trackingKey = req.headers.get("X-Tracking-Key") || publicKey;
+
+      if (trackingKey) {
+        const tenant = await ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
+          trackingKey,
+        });
+        if (tenant) {
+          tenantId = tenant._id;
+        }
+      }
+
+      if (!tenantId && body.tenantId) {
+        tenantId = body.tenantId as Id<"tenants">;
+      }
+
+      if (!tenantId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Could not resolve tenant" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Resolve affiliate code — from body, or from _affilio cookie
+      let effectiveCode = affiliateCode || null;
+
+      if (!effectiveCode) {
+        // Try to read _affilio cookie (Base64-encoded JSON with {code, clickId, tenantId, timestamp})
+        const cookieHeader = req.headers.get("Cookie") || "";
+        const affilioCookie = cookieHeader
+          .split(";")
+          .map(c => c.trim())
+          .find(c => c.startsWith("_affilio="));
+
+        if (affilioCookie) {
+          try {
+            const cookieValue = affilioCookie.split("=")[1];
+            const decoded = JSON.parse(atob(decodeURIComponent(cookieValue)));
+            effectiveCode = decoded.code || null;
+          } catch {
+            // Invalid cookie, ignore
+          }
+        }
+      }
+
+      if (!effectiveCode) {
+        // No affiliate attribution — could still be useful for future uid matching
+        // but without affiliateId we can't create a lead. Return success to not break signup.
+        return new Response(
+          JSON.stringify({ success: true, leadId: null, message: "No affiliate attribution found" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Validate affiliate is active
+      const affiliateValidation = await ctx.runQuery(internal.clicks.validateAffiliateCodeInternal, {
+        tenantId,
+        code: effectiveCode,
+      });
+
+      if (!affiliateValidation.valid || !affiliateValidation.affiliateId) {
+        return new Response(
+          JSON.stringify({ success: true, leadId: null, message: "Affiliate not active" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Get referral link to extract referralLinkId and campaignId
+      const referralLink = await ctx.runQuery(internal.clicks.getReferralLinkByCodeInternal, {
+        tenantId,
+        code: effectiveCode,
+      });
+
+      if (!referralLink) {
+        return new Response(
+          JSON.stringify({ success: true, leadId: null, message: "Referral link not found" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Create or update lead (upsert semantics)
+      const result = await ctx.runMutation(internal.referralLeads.createOrUpdateLead, {
+        tenantId,
+        email: email.toLowerCase().trim(),
+        uid,
+        affiliateId: affiliateValidation.affiliateId,
+        referralLinkId: referralLink._id,
+        campaignId: referralLink.campaignId ?? undefined,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, leadId: result.leadId, isNew: result.isNew }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    } catch (error) {
+      console.error("[/track/referral] Error:", error);
+      // Always return 200 to not break merchant's signup flow
+      return new Response(
+        JSON.stringify({ success: false, error: "Internal error" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+  }),
+});
+
+// OPTIONS handler for referral tracking
+http.route({
+  path: "/track/referral",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }),
+});
+
+// =============================================================================
+// Referral Health Ping — POST /api/tracking/referral-ping
+// Called by track.js when Affilio.referral() is invoked
+// Mirrors existing tracking ping but distinguished by pingType: "referral"
+// =============================================================================
+http.route({
+  path: "/api/tracking/referral-ping",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      const body = await req.json();
+      const { publicKey, domain, userAgent, email } = body;
+
+      if (!publicKey || !domain) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Missing required fields" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Sanitize domain
+      const sanitizedDomain = domain
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
+        .replace(/[^a-z0-9.-]/g, '');
+
+      // Record referral ping in referralPings table
+      const tenant = await ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
+        trackingKey: publicKey,
+      });
+
+      if (tenant) {
+        // Get client IP
+        const forwardedFor = req.headers.get("X-Forwarded-For");
+        const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : undefined;
+
+        await ctx.runMutation(internal.tracking.recordReferralPingInternal, {
+          tenantId: tenant._id,
+          trackingKey: publicKey,
+          domain: sanitizedDomain,
+          userAgent,
+          ipAddress: clientIp,
+          email: email || undefined,
+        });
+
+        // Track API call
+        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+          tenantId: tenant._id,
+          count: 1,
+        }).catch(() => {});
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Referral ping recorded" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    } catch (error) {
+      console.error("[/api/tracking/referral-ping] Error:", error);
+      return new Response(
+        JSON.stringify({ success: false, message: "Internal error" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
   }),
 });

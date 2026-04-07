@@ -535,3 +535,32 @@ export const resolveReferralLinkInternal = internalQuery({
     };
   },
 });
+
+/**
+ * Internal Mutation: Record a referral health ping
+ * Called from POST /api/tracking/referral-ping HTTP endpoint
+ */
+export const recordReferralPingInternal = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    trackingKey: v.string(),
+    domain: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    email: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("referralPings", {
+      tenantId: args.tenantId,
+      trackingKey: args.trackingKey,
+      timestamp: Date.now(),
+      domain: args.domain,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
+      pingType: "referral",
+      email: args.email,
+    });
+    return null;
+  },
+});

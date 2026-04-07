@@ -48,4 +48,13 @@ crons.interval(
   {}
 );
 
+// Expire stale referral leads — runs daily at 4 AM UTC
+// Archives leads older than 90 days with no linked conversion (caps at 100 per run)
+crons.interval(
+  "expire-stale-referral-leads",
+  { hours: 24 },
+  internal.referralLeads.expireStaleLeads,
+  {}
+);
+
 export default crons;

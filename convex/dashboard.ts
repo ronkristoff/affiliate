@@ -765,7 +765,8 @@ export const getSetupStatus = query({
   returns: v.union(
     v.object({
       trackingSnippetInstalled: v.boolean(),
-      saligPayConnected: v.boolean(),
+      billingProviderConnected: v.boolean(),
+      referralTrackingActive: v.boolean(),
       firstCampaignCreated: v.boolean(),
       firstAffiliateApproved: v.boolean(),
     }),
@@ -781,7 +782,7 @@ export const getSetupStatus = query({
     }
 
     // Get tenant + existence checks in parallel
-    const [tenant, campaign, activeAffiliate] = await Promise.all([
+    const [tenant, campaign, activeAffiliate, recentReferralPing] = await Promise.all([
       ctx.db.get(args.tenantId),
       ctx.db
         .query("campaigns")
@@ -793,15 +794,27 @@ export const getSetupStatus = query({
           q.eq("tenantId", args.tenantId).eq("status", "active")
         )
         .first(),
+      // Check for referral pings in the last 7 days (7 * 24 * 60 * 60 * 1000 ms)
+      ctx.db
+        .query("referralPings")
+        .withIndex("by_tenant_and_time", (q) =>
+          q.eq("tenantId", args.tenantId).gt("timestamp", Date.now() - 7 * 24 * 60 * 60 * 1000)
+        )
+        .first(),
     ]);
 
     if (!tenant) {
       throw new Error("Tenant not found");
     }
 
+    // Billing provider connected: Stripe or SaligPay
+    const isStripeConnected = !!tenant.stripeAccountId && !!tenant.stripeCredentials?.signingSecret;
+    const isSaligPayConnected = !!tenant.saligPayCredentials?.connectedAt;
+
     return {
       trackingSnippetInstalled: !!tenant.trackingVerifiedAt,
-      saligPayConnected: !!tenant.saligPayCredentials?.connectedAt,
+      billingProviderConnected: isStripeConnected || isSaligPayConnected,
+      referralTrackingActive: !!recentReferralPing,
       firstCampaignCreated: !!campaign,
       firstAffiliateApproved: !!activeAffiliate,
     };

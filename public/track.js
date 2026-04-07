@@ -1,22 +1,25 @@
 /**
- * salig-affiliate Tracking Library
+ * Affilio Tracking Library
  * Self-contained, async-loading JavaScript snippet for affiliate tracking
  * 
  * Usage:
  * <script src="/track.js" data-key="YOUR_PUBLIC_KEY" async></script>
+ * 
+ * After installing, add to your signup form:
+ * Affilio.referral({ email: customerEmail });
  */
 
 (function(window, document) {
   'use strict';
 
   // Prevent double initialization
-  if (window.SaligAffiliate && window.SaligAffiliate._initialized) {
+  if (window.Affilio && window.Affilio._initialized) {
     return;
   }
 
-  var SaligAffiliate = {
+  var Affilio = {
     config: {
-      cookieName: '_salig_aff',
+      cookieName: '_affilio',
       cookieExpiry: 30, // days
       apiBase: '/api/tracking',
       retryAttempts: 3,
@@ -61,6 +64,71 @@
       
       // Set up click event listeners
       this.setupClickTracking();
+    },
+
+    /**
+     * Record a referral lead when a customer signs up.
+     * Call this on your signup form after collecting the customer's email.
+     * 
+     * @param {Object} data - { email: string, uid?: string }
+     * 
+     * Usage:
+     *   Affilio.referral({ email: 'customer@example.com' });
+     *   Affilio.referral({ email: 'customer@example.com', uid: 'cus_12345' });
+     */
+    referral: function(data) {
+      if (!data || !data.email) {
+        this.log('error', 'referral() requires an email address');
+        return;
+      }
+
+      var self = this;
+      var attributionData = this.getAttributionData() || {};
+      var body = { email: data.email };
+      if (data.uid) body.uid = data.uid;
+      if (attributionData.code) body.affiliateCode = attributionData.code;
+      if (attributionData.tenantId) body.tenantId = attributionData.tenantId;
+      if (this.key) body.publicKey = this.key;
+
+      fetch('/track/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true,
+      }).catch(function(e) {
+        self.log('error', 'referral() failed: ' + e.message);
+      });
+
+      // Fire referral health ping
+      this.sendReferralPing(data.email);
+    },
+
+    /**
+     * Send referral health ping for monitoring
+     */
+    sendReferralPing: function(email) {
+      var domain = window.location.hostname.replace(/^www\./, '');
+      var data = {
+        publicKey: this.key,
+        domain: domain,
+        userAgent: navigator.userAgent,
+        email: email || undefined,
+      };
+
+      this.fetchWithRetry(
+        this.config.apiBase + '/referral-ping',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          keepalive: true,
+        },
+        function(success) {
+          if (success) {
+            // Silent success
+          }
+        }
+      );
     },
 
     /**
@@ -284,9 +352,9 @@
       // Check for debug mode
       var debug = document.currentScript && document.currentScript.getAttribute('data-debug');
       if (debug !== 'true' && level === 'error') {
-        console.error('[SaligAffiliate] ' + message);
+        console.error('[Affilio] ' + message);
       } else if (debug === 'true') {
-        console.log('[SaligAffiliate] ' + message);
+        console.log('[Affilio] ' + message);
       }
     },
 
@@ -352,7 +420,7 @@
 
   // Auto-initialize when DOM is ready
   function initialize() {
-    SaligAffiliate.init();
+    Affilio.init();
   }
 
   if (document.readyState === 'loading') {
@@ -363,6 +431,6 @@
   }
 
   // Expose to global scope
-  window.SaligAffiliate = SaligAffiliate;
+  window.Affilio = Affilio;
 
 })(window, document);

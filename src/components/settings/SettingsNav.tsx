@@ -11,6 +11,7 @@ import {
   Palette,
   Mail,
   GitBranch,
+  Plug,
 } from "lucide-react";
 
 // Available settings pages (only show implemented pages)
@@ -20,6 +21,7 @@ const settingsLinks = [
   { href: "/settings/team", label: "Team Members", icon: Users },
   { href: "/settings/tracking", label: "Tracking Code", icon: Code },
   { href: "/settings/attribution", label: "Attribution", icon: GitBranch },
+  { href: "/settings/integrations", label: "Integrations", icon: Plug },
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
   { href: "/settings/email-templates", label: "Email Templates", icon: Mail },
 ];
