@@ -8,8 +8,9 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Check, CreditCard, Users, Code, ArrowRight, SkipForward, Loader2, TrendingUp, Zap, CheckCircle2 } from "lucide-react";
+import { Check, CreditCard, Users, Code, ArrowRight, SkipForward, Loader2, TrendingUp, Zap, CheckCircle2, Info } from "lucide-react";
 import { TeamInvitationForm } from "@/components/settings/TeamInvitationForm";
+import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
 
 interface OnboardingStep {
   id: number;
@@ -539,7 +540,7 @@ function SnippetStepContent() {
   );
 }
 
-// Referral Tracking Step — Single code snippet + best practices
+// Referral Tracking Step — Code snippet with framework examples + best practices
 function ReferralTrackingStepContent({
   connectedProvider,
   onCompleted,
@@ -548,7 +549,57 @@ function ReferralTrackingStepContent({
   onCompleted?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const snippet = `Affilio.referral({ email: customerEmail });`;
+  const [selectedFramework, setSelectedFramework] = useState<"react" | "javascript" | "jquery">("javascript");
+
+  const snippet = `// Add to your signup form's submit handler:
+if (window.Affilio) {
+  Affilio.referral({ email: customerEmail });
+}`;
+
+  const frameworkExamples: Record<string, { label: string; code: string }> = {
+    javascript: {
+      label: "Vanilla JS",
+      code: `// Add this inside your form submit handler
+document.getElementById("signup-form").addEventListener("submit", function(e) {
+  const email = document.getElementById("email").value;
+  if (window.Affilio) {
+    Affilio.referral({ email });
+  }
+});`,
+    },
+    react: {
+      label: "React",
+      code: `// Add this inside your form's onSubmit handler
+function SignupForm({ onSubmit }) {
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (window.Affilio) {
+      Affilio.referral({ email });
+    }
+    onSubmit(email);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button type="submit">Sign Up</button>
+    </form>
+  );
+}`,
+    },
+    jquery: {
+      label: "jQuery",
+      code: `// Add this inside your document ready block
+$("#signup-form").on("submit", function(e) {
+  const email = $("#email").val();
+  if (window.Affilio) {
+    Affilio.referral({ email });
+  }
+});`,
+    },
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(snippet);
@@ -557,16 +608,38 @@ function ReferralTrackingStepContent({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyFramework = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    onCompleted?.();
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const frameworkTabs: FilterTabItem[] = Object.entries(frameworkExamples).map(([key, example]) => ({
+    key,
+    label: example.label,
+  }));
+
   return (
     <div className="space-y-4">
+      {/* Context — connects to Step 4 */}
+      <div className="flex items-start gap-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+        <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+        <p>
+          Remember the tracking snippet you installed in the previous step? That snippet captures
+          <strong> referral clicks</strong>. This step captures <strong>signups</strong> &mdash; so when
+          a customer who clicked an affiliate link signs up, we can credit the affiliate.
+        </p>
+      </div>
+
       <p className="text-sm text-muted-foreground text-center">
-        When a customer signs up on your website, add this line to capture their referral.
-        That&apos;s it &mdash; we handle the rest.
+        Add this line to your signup form&apos;s submit handler. When a customer signs up,
+        Affilio captures their email and matches it to the affiliate who referred them.
       </p>
 
-      {/* Code Snippet */}
+      {/* One-liner Snippet */}
       <div className="relative rounded-lg bg-gray-900 p-4">
-        <code className="text-sm text-green-400 block">
+        <code className="text-sm text-green-400 block whitespace-pre">
           {snippet}
         </code>
         <Button
@@ -583,6 +656,35 @@ function ReferralTrackingStepContent({
         </Button>
       </div>
 
+      {/* Framework Examples */}
+      <div className="space-y-3">
+        <p className="text-xs font-medium text-muted-foreground">
+          Need a full example? Choose your framework:
+        </p>
+        <div className="space-y-3">
+          <FilterTabs
+            tabs={frameworkTabs}
+            activeTab={selectedFramework}
+            onTabChange={(v) => setSelectedFramework(v as "react" | "javascript" | "jquery")}
+            size="sm"
+            className="justify-start"
+          />
+          <div className="relative rounded-lg bg-gray-900 p-4 max-h-64 overflow-y-auto">
+            <pre className="text-xs text-green-400 whitespace-pre">
+              {frameworkExamples[selectedFramework].code}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleCopyFramework(frameworkExamples[selectedFramework].code)}
+              className="absolute top-2 right-2 bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300"
+            >
+              Copy
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Best Practices */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Best practices:</p>
@@ -594,6 +696,10 @@ function ReferralTrackingStepContent({
           <li className="flex items-start gap-2">
             <span className="text-green-500">+</span>
             Call after email verification for best results
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-500">+</span>
+            The <code className="bg-muted px-1 rounded">if (window.Affilio)</code> guard ensures it won&apos;t break your form if the tracking snippet hasn&apos;t loaded yet
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-500">+</span>
@@ -616,7 +722,7 @@ function ReferralTrackingStepContent({
               </p>
               <div className="rounded bg-gray-900 p-2">
                 <code className="text-xs text-green-400 block break-all">
-                  {`Affilio.referral({ email: customerEmail });`}
+                  {`if (window.Affilio) {\n  Affilio.referral({ email: customerEmail });\n}`}
                 </code>
               </div>
               <p className="text-xs">
