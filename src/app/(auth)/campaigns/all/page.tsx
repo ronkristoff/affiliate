@@ -21,7 +21,7 @@ function CampaignListingContent({ onCreateCampaign }: { onCreateCampaign: () => 
 
   const [filterState, setFilterState] = useState<FilterState>({
     searchQuery: "",
-    statusFilter: statusFromUrl ?? undefined,
+    statusFilter: statusFromUrl ? [statusFromUrl] : undefined,
   });
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
 

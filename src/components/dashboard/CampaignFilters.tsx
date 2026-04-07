@@ -13,9 +13,19 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { X, Search, LayoutGrid, List, SlidersHorizontal, Calendar } from "lucide-react";
+import { FilterPill } from "@/components/ui/FilterPill";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "paused", label: "Paused" },
+  { value: "archived", label: "Archived" },
+] as const;
+
+type CampaignStatus = "active" | "paused" | "archived";
 
 export interface FilterState {
-  statusFilter?: "active" | "paused" | "archived";
+  statusFilter?: CampaignStatus[];
   commissionTypeFilter?: "percentage" | "flatFee";
   recurringFilter?: boolean;
   createdAfter?: number;
@@ -26,7 +36,7 @@ export interface FilterState {
 export type ViewMode = "cards" | "table";
 
 interface CampaignFiltersProps {
-  initialStatusFilter?: "active" | "paused" | "archived" | null;
+  initialStatusFilter?: CampaignStatus | null;
   onFilterChange: (filters: FilterState) => void;
   onViewModeChange: (mode: ViewMode) => void;
 }
@@ -36,7 +46,9 @@ export function CampaignFilters({
   onFilterChange,
   onViewModeChange,
 }: CampaignFiltersProps) {
-  const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus[]>(
+    initialStatusFilter ? [initialStatusFilter] : []
+  );
   const [commissionTypeFilter, setCommissionTypeFilter] = useState<string>("all");
   const [recurringFilter, setRecurringFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,7 +84,7 @@ export function CampaignFilters({
 
   // Build filter state and notify parent
   const filterState = useMemo((): FilterState => ({
-    statusFilter: statusFilter !== "all" ? (statusFilter as "active" | "paused" | "archived") : undefined,
+    statusFilter: statusFilter.length > 0 ? statusFilter : undefined,
     commissionTypeFilter: commissionTypeFilter !== "all" ? (commissionTypeFilter as "percentage" | "flatFee") : undefined,
     recurringFilter: recurringFilter !== "all" ? (recurringFilter === "recurring" ? true : false) : undefined,
     createdAfter: createdAfter ? new Date(createdAfter + "T00:00:00").getTime() : undefined,
@@ -87,7 +99,7 @@ export function CampaignFilters({
   // Count active filters (excluding search)
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (statusFilter !== "all") count++;
+    if (statusFilter.length > 0) count++;
     if (commissionTypeFilter !== "all") count++;
     if (recurringFilter !== "all") count++;
     if (createdAfter) count++;
@@ -96,7 +108,7 @@ export function CampaignFilters({
   }, [statusFilter, commissionTypeFilter, recurringFilter, createdAfter, createdBefore]);
 
   const clearAllFilters = useCallback(() => {
-    setStatusFilter("all");
+    setStatusFilter([]);
     setCommissionTypeFilter("all");
     setRecurringFilter("all");
     setSearchQuery("");
@@ -108,7 +120,7 @@ export function CampaignFilters({
   const removeFilter = useCallback((filter: string) => {
     switch (filter) {
       case "status":
-        setStatusFilter("all");
+        setStatusFilter([]);
         break;
       case "commissionType":
         setCommissionTypeFilter("all");
@@ -126,7 +138,7 @@ export function CampaignFilters({
   // Build contextual empty state message (AC 21)
   const getEmptyContext = useMemo(() => {
     const parts: string[] = [];
-    if (statusFilter !== "all") parts.push(statusFilter);
+    if (statusFilter.length > 0) parts.push(...statusFilter);
     if (commissionTypeFilter !== "all") parts.push(commissionTypeFilter === "percentage" ? "percentage" : "flat fee");
     if (recurringFilter !== "all") parts.push(recurringFilter === "recurring" ? "recurring" : "one-time");
     return parts;
@@ -150,18 +162,13 @@ export function CampaignFilters({
           />
         </div>
 
-        {/* Status filter */}
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px] h-9 text-[13px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Status filter — multi-select */}
+        <MultiSelect
+          options={[...STATUS_OPTIONS]}
+          selected={statusFilter}
+          onChange={(values) => setStatusFilter(values as CampaignStatus[])}
+          placeholder="All Status"
+        />
 
         {/* Commission type filter */}
         <Select value={commissionTypeFilter} onValueChange={setCommissionTypeFilter}>
@@ -272,12 +279,13 @@ export function CampaignFilters({
       {/* Active filter pills */}
       {activeFilterCount > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
-          {statusFilter !== "all" && (
+          {statusFilter.length > 0 && statusFilter.map((status) => (
             <FilterPill
-              label={statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-              onRemove={() => removeFilter("status")}
+              key={status}
+              label={status.charAt(0).toUpperCase() + status.slice(1)}
+              onRemove={() => setStatusFilter(statusFilter.filter((s) => s !== status))}
             />
-          )}
+          ))}
           {commissionTypeFilter !== "all" && (
             <FilterPill
               label={commissionTypeFilter === "percentage" ? "Percentage" : "Flat Fee"}
@@ -313,26 +321,5 @@ export function CampaignFilters({
         </p>
       )}
     </div>
-  );
-}
-
-function FilterPill({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove: () => void;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#1c2260]">
-      {label}
-      <button
-        type="button"
-        onClick={onRemove}
-        className="hover:text-[#1e40af] transition-colors"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </span>
   );
 }

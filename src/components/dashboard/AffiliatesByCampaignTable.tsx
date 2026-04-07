@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { FilterPill } from "@/components/ui/FilterPill";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { toast } from "sonner";
 import { escapeCsvField } from "@/lib/csv-utils";
@@ -403,23 +403,15 @@ export function AffiliatesByCampaignTable({
                     ? `${filter.columnKey}: ${filter.after ? new Date(filter.after).toLocaleDateString() : "…"} – ${filter.before ? new Date(filter.before).toLocaleDateString() : "…"}`
                     : filter.columnKey;
             return (
-              <span
+              <FilterPill
                 key={filter.columnKey}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#eff6ff] text-[11px] font-medium text-[#1c2260]"
-              >
-                {label}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveFilters((prev) =>
-                      prev.filter((f) => f.columnKey !== filter.columnKey)
-                    )
-                  }
-                  className="hover:text-[#1e40af] transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
+                label={label}
+                onRemove={() =>
+                  setActiveFilters((prev) =>
+                    prev.filter((f) => f.columnKey !== filter.columnKey)
+                  )
+                }
+              />
             );
           })}
           <button

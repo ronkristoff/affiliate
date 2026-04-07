@@ -3,6 +3,7 @@
 import { useState, useCallback, Suspense } from "react";
 import { useQuery, useAction } from "convex/react";
 import { useParams } from "next/navigation";
+import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { FilterPillBar } from "@/components/ui/FilterPill";
 import {
   Loader2,
   Mail,
@@ -28,7 +24,6 @@ import {
   MousePointerClick,
   Users,
   Search,
-  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { PageTopbar } from "@/components/ui/PageTopbar";
@@ -66,6 +61,10 @@ const DELIVERY_STATUS_CONFIG: Record<
   sent: { label: "Sent", variant: "secondary", color: "text-blue-600" },
 };
 
+const DELIVERY_STATUS_OPTIONS = Object.entries(DELIVERY_STATUS_CONFIG).map(
+  ([value, cfg]) => ({ value, label: cfg.label })
+);
+
 // ---------------------------------------------------------------------------
 // Broadcast Detail Content (client component with hooks)
 // ---------------------------------------------------------------------------
@@ -75,7 +74,10 @@ function BroadcastDetailContent() {
   const broadcastId = params.broadcastId as string;
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedStatuses, setSelectedStatuses] = useQueryState(
+    "status",
+    parseAsArrayOf(parseAsString).withDefault([])
+  );
   const [cursor, setCursor] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -92,7 +94,9 @@ function BroadcastDetailContent() {
     paginationOpts: { numItems: 20, cursor },
     searchQuery: searchQuery || undefined,
     statusFilter:
-      statusFilter !== "all" ? (statusFilter as DeliveryStatus) : undefined,
+      selectedStatuses.length > 0
+        ? (selectedStatuses as Array<"queued" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained">)
+        : undefined,
   });
 
   const exportData = useAction(api.broadcasts.exportBroadcastData);
@@ -382,27 +386,34 @@ function BroadcastDetailContent() {
                       className="pl-9"
                     />
                   </div>
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(v) => {
-                      setStatusFilter(v);
+                  <MultiSelect
+                    options={DELIVERY_STATUS_OPTIONS}
+                    selected={selectedStatuses}
+                    onChange={(values) => {
+                      setSelectedStatuses(values);
                       setCursor(null);
                     }}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All statuses</SelectItem>
-                      <SelectItem value="queued">Queued</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="opened">Opened</SelectItem>
-                      <SelectItem value="clicked">Clicked</SelectItem>
-                      <SelectItem value="bounced">Bounced</SelectItem>
-                      <SelectItem value="complained">Complained</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="All statuses"
+                    popoverWidth="w-[180px]"
+                  />
                 </div>
+                {selectedStatuses.length > 0 && (
+                  <div className="mt-2">
+                    <FilterPillBar
+                      pills={selectedStatuses.map((s) => ({
+                        key: s,
+                        label: DELIVERY_STATUS_CONFIG[s]?.label ?? s,
+                      }))}
+                      onRemove={(key) => {
+                        setSelectedStatuses(selectedStatuses.filter((s) => s !== key));
+                      }}
+                      onClearAll={() => {
+                        setSelectedStatuses([]);
+                        setCursor(null);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

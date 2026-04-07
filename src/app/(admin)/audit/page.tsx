@@ -6,11 +6,14 @@ import { api } from "@/convex/_generated/api";
 import {
   useQueryState,
   parseAsString,
+  parseAsArrayOf,
   parseAsInteger,
 } from "nuqs";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { DataTablePagination, DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { FilterPill, FilterPillBar } from "@/components/ui/FilterPill";
 import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DateCell } from "@/components/ui/DataTable";
@@ -160,29 +163,26 @@ function FilterBar({
   actionTypes,
   entityTypes,
   actors,
-  selectedAction,
-  selectedEntityType,
-  selectedActorId,
-  onActionChange,
-  onEntityTypeChange,
-  onActorChange,
-  onClearAll,
+  selectedActions,
+  selectedEntityTypes,
+  selectedActorIds,
+  onActionsChange,
+  onEntityTypesChange,
+  onActorIdsChange,
 }: {
   actionTypes: string[];
   entityTypes: string[];
   actors: AuditActor[];
-  selectedAction: string;
-  selectedEntityType: string;
-  selectedActorId: string;
-  onActionChange: (v: string) => void;
-  onEntityTypeChange: (v: string) => void;
-  onActorChange: (v: string) => void;
-  onClearAll: () => void;
+  selectedActions: string[];
+  selectedEntityTypes: string[];
+  selectedActorIds: string[];
+  onActionsChange: (values: string[]) => void;
+  onEntityTypesChange: (values: string[]) => void;
+  onActorIdsChange: (values: string[]) => void;
 }) {
-  const hasFilters = !!selectedAction || !!selectedEntityType || !!selectedActorId;
-
-  const selectClass =
-    "h-8 rounded-lg border border-[var(--border-light)] bg-white px-2.5 text-[12px] text-[var(--text-body)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)]";
+  const actionOptions = actionTypes.map((a) => ({ value: a, label: formatAction(a) }));
+  const entityOptions = entityTypes.map((t) => ({ value: t, label: getEntityConfig(t).label }));
+  const actorOptions = actors.map((a) => ({ value: a.actorId, label: a.actorName }));
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -191,56 +191,29 @@ function FilterBar({
         Filters:
       </div>
 
-      {/* Action */}
-      <select
-        value={selectedAction}
-        onChange={(e) => onActionChange(e.target.value)}
-        className={selectClass}
-      >
-        <option value="">All Actions</option>
-        {actionTypes.map((action) => (
-          <option key={action} value={action}>
-            {formatAction(action)}
-          </option>
-        ))}
-      </select>
+      <MultiSelect
+        options={actionOptions}
+        selected={selectedActions}
+        onChange={onActionsChange}
+        placeholder="All Actions"
+        popoverWidth="w-64"
+      />
 
-      {/* Entity */}
-      <select
-        value={selectedEntityType}
-        onChange={(e) => onEntityTypeChange(e.target.value)}
-        className={selectClass}
-      >
-        <option value="">All Entities</option>
-        {entityTypes.map((type) => (
-          <option key={type} value={type}>
-            {getEntityConfig(type).label}
-          </option>
-        ))}
-      </select>
+      <MultiSelect
+        options={entityOptions}
+        selected={selectedEntityTypes}
+        onChange={onEntityTypesChange}
+        placeholder="All Entities"
+        popoverWidth="w-52"
+      />
 
-      {/* Actor — specific users, not generic types */}
-      <select
-        value={selectedActorId}
-        onChange={(e) => onActorChange(e.target.value)}
-        className={selectClass}
-      >
-        <option value="">All Users</option>
-        {actors.map((actor) => (
-          <option key={actor.actorId} value={actor.actorId}>
-            {actor.actorName}
-          </option>
-        ))}
-      </select>
-
-      {hasFilters && (
-        <button
-          onClick={onClearAll}
-          className="h-8 px-3 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors"
-        >
-          Clear all
-        </button>
-      )}
+      <MultiSelect
+        options={actorOptions}
+        selected={selectedActorIds}
+        onChange={onActorIdsChange}
+        placeholder="All Users"
+        popoverWidth="w-52"
+      />
     </div>
   );
 }
@@ -319,12 +292,12 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
 // ---------------------------------------------------------------------------
 
 function AuditLogContent() {
-  // ── URL state via nuqs ────────────────────────────────────────────────
+  // ── URL state via nuqs (arrays for multi-select) ──────────────────────
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const [pageSize, setPageSize] = useQueryState("pageSize", parseAsInteger.withDefault(DEFAULT_PAGE_SIZE));
-  const [selectedAction, setSelectedAction] = useQueryState("action", parseAsString.withDefault(""));
-  const [selectedEntityType, setSelectedEntityType] = useQueryState("entity", parseAsString.withDefault(""));
-  const [selectedActorId, setSelectedActorId] = useQueryState("actor", parseAsString.withDefault(""));
+  const [selectedActions, setSelectedActions] = useQueryState("action", parseAsArrayOf(parseAsString).withDefault([]));
+  const [selectedEntityTypes, setSelectedEntityTypes] = useQueryState("entity", parseAsArrayOf(parseAsString).withDefault([]));
+  const [selectedActorIds, setSelectedActorIds] = useQueryState("actor", parseAsArrayOf(parseAsString).withDefault([]));
 
   // ── Queries ───────────────────────────────────────────────────────────
   const actionTypes = useQuery(api.admin.audit.getAuditActionTypes, {});
@@ -334,22 +307,22 @@ function AuditLogContent() {
   const result = useQuery(api.admin.audit.listAllAuditLogs, {
     page,
     numItems: pageSize,
-    actionFilter: selectedAction || undefined,
-    entityTypeFilter: selectedEntityType || undefined,
-    actorIdFilter: selectedActorId || undefined,
+    actionFilter: selectedActions.length > 0 ? selectedActions : undefined,
+    entityTypeFilter: selectedEntityTypes.length > 0 ? selectedEntityTypes : undefined,
+    actorIdFilter: selectedActorIds.length > 0 ? selectedActorIds : undefined,
   });
 
   // ── Reset page when filters change ────────────────────────────────────
   useEffect(() => {
     setPage(1);
-  }, [selectedAction, selectedEntityType, selectedActorId, setPage]);
+  }, [selectedActions, selectedEntityTypes, selectedActorIds, setPage]);
 
   // ── Clear all filters ─────────────────────────────────────────────────
   const handleClearAll = useCallback(() => {
-    setSelectedAction("");
-    setSelectedEntityType("");
-    setSelectedActorId("");
-  }, [setSelectedAction, setSelectedEntityType, setSelectedActorId]);
+    setSelectedActions([]);
+    setSelectedEntityTypes([]);
+    setSelectedActorIds([]);
+  }, [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds]);
 
   // ── Pagination handler ────────────────────────────────────────────────
   const handlePaginationChange = useCallback(
@@ -369,13 +342,37 @@ function AuditLogContent() {
   const rawMaxPage = Math.max(1, Math.ceil(total / pageSize));
   const maxPage = isLoading ? Math.max(page, rawMaxPage) : rawMaxPage;
 
-  // Filters are loaded when all three queries have resolved
   const filtersReady = actionTypes !== undefined && entityTypes !== undefined && actors !== undefined;
+  const hasFilters = selectedActions.length > 0 || selectedEntityTypes.length > 0 || selectedActorIds.length > 0;
 
-  // ── Selected actor display name (for empty state message) ────────────
-  const selectedActorName = selectedActorId && actors
-    ? actors.find((a) => a.actorId === selectedActorId)?.actorName
-    : undefined;
+  // ── Build filter pill entries ────────────────────────────────────────
+  const filterPills = (() => {
+    const pills: Array<{ key: string; label: string }> = [];
+    for (const action of selectedActions) {
+      pills.push({ key: `action:${action}`, label: formatAction(action) });
+    }
+    for (const entityType of selectedEntityTypes) {
+      pills.push({ key: `entity:${entityType}`, label: getEntityConfig(entityType).label });
+    }
+    for (const actorId of selectedActorIds) {
+      const actor = actors?.find((a) => a.actorId === actorId);
+      if (actor) {
+        pills.push({ key: `actor:${actorId}`, label: actor.actorName });
+      }
+    }
+    return pills;
+  })();
+
+  // ── Per-pill remove handler ──────────────────────────────────────────
+  const handlePillRemove = useCallback(
+    (key: string) => {
+      const [type, value] = key.split(":");
+      if (type === "action") setSelectedActions((prev) => prev.filter((v) => v !== value));
+      else if (type === "entity") setSelectedEntityTypes((prev) => prev.filter((v) => v !== value));
+      else if (type === "actor") setSelectedActorIds((prev) => prev.filter((v) => v !== value));
+    },
+    [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds],
+  );
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
@@ -412,13 +409,12 @@ function AuditLogContent() {
                 actionTypes={actionTypes}
                 entityTypes={entityTypes}
                 actors={actors}
-                selectedAction={selectedAction}
-                selectedEntityType={selectedEntityType}
-                selectedActorId={selectedActorId}
-                onActionChange={setSelectedAction}
-                onEntityTypeChange={setSelectedEntityType}
-                onActorChange={setSelectedActorId}
-                onClearAll={handleClearAll}
+                selectedActions={selectedActions}
+                selectedEntityTypes={selectedEntityTypes}
+                selectedActorIds={selectedActorIds}
+                onActionsChange={setSelectedActions}
+                onEntityTypesChange={setSelectedEntityTypes}
+                onActorIdsChange={setSelectedActorIds}
               />
             ) : (
               <div className="flex gap-3">
@@ -428,6 +424,17 @@ function AuditLogContent() {
               </div>
             )}
           </FadeIn>
+
+          {/* Active filter pills */}
+          {hasFilters && (
+            <FadeIn delay={90}>
+              <FilterPillBar
+                pills={filterPills}
+                onRemove={handlePillRemove}
+                onClearAll={handleClearAll}
+              />
+            </FadeIn>
+          )}
 
           {/* Audit log list */}
           <FadeIn delay={120}>
@@ -462,9 +469,7 @@ function AuditLogContent() {
                   </div>
                   <p className="text-sm font-medium mb-1">No audit entries found</p>
                   <p className="text-[12px]">
-                    {(selectedAction || selectedEntityType || selectedActorId)
-                      ? "Try adjusting your filters."
-                      : "Audit events will appear here as actions are performed across the platform."}
+                    Try adjusting your filters.
                   </p>
                 </div>
               ) : (

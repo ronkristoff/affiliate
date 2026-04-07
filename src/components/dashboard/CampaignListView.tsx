@@ -61,7 +61,7 @@ export function CampaignListView({ viewMode = "cards", filterState, onCreateCamp
   );
 
   // Determine whether to include archived
-  const includeArchived = serverFilters.statusFilter === "archived" ? true : undefined;
+  const includeArchived = serverFilters.statusFilter?.includes("archived") ? true : undefined;
 
   // Card stats for table view columns
   const cardStats = useQuery(api.campaigns.getCampaignCardStats);
@@ -102,7 +102,7 @@ export function CampaignListView({ viewMode = "cards", filterState, onCreateCamp
       return `No campaigns matching "${debouncedSearch}"`;
     }
     const parts: string[] = [];
-    if (filterState?.statusFilter) parts.push(filterState.statusFilter);
+    if (filterState?.statusFilter) parts.push(...filterState.statusFilter);
     if (filterState?.commissionTypeFilter) {
       parts.push(filterState.commissionTypeFilter === "percentage" ? "percentage" : "flat fee");
     }

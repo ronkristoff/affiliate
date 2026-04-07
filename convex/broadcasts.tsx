@@ -782,7 +782,7 @@ export const getBroadcastRecipients = query({
     broadcastId: v.id("broadcastEmails"),
     paginationOpts: paginationOptsValidator,
     searchQuery: v.optional(v.string()),
-    statusFilter: v.optional(v.union(
+    statusFilter: v.optional(v.array(v.union(
       v.literal("queued"),
       v.literal("sent"),
       v.literal("delivered"),
@@ -790,7 +790,7 @@ export const getBroadcastRecipients = query({
       v.literal("clicked"),
       v.literal("bounced"),
       v.literal("complained")
-    )),
+    ))),
   },
   returns: v.object({
     page: v.array(
@@ -836,9 +836,11 @@ export const getBroadcastRecipients = query({
       .order("desc")
       .collect();
 
-    // Apply status filter
-    if (args.statusFilter) {
-      emails = emails.filter((e) => e.deliveryStatus === args.statusFilter);
+    // Apply status filter (array of statuses — match any)
+    if (args.statusFilter && args.statusFilter.length > 0) {
+      emails = emails.filter(
+        (e) => e.deliveryStatus && args.statusFilter!.includes(e.deliveryStatus)
+      );
     }
 
     // Apply search filter - search by email OR affiliate name (AC2)

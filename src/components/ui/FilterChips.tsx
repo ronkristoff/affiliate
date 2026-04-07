@@ -1,9 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { ColumnFilter } from "@/components/ui/table-filters/types";
 import type { TableColumn } from "@/components/ui/DataTable";
+import { FilterPill, FilterPillBar } from "@/components/ui/FilterPill";
 
 interface FilterChipsProps<T> {
   filters: ColumnFilter[];
@@ -44,35 +43,17 @@ function formatFilterLabel<T>(filter: ColumnFilter, columns: TableColumn<T>[]): 
 }
 
 export function FilterChips<T>({ filters, columns, onRemove, onClearAll }: FilterChipsProps<T>) {
-  if (filters.length === 0) return null;
+  const pills = filters.map((filter) => ({
+    key: filter.columnKey,
+    label: formatFilterLabel(filter, columns),
+  }));
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-3">
-      {filters.map((filter) => (
-        <span
-          key={filter.columnKey}
-          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-[#eff6ff] text-[#1c2260] border border-[#1c2260]/20"
-        >
-          {formatFilterLabel(filter, columns)}
-          <button
-            type="button"
-            onClick={() => onRemove(filter.columnKey)}
-            className="ml-0.5 hover:text-[#ef4444] transition-colors"
-            aria-label={`Remove ${filter.columnKey} filter`}
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </span>
-      ))}
-      {filters.length > 1 && (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="text-[11px] text-[#6b7280] hover:text-[#ef4444] cursor-pointer transition-colors"
-        >
-          Clear all
-        </button>
-      )}
-    </div>
+    <FilterPillBar
+      pills={pills}
+      onRemove={onRemove}
+      onClearAll={onClearAll}
+      className="mb-3"
+    />
   );
 }

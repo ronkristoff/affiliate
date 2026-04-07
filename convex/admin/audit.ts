@@ -25,9 +25,9 @@ export const listAllAuditLogs = query({
   args: {
     page: v.number(),
     numItems: v.number(),
-    actionFilter: v.optional(v.string()),
-    entityTypeFilter: v.optional(v.string()),
-    actorIdFilter: v.optional(v.string()),
+    actionFilter: v.optional(v.array(v.string())),
+    entityTypeFilter: v.optional(v.array(v.string())),
+    actorIdFilter: v.optional(v.array(v.string())),
   },
   returns: v.object({
     page: v.array(v.object({
@@ -61,19 +61,19 @@ export const listAllAuditLogs = query({
       .order("desc");
 
     // Apply optional filters via .filter()
-    if (args.actionFilter) {
+    if (args.actionFilter && args.actionFilter.length > 0) {
       queryBuilder = queryBuilder.filter((q) =>
-        q.eq(q.field("action"), args.actionFilter!)
+        q.or(...args.actionFilter!.map((a) => q.eq(q.field("action"), a)))
       );
     }
-    if (args.entityTypeFilter) {
+    if (args.entityTypeFilter && args.entityTypeFilter.length > 0) {
       queryBuilder = queryBuilder.filter((q) =>
-        q.eq(q.field("entityType"), args.entityTypeFilter!)
+        q.or(...args.entityTypeFilter!.map((t) => q.eq(q.field("entityType"), t)))
       );
     }
-    if (args.actorIdFilter) {
+    if (args.actorIdFilter && args.actorIdFilter.length > 0) {
       queryBuilder = queryBuilder.filter((q) =>
-        q.eq(q.field("actorId"), args.actorIdFilter!)
+        q.or(...args.actorIdFilter!.map((a) => q.eq(q.field("actorId"), a)))
       );
     }
 

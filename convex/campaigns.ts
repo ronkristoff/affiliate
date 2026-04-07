@@ -1285,11 +1285,11 @@ export const listCampaignsPageBased = query({
   args: {
     page: v.number(),
     pageSize: v.number(),
-    statusFilter: v.optional(v.union(
+    statusFilter: v.optional(v.array(v.union(
       v.literal("active"),
       v.literal("paused"),
       v.literal("archived")
-    )),
+    ))),
     commissionTypeFilter: v.optional(v.union(
       v.literal("percentage"),
       v.literal("flatFee")
@@ -1315,24 +1315,14 @@ export const listCampaignsPageBased = query({
     const tenantId = user.tenantId;
     const includeArchived = args.includeArchived ?? false;
 
-    // Choose index based on status filter
-    let queryBuilder;
-    if (args.statusFilter) {
-      queryBuilder = ctx.db
-        .query("campaigns")
-        .withIndex("by_tenant_and_status", (q) =>
-          q.eq("tenantId", tenantId).eq("status", args.statusFilter!)
-        );
-    } else {
-      queryBuilder = ctx.db
-        .query("campaigns")
-        .withIndex("by_tenant", (q) =>
-          q.eq("tenantId", tenantId)
-        );
-    }
+    // Always use by_tenant index — status filtering done in post-filter
+    const queryBuilder = ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant", (q) =>
+        q.eq("tenantId", tenantId)
+      );
 
-    // Fetch all filtered campaigns (we need all to know total count)
-    // Then sort and slice for pagination
+    // Fetch all campaigns for tenant (we need total count for pagination)
     const allCampaigns = await queryBuilder
       .order("desc")
       .collect();
@@ -1340,8 +1330,11 @@ export const listCampaignsPageBased = query({
     // Apply filters
     let filtered = allCampaigns;
     
-    // Post-filter: archived (when no status filter set and not including archived)
-    if (!args.statusFilter && !includeArchived) {
+    // Post-filter: status (array — match any)
+    if (args.statusFilter && args.statusFilter.length > 0) {
+      filtered = filtered.filter((c) => args.statusFilter!.includes(c.status as "active" | "paused" | "archived"));
+    } else if (!includeArchived) {
+      // When no status filter set and not including archived, exclude archived
       filtered = filtered.filter((c) => c.status !== "archived");
     }
 
