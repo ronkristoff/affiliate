@@ -707,17 +707,7 @@ export const createTestTenantWithUsers = internalMutation({
       },
     });
 
-    // Create audit log for tenant creation
-    await ctx.db.insert("auditLogs", {
-      tenantId,
-      action: "tenant_created",
-      entityType: "tenant",
-      entityId: tenantId,
-      actorType: "system",
-      newValue: { name: args.name, slug: args.slug, plan: args.plan },
-    });
-
-    // Create users
+    // Create users first so we can reference the owner as the actor
     const userIds: Id<"users">[] = [];
     for (const user of args.users) {
       const userId = await ctx.db.insert("users", {
@@ -735,10 +725,22 @@ export const createTestTenantWithUsers = internalMutation({
         action: "user_created",
         entityType: "user",
         entityId: userId,
-        actorType: "system",
+        actorId: userIds[0],
+        actorType: "user",
         newValue: { email: user.email, name: user.name, role: user.role },
       });
     }
+
+    // Create audit log for tenant creation (after users so we have an actor)
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: "tenant_created",
+      entityType: "tenant",
+      entityId: tenantId,
+      actorId: userIds[0],
+      actorType: "user",
+      newValue: { name: args.name, slug: args.slug, plan: args.plan },
+    });
 
     return { tenantId, userIds };
   },
@@ -1258,6 +1260,7 @@ export const seedAllTestData = internalMutation({
 
         // Create tenant users
         const tenantUsers: Array<{ email: string; name: string; role: string }> = [];
+        let ownerUserId: Id<"users"> | undefined;
         for (const user of tenantConfig.users) {
           // Auth users are created via HTTP endpoint (seedAuthUsers action).
           // The auth hook creates a minimal user record; we upsert here with full data.
@@ -1291,12 +1294,16 @@ export const seedAllTestData = internalMutation({
           stats.usersCreated++;
           tenantUsers.push(user);
 
+          // Track the owner (first user) as the actor for audit logs
+          if (!ownerUserId) ownerUserId = userId;
+
           await ctx.db.insert("auditLogs", {
             tenantId,
             action: "user_created",
             entityType: "user",
             entityId: userId,
-            actorType: "system",
+            actorId: ownerUserId,
+            actorType: "user",
             newValue: { email: user.email, name: user.name, role: user.role },
           });
           stats.auditLogsCreated++;
@@ -1376,7 +1383,8 @@ export const seedAllTestData = internalMutation({
             action: "campaign_created",
             entityType: "campaign",
             entityId: campaignId,
-            actorType: "system",
+            actorId: ownerUserId,
+            actorType: "user",
             newValue: { name: campaign.name },
           });
           stats.auditLogsCreated++;
@@ -1407,7 +1415,8 @@ export const seedAllTestData = internalMutation({
             action: "affiliate_created",
             entityType: "affiliate",
             entityId: affiliateId,
-            actorType: "system",
+            actorId: ownerUserId,
+            actorType: "user",
             newValue: { email: affiliate.email, name: affiliate.name },
           });
           stats.auditLogsCreated++;
@@ -1626,8 +1635,9 @@ export const seedAllTestData = internalMutation({
         tenantId: adminTenantId,
         action: "user_created",
         entityType: "user",
-        entityId: adminTenantId,
-        actorType: "system",
+        entityId: existingAdmin ? existingAdmin._id : adminTenantId,
+        actorId: existingAdmin ? existingAdmin._id : undefined,
+        actorType: existingAdmin ? "admin" : "system",
         newValue: { email: PLATFORM_ADMIN.users[0].email, name: PLATFORM_ADMIN.users[0].name, role: PLATFORM_ADMIN.users[0].role },
       });
       stats.auditLogsCreated++;
