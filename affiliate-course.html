@@ -1160,84 +1160,279 @@ body {
     <!-- Screen 3.2: Stage 1 — The Click -->
     <div class="screen fade-in">
       <h3>Stage 1: The Click — "Someone Followed the Link"</h3>
-      <p>When a potential customer clicks an affiliate's tracking link, the system records this event. This is the <strong>first link in the attribution chain</strong>.</p>
+      <p>When a potential customer clicks an affiliate's tracking link, a carefully orchestrated chain of events kicks off. This is the <strong>first link in the attribution chain</strong> — and it's more sophisticated than you might think.</p>
 
       <div class="metaphor">
         <div class="metaphor-label">💡 Think of it like this</div>
-        <p>Imagine a retail store where every salesperson has their own colored nametag. When a customer walks in wearing a "referred by Jamie" sticker, the store knows exactly who to credit if that customer buys something. The click is the moment the customer puts on that sticker.</p>
+        <p>Imagine a coat-check attendant at a fancy event. When you hand over your coat, they give you a numbered ticket. Later, you show that ticket to get your coat back. The click tracking system does the same thing — it gives the customer a digital "ticket" (a cookie) that proves which affiliate sent them. No ticket, no commission.</p>
       </div>
 
-      <p>Here's what the system does when a click happens:</p>
+      <h3 style="margin-top: var(--space-8);">How the Tracking Link Works — Step by Step</h3>
+
+      <p>Affiliate referral links come in three formats:</p>
+
+      <div class="card-grid">
+        <div class="card" style="border-left: 4px solid var(--accent);">
+          <h4>🔗 Short Link</h4>
+          <p style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); margin-bottom: var(--space-2);">techflow.com/ref/JAMIE8X2</p>
+          <p>The default format. The 8-character code maps to the affiliate's default campaign.</p>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--teal);">
+          <h4>🎯 Campaign-Specific</h4>
+          <p style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--teal); margin-bottom: var(--space-2);">techflow.com/ref/JAMIE8X2?campaign=summer-sale</p>
+          <p>Routes to a specific campaign by slug. Useful when an affiliate promotes different offers.</p>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--purple);">
+          <h4>✨ Vanity URL</h4>
+          <p style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--purple); margin-bottom: var(--space-2);">techflow.com/ref/jamie-tech-reviews</p>
+          <p>A memorable, branded slug. Much better for sharing on social media and YouTube.</p>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">📋</div>
+        <div class="callout-content">
+          <strong>Character Set Design</strong>
+          <p>The 8-character codes use <code>ABCDEFGHJKLMNPQRSTUVWXYZ23456789</code> — deliberately excluding <code>0</code>, <code>O</code>, <code>I</code>, and <code>1</code> to avoid confusion. Nobody can mistake a zero for the letter O when they're reading the code from a YouTube description.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: var(--space-8);">What Happens When Someone Clicks</h3>
+      <p>Here's the actual technical flow, from the browser to the database:</p>
 
       <div class="flow">
         <div class="flow-step">
           <div class="flow-number">1</div>
           <div class="flow-content">
-            <h4>Resolve the referral link</h4>
-            <p>The system looks up the affiliate code in the URL and finds which affiliate it belongs to. It also checks if the affiliate is still active (suspended affiliates' links return 404).</p>
+            <h4>track.js intercepts the URL</h4>
+            <p>The merchant has installed a JavaScript snippet (<code>track.js</code>) on their website. When a visitor lands on <code>/ref/JAMIE8X2</code>, track.js detects the path, extracts the referral code, and calls the tracking API.</p>
           </div>
         </div>
         <div class="flow-step">
           <div class="flow-number">2</div>
           <div class="flow-content">
-            <h4>Check for duplicate clicks</h4>
-            <p>If the same person clicks the same link multiple times within a short window, only the first click counts. This prevents inflating click numbers.</p>
+            <h4>Cookie precedence check</h4>
+            <p>Before processing the new code, track.js reads any existing <code>_affilio</code> cookie. If the cookie already has a valid, active affiliate, <strong>the existing cookie takes priority</strong>. This implements a "last active affiliate wins within the window" policy — a new click can't steal credit from an affiliate whose cookie is still fresh.</p>
           </div>
         </div>
         <div class="flow-step">
           <div class="flow-number">3</div>
           <div class="flow-content">
-            <h4>Record the click</h4>
-            <p>The system stores the click with the affiliate ID, IP address, user agent, referrer, and a unique deduplication key.</p>
+            <h4>API call: <code style="font-family: var(--font-mono); font-size: 0.85rem;">GET /track/click?code=JAMIE8X2&t=tenantId</code></h4>
+            <p>track.js sends the click to the server with the referral code and tenant ID. The server extracts the visitor's IP address (from <code>X-Forwarded-For</code> header), user agent, and referrer.</p>
           </div>
         </div>
         <div class="flow-step">
           <div class="flow-number">4</div>
           <div class="flow-content">
-            <h4>Set an attribution cookie</h4>
-            <p>A cookie is placed in the customer's browser so that when they eventually buy, the system knows which affiliate to credit. This cookie has an expiration window (typically 30 days, configurable per campaign).</p>
+            <h4>Server validates the affiliate</h4>
+            <p>The server looks up the referral code in the database. If the affiliate is <strong>suspended</strong> or <strong>pending</strong>, the link returns a 404 — dead links for dead accounts. If the campaign is archived, also 404. If paused, returns 503 with an explanation.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">5</div>
+          <div class="flow-content">
+            <h4>Deduplication check</h4>
+            <p>The server generates a <code>dedupeKey</code> in the format <code>{IP_address}:{code}:{hourlyTimeBucket}</code>. If a click with this key already exists in the database, it returns the existing click record instead of creating a new one. This means the same person clicking the same link multiple times within the same hour only counts as one click.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">6</div>
+          <div class="flow-content">
+            <h4>Click is recorded (or returned)</h4>
+            <p>A new click record is inserted into the database with: tenant ID, referral link ID, affiliate ID, campaign ID, IP address, user agent, referrer, and the deduplication key.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">7</div>
+          <div class="flow-content">
+            <h4>The <code>_affilio</code> cookie is set</h4>
+            <p>The server returns attribution data (affiliate code, click ID, tenant ID, campaign ID, cookie duration in days). track.js stores this as a base64-encoded JSON cookie called <code>_affilio</code>. The cookie's expiration matches the campaign's <code>cookieDuration</code> (default: 30 days).</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">8</div>
+          <div class="flow-content">
+            <h4>URL is cleaned up</h4>
+            <p>track.js uses <code>history.replaceState()</code> to remove the <code>/ref/...</code> path from the browser's URL bar. The customer sees a clean URL (<code>techflow.com</code>) — they may never know they came through an affiliate link.</p>
           </div>
         </div>
       </div>
 
       <div class="translation">
         <div class="translation-code">
-<pre><span class="cm">// convex/clicks.ts — trackClickInternal</span>
+<pre><span class="cm">// convex/http.ts — GET /track/click handler</span>
+<span class="cm">// (simplified for clarity)</span>
 
-<span class="cm">// Check for existing click by dedupeKey</span>
-<span class="kw">const</span> existingClick = <span class="kw">await</span> ctx.db
-  .<span class="fn">query</span>(<span class="str">"clicks"</span>)
-  .<span class="fn">withIndex</span>(<span class="str">"by_dedupe_key"</span>,
-    (q) => q.<span class="fn">eq</span>(<span class="str">"dedupeKey"</span>, args.dedupeKey)
-  )
-  .<span class="fn">first</span>();
+<span class="cm">// 1. Generate dedupeKey</span>
+<span class="kw">const</span> dedupeKey =
+  <span class="str">`${clientIp}:${code}:${hourlyTimeBucket}`</span>;
 
-<span class="kw">if</span> (existingClick) {
-  <span class="cm">// Duplicate — skip, don't create new record</span>
-  <span class="kw">return</span> { clickId: existingClick._id, <span class="type">isNew</span>: <span class="kw">false</span> };
+<span class="cm">// 2. Check cookie precedence</span>
+<span class="kw">const</span> existingCookie = parseCookie(
+  req.headers.get(<span class="str">"Cookie"</span>)
+);
+<span class="kw">if</span> (existingCookie?.sa_aff?.affiliateCode) {
+  <span class="cm">// Existing cookie takes priority</span>
+  code = existingCookie.sa_aff.affiliateCode;
 }
 
-<span class="cm">// Not a duplicate — create new click record</span>
-<span class="kw">const</span> clickId = <span class="kw">await</span> ctx.db.<span class="fn">insert</span>(<span class="str">"clicks"</span>, {
-  <span class="type">tenantId</span>: args.tenantId,
-  <span class="type">referralLinkId</span>: args.referralLinkId,
-  <span class="type">affiliateId</span>: args.affiliateId,
-  <span class="type">ipAddress</span>: args.ipAddress,
-  <span class="type">dedupeKey</span>: args.dedupeKey,
-});</pre>
+<span class="cm">// 3. Validate affiliate is active</span>
+<span class="kw">if</span> (affiliate.status !== <span class="str">"active"</span>) {
+  <span class="kw">return new</span> <span class="fn">Response</span>(<span class="str">"Not found"</span>,
+    { <span class="type">status</span>: <span class="num">404</span> });
+}
+
+<span class="cm">// 4. Record click via internal mutation</span>
+<span class="kw">const</span> result = <span class="kw">await</span> ctx.runMutation(
+  internal.clicks.trackClickInternal, {
+    tenantId, referralLinkId,
+    affiliateId, campaignId,
+    ipAddress: clientIp,
+    dedupeKey, userAgent, referrer,
+  }
+);</pre>
         </div>
         <div class="translation-english">
-          <div class="line"><strong>Look up</strong> the clicks table using the deduplication key — a unique identifier for this specific click event.</div>
-          <div class="line"><strong>If a click already exists</strong> with this key, return the existing record and mark it as not new. This prevents double-counting.</div>
-          <div class="line"><strong>If it's a new click</strong>, insert a fresh record into the database with all the tracking data: which tenant, which affiliate, the IP address, and the dedup key.</div>
+          <div class="line"><strong>Build a deduplication key</strong> from the visitor's IP, the referral code, and the current hour. Same person + same link + same hour = same key = one click.</div>
+          <div class="line"><strong>Check existing cookie first</strong> — if the visitor already has an active affiliate cookie, use that affiliate instead. This prevents new clicks from hijacking credit.</div>
+          <div class="line"><strong>Validate the affiliate</strong> — suspended or pending affiliates get a 404. Their links are dead.</div>
+          <div class="line"><strong>Record the click</strong> — call the internal mutation to insert (or return existing) click record with all tracking data.</div>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// public/track.js — Cookie setting (client-side)</span>
+
+<span class="cm">// Server returns JSON with attribution data</span>
+<span class="cm">// { affiliateCode, clickId, tenantId,</span>
+<span class="cm">//   campaignId, cookieDurationDays }</span>
+
+<span class="cm">// Store as base64-encoded JSON cookie</span>
+<span class="kw">const</span> cookieData = JSON.<span class="fn">stringify</span>({
+  <span class="type">code</span>: data.affiliateCode,
+  <span class="type">clickId</span>: data.clickId,
+  <span class="type">tenantId</span>: data.tenantId,
+  <span class="type">timestamp</span>: Date.<span class="fn">now</span>(),
+});
+
+document.cookie =
+  <span class="str">`_affilio=${btoa(cookieData)}; `</span> +
+  <span class="str">`max-age=${days * 86400}; path=/`</span>;
+
+<span class="cm">// Clean the URL bar</span>
+history.<span class="fn">replaceState</span>(
+  {}, <span class="str">""</span>, <span class="str">"/"</span>
+);</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Encode the attribution data</strong> as JSON and base64-encode it into a cookie called <code>_affilio</code>. This cookie travels with every future request from this browser.</div>
+          <div class="line"><strong>Set the cookie expiration</strong> to match the campaign's cookie duration (default 30 days). After that, the cookie dies and no more attribution.</div>
+          <div class="line"><strong>Clean the URL</strong> so the customer doesn't see the ugly <code>/ref/JAMIE8X2</code> in their address bar. Seamless experience.</div>
         </div>
       </div>
 
       <div class="callout aha">
         <div class="callout-icon">💡</div>
         <div class="callout-content">
-          <strong>Why deduplication matters</strong>
-          <p>Without deduplication, a single person refreshing the page 10 times would count as 10 clicks. This would inflate metrics and make it impossible to calculate accurate conversion rates. The <code>dedupeKey</code> is typically a hash of the IP address + timestamp window.</p>
+          <strong>Why hourly deduplication?</strong>
+          <p>The deduplication key uses an <strong>hourly time bucket</strong>, not a daily one. This means if the same person clicks the same link at 2:00 PM and 3:30 PM, those are two different hours — so two clicks are recorded. But if they click at 2:00 PM and 2:45 PM, only one click is recorded. This gives you more granular tracking while still preventing page-refresh inflation.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.2b: The Tracking Snippet -->
+    <div class="screen fade-in">
+      <h3>The Tracking Snippet — How Merchants Install Tracking</h3>
+      <p>All of this click tracking magic requires the merchant (the SaaS Owner) to install a small JavaScript snippet on their website. This is the <code>track.js</code> library — a self-contained file that handles everything automatically.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">Installation — One script tag</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">&lt;!-- Add this to the &lt;head&gt; of every page --&gt;</span>
+<span class="kw">&lt;script</span>
+  <span class="type">src</span>=<span class="str">"https://techflow.salig-affiliate.com/track.js"</span>
+  <span class="type">data-key</span>=<span class="str">"pk_live_abc123..."</span>
+  <span class="type">data-tenant</span>=<span class="str">"tenant_2xKj9m..."</span>
+  <span class="type">async</span><span class="kw">&gt;&lt;/script&gt;</span>
+
+<span class="cm">&lt;!-- That's it. Everything else is automatic. --&gt;</span></pre>
+        </div>
+      </div>
+
+      <p>Once installed, <code>track.js</code> automatically handles:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h4>URL Interception</h4>
+          <p>Detects when a visitor lands on <code>/ref/{code}</code> and processes the referral automatically — no custom code needed from the merchant.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🍪</div>
+          <h4>Cookie Management</h4>
+          <p>Reads and writes the <code>_affilio</code> cookie. Handles expiration, encoding, and the "existing cookie takes priority" rule.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📧</div>
+          <h4>Lead Capture</h4>
+          <p>Provides the <code>Affilio.referral({email})</code> function that merchants call when a customer enters their email on a signup form.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🧹</div>
+          <h4>URL Cleanup</h4>
+          <p>Uses <code>history.replaceState()</code> to strip the referral path from the URL bar after processing. Clean URLs for the customer.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔗</div>
+          <h4>Outbound Link Tagging</h4>
+          <p>Appends <code>ref=</code> parameters to outbound links on the page, ensuring attribution follows the customer even if they leave and come back.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💓</div>
+          <h4>Health Pings</h4>
+          <p>Sends periodic verification pings to confirm the snippet is installed and working. The SaaS Owner can see snippet health in their dashboard.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">Lead capture — Merchant calls this on signup forms</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// When a customer fills in their email on a signup form,</span>
+<span class="cm">// the merchant calls this to create a "referral lead"</span>
+<span class="cm">// that bridges the gap between click tracking and payment:</span>
+
+<span class="kw">if</span> (window.Affilio) {
+  Affilio.<span class="fn">referral</span>({
+    <span class="type">email</span>: customerEmail,
+  });
+}
+
+<span class="cm">// This calls POST /track/referral behind the scenes.</span>
+<span class="cm">// It creates a "referral lead" record linking this</span>
+<span class="cm">// email → affiliate → referral link.</span>
+<span class="cm">// Later, when a payment webhook arrives with this</span>
+<span class="cm">// email (but no affiliate metadata), the system</span>
+<span class="cm">// matches it back to this lead for attribution.</span></pre>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Why lead capture exists</strong>
+          <p>Not every payment system supports passing affiliate metadata through webhooks. <strong>Stripe Connect</strong>, for example, doesn't carry an <code>_affilio_ref</code> field in its events. The lead capture system solves this: when the customer enters their email during signup (while the affiliate cookie is still active), the system records "this email was referred by Jamie." Later, when Stripe sends a <code>checkout.session.completed</code> webhook with the customer's email, the system matches it to the lead — and Jamie gets credit. <strong>This is how universal payment provider support works.</strong></p>
         </div>
       </div>
     </div>
@@ -1245,64 +1440,196 @@ body {
     <!-- Screen 3.3: Stage 2 — The Conversion -->
     <div class="screen fade-in">
       <h3>Stage 2: The Conversion — "They Actually Bought Something"</h3>
-      <p>A click means nothing if the person doesn't buy. A <strong>conversion</strong> is when a click results in a paying customer. This is where the money happens.</p>
+      <p>A click means nothing if the person doesn't buy. A <strong>conversion</strong> is when a click results in a paying customer. This is where the money happens — and the system has <strong>four different paths</strong> to detect and attribute conversions.</p>
 
-      <p>Conversions can come from three different sources:</p>
+      <h3 style="margin-top: var(--space-8);">The Four Attribution Sources</h3>
 
       <div class="card-grid">
-        <div class="card">
+        <div class="card" style="border-top: 3px solid var(--accent);">
           <div class="card-icon">🍪</div>
           <h4>Cookie Attribution</h4>
-          <p>The customer had an affiliate's tracking cookie in their browser when they purchased. The system reads the cookie and attributes the sale to that affiliate.</p>
+          <p>The customer had the <code>_affilio</code> tracking cookie in their browser. When the merchant calls the conversion API, the system reads the cookie and credits the affiliate. Works with <strong>any</strong> payment provider — as long as the merchant calls <code>POST /track/conversion</code>.</p>
         </div>
-        <div class="card">
+        <div class="card" style="border-top: 3px solid var(--teal);">
+          <div class="card-icon">📝</div>
+          <h4>Body Attribution</h4>
+          <p>The merchant sends the affiliate code and click ID directly in the API request body. This takes <strong>priority over cookies</strong> — useful when the merchant wants to control attribution explicitly (e.g., server-side checkout flows where cookies aren't available).</p>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--blue);">
           <div class="card-icon">🔔</div>
           <h4>Webhook Attribution</h4>
-          <p>The payment system (SaligPay) sends a <span class="tooltip-trigger" data-tip="An automated HTTP notification sent by one system to another when an event occurs. Like a doorbell that rings when a package is delivered.">webhook</span> notification saying "payment received." The webhook includes the affiliate code in its metadata, so the system knows who to credit.</p>
+          <p>The payment system sends a <span class="tooltip-trigger" data-tip="An automated HTTP notification sent by one system to another when an event occurs. Like a doorbell that rings when a package is delivered.">webhook</span> with affiliate metadata embedded in the payload. SaligPay includes <code>_affilio_ref</code> in its events. No cookies or API calls needed — attribution comes directly from the payment provider.</p>
         </div>
-        <div class="card">
-          <div class="card-icon">🌿</div>
-          <h4>Organic (No Affiliate)</h4>
-          <p>A customer bought without coming through any affiliate link. The system still records this as an "organic conversion" for analytics, but no commission is created.</p>
+        <div class="card" style="border-top: 3px solid var(--purple);">
+          <div class="card-icon">📧</div>
+          <h4>Lead Matching (Email Attribution)</h4>
+          <p>The customer was captured as a "referral lead" when they entered their email during signup (via <code>Affilio.referral({email})</code>). When a payment webhook arrives with that email but <strong>no direct affiliate metadata</strong>, the system matches the email to the lead. This is how <strong>Stripe integration</strong> works — Stripe webhooks don't carry affiliate metadata.</p>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">📋</div>
+        <div class="callout-content">
+          <strong>Attribution Priority Order</strong>
+          <p>When a conversion is created via <code>POST /track/conversion</code>, the system checks in this order: (1) Body params (explicit code/clickId) → (2) Cookie (<code>_affilio</code>) → (3) No attribution → organic conversion. When a conversion is created via webhook, the order is: (1) Webhook metadata → (2) Lead matching (email lookup) → (3) No attribution → organic.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: var(--space-8);">How the Conversion API Works</h3>
+
+      <p>The primary conversion endpoint is <code>POST /track/conversion</code>. Here's the full flow:</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Merchant calls the conversion API</h4>
+            <p>After a successful payment on their site, the merchant (or track.js) sends a POST request with the sale amount, order ID, customer email, and optionally the affiliate code. Authentication uses a <code>X-Tracking-Key</code> header (the tenant's public tracking key).</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>System resolves attribution</h4>
+            <p>First checks for body params (explicit affiliate code). If none, falls back to the <code>_affilio</code> cookie. If no cookie, creates an organic conversion (no commission).</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Cookie window validation</h4>
+            <p>Even if a cookie exists, the system checks if it's within the campaign's <code>cookieDuration</code> (default 30 days). If the cookie has expired, the conversion is recorded as organic. Expired cookies don't get credit.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Click validation</h4>
+            <p>The system looks up the click record referenced by the cookie (or body param). It validates that the click exists, belongs to the right affiliate, and is within the attribution window.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">5</div>
+          <div class="flow-content">
+            <h4>Self-referral detection</h4>
+            <p>Before creating the conversion, the system checks if the customer's email matches the affiliate's email (simple check). If self-referral is suspected, the conversion is still recorded but flagged.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">6</div>
+          <div class="flow-content">
+            <h4>Conversion record created</h4>
+            <p>A conversion record is inserted with the full attribution chain: tenant, affiliate, referral link, click, campaign, amount, customer email, and <code>attributionSource</code> (one of: <code>"cookie"</code>, <code>"body"</code>, <code>"webhook"</code>, <code>"organic"</code>).</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/http.ts — POST /track/conversion</span>
+<span class="cm">// (simplified for clarity)</span>
+
+<span class="cm">// 1. Check body for explicit attribution</span>
+<span class="kw">const</span> bodyCode = body.affiliateCode;
+<span class="kw">const</span> bodyClickId = body.clickId;
+
+<span class="cm">// 2. Fall back to _affilio cookie</span>
+<span class="kw">let</span> cookieData = <span class="kw">null</span>;
+<span class="kw">if</span> (!bodyCode) {
+  <span class="kw">const</span> raw = parseCookie(
+    req.headers.get(<span class="str">"Cookie"</span>)
+  );
+  cookieData = JSON.<span class="fn">parse</span>(
+    atob(raw._affilio)
+  );
+}
+
+<span class="cm">// 3. No attribution → organic</span>
+<span class="kw">if</span> (!bodyCode && !cookieData) {
+  <span class="kw">await</span> ctx.runMutation(
+    internal.conversions
+      .createConversionInternal, {
+      tenantId, amount,
+      customerEmail: body.customerEmail,
+      attributionSource: <span class="str">"organic"</span>,
+    }
+  );
+  <span class="kw">return</span>;
+}
+
+<span class="cm">// 4. Validate cookie window</span>
+<span class="kw">if</span> (cookieData) {
+  <span class="kw">const</span> daysSinceClick =
+    (Date.<span class="fn">now</span>() - cookieData.timestamp)
+    / (<span class="num">1000</span> * <span class="num">60</span> * <span class="num">60</span> * <span class="num">24</span>);
+  <span class="kw">if</span> (daysSinceClick > cookieDurationDays) {
+    <span class="cm">// Cookie expired → organic</span>
+    attributionSource = <span class="str">"organic"</span>;
+  }
+}</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Check the request body first</strong> — if the merchant sent an explicit affiliate code, use that. Body attribution always takes priority.</div>
+          <div class="line"><strong>Fall back to the cookie</strong> — decode the base64 <code>_affilio</code> cookie to get the affiliate code, click ID, tenant ID, and timestamp.</div>
+          <div class="line"><strong>No attribution at all?</strong> Record the conversion as "organic" — still tracked for analytics, but no commission is created.</div>
+          <div class="line"><strong>Check the cookie age</strong> — if the cookie is older than the campaign's cookie duration (default 30 days), treat it as organic. Time's up.</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top: var(--space-8);">Lead Matching — The Stripe Bridge</h3>
+      <p>When a payment webhook arrives <strong>without any affiliate metadata</strong> (common with Stripe), the system falls back to email-based lead matching:</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Customer clicked affiliate link</h4>
+            <p>Jamie's audience member clicks her link → track.js sets the <code>_affilio</code> cookie.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Customer enters email on signup form</h4>
+            <p>The merchant calls <code>Affilio.referral({email: "alex@example.com"})</code>. This sends <code>POST /track/referral</code>, which creates a <strong>referral lead</strong> record linking alex@example.com → Jamie's affiliate ID → referral link.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Customer completes payment via Stripe</h4>
+            <p>Stripe sends a <code>checkout.session.completed</code> webhook with <code>customer_email: "alex@example.com"</code> but NO affiliate metadata.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Commission engine matches the email</h4>
+            <p>The commission engine calls <code>resolveLeadAttribution</code>, which looks up the referral leads table for an active lead matching this tenant + email. It finds Jamie's lead and attributes the conversion.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">5</div>
+          <div class="flow-content">
+            <h4>Lead status changes to "converted"</h4>
+            <p>The lead is marked as converted. Leads that aren't converted within 90 days expire automatically (via a cron job).</p>
+          </div>
         </div>
       </div>
 
       <div class="callout warning">
         <div class="callout-icon">⚠️</div>
         <div class="callout-content">
-          <strong>The Cookie Window</strong>
-          <p>Affiliate cookies don't last forever. Each campaign has a <code>cookieDuration</code> (default 30 days). If a customer clicks an affiliate link but doesn't buy within 30 days, the cookie expires and the affiliate gets no credit. This is configurable per campaign.</p>
+          <strong>First-Affiliate-Wins Policy</strong>
+          <p>If an active referral lead already exists for a tenant + email combination, a new affiliate click does NOT overwrite it. The first affiliate to capture that email keeps the credit. This prevents "last-second hijacking" where a different affiliate tries to steal a customer who's already in someone else's funnel.</p>
         </div>
       </div>
 
-      <div class="translation">
-        <div class="translation-code">
-<pre><span class="cm">// convex/conversions.ts</span>
-<span class="cm">// findRecentClickInternal — attribution chain</span>
-
-<span class="cm">// Use campaign-specific window or default 30 days</span>
-<span class="kw">const</span> windowDays = args.attributionWindowDays ?? <span class="num">30</span>;
-<span class="kw">const</span> cutoffTime = Date.<span class="fn">now</span>() - attributionWindowMs;
-
-<span class="cm">// Find recent clicks for this affiliate</span>
-<span class="kw">const</span> clicks = <span class="kw">await</span> ctx.db
-  .<span class="fn">query</span>(<span class="str">"clicks"</span>)
-  .<span class="fn">withIndex</span>(<span class="str">"by_affiliate"</span>,
-    (q) => q.<span class="fn">eq</span>(<span class="str">"affiliateId"</span>, args.affiliateId)
-  )
-  .<span class="fn">order</span>(<span class="str">"desc"</span>)
-  .<span class="fn">take</span>(<span class="num">20</span>);
-
-<span class="cm">// Find most recent click within window</span>
-<span class="kw">for</span> (<span class="kw">const</span> click <span class="kw">of</span> clicks) {
-  <span class="kw">if</span> (click._creationTime < cutoffTime) <span class="kw">break</span>;
-  <span class="kw">return</span> { _id: click._id, <span class="type">referralLinkId</span>: click.referralLinkId };
-}</pre>
-        </div>
-        <div class="translation-english">
-          <div class="line"><strong>Set the attribution window</strong> — how far back to look for clicks. Defaults to 30 days but can be customized per campaign.</div>
-          <div class="line"><strong>Fetch the 20 most recent clicks</strong> for this affiliate, ordered newest first. We don't need to scan the entire table — just recent ones.</div>
-          <div class="line"><strong>Walk through clicks</strong> until we find one within the attribution window. If the click is too old, stop looking. Return the most recent valid click to link the conversion to.</div>
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Why four attribution sources?</strong>
+          <p>Different payment providers and integration setups require different approaches. <strong>SaligPay</strong> embeds affiliate metadata directly in webhooks (webhook attribution). <strong>Stripe</strong> doesn't, so you need lead matching. <strong>Custom checkouts</strong> might not have cookies, so body attribution is the fallback. And <strong>cookie attribution</strong> is the universal default that works with any provider when the merchant calls <code>POST /track/conversion</code>. Supporting all four means this platform works with <em>any</em> payment system — not just one.</p>
         </div>
       </div>
     </div>
@@ -1310,63 +1637,97 @@ body {
     <!-- Screen 3.4: Stage 3 — The Commission -->
     <div class="screen fade-in">
       <h3>Stage 3: The Commission — "Here's What You Earned"</h3>
-      <p>Once a conversion is recorded, the system calculates how much the affiliate earns. This is where the campaign's commission rules come into play.</p>
+      <p>Once a conversion is recorded, the system calculates how much the affiliate earns. This is where the <span class="tooltip-trigger" data-tip="The commission engine is a 1,655-line file (commissionEngine.ts) that handles every type of billing event — one-time payments, subscriptions, renewals, cancellations, refunds, and chargebacks. It's the brain of the money logic.">commission engine</span> kicks in, and it handles many different scenarios.</p>
 
       <div class="flow">
         <div class="flow-step">
           <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Resolve attribution</h4>
+            <p>For webhook-driven conversions, the commission engine first looks for affiliate metadata in the webhook payload (<code>_affilio_ref</code>). If none found, it falls back to email-based lead matching via the <code>referralLeads</code> table. If still no match → organic conversion, no commission.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Validate payment status</h4>
+            <p>Only payments with status <code>"paid"</code> or <code>"completed"</code> generate commissions. Payments with status <code>"pending"</code> or <code>"failed"</code> are <strong>explicitly rejected</strong> — a security audit event is logged to catch potential webhook manipulation attempts.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
           <div class="flow-content">
             <h4>Check campaign status</h4>
             <p>Is the campaign still active? Paused and archived campaigns cannot earn new commissions. This prevents paying commissions for products that are no longer being promoted.</p>
           </div>
         </div>
         <div class="flow-step">
-          <div class="flow-number">2</div>
-          <div class="flow-content">
-            <h4>Calculate the commission amount</h4>
-            <p>Based on the campaign's commission type: <strong>percentage</strong> (e.g., 20% of sale) or <strong>flat fee</strong> (e.g., $50 per sale). If the affiliate has a custom override rate, that takes priority.</p>
-          </div>
-        </div>
-        <div class="flow-step">
-          <div class="flow-number">3</div>
-          <div class="flow-content">
-            <h4>Run self-referral detection</h4>
-            <p>Check if the customer might be the affiliate themselves trying to earn a commission on their own purchase. If detected, the commission is flagged for review.</p>
-          </div>
-        </div>
-        <div class="flow-step">
           <div class="flow-number">4</div>
           <div class="flow-content">
+            <h4>Calculate the commission amount</h4>
+            <p>Based on the campaign's commission type: <strong>percentage</strong> (e.g., 20% of sale) or <strong>flat fee</strong> (e.g., $50 per sale). For subscription renewals, the recurring commission rate is used instead. If the affiliate has a custom override rate, that takes priority over everything.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">5</div>
+          <div class="flow-content">
+            <h4>Run self-referral detection</h4>
+            <p>The fraud detection system compares the customer's email, IP, device fingerprint, and payment method against the affiliate's data using a weighted scoring system. If the score reaches 3+, the commission is flagged.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">6</div>
+          <div class="flow-content">
             <h4>Set commission status</h4>
-            <p>Commissions start as <span class="badge pending">Pending</span> by default. If the campaign has auto-approval enabled and the amount is below the threshold, it becomes <span class="badge approved">Approved</span> immediately.</p>
+            <p>Commissions start as <span class="badge pending">Pending</span>. If the campaign has auto-approval enabled and the amount is below the threshold AND no fraud was detected, it becomes <span class="badge approved">Approved</span> immediately. Fraud-flagged commissions are <strong>always</strong> forced to pending, regardless of auto-approval settings.</p>
           </div>
         </div>
       </div>
 
       <div class="translation">
         <div class="translation-code">
-<pre><span class="cm">// convex/commissions.ts</span>
-<span class="cm">// createCommissionFromConversionInternal</span>
+<pre><span class="cm">// convex/commissionEngine.ts</span>
+<span class="cm">// processPaymentUpdatedToCommission (simplified)</span>
 
-<span class="cm">// Get effective rate (override or campaign default)</span>
+<span class="cm">// 1. Resolve attribution from webhook or lead match</span>
+<span class="kw">let</span> affiliateCode =
+  event.attribution?.affiliateCode;
+<span class="kw">if</span> (!affiliateCode) {
+  <span class="kw">const</span> lead = <span class="kw">await</span> ctx.<span class="fn">runQuery</span>(
+    internal.referralLeads
+      .resolveLeadAttribution, {
+    tenantId,
+    email: event.payment.customerEmail,
+  });
+  affiliateCode = lead?.affiliateCode;
+}
+
+<span class="cm">// 2. Validate payment status</span>
+<span class="kw">if</span> (event.payment.status !== <span class="str">"paid"</span>
+  && event.payment.status !== <span class="str">"completed"</span>) {
+  <span class="cm">// Log security audit event, don't create</span>
+  <span class="kw">return</span>;
+}
+
+<span class="cm">// 3. Get effective rate (override or default)</span>
 <span class="kw">const</span> effectiveRate = affiliate
   .commissionOverrides?.<span class="fn">find</span>(
-    (o) => o.campaignId === args.campaignId
+    (o) => o.campaignId === campaignId
         && o.status === <span class="str">"active"</span>
   )?.rate ?? campaign.commissionValue;
 
-<span class="cm">// Calculate based on campaign type</span>
-<span class="kw">let</span> commissionAmount;
+<span class="cm">// 4. Calculate commission</span>
 <span class="kw">if</span> (campaign.commissionType === <span class="str">"percentage"</span>) {
-  commissionAmount = saleAmount * (effectiveRate / <span class="num">100</span>);
+  amount = saleAmount * (effectiveRate / <span class="num">100</span>);
 } <span class="kw">else</span> {
-  <span class="cm">// flatFee — the rate IS the amount</span>
-  commissionAmount = effectiveRate;
+  amount = effectiveRate; <span class="cm">// flat_fee</span>
 }</pre>
         </div>
         <div class="translation-english">
-          <div class="line"><strong>Find the commission rate</strong> — first check if this affiliate has a custom override for this campaign. If yes, use the override. If not, use the campaign's default rate.</div>
-          <div class="line"><strong>Calculate the amount</strong> — if it's a percentage campaign, multiply the sale amount by the rate. If it's a flat fee, the rate IS the commission amount regardless of sale size.</div>
+          <div class="line"><strong>Look for affiliate metadata</strong> in the webhook payload first. If the payment provider didn't include it (like Stripe), fall back to email-based lead matching.</div>
+          <div class="line"><strong>Validate the payment status</strong> — only "paid" or "completed" payments generate commissions. Pending or failed payments are rejected with a security audit log.</div>
+          <div class="line"><strong>Find the effective rate</strong> — check for a per-affiliate override first, then fall back to the campaign's default commission value.</div>
+          <div class="line"><strong>Calculate the amount</strong> — percentage campaigns multiply the sale amount by the rate; flat-fee campaigns use the rate as a fixed amount.</div>
         </div>
       </div>
 
@@ -1374,7 +1735,7 @@ body {
         <div class="callout-icon">💡</div>
         <div class="callout-content">
           <strong>Commission Status Flow</strong>
-          <p>Commissions follow a strict lifecycle: <span class="badge pending">Pending</span> → <span class="badge approved">Approved</span> → <span class="badge paid">Paid</span>. They can also go to <span class="badge reversed">Reversed</span> (if a refund happens) or <span class="badge suspended">Declined</span> (if the owner rejects them). Once a commission is paid, it's linked to a payout batch.</p>
+          <p>Commissions follow a strict lifecycle: <span class="badge pending">Pending</span> → <span class="badge approved">Approved</span> → <span class="badge paid">Paid</span>. They can also go to <span class="badge reversed">Reversed</span> (if a refund or chargeback happens) or <span class="badge suspended">Declined</span> (if the owner rejects them). The <code>"confirmed"</code> status no longer exists — it was removed in favor of <code>"approved"</code>. Once a commission is paid, it's linked to a payout batch via <code>batchId</code>.</p>
         </div>
       </div>
     </div>
@@ -2003,27 +2364,181 @@ body {
     <!-- Screen 6.2: Data Flow Architecture -->
     <div class="screen fade-in">
       <h3>How Data Flows Through the System</h3>
-      <p>Here's the complete data flow when a payment webhook arrives — the most complex path in the system:</p>
+      <p>The system has two main data paths: the <strong>cookie-based tracking path</strong> (for any payment provider) and the <strong>webhook path</strong> (for SaligPay and Stripe). Let's trace both.</p>
+
+      <h3 style="margin-top: var(--space-8);">Path A: Cookie-Based Tracking (Universal)</h3>
+      <p>This path works with <strong>any</strong> payment provider. The merchant installs track.js and calls the conversion API after a payment:</p>
 
       <div class="arch-diagram">
         <div class="arch-row">
-          <div class="arch-node">🌐 SaligPay<br><span style="font-size: 0.75rem; opacity: 0.7;">Payment System</span></div>
+          <div class="arch-node">👤 Customer<br><span style="font-size: 0.75rem; opacity: 0.7;">Clicks /ref/JAMIE8X2</span></div>
         </div>
-        <div class="arch-arrow">↓ sends webhook</div>
+        <div class="arch-arrow">↓</div>
         <div class="arch-row">
-          <div class="arch-node">🔌 HTTP Endpoint<br><span style="font-size: 0.75rem; opacity: 0.7;">convex/http.ts</span></div>
+          <div class="arch-node">📄 track.js<br><span style="font-size: 0.75rem; opacity: 0.7;">Intercepts URL</span></div>
         </div>
-        <div class="arch-arrow">↓ validates & stores</div>
+        <div class="arch-arrow">↓ GET /track/click</div>
         <div class="arch-row">
-          <div class="arch-node">📦 rawWebhooks Table<br><span style="font-size: 0.75rem; opacity: 0.7;">Deduplication check</span></div>
+          <div class="arch-node">⚙️ Click Handler<br><span style="font-size: 0.75rem; opacity: 0.7;">Dedup → Record → Set cookie</span></div>
         </div>
-        <div class="arch-arrow">↓ normalizes to BillingEvent</div>
+        <div class="arch-arrow">↓ _affilio cookie set</div>
         <div class="arch-row">
-          <div class="arch-node">⚙️ Commission Engine<br><span style="font-size: 0.75rem; opacity: 0.7;">commissionEngine.ts</span></div>
+          <div class="arch-node">🛒 Customer Buys<br><span style="font-size: 0.75rem; opacity: 0.7;">On merchant's site</span></div>
+        </div>
+        <div class="arch-arrow">↓ POST /track/conversion</div>
+        <div class="arch-row">
+          <div class="arch-node">⚙️ Conversion Handler<br><span style="font-size: 0.75rem; opacity: 0.7;">Read cookie → Validate window</span></div>
+        </div>
+        <div class="arch-arrow">↓ creates conversion</div>
+        <div class="arch-row">
+          <div class="arch-node highlight">✅ Commission Created<br><span style="font-size: 0.75rem; opacity: 0.7;">Pending or Approved</span></div>
+        </div>
+      </div>
+
+      <h3 style="margin-top: var(--space-12);">Path B: Webhook-Based (SaligPay + Stripe)</h3>
+      <p>This path is fully automatic — the payment provider notifies the system when events happen:</p>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-node">💰 Payment Provider<br><span style="font-size: 0.75rem; opacity: 0.7;">SaligPay or Stripe</span></div>
+        </div>
+        <div class="arch-arrow">↓ sends webhook event</div>
+        <div class="arch-row">
+          <div class="arch-node">🔌 HTTP Endpoint<br><span style="font-size: 0.75rem; opacity: 0.7;">/api/webhooks/saligpay or /stripe</span></div>
+        </div>
+        <div class="arch-arrow">↓ validate + dedup</div>
+        <div class="arch-row">
+          <div class="arch-node">📦 rawWebhooks Table<br><span style="font-size: 0.75rem; opacity: 0.7;">Atomic dedup by eventId</span></div>
+        </div>
+        <div class="arch-arrow">↓ normalize to BillingEvent</div>
+        <div class="arch-row">
+          <div class="arch-node">🔍 Attribution Resolution<br><span style="font-size: 0.75rem; opacity: 0.7;">Webhook metadata → Lead match</span></div>
+        </div>
+        <div class="arch-arrow">↓ route to handler</div>
+        <div class="arch-row">
+          <div class="arch-node">⚙️ Commission Engine<br><span style="font-size: 0.75rem; opacity: 0.7;">1,655 lines of logic</span></div>
         </div>
         <div class="arch-arrow">↓ creates conversion + commission</div>
         <div class="arch-row">
           <div class="arch-node highlight">✅ Commission Created<br><span style="font-size: 0.75rem; opacity: 0.7;">Pending or Approved</span></div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">📋</div>
+        <div class="callout-content">
+          <strong>Why atomic deduplication matters</strong>
+          <p>Payment providers sometimes send the same webhook twice (retries). The system uses a <code>by_event_id</code> unique index to ensure each event is processed exactly once — the check and insert happen in a single database transaction. This is called <span class="tooltip-trigger" data-tip="Idempotency means an operation produces the same result whether you run it once or a hundred times. Like pressing an elevator button — pressing it again doesn't call a second elevator.">idempotency</span>, and it's critical for financial systems where processing the same payment twice would mean paying the affiliate twice.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 6.2b: Dual Payment Provider Architecture -->
+    <div class="screen fade-in">
+      <h3>Dual Payment Provider Support</h3>
+      <p>The system supports two payment providers simultaneously: <strong>SaligPay</strong> (internal) and <strong>Stripe Connect</strong>. Both normalize their events into a shared <code>BillingEvent</code> format, so the commission engine doesn't need to know which provider sent the event.</p>
+
+      <div class="card-grid">
+        <div class="card" style="border-top: 3px solid var(--accent);">
+          <div class="card-icon">💳</div>
+          <h4>SaligPay (Internal)</h4>
+          <p style="margin-bottom: var(--space-3);">Webhook events include affiliate metadata directly in the payload (<code>_affilio_ref</code>, <code>_salig_aff_tenant</code>). Attribution is straightforward — read the metadata, find the affiliate, create the commission.</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);"><strong>Attribution:</strong> Direct metadata in webhook payload</p>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--purple);">
+          <div class="card-icon">🟣</div>
+          <h4>Stripe Connect</h4>
+          <p style="margin-bottom: var(--space-3);">Webhook events do NOT include affiliate metadata. Instead, the system resolves the tenant by Stripe account ID, verifies the webhook signature with the tenant's signing secret, and falls back to email-based lead matching for attribution.</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);"><strong>Attribution:</strong> Email-based lead matching via referralLeads table</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: var(--space-8);">How Stripe Events Get Mapped</h3>
+      <p>Stripe uses different event type names than the commission engine expects. A mapping layer translates them:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Stripe Event</th>
+            <th>Mapped To</th>
+            <th>What It Does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>checkout.session.completed</code></td>
+            <td><code>payment.updated</code></td>
+            <td>One-time payment completed</td>
+          </tr>
+          <tr>
+            <td><code>invoice.paid</code></td>
+            <td><code>payment.updated</code></td>
+            <td>Subscription renewal paid</td>
+          </tr>
+          <tr>
+            <td><code>customer.subscription.created</code></td>
+            <td><code>subscription.created</code></td>
+            <td>New subscription started</td>
+          </tr>
+          <tr>
+            <td><code>customer.subscription.updated</code></td>
+            <td><code>subscription.updated</code></td>
+            <td>Plan change (upgrade/downgrade)</td>
+          </tr>
+          <tr>
+            <td><code>customer.subscription.deleted</code></td>
+            <td><code>subscription.cancelled</code></td>
+            <td>Customer cancelled subscription</td>
+          </tr>
+          <tr>
+            <td><code>charge.refunded</code></td>
+            <td><code>refund.created</code></td>
+            <td>Merchant issued a refund</td>
+          </tr>
+          <tr>
+            <td><code>charge.dispute.created</code></td>
+            <td><code>chargeback.created</code></td>
+            <td>Customer disputed with bank</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/webhooks.ts — Event type mapping</span>
+
+<span class="kw">const</span> STRIPE_EVENT_MAP = {
+  <span class="str">"checkout.session.completed"</span>:
+    <span class="str">"payment.updated"</span>,
+  <span class="str">"invoice.paid"</span>:
+    <span class="str">"payment.updated"</span>,
+  <span class="str">"customer.subscription.created"</span>:
+    <span class="str">"subscription.created"</span>,
+  <span class="str">"customer.subscription.updated"</span>:
+    <span class="str">"subscription.updated"</span>,
+  <span class="str">"customer.subscription.deleted"</span>:
+    <span class="str">"subscription.cancelled"</span>,
+  <span class="str">"charge.refunded"</span>:
+    <span class="str">"refund.created"</span>,
+  <span class="str">"charge.dispute.created"</span>:
+    <span class="str">"chargeback.created"</span>,
+};
+
+<span class="cm">// The commission engine only needs to handle</span>
+<span class="cm">// these 6 normalized event types, regardless</span>
+<span class="cm">// of which payment provider sent them.</span></pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Stripe events are translated</strong> into a universal format. The commission engine only needs to understand 6 event types, not 7+ Stripe-specific ones.</div>
+          <div class="line"><strong>This is the Adapter Pattern</strong> — a classic software engineering technique where you create a translation layer between two systems that speak different "languages." The commission engine speaks "BillingEvent" and each payment provider has its own translator.</div>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Adding a third payment provider is straightforward</strong>
+          <p>Because of this normalization layer, adding a new payment provider (like PayPal or Razorpay) only requires: (1) a new HTTP endpoint to receive their webhooks, (2) a normalization function that converts their events to <code>BillingEvent</code>, and (3) an event type mapping. The commission engine doesn't change at all. This is good architecture — the parts that are likely to change (payment providers) are isolated from the parts that are stable (commission logic).</p>
         </div>
       </div>
     </div>
@@ -2103,7 +2618,7 @@ body {
           <tr>
             <td><strong>tenants</strong></td>
             <td>SaaS companies using the platform</td>
-            <td>name, slug, domain, plan, branding</td>
+            <td>name, slug, domain, plan, branding, stripeAccountId, trackingPublicKey</td>
           </tr>
           <tr>
             <td><strong>users</strong></td>
@@ -2113,12 +2628,17 @@ body {
           <tr>
             <td><strong>affiliates</strong></td>
             <td>External promoters earning commissions</td>
-            <td>tenantId, uniqueCode, status, fraudSignals</td>
+            <td>uniqueCode, vanitySlug, status, passwordHash, fraudSignals, commissionOverrides</td>
           </tr>
           <tr>
             <td><strong>campaigns</strong></td>
             <td>Affiliate programs with commission rules</td>
-            <td>commissionType, commissionValue, cookieDuration</td>
+            <td>commissionType, commissionValue, recurringCommission, cookieDuration, autoApproveCommissions</td>
+          </tr>
+          <tr>
+            <td><strong>affiliateCampaigns</strong></td>
+            <td>Which affiliates are enrolled in which campaigns</td>
+            <td>affiliateId, campaignId, status</td>
           </tr>
           <tr>
             <td><strong>referralLinks</strong></td>
@@ -2127,18 +2647,23 @@ body {
           </tr>
           <tr>
             <td><strong>clicks</strong></td>
-            <td>Recorded click events</td>
-            <td>affiliateId, referralLinkId, dedupeKey</td>
+            <td>Recorded click events (deduped per IP/hour)</td>
+            <td>affiliateId, referralLinkId, dedupeKey, ipAddress</td>
+          </tr>
+          <tr>
+            <td><strong>referralLeads</strong></td>
+            <td>Email-to-affiliate matching for payment providers without metadata</td>
+            <td>tenantId, email, affiliateId, referralLinkId, status (active/converted/expired)</td>
           </tr>
           <tr>
             <td><strong>conversions</strong></td>
-            <td>Recorded sale events with attribution</td>
-            <td>affiliateId, amount, attributionSource</td>
+            <td>Recorded sale events with attribution chain</td>
+            <td>affiliateId, clickId, amount, attributionSource (cookie/body/webhook/organic), isSelfReferral</td>
           </tr>
           <tr>
             <td><strong>commissions</strong></td>
             <td>Calculated earnings for affiliates</td>
-            <td>affiliateId, amount, status, batchId</td>
+            <td>affiliateId, amount, status, batchId, transactionId, fraudIndicators, reversalReason</td>
           </tr>
           <tr>
             <td><strong>payoutBatches</strong></td>
@@ -2148,7 +2673,27 @@ body {
           <tr>
             <td><strong>payouts</strong></td>
             <td>Individual payments to affiliates</td>
-            <td>affiliateId, batchId, amount, status</td>
+            <td>affiliateId, batchId, amount, status, paidAt</td>
+          </tr>
+          <tr>
+            <td><strong>rawWebhooks</strong></td>
+            <td>Stored webhook events for deduplication and debugging</td>
+            <td>eventId (unique index), tenantId, provider, status</td>
+          </tr>
+          <tr>
+            <td><strong>affiliateSessions</strong></td>
+            <td>Active sessions for affiliate portal authentication</td>
+            <td>affiliateId, token, expiresAt</td>
+          </tr>
+          <tr>
+            <td><strong>tenantStats</strong></td>
+            <td>Pre-computed counters per tenant (for dashboard performance)</td>
+            <td>affiliateCounts, commissionTotals, clickCount, conversionCount, pendingPayoutTotal</td>
+          </tr>
+          <tr>
+            <td><strong>auditLogs</strong></td>
+            <td>Full audit trail of all actions</td>
+            <td>tenantId, action, entityType, entityId, details</td>
           </tr>
         </tbody>
       </table>
@@ -2197,7 +2742,11 @@ body {
 
       <div class="metaphor">
         <div class="metaphor-label">📖 The Story of Jamie and TechFlow</div>
-        <p><strong>Jamie</strong> is a tech blogger who joins <strong>TechFlow's</strong> affiliate program. She gets a unique referral link: <code>techflow.com?ref=JAMIE8X2</code>. She writes a review of TechFlow and includes her link. <strong>Alex</strong>, a reader, clicks the link and signs up for TechFlow's ₱2,000/month plan. The system records the click, places a cookie, and when Alex's payment goes through, a webhook triggers. The system creates a conversion, calculates Jamie's 20% commission (₱400), and marks it as pending. The SaaS Owner reviews and approves it. At the end of the month, Jamie's ₱400 is included in a payout batch. The owner marks it as paid, and Jamie receives her money. If Alex renews next month and the campaign has recurring commissions, Jamie earns another commission automatically.</p>
+        <p><strong>Jamie</strong> is a tech blogger who joins <strong>TechFlow's</strong> affiliate program (status: approved). She gets a unique referral link: <code>techflow.com/ref/JAMIE8X2</code>. TechFlow has installed the <code>track.js</code> snippet on their website and called <code>Affilio.referral({email})</code> on their signup form.</p>
+        <p style="margin-top: var(--space-4);"><strong>Alex</strong>, a reader, clicks Jamie's link. Here's what happens: track.js intercepts the URL, calls <code>GET /track/click?code=JAMIE8X2</code>, the server validates Jamie is active, deduplicates the click (per IP per hour), records it, and returns attribution data. track.js sets the <code>_affilio</code> cookie and cleans the URL bar so Alex just sees <code>techflow.com</code>.</p>
+        <p style="margin-top: var(--space-4);">Alex browses TechFlow and signs up for a ₱2,000/month plan. During signup, TechFlow's form calls <code>Affilio.referral({email: "alex@example.com"})</code> — creating a <strong>referral lead</strong> linking Alex's email to Jamie's affiliate ID.</p>
+        <p style="margin-top: var(--space-4);">When Alex's payment goes through via <strong>Stripe</strong>, Stripe sends a <code>checkout.session.completed</code> webhook. The webhook has Alex's email but NO affiliate metadata. The commission engine calls <code>resolveLeadAttribution</code>, finds the referral lead for <code>alex@example.com</code>, and attributes the conversion to Jamie. It creates a conversion record with <code>attributionSource: "webhook"</code> and calculates Jamie's 20% commission (₱400).</p>
+        <p style="margin-top: var(--space-4);">If Alex renews next month and the campaign has recurring commissions, Jamie earns another commission automatically (₱400 if "same" rate, ₱200 if "reduced" rate). The SaaS Owner reviews and approves commissions, then generates a payout batch at month-end. Jamie receives her money. The entire chain — from click to cash — is tracked, deduplicated, and attributed automatically.</p>
       </div>
     </div>
 
@@ -2248,7 +2797,7 @@ body {
           </tr>
           <tr>
             <td>Change commission calculation</td>
-            <td><code>convex/commissions.ts</code> and <code>convex/commissionEngine.ts</code></td>
+            <td><code>convex/commissions.ts</code> and <code>convex/commissionEngine.ts</code> (1,655 lines — the money brain)</td>
           </tr>
           <tr>
             <td>Add a new fraud detection signal</td>
@@ -2259,19 +2808,35 @@ body {
             <td><code>convex/payouts.ts</code> — generatePayoutBatch and markPayoutAsPaid</td>
           </tr>
           <tr>
-            <td>Handle a new webhook event</td>
-            <td><code>convex/webhooks.ts</code> → <code>convex/commissionEngine.ts</code></td>
+            <td>Handle a new webhook event type</td>
+            <td><code>convex/webhooks.ts</code> (add to STRIPE_EVENT_MAP) → <code>convex/commissionEngine.ts</code> (add handler)</td>
+          </tr>
+          <tr>
+            <td>Add a new payment provider</td>
+            <td><code>convex/http.ts</code> (new webhook endpoint) → <code>convex/webhooks.ts</code> (normalizer) → commission engine handles the rest</td>
           </tr>
           <tr>
             <td>Change the affiliate registration flow</td>
-            <td><code>convex/affiliates.ts</code> — registerAffiliate mutation</td>
+            <td><code>convex/affiliates.ts</code> — registerAffiliate and inviteAffiliate mutations</td>
+          </tr>
+          <tr>
+            <td>Modify click tracking or cookie logic</td>
+            <td><code>convex/http.ts</code> (GET /track/click handler) → <code>convex/clicks.ts</code> → <code>public/track.js</code> (client-side)</td>
+          </tr>
+          <tr>
+            <td>Change lead matching or referral attribution</td>
+            <td><code>convex/referralLeads.ts</code> — resolveLeadAttribution and lead lifecycle</td>
           </tr>
           <tr>
             <td>Add email notifications</td>
             <td><code>convex/emails.ts</code> (or the email sending module)</td>
           </tr>
           <tr>
-            <td>Modify the UI dashboard</td>
+            <td>Modify the affiliate portal UI</td>
+            <td><code>src/app/portal/</code> — login, home, links, earnings, assets, account pages</td>
+          </tr>
+          <tr>
+            <td>Modify the SaaS owner dashboard UI</td>
             <td><code>src/app/(auth)/dashboard/</code> — the Next.js page components</td>
           </tr>
         </tbody>
