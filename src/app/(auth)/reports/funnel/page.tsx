@@ -5,8 +5,8 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,7 @@ import {
   OrganicConversionsTable,
 } from "./components";
 import { CampaignFilterDropdown } from "@/app/(auth)/reports/campaigns/components/CampaignFilterDropdown";
-import { Download, AlertTriangle, Loader2, MousePointerClick, Target, BadgeCheck, Eye, Leaf, LayoutGrid, Users } from "lucide-react";
+import { AlertTriangle, MousePointerClick, Target, BadgeCheck, Eye, Leaf, LayoutGrid, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
@@ -265,20 +265,7 @@ function FunnelPageContent() {
             onCampaignSelect={setSelectedCampaignId}
           />
           {canViewSensitiveData && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="gap-1.5"
-            >
-              {isExporting ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Download className="w-3 h-3" />
-              )}
-              Export CSV
-            </Button>
+            <ExportButton onClick={handleExport} isExporting={isExporting} />
           )}
         </div>
       </PageTopbar>

@@ -4,12 +4,12 @@ import { useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { Download, Users, Loader2, TrendingUp, MousePointerClick, Target, DollarSign } from "lucide-react";
+import { Users, TrendingUp, MousePointerClick, Target, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
 import { CampaignFilterDropdown } from "./campaigns/components";
@@ -98,25 +98,7 @@ export default function ReportsIndexPage() {
           />
           <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
           {canExport && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="gap-1.5"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-3 h-3" />
-                  Export CSV
-                </>
-              )}
-            </Button>
+            <ExportButton onClick={handleExport} isExporting={isExporting} />
           )}
         </div>
       </PageTopbar>

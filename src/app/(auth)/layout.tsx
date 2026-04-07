@@ -76,9 +76,12 @@ function AuthLayoutContent({
   }, [handleAdminRedirect]);
 
   // Redirect affiliate users who land on owner pages to the affiliate portal
+  // Only redirect when BOTH queries have resolved (not undefined) to avoid
+  // acting on stale data after logout while queries are still loading.
   useEffect(() => {
     if (
       user === null &&
+      authenticatedUserType !== undefined &&
       authenticatedUserType?.type === "affiliate"
     ) {
       router.replace(`/portal/login?tenant=${authenticatedUserType.tenantSlug}`);

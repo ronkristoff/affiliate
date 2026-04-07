@@ -51,15 +51,6 @@ const affiliateProtectedRoutes = [
 ];
 
 /**
- * Check if the request has an affiliate session token.
- * Affiliate sessions are stored in cookies with a different name than owner sessions.
- */
-function getAffiliateSessionCookie(request: NextRequest): string | null {
-  const affiliateSession = request.cookies.get("affiliate_session");
-  return affiliateSession?.value ?? null;
-}
-
-/**
  * Check if the pathname matches an affiliate route pattern.
  */
 function isAffiliateRoute(pathname: string): boolean {
@@ -78,12 +69,12 @@ function isAffiliateRoute(pathname: string): boolean {
  */
 export default async function proxy(request: NextRequest) {
   const ownerSessionCookie = getSessionCookie(request);
-  const affiliateSessionCookie = getAffiliateSessionCookie(request);
   const pathname = request.nextUrl.pathname;
   
-  // Determine auth types  
-  const isOwnerAuthenticated = !!ownerSessionCookie;
-  const isAffiliateAuthenticated = !!affiliateSessionCookie;
+  // Both owners and affiliates authenticate through Better Auth now.
+  // Role-based access (owner vs affiliate) is enforced at the Convex layer.
+  // The proxy only needs to know whether ANY valid session exists.
+  const isAuthenticated = !!ownerSessionCookie;
 
   // Check if route is admin (platform admin)
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
@@ -97,9 +88,9 @@ export default async function proxy(request: NextRequest) {
   const isAffiliateProtectedRoute = affiliateProtectedRoutes.some(route => pathname.startsWith(route));
   const isAffiliatePath = isAffiliateRoute(pathname);
 
-  // Handle admin routes — require owner authentication; role verified at Convex layer
+  // Handle admin routes — require authentication; role verified at Convex layer
   if (isAdminRoute) {
-    if (!isOwnerAuthenticated) {
+    if (!isAuthenticated) {
       const signInUrl = new URL("/sign-in", request.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);
@@ -110,18 +101,17 @@ export default async function proxy(request: NextRequest) {
   // Handle affiliate routes
   if (isAffiliatePath) {
     // Affiliate public routes (login, register)
+    // Don't auto-redirect authenticated users away — we can't distinguish
+    // owner vs affiliate from cookies alone. The client-side components
+    // (ResolvePortalTenant, getCurrentAffiliate) handle that.
     if (isAffiliatePublicRoute) {
-      // If affiliate is already authenticated, redirect to portal home
-      if (isAffiliateAuthenticated) {
-        return NextResponse.redirect(new URL("/portal/home", request.url));
-      }
       return NextResponse.next();
     }
     
     // Affiliate protected routes
     if (isAffiliateProtectedRoute || (isAffiliatePath && !isAffiliatePublicRoute)) {
-      // Require affiliate authentication
-      if (!isAffiliateAuthenticated) {
+      // Require authentication (role verified at Convex layer)
+      if (!isAuthenticated) {
         const loginUrl = new URL("/portal/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
@@ -132,15 +122,15 @@ export default async function proxy(request: NextRequest) {
 
   // Allow public and marketing routes
   if (isPublicRoute || isMarketingRoute) {
-    // If SaaS Owner is authenticated and trying to access auth pages, redirect to dashboard
-    if (isOwnerAuthenticated && publicRoutes.some(route => pathname.startsWith(route))) {
+    // If authenticated and trying to access auth pages, redirect to dashboard
+    if (isAuthenticated && publicRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
 
-  // Protected routes require SaaS Owner authentication
-  if (!isOwnerAuthenticated) {
+  // Protected routes require authentication
+  if (!isAuthenticated) {
     // Store the intended URL to redirect back after login
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("callbackUrl", pathname);

@@ -27,12 +27,12 @@ import {
   Eye,
   MousePointerClick,
   Users,
-  Download,
   Search,
   Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { PageTopbar } from "@/components/ui/PageTopbar";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { MetricCard } from "@/components/ui/MetricCard";
 
@@ -176,19 +176,7 @@ function BroadcastDetailContent() {
             </Badge>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={exporting}
-        >
-          {exporting ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-          Export CSV
-        </Button>
+        <ExportButton onClick={handleExport} isExporting={exporting} />
       </PageTopbar>
 
       {/* Page Content */}

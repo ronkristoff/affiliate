@@ -5,10 +5,10 @@ import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn, downloadCsv } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { PageTopbar } from "@/components/ui/PageTopbar";
-import { Download, Users, Loader2 } from "lucide-react";
+import { Users, Loader2 } from "lucide-react";
 import { DateRangeSelector } from "@/app/(auth)/dashboard/components/DateRangeSelector";
 import { CampaignFilterDropdown } from "@/app/(auth)/reports/campaigns/components/CampaignFilterDropdown";
 import {
@@ -131,20 +131,11 @@ function AffiliatePerformancePage() {
               Read-only view
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
+          <ExportButton
             onClick={handleExport}
-            disabled={!canExport || isExporting}
-            className={cn(!canExport && "opacity-50 cursor-not-allowed", "gap-1.5")}
-          >
-            {isExporting ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Download className="w-3 h-3" />
-            )}
-            Export CSV
-          </Button>
+            isExporting={isExporting}
+            disabled={!canExport}
+          />
         </div>
       </PageTopbar>
 

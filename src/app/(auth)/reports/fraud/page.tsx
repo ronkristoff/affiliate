@@ -4,12 +4,12 @@ import { Suspense, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Download, Loader2, ShieldAlert, Users, Flag, AlertOctagon } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Users, Flag, AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { escapeCsvField, downloadCsvFromString } from "@/lib/csv-utils";
@@ -182,20 +182,11 @@ function FraudDashboardContent() {
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Fraud & Risk</h1>
         <div className="flex items-center gap-2">
           {canExport && (
-            <Button
-              variant="outline"
-              size="sm"
+            <ExportButton
               onClick={handleExport}
-              disabled={isExporting || !fraudExportData || fraudExportData.data.length === 0}
-              className="gap-1.5"
-            >
-              {isExporting ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Download className="w-3 h-3" />
-              )}
-              Export CSV
-            </Button>
+              isExporting={isExporting}
+              disabled={!fraudExportData || fraudExportData.data.length === 0}
+            />
           )}
         </div>
       </PageTopbar>

@@ -17,7 +17,6 @@ import {
   DEFAULT_PAGE_SIZE_OPTIONS,
   type PaginationState,
 } from "@/components/ui/DataTablePagination";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -25,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, X } from "lucide-react";
+import { X } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { toast } from "sonner";
 import { escapeCsvField } from "@/lib/csv-utils";
 
@@ -382,16 +382,11 @@ export function AffiliatesByCampaignTable({
           )}
 
           {/* Export CSV Button */}
-          <Button
-            variant="outline"
-            size="sm"
+          <ExportButton
             onClick={handleExportCsv}
+            isExporting={false}
             disabled={displayData.length === 0}
-            className="gap-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export CSV
-          </Button>
+          />
         </div>
       </div>
 

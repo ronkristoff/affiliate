@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 interface PortalHeaderProps {
   logoUrl?: string;
@@ -13,24 +13,27 @@ interface PortalHeaderProps {
 }
 
 export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle, pageDescription }: PortalHeaderProps) {
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/affiliate-auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "logout" }),
-        credentials: "include",
-      });
+      await authClient.signOut();
     } catch (error) {
-      console.error("Logout error:", error);
+      // authClient.signOut() may fail if the Convex site sign-out handler
+      // errors out — attempt a direct fetch as fallback to clear cookies.
+      console.warn("authClient.signOut() failed, attempting direct fetch:", error);
+      try {
+        await fetch("/api/auth/sign-out", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+          credentials: "include",
+        });
+      } catch (fallbackError) {
+        console.error("Direct sign-out fetch also failed:", fallbackError);
+      }
     }
-    
-    router.push("/portal/login");
-    router.refresh();
+    // Hard navigation to flush Convex query caches and stale session state
+    window.location.href = "/portal/login";
   };
 
   return (

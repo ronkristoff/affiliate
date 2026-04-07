@@ -4,12 +4,12 @@ import { Suspense, useState } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { downloadCsv } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { ExportButton } from "@/components/ui/ExportButton";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, AlertTriangle, Loader2, Wallet, Clock, Package, TrendingUp } from "lucide-react";
+import { AlertTriangle, Wallet, Clock, Package, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, shouldShowTruncationWarning } from "@/lib/affiliate-segments";
 import { useDateRange, getQueryDateRange } from "@/hooks/useDateRange";
@@ -119,20 +119,7 @@ function PayoutHistoryContent() {
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payout History & Trends</h1>
         <div className="flex items-center gap-2">
           {canExport && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="gap-1.5"
-            >
-              {isExporting ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Download className="w-3 h-3" />
-              )}
-              Export CSV
-            </Button>
+            <ExportButton onClick={handleExport} isExporting={isExporting} />
           )}
         </div>
       </PageTopbar>

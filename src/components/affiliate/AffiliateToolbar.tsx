@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { SearchField } from "@/components/ui/SearchField";
-import { Download, UserPlus, Loader2 } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { UserPlus } from "lucide-react";
 
 interface AffiliateToolbarProps {
   searchQuery: string;
@@ -28,20 +29,10 @@ export function AffiliateToolbar({
         className="flex-1 min-w-0"
       />
       <div className="flex items-center gap-3 shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onExport}
-          disabled={!onExport || isExporting}
-          className="gap-1.5"
-        >
-          {isExporting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Download className="h-3.5 w-3.5" />
-          )}
-          Export CSV
-        </Button>
+        <ExportButton
+          onClick={onExport ?? (() => {})}
+          isExporting={!!isExporting}
+        />
         <Button
           size="sm"
           onClick={onInvite}

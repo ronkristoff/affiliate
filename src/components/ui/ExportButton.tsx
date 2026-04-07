@@ -9,6 +9,8 @@ interface ExportButtonProps {
   isExporting: boolean;
   label?: string;
   className?: string;
+  /** Additional disabled condition beyond the exporting state. */
+  disabled?: boolean;
 }
 
 /**
@@ -19,13 +21,14 @@ export function ExportButton({
   isExporting,
   label = "Export CSV",
   className,
+  disabled,
 }: ExportButtonProps) {
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={onClick}
-      disabled={isExporting}
+      disabled={isExporting || disabled}
       className={cn("text-[12px]", className)}
     >
       {isExporting ? (
