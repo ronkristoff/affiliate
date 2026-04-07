@@ -1175,13 +1175,13 @@ http.route({
 
       // Build metadata with attribution data
       const metadata: Record<string, string> = {
-        _salig_aff_tenant: user.tenantId,
+        _affilio_tenant: user.tenantId,
       };
 
       if (affiliateCode) {
-        metadata._salig_aff_ref = affiliateCode;
+        metadata._affilio_ref = affiliateCode;
         // Optionally add a click ID for testing
-        metadata._salig_aff_click_id = `click_mock_${Date.now()}`;
+        metadata._affilio_click_id = `click_mock_${Date.now()}`;
       }
 
       // Build mock payload - use any type for flexibility with subscription events

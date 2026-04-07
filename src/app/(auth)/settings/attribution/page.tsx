@@ -112,21 +112,21 @@ export default function AttributionSettingsPage() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm font-semibold">_salig_aff_ref</code>
+                <code className="text-sm font-semibold">_affilio_ref</code>
                 <div className="flex items-center gap-2">
                   <Badge>Required</Badge>
                   <span className="text-sm text-muted-foreground">Affiliate referral code</span>
                 </div>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm font-semibold">_salig_aff_click_id</code>
+                <code className="text-sm font-semibold">_affilio_click_id</code>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Optional</Badge>
                   <span className="text-sm text-muted-foreground">Click tracking ID</span>
                 </div>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <code className="text-sm font-semibold">_salig_aff_tenant</code>
+                <code className="text-sm font-semibold">_affilio_tenant</code>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Optional</Badge>
                   <span className="text-sm text-muted-foreground">Tenant identifier</span>
