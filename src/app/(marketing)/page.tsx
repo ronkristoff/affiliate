@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { MarketingNav } from "./_components/MarketingNav";
 import { HeroSection } from "./_components/HeroSection";
+import { StructuredData } from "./_components/StructuredData";
 
 // Dynamic imports for below-fold sections (code splitting)
 const SocialProofBar = dynamic(
@@ -93,62 +94,11 @@ export const metadata: Metadata = {
   },
 };
 
-// Structured data for SEO
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "name": "Affilio",
-      "url": "https://affilio.com",
-      "logo": "https://affilio.com/logo.png",
-    },
-    {
-      "@type": "WebSite",
-      "name": "Affilio",
-      "url": "https://affilio.com",
-    },
-    {
-      "@type": "SoftwareApplication",
-      "name": "Affilio",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "description": "Affiliate program management with native SaligPay integration for SaaS businesses.",
-      "offers": [
-        {
-          "@type": "Offer",
-          "name": "Starter",
-          "price": "0",
-          "priceCurrency": "PHP",
-          "availability": "https://schema.org/InStock",
-        },
-        {
-          "@type": "Offer",
-          "name": "Growth",
-          "price": "1999",
-          "priceCurrency": "PHP",
-          "availability": "https://schema.org/InStock",
-        },
-        {
-          "@type": "Offer",
-          "name": "Scale",
-          "price": "4999",
-          "priceCurrency": "PHP",
-          "availability": "https://schema.org/InStock",
-        },
-      ],
-    },
-  ],
-};
-
 export default function MarketingPage() {
   return (
     <>
-      {/* Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {/* Structured Data (live tier pricing) */}
+      <StructuredData />
 
       {/* Navigation */}
       <MarketingNav />
