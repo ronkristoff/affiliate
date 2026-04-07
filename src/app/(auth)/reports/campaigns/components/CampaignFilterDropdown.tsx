@@ -59,15 +59,16 @@ export function CampaignFilterDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className={cn("gap-2 min-w-[180px] justify-between", className)}
+          size="sm"
+          className={cn("gap-1.5 min-w-[160px] justify-between text-[12px]", className)}
         >
-          <span className="flex items-center gap-2">
-            <Filter className="w-4 h-4" />
+          <span className="flex items-center gap-1.5">
+            <Filter className="w-3 h-3" />
             {selectedValue === "all"
               ? "All Campaigns"
               : selectedCampaign?.name ?? "Select Campaign"}
           </span>
-          <ChevronDown className="w-4 h-4 opacity-50" />
+          <ChevronDown className="w-3 h-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
