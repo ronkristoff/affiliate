@@ -785,7 +785,7 @@ export const getSaligPayConnectionStatus = query({
   ),
   handler: async (ctx, args) => {
     const tenant = await ctx.db.get(args.tenantId);
-    if (!tenant || !tenant.saligPayCredentials) {
+    if (!tenant || !tenant.saligPayCredentials || tenant.billingProvider !== "saligpay") {
       return null;
     }
 
@@ -826,6 +826,25 @@ export const connectMockSaligPay = mutation({
     const tenant = await ctx.db.get(args.tenantId);
     if (!tenant) {
       throw new Error("Tenant not found");
+    }
+
+    // If a different provider is already connected, disconnect it first
+    if (tenant.billingProvider && tenant.billingProvider !== "saligpay") {
+      if (tenant.billingProvider === "stripe" && tenant.stripeCredentials) {
+        await ctx.db.patch(args.tenantId, {
+          stripeCredentials: undefined,
+          stripeAccountId: undefined,
+        });
+        await ctx.db.insert("auditLogs", {
+          tenantId: args.tenantId,
+          action: "stripe_disconnected",
+          entityType: "tenant",
+          entityId: args.tenantId,
+          actorId: authUser.userId,
+          actorType: "user",
+          previousValue: { reason: "switched_to_saligpay" },
+        });
+      }
     }
 
     // Generate mock credentials
@@ -1069,7 +1088,7 @@ export const getStripeConnectionStatus = query({
   ),
   handler: async (ctx, args) => {
     const tenant = await ctx.db.get(args.tenantId);
-    if (!tenant || !tenant.stripeCredentials) {
+    if (!tenant || !tenant.stripeCredentials || tenant.billingProvider !== "stripe") {
       return { isConnected: false as const };
     }
 
