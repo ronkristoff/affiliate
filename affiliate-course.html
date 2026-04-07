@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Affiliate Marketing Works — Interactive Course</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ========================================
+   DESIGN SYSTEM
+   ======================================== */
+:root {
+  --bg-warm: #FAF8F5;
+  --bg-cream: #F5F0EB;
+  --bg-card: #FFFFFF;
+  --bg-dark: #1E1E2E;
+  --bg-dark-lighter: #2A2A3C;
+  --text-primary: #1A1A2E;
+  --text-secondary: #4A4A5A;
+  --text-muted: #8A8A9A;
+  --text-on-dark: #E0E0F0;
+  --text-on-dark-muted: #A0A0B0;
+  --accent: #E85D3A;
+  --accent-light: #FF7A5C;
+  --accent-bg: #FFF0EC;
+  --teal: #1FB5A5;
+  --teal-bg: #E8F8F6;
+  --green: #22C55E;
+  --green-bg: #ECFDF5;
+  --amber: #F59E0B;
+  --amber-bg: #FFFBEB;
+  --red: #EF4444;
+  --red-bg: #FEF2F2;
+  --blue: #3B82F6;
+  --blue-bg: #EFF6FF;
+  --purple: #8B5CF6;
+  --purple-bg: #F3F0FF;
+  --border: #E5E0DB;
+  --border-light: #F0ECE7;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+}
+
+/* ========================================
+   RESET & BASE
+   ======================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-warm);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================
+   NAVIGATION
+   ======================================== */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(250, 248, 245, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-light);
+  transition: transform 0.3s ease;
+}
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+.nav-brand span { color: var(--accent); }
+.nav-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+  border-radius: 0 2px 2px 0;
+}
+.nav-links {
+  display: flex;
+  gap: var(--space-2);
+  list-style: none;
+  flex-wrap: wrap;
+}
+.nav-links a {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+.nav-links a:hover, .nav-links a.active {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ========================================
+   MODULES
+   ======================================== */
+.module {
+  min-height: 100dvh;
+  min-height: 100vh;
+  padding: var(--space-20) var(--space-6) var(--space-16);
+  scroll-snap-align: start;
+}
+.module:nth-child(odd) { background: var(--bg-warm); }
+.module:nth-child(even) { background: var(--bg-cream); }
+.module-inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ========================================
+   HERO / INTRO
+   ======================================== */
+.hero {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-6);
+  background: linear-gradient(135deg, var(--bg-warm) 0%, var(--bg-cream) 100%);
+  scroll-snap-align: start;
+}
+.hero-content { max-width: 700px; }
+.hero-badge {
+  display: inline-block;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 100px;
+  margin-bottom: var(--space-6);
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: var(--space-6);
+  color: var(--text-primary);
+}
+.hero h1 span { color: var(--accent); }
+.hero p {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto var(--space-8);
+}
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: var(--space-4) var(--space-8);
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+.hero-cta:hover {
+  background: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+.module-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-3);
+}
+.module h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: var(--space-6);
+  color: var(--text-primary);
+}
+.module h3 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+  margin-top: var(--space-10);
+  color: var(--text-primary);
+}
+.module p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-5);
+  max-width: 65ch;
+}
+.lead {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* ========================================
+   SCREENS
+   ======================================== */
+.screen {
+  padding: var(--space-10) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.screen:last-child { border-bottom: none; }
+
+/* ========================================
+   CARDS
+   ======================================== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+.card h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-2);
+}
+.card p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-5);
+  margin: var(--space-8) 0;
+}
+
+/* ========================================
+   CALLOUT
+   ======================================== */
+.callout {
+  border-radius: var(--radius);
+  padding: var(--space-5) var(--space-6);
+  margin: var(--space-8) 0;
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.callout-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+.callout-content { flex: 1; }
+.callout-content strong { display: block; margin-bottom: var(--space-1); font-size: 0.95rem; }
+.callout-content p { margin: 0; font-size: 0.95rem; }
+.callout.aha { background: var(--teal-bg); border-left: 4px solid var(--teal); }
+.callout.warning { background: var(--amber-bg); border-left: 4px solid var(--amber); }
+.callout.danger { background: var(--red-bg); border-left: 4px solid var(--red); }
+.callout.info { background: var(--blue-bg); border-left: 4px solid var(--blue); }
+
+/* ========================================
+   CODE BLOCKS
+   ======================================== */
+.code-block {
+  background: var(--bg-dark);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: var(--space-6) 0;
+}
+.code-header {
+  background: var(--bg-dark-lighter);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-on-dark-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-header .dot.red { background: #FF5F57; }
+.code-header .dot.yellow { background: #FEBC2E; }
+.code-header .dot.green { background: #28C840; }
+.code-body {
+  padding: var(--space-5);
+  overflow-x: auto;
+}
+.code-body pre {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-on-dark);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.code-body .kw { color: #CBA6F7; }
+.code-body .fn { color: #89B4FA; }
+.code-body .str { color: #A6E3A1; }
+.code-body .num { color: #FAB387; }
+.code-body .cm { color: #6C7086; font-style: italic; }
+.code-body .op { color: #89DCEB; }
+.code-body .type { color: #F9E2AF; }
+
+/* ========================================
+   CODE ↔ ENGLISH TRANSLATION
+   ======================================== */
+.translation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: var(--space-8) 0;
+  border: 1px solid var(--border);
+}
+.translation-code {
+  background: var(--bg-dark);
+  padding: var(--space-5);
+}
+.translation-code pre {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-on-dark);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.translation-english {
+  background: var(--bg-card);
+  padding: var(--space-5);
+  border-left: 1px solid var(--border);
+}
+.translation-english .line {
+  padding: var(--space-2) 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+.translation-english .line:last-child { border-bottom: none; }
+.translation-english .line strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ========================================
+   FLOW DIAGRAM
+   ======================================== */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: var(--space-8) 0;
+}
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  position: relative;
+  padding-bottom: var(--space-6);
+}
+.flow-step:last-child { padding-bottom: 0; }
+.flow-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.flow-step:not(:last-child) .flow-number::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(var(--space-6) + 4px);
+  background: var(--border);
+}
+.flow-content { flex: 1; padding-top: var(--space-1); }
+.flow-content h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: var(--space-1);
+}
+.flow-content p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ========================================
+   METAPHOR BOX
+   ======================================== */
+.metaphor {
+  background: linear-gradient(135deg, var(--purple-bg) 0%, var(--blue-bg) 100%);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  margin: var(--space-8) 0;
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
+.metaphor-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-3);
+}
+.metaphor p {
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ========================================
+   TOOLTIP
+   ======================================== */
+.tooltip-trigger {
+  border-bottom: 2px dashed var(--accent);
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 500;
+  position: relative;
+}
+.tooltip-trigger:hover {
+  color: var(--accent-light);
+}
+.tooltip-popup {
+  position: fixed;
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 320px;
+  z-index: 9999;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.tooltip-popup.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ========================================
+   QUIZ
+   ======================================== */
+.quiz {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  margin: var(--space-10) 0;
+}
+.quiz h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin-bottom: var(--space-6);
+  margin-top: 0;
+}
+.quiz-question {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-light);
+}
+.quiz-question:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.quiz-question p {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+.quiz-options { list-style: none; }
+.quiz-options li {
+  margin-bottom: var(--space-2);
+}
+.quiz-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+.quiz-btn:hover:not(.disabled) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.quiz-btn.correct {
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: #166534;
+}
+.quiz-btn.wrong {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: #991B1B;
+}
+.quiz-btn.disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.quiz-explanation {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  display: none;
+}
+.quiz-explanation.show { display: block; }
+.quiz-explanation.correct-exp {
+  background: var(--green-bg);
+  color: #166534;
+  border-left: 3px solid var(--green);
+}
+.quiz-explanation.wrong-exp {
+  background: var(--amber-bg);
+  color: #92400E;
+  border-left: 3px solid var(--amber);
+}
+
+/* ========================================
+   STATUS BADGE
+   ======================================== */
+.badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.badge.pending { background: var(--amber-bg); color: #92400E; }
+.badge.approved { background: var(--green-bg); color: #166534; }
+.badge.paid { background: var(--blue-bg); color: #1E40AF; }
+.badge.reversed { background: var(--red-bg); color: #991B1B; }
+.badge.active { background: var(--teal-bg); color: #065F46; }
+.badge.suspended { background: var(--red-bg); color: #991B1B; }
+
+/* ========================================
+   ARCHITECTURE DIAGRAM
+   ======================================== */
+.arch-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) 0;
+  padding: var(--space-8);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.arch-node {
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  min-width: 200px;
+}
+.arch-node.highlight {
+  background: var(--accent);
+  color: white;
+}
+.arch-arrow {
+  color: var(--text-muted);
+  font-size: 1.5rem;
+}
+.arch-row {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ========================================
+   TABLE
+   ======================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-6) 0;
+  font-size: 0.9rem;
+}
+.data-table th {
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.data-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.data-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.data-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+.data-table tr:hover td {
+  background: var(--accent-bg);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+  .module { padding: var(--space-16) var(--space-4) var(--space-12); }
+  .nav-links { display: none; }
+  .translation { grid-template-columns: 1fr; }
+  .translation-english { border-left: none; border-top: 1px solid var(--border); }
+  .card-grid { grid-template-columns: 1fr; }
+  .arch-row { flex-direction: column; }
+  .quiz { padding: var(--space-5); }
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-warm); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ========================================
+   FOOTER
+   ======================================== */
+.course-footer {
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+}
+.course-footer h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin-bottom: var(--space-4);
+}
+.course-footer p {
+  color: var(--text-on-dark-muted);
+  max-width: 500px;
+  margin: 0 auto;
+}
+</style>
+</head>
+<body>
+
+<!-- ========================================
+     NAVIGATION
+     ======================================== -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">salig<span>-affiliate</span></div>
+    <ul class="nav-links">
+      <li><a href="#module1">1. What It Is</a></li>
+      <li><a href="#module2">2. The Actors</a></li>
+      <li><a href="#module3">3. The Journey</a></li>
+      <li><a href="#module4">4. Commissions</a></li>
+      <li><a href="#module5">5. Fraud</a></li>
+      <li><a href="#module6">6. Architecture</a></li>
+      <li><a href="#module7">7. Big Picture</a></li>
+    </ul>
+  </div>
+  <div class="nav-progress" id="navProgress"></div>
+</nav>
+
+<!-- ========================================
+     HERO
+     ======================================== -->
+<section class="hero" id="hero">
+  <div class="hero-content">
+    <div class="hero-badge">📚 Interactive Course</div>
+    <h1>How <span>Affiliate Marketing</span> Actually Works</h1>
+    <p>A step-by-step walkthrough of a real production affiliate system — from the first click to the final payout. No prior technical knowledge needed.</p>
+    <a href="#module1" class="hero-cta">Start Learning →</a>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 1: WHAT IS AFFILIATE MARKETING?
+     ======================================== -->
+<section class="module" id="module1">
+  <div class="module-inner">
+    <div class="module-label">Module 1</div>
+    <h2>What Is Affiliate Marketing — And Why Does It Exist?</h2>
+    <p class="lead">Before we look at any code, let's understand the problem this entire system was built to solve.</p>
+
+    <!-- Screen 1.1: The Problem -->
+    <div class="screen fade-in">
+      <h3>The Problem Every SaaS Owner Faces</h3>
+      <p>Imagine you run a software company — let's call it <strong>TechFlow</strong>. You've built a great product, but nobody knows about it. You need customers, and the traditional ways to get them are expensive:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">📺</div>
+          <h4>Ads</h4>
+          <p>You pay upfront whether anyone buys or not. Risky.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📧</div>
+          <h4>Email Campaigns</h4>
+          <p>People ignore them. Open rates are dropping every year.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🤝</div>
+          <h4>Affiliate Marketing</h4>
+          <p>You <strong>only pay when someone actually brings you a paying customer</strong>. Zero risk.</p>
+        </div>
+      </div>
+
+      <div class="metaphor">
+        <div class="metaphor-label">💡 Think of it like this</div>
+        <p>Affiliate marketing is like having a network of freelance salespeople who only get paid when they close a deal. No salary, no benefits — just a commission on each sale they bring in. It's the ultimate <strong>performance-based</strong> marketing model.</p>
+      </div>
+    </div>
+
+    <!-- Screen 1.2: The Core Concept -->
+    <div class="screen fade-in">
+      <h3>The Core Concept in One Sentence</h3>
+      <p><strong>Affiliate marketing</strong> is when a person (the <em>affiliate</em>) promotes a company's product using a special tracking link. When someone clicks that link and buys the product, the affiliate earns a cut of the sale.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Affiliate gets a unique tracking link</h4>
+            <p>Like <code>yourproduct.com?ref=jamie123</code> — this link identifies which affiliate sent the customer.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Affiliate shares the link with their audience</h4>
+            <p>On their blog, YouTube channel, social media, or newsletter.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>A customer clicks and buys</h4>
+            <p>The system records the click, tracks the purchase, and attributes it to the affiliate.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Affiliate earns a commission</h4>
+            <p>A percentage or fixed amount of the sale goes into the affiliate's account.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 1.3: Why This System Exists -->
+    <div class="screen fade-in">
+      <h3>Why Build an Entire Platform for This?</h3>
+      <p>You might wonder: "Can't this just be a spreadsheet?" For 2 affiliates, maybe. But when you have <strong>dozens of affiliates, multiple campaigns, recurring subscriptions, fraud detection, and payout batches</strong> — you need a real system.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🔗</div>
+          <h4>Tracking</h4>
+          <p>Who clicked what, when, and from where? Every click needs to be recorded and deduplicated.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💰</div>
+          <h4>Commission Calculation</h4>
+          <p>Different campaigns pay differently — percentages, flat fees, recurring rates. The math must be exact.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🛡️</div>
+          <h4>Fraud Prevention</h4>
+          <p>What if an affiliate tries to earn commissions on their own purchases? The system must detect and flag this.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📦</div>
+          <h4>Payout Management</h4>
+          <p>Grouping commissions into batches, tracking which affiliates have been paid, and generating payout reports.</p>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Aha! Moment</strong>
+          <p>This entire codebase — hundreds of files — exists to automate what would otherwise be a nightmare of spreadsheets, manual calculations, and trust issues between SaaS owners and their affiliates.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 1.4: Key Terms -->
+    <div class="screen fade-in">
+      <h3>Key Terms You'll See Throughout This Course</h3>
+      <p>These are the building blocks. We'll use them constantly, so let's get comfortable with them now.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Term</th>
+            <th>What It Means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tenant</strong></td>
+            <td>A SaaS company using this platform (e.g., "TechFlow"). Each tenant has their own isolated data.</td>
+          </tr>
+          <tr>
+            <td><strong>Affiliate</strong></td>
+            <td>A person who promotes a tenant's product and earns commissions on sales they drive.</td>
+          </tr>
+          <tr>
+            <td><strong>Campaign</strong></td>
+            <td>A specific affiliate program with its own commission rules, duration, and settings.</td>
+          </tr>
+          <tr>
+            <td><strong>Click</strong></td>
+            <td>When someone clicks an affiliate's tracking link. The system records this event.</td>
+          </tr>
+          <tr>
+            <td><strong>Conversion</strong></td>
+            <td>When a click results in a paying customer. This is the "sale" event.</td>
+          </tr>
+          <tr>
+            <td><strong>Commission</strong></td>
+            <td>The money the affiliate earns from a conversion. Calculated based on campaign rules.</td>
+          </tr>
+          <tr>
+            <td><strong>Payout</strong></td>
+            <td>The actual payment sent to the affiliate, usually grouped in batches.</td>
+          </tr>
+          <tr>
+            <td><strong>Webhook</strong></td>
+            <td>An automated notification from the payment system telling us "a payment just happened."</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quiz 1 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 1</h3>
+      <div class="quiz-question" data-correct="2">
+        <p>Q1: Why would a SaaS company prefer affiliate marketing over running ads?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Affiliate marketing always reaches more people than ads</button></li>
+          <li><button class="quiz-btn" data-index="1">B) You only pay when an affiliate actually brings you a paying customer</button></li>
+          <li><button class="quiz-btn" data-index="2">C) Affiliate marketing doesn't require any tracking or technology</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! Affiliate marketing is performance-based — you pay commissions only on actual sales, not on impressions or clicks. This makes it zero-risk compared to ads where you pay upfront regardless of results.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. The key advantage is that you only pay when a sale happens — it's performance-based, not reach-based. And it definitely requires sophisticated tracking technology (which is what this entire codebase is!)</div>
+      </div>
+      <div class="quiz-question" data-correct="1">
+        <p>Q2: In this system, what is a "tenant"?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Someone renting office space for the affiliate team</button></li>
+          <li><button class="quiz-btn" data-index="1">B) A SaaS company that uses this platform to run their affiliate program</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The affiliate who promotes the product</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! A "tenant" is a SaaS company (like "TechFlow") that uses this platform. Each tenant has their own completely isolated data — their own affiliates, campaigns, and commissions.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. A "tenant" in this system is the SaaS company that runs the affiliate program — not the affiliate themselves. Think of it like an apartment building: each tenant (company) has their own private space (data) that others can't access.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 2: MEET THE ACTORS
+     ======================================== -->
+<section class="module" id="module2">
+  <div class="module-inner">
+    <div class="module-label">Module 2</div>
+    <h2>Meet the Cast: Who's Involved in Affiliate Marketing?</h2>
+    <p class="lead">Every affiliate system has four key players. Understanding who they are and what they do is essential to understanding how the code works.</p>
+
+    <!-- Screen 2.1: The Four Actors -->
+    <div class="screen fade-in">
+      <h3>The Four Key Players</h3>
+
+      <div class="card-grid">
+        <div class="card" style="border-top: 3px solid var(--accent);">
+          <div class="card-icon">🏢</div>
+          <h4>The SaaS Owner ("Alex")</h4>
+          <p>Runs a software company. Wants to grow their customer base without spending money upfront on ads. Creates campaigns, sets commission rates, approves affiliates, and reviews commissions.</p>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--teal);">
+          <div class="card-icon">📣</div>
+          <h4>The Affiliate ("Jamie")</h4>
+          <p>A content creator, blogger, or marketer. Promotes the SaaS product to their audience. Earns a commission for every customer they bring in. Needs clear dashboards and transparent tracking.</p>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--blue);">
+          <div class="card-icon">🛒</div>
+          <h4>The Customer</h4>
+          <p>The person who clicks an affiliate's link and buys the product. They may not even know they came through an affiliate link — it's transparent to them.</p>
+        </div>
+        <div class="card" style="border-top: 3px solid var(--purple);">
+          <div class="card-icon">⚙️</div>
+          <h4>The Platform (This Codebase)</h4>
+          <p>The automated system that connects everyone. Tracks clicks, calculates commissions, detects fraud, processes payouts, and keeps all the data organized and accurate.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2.2: Multi-Tenant Architecture -->
+    <div class="screen fade-in">
+      <h3>One Platform, Many Companies</h3>
+      <p>Here's what makes this system special: it's <strong>multi-tenant</strong>. That means one installation of this software can serve <strong>many different SaaS companies</strong> simultaneously, and each company's data is completely isolated from the others.</p>
+
+      <div class="metaphor">
+        <div class="metaphor-label">💡 Think of it like this</div>
+        <p>Imagine an office building where each company has its own locked floor. They all share the same building (the platform), but TechFlow can't see what's happening on GHL Agency Pro's floor, and vice versa. Every piece of data — every affiliate, every commission — is tagged with a <code>tenantId</code> that keeps it in the right company's "floor."</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">convex/schema.ts — Every table has tenantId</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// Every single table includes tenantId</span>
+<span class="cm">// This is how data isolation works</span>
+
+<span class="kw">affiliates</span>: <span class="fn">defineTable</span>({
+  <span class="type">tenantId</span>: <span class="fn">v.id</span>(<span class="str">"tenants"</span>),  <span class="cm">// ← The lock on the door</span>
+  <span class="type">email</span>: <span class="fn">v.string</span>(),
+  <span class="type">name</span>: <span class="fn">v.string</span>(),
+  <span class="type">uniqueCode</span>: <span class="fn">v.string</span>(),
+  <span class="type">status</span>: <span class="fn">v.string</span>(),
+  <span class="cm">// ... more fields</span>
+}).<span class="fn">index</span>(<span class="str">"by_tenant"</span>, [<span class="str">"tenantId"</span>])</pre>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Why this matters for you</strong>
+          <p>When you tell an AI coding tool to "add a feature," you need to know which tenant's data it should affect. Almost every query in this system starts by looking up the current user's <code>tenantId</code> — it's the first line of defense against data leaks.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2.3: Roles Within a Tenant -->
+    <div class="screen fade-in">
+      <h3>Roles: Not Everyone Has the Same Power</h3>
+      <p>Within each tenant (SaaS company), people have different roles that control what they can do. This is enforced through a <span class="tooltip-trigger" data-tip="A system that checks whether a user has permission to perform a specific action. Like a bouncer checking if you're on the VIP list.">permission system</span>.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>What They Can Do</th>
+          </tr>
+        </thead>
+<tbody>
+          <tr>
+            <td><strong>Owner</strong></td>
+            <td>Full access — create campaigns, manage affiliates, approve commissions, generate payouts, manage team</td>
+          </tr>
+          <tr>
+            <td><strong>Manager</strong></td>
+            <td>Can manage affiliates and campaigns, but may have limited access to billing and team settings</td>
+          </tr>
+          <tr>
+            <td><strong>Member</strong></td>
+            <td>View-only access — can see dashboards and reports but can't make changes</td>
+          </tr>
+          <tr>
+            <td><strong>Affiliate</strong></td>
+            <td>External user — can only see their own performance data, commissions, and referral links</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">convex/affiliates.ts — Permission check example</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// Before allowing someone to approve/reject</span>
+<span class="cm">// an affiliate, check their role:</span>
+
+<span class="kw">const</span> role = authUser.role;
+<span class="kw">if</span> (!<span class="fn">hasPermission</span>(role, <span class="str">"affiliates:manage"</span>)
+    && !<span class="fn">hasPermission</span>(role, <span class="str">"manage:*"</span>)) {
+  <span class="cm">// Log the unauthorized attempt</span>
+  <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Access denied"</span>);
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz 2 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 2</h3>
+      <div class="quiz-question" data-correct="2">
+        <p>Q1: If TechFlow and GHL Agency Pro both use this platform, can TechFlow see GHL Agency Pro's affiliate data?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Yes, because they share the same database</button></li>
+          <li><button class="quiz-btn" data-index="1">B) Only if they have the same plan tier</button></li>
+          <li><button class="quiz-btn" data-index="2">C) No, every query is filtered by tenantId to keep data completely isolated</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! The multi-tenant architecture means every single database query includes a <code>tenantId</code> filter. TechFlow's data and GHL Agency Pro's data live in the same database but are completely separated by this tenant boundary.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. Even though they share the same database, every query is filtered by <code>tenantId</code>. This is the core of multi-tenant isolation — no tenant can ever see another tenant's data, regardless of plan or any other factor.</div>
+      </div>
+      <div class="quiz-question" data-correct="1">
+        <p>Q2: You want to add a "export commissions" button. Who should be able to see it?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Everyone — it's just a read-only export</button></li>
+          <li><button class="quiz-btn" data-index="1">B) Owners and Managers with the right permission, not Members or Affiliates</button></li>
+          <li><button class="quiz-btn" data-index="2">C) Only the Platform Admin</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! Exporting data is a management action. In this system, you'd check for the appropriate permission (like <code>canViewCommissions</code>) before showing the button. Affiliates see only their own data, and Members typically have view-only access to dashboards.</div>
+        <div class="quiz-explanation wrong-exp">Think about the permission system. Not everyone should have access to export data — that could expose sensitive financial information. The right approach is to check the user's role and permissions before showing the feature.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 3: THE AFFILIATE JOURNEY
+     ======================================== -->
+<section class="module" id="module3">
+  <div class="module-inner">
+    <div class="module-label">Module 3</div>
+    <h2>The Complete Affiliate Journey: From Click to Cash</h2>
+    <p class="lead">This is the heart of the system. We'll trace exactly what happens from the moment someone clicks an affiliate link to the moment money lands in the affiliate's account.</p>
+
+    <!-- Screen 3.1: The Big Picture -->
+    <div class="screen fade-in">
+      <h3>The Five-Stage Journey</h3>
+      <p>Every affiliate earning follows the same five-stage pipeline. If any stage breaks, the affiliate doesn't get paid. Let's walk through each one.</p>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-node highlight">1. Click</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node highlight">2. Conversion</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node highlight">3. Commission</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node highlight">4. Approval</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node highlight">5. Payout</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">📋</div>
+        <div class="callout-content">
+          <strong>The chain must stay unbroken</strong>
+          <p>If a click isn't recorded, there's no attribution. If a conversion isn't linked to a click, there's no commission. If a commission isn't approved, there's no payout. Each stage depends on the previous one.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.2: Stage 1 — The Click -->
+    <div class="screen fade-in">
+      <h3>Stage 1: The Click — "Someone Followed the Link"</h3>
+      <p>When a potential customer clicks an affiliate's tracking link, the system records this event. This is the <strong>first link in the attribution chain</strong>.</p>
+
+      <div class="metaphor">
+        <div class="metaphor-label">💡 Think of it like this</div>
+        <p>Imagine a retail store where every salesperson has their own colored nametag. When a customer walks in wearing a "referred by Jamie" sticker, the store knows exactly who to credit if that customer buys something. The click is the moment the customer puts on that sticker.</p>
+      </div>
+
+      <p>Here's what the system does when a click happens:</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Resolve the referral link</h4>
+            <p>The system looks up the affiliate code in the URL and finds which affiliate it belongs to. It also checks if the affiliate is still active (suspended affiliates' links return 404).</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Check for duplicate clicks</h4>
+            <p>If the same person clicks the same link multiple times within a short window, only the first click counts. This prevents inflating click numbers.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Record the click</h4>
+            <p>The system stores the click with the affiliate ID, IP address, user agent, referrer, and a unique deduplication key.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Set an attribution cookie</h4>
+            <p>A cookie is placed in the customer's browser so that when they eventually buy, the system knows which affiliate to credit. This cookie has an expiration window (typically 30 days, configurable per campaign).</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/clicks.ts — trackClickInternal</span>
+
+<span class="cm">// Check for existing click by dedupeKey</span>
+<span class="kw">const</span> existingClick = <span class="kw">await</span> ctx.db
+  .<span class="fn">query</span>(<span class="str">"clicks"</span>)
+  .<span class="fn">withIndex</span>(<span class="str">"by_dedupe_key"</span>,
+    (q) => q.<span class="fn">eq</span>(<span class="str">"dedupeKey"</span>, args.dedupeKey)
+  )
+  .<span class="fn">first</span>();
+
+<span class="kw">if</span> (existingClick) {
+  <span class="cm">// Duplicate — skip, don't create new record</span>
+  <span class="kw">return</span> { clickId: existingClick._id, <span class="type">isNew</span>: <span class="kw">false</span> };
+}
+
+<span class="cm">// Not a duplicate — create new click record</span>
+<span class="kw">const</span> clickId = <span class="kw">await</span> ctx.db.<span class="fn">insert</span>(<span class="str">"clicks"</span>, {
+  <span class="type">tenantId</span>: args.tenantId,
+  <span class="type">referralLinkId</span>: args.referralLinkId,
+  <span class="type">affiliateId</span>: args.affiliateId,
+  <span class="type">ipAddress</span>: args.ipAddress,
+  <span class="type">dedupeKey</span>: args.dedupeKey,
+});</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Look up</strong> the clicks table using the deduplication key — a unique identifier for this specific click event.</div>
+          <div class="line"><strong>If a click already exists</strong> with this key, return the existing record and mark it as not new. This prevents double-counting.</div>
+          <div class="line"><strong>If it's a new click</strong>, insert a fresh record into the database with all the tracking data: which tenant, which affiliate, the IP address, and the dedup key.</div>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Why deduplication matters</strong>
+          <p>Without deduplication, a single person refreshing the page 10 times would count as 10 clicks. This would inflate metrics and make it impossible to calculate accurate conversion rates. The <code>dedupeKey</code> is typically a hash of the IP address + timestamp window.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.3: Stage 2 — The Conversion -->
+    <div class="screen fade-in">
+      <h3>Stage 2: The Conversion — "They Actually Bought Something"</h3>
+      <p>A click means nothing if the person doesn't buy. A <strong>conversion</strong> is when a click results in a paying customer. This is where the money happens.</p>
+
+      <p>Conversions can come from three different sources:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🍪</div>
+          <h4>Cookie Attribution</h4>
+          <p>The customer had an affiliate's tracking cookie in their browser when they purchased. The system reads the cookie and attributes the sale to that affiliate.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔔</div>
+          <h4>Webhook Attribution</h4>
+          <p>The payment system (SaligPay) sends a <span class="tooltip-trigger" data-tip="An automated HTTP notification sent by one system to another when an event occurs. Like a doorbell that rings when a package is delivered.">webhook</span> notification saying "payment received." The webhook includes the affiliate code in its metadata, so the system knows who to credit.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌿</div>
+          <h4>Organic (No Affiliate)</h4>
+          <p>A customer bought without coming through any affiliate link. The system still records this as an "organic conversion" for analytics, but no commission is created.</p>
+        </div>
+      </div>
+
+      <div class="callout warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong>The Cookie Window</strong>
+          <p>Affiliate cookies don't last forever. Each campaign has a <code>cookieDuration</code> (default 30 days). If a customer clicks an affiliate link but doesn't buy within 30 days, the cookie expires and the affiliate gets no credit. This is configurable per campaign.</p>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/conversions.ts</span>
+<span class="cm">// findRecentClickInternal — attribution chain</span>
+
+<span class="cm">// Use campaign-specific window or default 30 days</span>
+<span class="kw">const</span> windowDays = args.attributionWindowDays ?? <span class="num">30</span>;
+<span class="kw">const</span> cutoffTime = Date.<span class="fn">now</span>() - attributionWindowMs;
+
+<span class="cm">// Find recent clicks for this affiliate</span>
+<span class="kw">const</span> clicks = <span class="kw">await</span> ctx.db
+  .<span class="fn">query</span>(<span class="str">"clicks"</span>)
+  .<span class="fn">withIndex</span>(<span class="str">"by_affiliate"</span>,
+    (q) => q.<span class="fn">eq</span>(<span class="str">"affiliateId"</span>, args.affiliateId)
+  )
+  .<span class="fn">order</span>(<span class="str">"desc"</span>)
+  .<span class="fn">take</span>(<span class="num">20</span>);
+
+<span class="cm">// Find most recent click within window</span>
+<span class="kw">for</span> (<span class="kw">const</span> click <span class="kw">of</span> clicks) {
+  <span class="kw">if</span> (click._creationTime < cutoffTime) <span class="kw">break</span>;
+  <span class="kw">return</span> { _id: click._id, <span class="type">referralLinkId</span>: click.referralLinkId };
+}</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Set the attribution window</strong> — how far back to look for clicks. Defaults to 30 days but can be customized per campaign.</div>
+          <div class="line"><strong>Fetch the 20 most recent clicks</strong> for this affiliate, ordered newest first. We don't need to scan the entire table — just recent ones.</div>
+          <div class="line"><strong>Walk through clicks</strong> until we find one within the attribution window. If the click is too old, stop looking. Return the most recent valid click to link the conversion to.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.4: Stage 3 — The Commission -->
+    <div class="screen fade-in">
+      <h3>Stage 3: The Commission — "Here's What You Earned"</h3>
+      <p>Once a conversion is recorded, the system calculates how much the affiliate earns. This is where the campaign's commission rules come into play.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Check campaign status</h4>
+            <p>Is the campaign still active? Paused and archived campaigns cannot earn new commissions. This prevents paying commissions for products that are no longer being promoted.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Calculate the commission amount</h4>
+            <p>Based on the campaign's commission type: <strong>percentage</strong> (e.g., 20% of sale) or <strong>flat fee</strong> (e.g., $50 per sale). If the affiliate has a custom override rate, that takes priority.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Run self-referral detection</h4>
+            <p>Check if the customer might be the affiliate themselves trying to earn a commission on their own purchase. If detected, the commission is flagged for review.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Set commission status</h4>
+            <p>Commissions start as <span class="badge pending">Pending</span> by default. If the campaign has auto-approval enabled and the amount is below the threshold, it becomes <span class="badge approved">Approved</span> immediately.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/commissions.ts</span>
+<span class="cm">// createCommissionFromConversionInternal</span>
+
+<span class="cm">// Get effective rate (override or campaign default)</span>
+<span class="kw">const</span> effectiveRate = affiliate
+  .commissionOverrides?.<span class="fn">find</span>(
+    (o) => o.campaignId === args.campaignId
+        && o.status === <span class="str">"active"</span>
+  )?.rate ?? campaign.commissionValue;
+
+<span class="cm">// Calculate based on campaign type</span>
+<span class="kw">let</span> commissionAmount;
+<span class="kw">if</span> (campaign.commissionType === <span class="str">"percentage"</span>) {
+  commissionAmount = saleAmount * (effectiveRate / <span class="num">100</span>);
+} <span class="kw">else</span> {
+  <span class="cm">// flatFee — the rate IS the amount</span>
+  commissionAmount = effectiveRate;
+}</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Find the commission rate</strong> — first check if this affiliate has a custom override for this campaign. If yes, use the override. If not, use the campaign's default rate.</div>
+          <div class="line"><strong>Calculate the amount</strong> — if it's a percentage campaign, multiply the sale amount by the rate. If it's a flat fee, the rate IS the commission amount regardless of sale size.</div>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Commission Status Flow</strong>
+          <p>Commissions follow a strict lifecycle: <span class="badge pending">Pending</span> → <span class="badge approved">Approved</span> → <span class="badge paid">Paid</span>. They can also go to <span class="badge reversed">Reversed</span> (if a refund happens) or <span class="badge suspended">Declined</span> (if the owner rejects them). Once a commission is paid, it's linked to a payout batch.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.5: Stage 4 — Approval -->
+    <div class="screen fade-in">
+      <h3>Stage 4: Commission Approval — "Is This Legitimate?"</h3>
+      <p>Not every commission should be paid automatically. The system has multiple layers of review:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">✅</div>
+          <h4>Auto-Approval</h4>
+          <p>If the campaign has <code>autoApproveCommissions</code> enabled and the commission is below the <code>approvalThreshold</code>, it's approved automatically. Small commissions don't need human review.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h4>Manual Review</h4>
+          <p>Large commissions (above the threshold) or those flagged for fraud require the SaaS Owner to manually review and approve them before they can be paid out.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🚫</div>
+          <h4>Reversal</h4>
+          <p>If a customer requests a refund or files a chargeback, the system automatically reverses the associated commission. The affiliate doesn't get paid for refunded sales.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">convex/commissions.ts — approveCommission</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// Manual approval — SaaS Owner reviews a pending commission</span>
+
+<span class="cm">// 1. Verify user is authenticated</span>
+<span class="kw">const</span> user = <span class="kw">await</span> <span class="fn">getAuthenticatedUser</span>(ctx);
+
+<span class="cm">// 2. Verify commission exists and belongs to this tenant</span>
+<span class="kw">const</span> commission = <span class="kw">await</span> ctx.db.<span class="fn">get</span>(args.commissionId);
+<span class="kw">if</span> (commission.tenantId !== user.tenantId) {
+  <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Unauthorized"</span>);
+}
+
+<span class="cm">// 3. Only pending commissions can be approved</span>
+<span class="kw">if</span> (commission.status !== <span class="str">"pending"</span>) {
+  <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Only pending commissions can be approved"</span>);
+}
+
+<span class="cm">// 4. Update status to approved</span>
+<span class="kw">await</span> ctx.db.<span class="fn">patch</span>(args.commissionId, {
+  <span class="type">status</span>: <span class="str">"approved"</span>,
+});
+
+<span class="cm">// 5. Log audit trail and send notification email</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.6: Stage 5 — The Payout -->
+    <div class="screen fade-in">
+      <h3>Stage 5: The Payout — "Getting Paid"</h3>
+      <p>Once commissions are approved, they're grouped into <strong>payout batches</strong> and the affiliate receives their money. Here's how it works:</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Generate a payout batch</h4>
+            <p>The SaaS Owner clicks "Generate Payout." The system finds all approved commissions that haven't been paid yet and groups them by affiliate.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Create individual payout records</h4>
+            <p>Each affiliate gets one payout record in the batch with their total amount. The system also creates a CSV file that can be used for bank transfers.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Mark payouts as paid</h4>
+            <p>The owner processes the payments (via bank transfer, PayPal, etc.) and marks each payout as paid in the system. This can be done individually or for the entire batch at once.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>Update commissions and notify</h4>
+            <p>All commissions in the batch are updated to <span class="badge paid">Paid</span> status. The affiliate receives an email notification that their payment has been sent.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/payouts.ts — generatePayoutBatch</span>
+
+<span class="cm">// Find all approved, unpaid commissions</span>
+<span class="kw">const</span> commissions = <span class="kw">await</span> ctx.db
+  .<span class="fn">query</span>(<span class="str">"commissions"</span>)
+  .<span class="fn">withIndex</span>(<span class="str">"by_tenant_and_status"</span>,
+    (q) => q.<span class="fn">eq</span>(<span class="str">"tenantId"</span>, tenantId)
+           .<span class="fn">eq</span>(<span class="str">"status"</span>, <span class="str">"approved"</span>)
+  )
+  .<span class="fn">collect</span>();
+
+<span class="cm">// Filter out commissions already in a batch</span>
+<span class="kw">const</span> unpaidCommissions = commissions
+  .<span class="fn">filter</span>((c) => !c.batchId);
+
+<span class="cm">// Group by affiliate and sum amounts</span>
+<span class="kw">for</span> (<span class="kw">const</span> comm <span class="kw">of</span> unpaidCommissions) {
+  <span class="kw">const</span> existing = affiliateCommissions
+    .<span class="fn">get</span>(comm.affiliateId) ?? { <span class="type">amount</span>: <span class="num">0</span>, <span class="type">count</span>: <span class="num">0</span> };
+  existing.amount += comm.amount;
+  existing.count += <span class="num">1</span>;
+  affiliateCommissions.<span class="fn">set</span>(comm.affiliateId, existing);
+}</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Find all approved commissions</strong> for this tenant — these are commissions that have been reviewed and are ready to be paid.</div>
+          <div class="line"><strong>Filter out already-paid commissions</strong> — if a commission already has a <code>batchId</code>, it's been included in a previous payout. Don't pay twice!</div>
+          <div class="line"><strong>Group by affiliate</strong> — for each affiliate, sum up all their unpaid commissions. This gives us the total amount each affiliate is owed.</div>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Tier Limits Apply to Payouts Too</strong>
+          <p>The system enforces plan-based limits on how many payouts can be generated per month. A "Starter" plan might allow only 2 payout batches per month, while "Scale" allows unlimited. This prevents abuse and encourages plan upgrades.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz 3 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 3</h3>
+      <div class="quiz-question" data-correct="2">
+        <p>Q1: A customer clicks an affiliate link but doesn't buy anything for 45 days. The campaign's cookie duration is 30 days. What happens?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) The affiliate still gets credit because the click was recorded</button></li>
+          <li><button class="quiz-btn" data-index="1">B) The system extends the cookie automatically to 45 days</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The cookie has expired, so the sale is recorded as organic — no commission is created</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! The cookie has an expiration window (30 days by default). After that window closes, the system can no longer attribute the sale to the affiliate. The conversion is still recorded as "organic" for analytics, but no commission is generated.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. Cookie duration is a hard limit — once it expires, the attribution link is broken. The system doesn't extend cookies automatically. This is actually configurable per campaign, but the default is 30 days and it's strictly enforced.</div>
+      </div>
+      <div class="quiz-question" data-correct="1">
+        <p>Q2: You notice a commission is stuck in "pending" status. What are the possible reasons?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) The system is broken — it should auto-approve everything</button></li>
+          <li><button class="quiz-btn" data-index="1">B) Either the campaign doesn't have auto-approval enabled, or the commission amount exceeds the approval threshold, or it was flagged for fraud review</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The affiliate hasn't set up their payout method yet</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! Commissions stay pending when: (1) auto-approval is disabled on the campaign, (2) the amount exceeds the threshold requiring manual review, or (3) fraud detection flagged it. The SaaS Owner needs to manually approve it before it can be paid.</div>
+        <div class="quiz-explanation wrong-exp">Think about the commission approval flow. Auto-approval isn't always enabled, and large commissions often require human review. Also, fraud detection can flag commissions for manual review. The payout method doesn't affect commission status — it only affects whether the payout can be processed.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 4: CAMPAIGN TYPES & COMMISSIONS
+     ======================================== -->
+<section class="module" id="module4">
+  <div class="module-inner">
+    <div class="module-label">Module 4</div>
+    <h2>Campaign Types & Commission Structures</h2>
+    <p class="lead">Not all affiliate programs pay the same way. Campaigns define the rules of the game — how much affiliates earn, how long cookies last, and whether recurring payments generate ongoing commissions.</p>
+
+    <!-- Screen 4.1: Commission Types -->
+    <div class="screen fade-in">
+      <h3>Two Ways to Pay Affiliates</h3>
+      <p>Every campaign uses one of two commission types. This is the most fundamental decision a SaaS Owner makes when setting up an affiliate program.</p>
+
+      <div class="card-grid">
+        <div class="card" style="border-left: 4px solid var(--accent);">
+          <h4>📊 Percentage Commission</h4>
+          <p style="margin-bottom: var(--space-3);">The affiliate earns a percentage of each sale. If the sale is ₱5,000 and the rate is 20%, the affiliate earns ₱1,000.</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);"><strong>Best for:</strong> Products with varying prices. The affiliate's earnings scale with the sale amount.</p>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--teal);">
+          <h4>💵 Flat Fee Commission</h4>
+          <p style="margin-bottom: var(--space-3);">The affiliate earns a fixed amount per sale, regardless of the sale price. Every conversion earns exactly ₱500.</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);"><strong>Best for:</strong> Products with a single price point or when you want predictable commission costs.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">convex/commissions.ts — Commission calculation</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// The actual calculation logic</span>
+
+<span class="kw">if</span> (campaign.commissionType === <span class="str">"percentage"</span>) {
+  <span class="cm">// ₱5,000 sale × 20% = ₱1,000 commission</span>
+  commissionAmount = saleAmount * (effectiveRate / <span class="num">100</span>);
+} <span class="kw">else</span> {
+  <span class="cm">// Flat fee — always ₱500 regardless of sale amount</span>
+  commissionAmount = effectiveRate;
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4.2: Recurring Commissions -->
+    <div class="screen fade-in">
+      <h3>Recurring Commissions — "Earn on Every Renewal"</h3>
+      <p>For subscription products, affiliates can earn commissions not just on the initial sale, but on every renewal too. This is a powerful incentive for affiliates to promote subscription products.</p>
+
+      <div class="metaphor">
+        <div class="metaphor-label">💡 Think of it like this</div>
+        <p>Imagine a real estate agent who doesn't just get paid when you buy a house — they also get a small cut every month you live in it. That's recurring commissions. The affiliate keeps earning as long as the customer stays subscribed.</p>
+      </div>
+
+      <p>Campaigns can configure recurring commissions in three ways:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Rate Type</th>
+            <th>How It Works</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Same</strong></td>
+            <td>Recurring commissions use the same rate as the initial sale</td>
+            <td>20% on signup, 20% on every renewal</td>
+          </tr>
+          <tr>
+            <td><strong>Reduced</strong></td>
+            <td>Recurring commissions use a lower rate (default 50% of initial)</td>
+            <td>20% on signup, 10% on every renewal</td>
+          </tr>
+          <tr>
+            <td><strong>Custom</strong></td>
+            <td>Recurring commissions use a specific rate set by the owner</td>
+            <td>20% on signup, 15% on every renewal</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/commissionEngine.ts</span>
+<span class="cm">// calculateRecurringCommissionAmount</span>
+
+<span class="kw">switch</span> (campaign.recurringRateType) {
+  <span class="kw">case</span> <span class="str">"same"</span>:
+    rate = campaign.commissionValue;
+    <span class="kw">break</span>;
+  <span class="kw">case</span> <span class="str">"reduced"</span>:
+    <span class="cm">// Default: 50% of initial rate</span>
+    rate = campaign.recurringRate
+      ?? (campaign.commissionValue * <span class="num">0.5</span>);
+    <span class="kw">break</span>;
+  <span class="kw">case</span> <span class="str">"custom"</span>:
+    rate = campaign.recurringRate
+      ?? campaign.commissionValue;
+    <span class="kw">break</span>;
+}
+
+<span class="kw">if</span> (campaign.commissionType === <span class="str">"percentage"</span>) {
+  <span class="kw">return</span> saleAmount * (rate / <span class="num">100</span>);
+} <span class="kw">else</span> {
+  <span class="kw">return</span> rate;
+}</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Determine the recurring rate</strong> based on the campaign's configuration. "Same" uses the original rate, "reduced" halves it (or uses a custom reduced rate), and "custom" uses whatever rate the owner specified.</div>
+          <div class="line"><strong>Apply the rate</strong> using the same percentage or flat-fee logic as the initial commission. The calculation method is consistent — only the rate changes.</div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">📋</div>
+        <div class="callout-content">
+          <strong>Subscription Lifecycle Events</strong>
+          <p>The system handles four subscription events via webhooks: <code>subscription.created</code> (initial sale), <code>subscription.updated</code> (renewal/upgrade/downgrade), <code>subscription.cancelled</code> (customer left), and <code>refund.created</code> (money returned). Each triggers different commission logic.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4.3: Auto-Approval Thresholds -->
+    <div class="screen fade-in">
+      <h3>Auto-Approval Thresholds — "Trust but Verify"</h3>
+      <p>SaaS Owners can configure campaigns to automatically approve small commissions while requiring manual review for larger ones. This balances speed with control.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Auto-approval is enabled</h4>
+            <p>The campaign has <code>autoApproveCommissions: true</code>.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Check the threshold</h4>
+            <p>If a threshold is set (e.g., ₱1,000), commissions below that amount are auto-approved. Commissions at or above the threshold require manual review.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>No threshold = approve all</h4>
+            <p>If auto-approval is enabled but no threshold is set, ALL commissions are auto-approved regardless of amount.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong>Fraud Detection Overrides Auto-Approval</strong>
+          <p>Even if a commission would normally be auto-approved, if the self-referral detection system flags it, the commission is forced into "pending" status for manual review. Fraud detection always takes priority.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4.4: Affiliate Overrides -->
+    <div class="screen fade-in">
+      <h3>Per-Affiliate Commission Overrides</h3>
+      <p>Sometimes you want to give a specific affiliate a different commission rate than the campaign default. Maybe they're a top performer who negotiated a better deal, or maybe they're new and you want to offer a trial rate.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">convex/schema.ts — commissionOverrides field</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// Each affiliate can have custom rates per campaign</span>
+<span class="type">commissionOverrides</span>: <span class="fn">v.array</span>(<span class="fn">v.object</span>({
+  <span class="type">campaignId</span>: <span class="fn">v.id</span>(<span class="str">"campaigns"</span>),
+  <span class="type">rate</span>: <span class="fn">v.number</span>(),
+  <span class="type">status</span>: <span class="fn">v.union</span>(
+    <span class="fn">v.literal</span>(<span class="str">"active"</span>),
+    <span class="fn">v.literal</span>(<span class="str">"paused"</span>),
+  ),
+}))</pre>
+        </div>
+      </div>
+
+      <p>When calculating a commission, the system first checks for an override. If one exists and is active, it uses that rate instead of the campaign default.</p>
+    </div>
+
+    <!-- Quiz 4 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 4</h3>
+      <div class="quiz-question" data-correct="1">
+        <p>Q1: A campaign has a 20% percentage commission with recurring commissions enabled at "reduced" rate. A customer pays ₱1,000/month. How much does the affiliate earn on the second month's renewal?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) ₱200 (same as the first month)</button></li>
+          <li><button class="quiz-btn" data-index="1">B) ₱100 (50% of the initial 20% rate = 10% of ₱1,000)</button></li>
+          <li><button class="quiz-btn" data-index="2">C) ₱0 (recurring commissions only apply to flat-fee campaigns)</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! The "reduced" rate type defaults to 50% of the initial rate. So 20% → 10% for renewals. 10% of ₱1,000 = ₱100. The affiliate earns ₱200 on the first month and ₱100 on each subsequent month.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. "Reduced" means the recurring rate is 50% of the initial rate by default. So 20% becomes 10% for renewals. And recurring commissions work for both percentage and flat-fee campaigns.</div>
+      </div>
+      <div class="quiz-question" data-correct="2">
+        <p>Q2: An affiliate has a custom override rate of 30% on Campaign A. Campaign A's default rate is 20%. What rate is used when calculating this affiliate's commissions?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) 20% — the campaign default always takes priority</button></li>
+          <li><button class="quiz-btn" data-index="1">B) 25% — the system averages the two rates</button></li>
+          <li><button class="quiz-btn" data-index="2">C) 30% — the affiliate's override takes priority over the campaign default</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! The system checks for an affiliate-specific override first. If one exists and is active, it uses that rate instead of the campaign default. This allows SaaS Owners to negotiate custom deals with top performers.</div>
+        <div class="quiz-explanation wrong-exp">Think about the order of priority. The system checks for affiliate overrides BEFORE falling back to the campaign default. The override is specifically designed to let you give certain affiliates different rates.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 5: FRAUD DETECTION
+     ======================================== -->
+<section class="module" id="module5">
+  <div class="module-inner">
+    <div class="module-label">Module 5</div>
+    <h2>Fraud Detection — Keeping the System Honest</h2>
+    <p class="lead">When money is involved, some people will try to game the system. This module explains how the platform detects and prevents affiliate fraud — specifically the most common type: self-referral.</p>
+
+    <!-- Screen 5.1: What is Self-Referral Fraud? -->
+    <div class="screen fade-in">
+      <h3>What Is Self-Referral Fraud?</h3>
+      <p>Self-referral fraud happens when an affiliate tries to earn a commission on their own purchase. Imagine being a salesperson who gets a commission every time you buy something from your own store — that's exactly what this is.</p>
+
+      <div class="metaphor">
+        <div class="metaphor-label">💡 Think of it like this</div>
+        <p>It's like a restaurant waiter who rings up their own meals as "customer orders" so they can collect tips from themselves. The restaurant is paying out money for sales that didn't actually come from real customers.</p>
+      </div>
+
+      <p>The system detects self-referral by comparing data points between the affiliate and the customer:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">📧</div>
+          <h4>Email Match (3 points)</h4>
+          <p>The customer's email matches the affiliate's email. This is the strongest signal — if the buyer and the affiliate share an email, it's almost certainly self-referral.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <h4>IP Match (3 points) or Subnet Match (1 point)</h4>
+          <p>The customer's IP address matches the affiliate's login IP. A subnet match (same network, like same office or home WiFi) is a weaker signal.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💻</div>
+          <h4>Device Fingerprint Match (2 points)</h4>
+          <p>The customer's device fingerprint matches the affiliate's device. This catches people using the same computer for both accounts.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💳</div>
+          <h4>Payment Method Match (2 points)</h4>
+          <p>The customer's payment method (last 4 digits or processor ID) matches the affiliate's payout method. Same credit card = same person.</p>
+        </div>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Weighted Scoring System</strong>
+          <p>The system uses a weighted scoring approach. Each matched indicator contributes points. If the total score reaches <strong>3 or higher</strong>, the conversion is flagged as self-referral. This is calibrated for the Philippine/SEA market where shared networks (office WiFi, family devices) are common — a single subnet match alone (1 point) won't trigger a false positive.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 5.2: How Detection Works -->
+    <div class="screen fade-in">
+      <h3>How Detection Works in the Code</h3>
+      <p>Self-referral detection runs automatically every time a commission is created. It's built into the <code>createCommissionFromConversionInternal</code> function.</p>
+
+      <div class="translation">
+        <div class="translation-code">
+<pre><span class="cm">// convex/fraudDetection.ts — detectSelfReferral</span>
+
+<span class="cm">// Compare email (case-insensitive)</span>
+<span class="kw">if</span> (conversion.customerEmail
+    && affiliate.email) {
+  <span class="kw">if</span> (conversion.customerEmail
+      .<span class="fn">toLowerCase</span>()
+      === affiliate.email.<span class="fn">toLowerCase</span>()) {
+    matchedIndicators.<span class="fn">push</span>(<span class="str">"email_match"</span>);
+  }
+}
+
+<span class="cm">// Compare IP address (exact or /24 subnet)</span>
+<span class="kw">if</span> (conversion.ipAddress
+    && affiliate.lastLoginIp) {
+  <span class="kw">if</span> (conversion.ipAddress
+      === affiliate.lastLoginIp) {
+    matchedIndicators.<span class="fn">push</span>(<span class="str">"ip_match"</span>);
+  } <span class="kw">else if</span> (<span class="fn">isSameSubnet</span>(
+    conversion.ipAddress,
+    affiliate.lastLoginIp, <span class="num">24</span>
+  )) {
+    matchedIndicators.<span class="fn">push</span>(<span class="str">"ip_subnet_match"</span>);
+  }
+}
+
+<span class="cm">// Calculate weighted score</span>
+<span class="kw">const</span> totalScore = matchedIndicators
+  .<span class="fn">reduce</span>((sum, indicator) =>
+    sum + (SIGNAL_WEIGHTS[indicator] ?? <span class="num">1</span>), <span class="num">0</span>
+  );
+
+<span class="kw">const</span> isSelfReferral = totalScore >= <span class="num">3</span>;</pre>
+        </div>
+        <div class="translation-english">
+          <div class="line"><strong>Check email match</strong> — compare the customer's email with the affiliate's email, ignoring case. If they match, add "email_match" (3 points).</div>
+          <div class="line"><strong>Check IP match</strong> — first check for an exact IP match (3 points). If not exact, check if they're on the same /24 subnet (1 point). This catches shared networks without false-flagging entire offices.</div>
+          <div class="line"><strong>Calculate the score</strong> — add up the weights of all matched indicators. Email match alone (3 points) triggers detection. IP subnet + device match (1+2=3) also triggers it.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 5.3: What Happens When Fraud is Detected -->
+    <div class="screen fade-in">
+      <h3>What Happens When Fraud Is Detected</h3>
+      <p>When self-referral is detected, the system takes several actions automatically:</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-number">1</div>
+          <div class="flow-content">
+            <h4>Commission is flagged</h4>
+            <p>The commission gets <code>isSelfReferral: true</code> and <code>fraudIndicators</code> listing which signals matched (e.g., ["email_match", "ip_match"]).</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">2</div>
+          <div class="flow-content">
+            <h4>Commission stays pending</h4>
+            <p>Even if the campaign has auto-approval enabled, self-referral commissions are forced into "pending" status for manual review.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">3</div>
+          <div class="flow-content">
+            <h4>Fraud signal is added to affiliate record</h4>
+            <p>A fraud signal entry is added to the affiliate's <code>fraudSignals</code> array with details about what was detected and when.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">4</div>
+          <div class="flow-content">
+            <h4>SaaS Owner is notified</h4>
+            <p>A fraud alert email is scheduled to be sent to the SaaS Owner, informing them of the suspicious activity.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-number">5</div>
+          <div class="flow-content">
+            <h4>Audit trail is logged</h4>
+            <p>A security event is logged to the audit trail with full details for compliance and investigation purposes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 5.4: Commission Reversal -->
+    <div class="screen fade-in">
+      <h3>Commission Reversal — "Taking Back the Money"</h3>
+      <p>Sometimes a commission needs to be reversed after it's been created. This happens in two scenarios:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">↩️</div>
+          <h4>Refund</h4>
+          <p>The customer requested and received a refund. The commission for that sale must be reversed since the sale no longer exists.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🏦</div>
+          <h4>Chargeback</h4>
+          <p>The customer disputed the charge with their bank. The payment was forcibly reversed, and the commission must be reversed too. Chargebacks also add a fraud signal.</p>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        <div class="callout-icon">🚨</div>
+        <div class="callout-content">
+          <strong>Only Reversible Commissions</strong>
+          <p>Only commissions with status <span class="badge pending">Pending</span> or <span class="badge approved">Approved</span> can be reversed. Once a commission is <span class="badge paid">Paid</span>, it's already been sent to the affiliate and can't be automatically reversed — that would require a separate recovery process.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz 5 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 5</h3>
+      <div class="quiz-question" data-correct="2">
+        <p>Q1: An affiliate's customer has the same IP subnet (same office WiFi) but different email, different device, and different payment method. Is this flagged as self-referral?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Yes — any IP match triggers detection</button></li>
+          <li><button class="quiz-btn" data-index="1">B) Yes — the system is strict about any matching signal</button></li>
+          <li><button class="quiz-btn" data-index="2">C) No — a subnet match alone is only 1 point, and the threshold is 3 points</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! The system is calibrated for the PH/SEA market where shared networks are common. A subnet match alone scores only 1 point, well below the threshold of 3. This prevents false positives when multiple people share the same office or café WiFi.</div>
+        <div class="quiz-explanation wrong-exp">Not quite. The weighted scoring system is specifically designed to avoid false positives. A subnet match alone (1 point) doesn't reach the threshold of 3. You'd need additional signals like a device match (2 more points) to trigger detection.</div>
+      </div>
+      <div class="quiz-question" data-correct="1">
+        <p>Q2: A customer gets a refund for a purchase that generated a commission. The commission is still in "pending" status. What happens?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) The commission stays pending — it will be reviewed manually</button></li>
+          <li><button class="quiz-btn" data-index="1">B) The system automatically reverses the commission because refunds trigger a reversal for pending/approved commissions</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The affiliate keeps the commission — refunds don't affect commissions</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! When a refund webhook is received, the system finds the associated commission by transaction ID and reverses it. This works for both "pending" and "approved" commissions. The reversal reason is set to "refund" for audit purposes.</div>
+        <div class="quiz-explanation wrong-exp">Actually, the system has automatic reversal logic for refunds. When a refund event comes through the webhook, it finds the commission by transaction ID and reverses it — no manual intervention needed. This ensures affiliates don't earn commissions on refunded sales.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 6: TECHNICAL ARCHITECTURE
+     ======================================== -->
+<section class="module" id="module6">
+  <div class="module-inner">
+    <div class="module-label">Module 6</div>
+    <h2>Technical Architecture — How the Pieces Fit Together</h2>
+    <p class="lead">Now that you understand the business logic, let's look at how the technology makes it all work. This module explains the architecture in plain English.</p>
+
+    <!-- Screen 6.1: The Tech Stack -->
+    <div class="screen fade-in">
+      <h3>The Technology Stack</h3>
+      <p>This system is built with four main technologies, each with a specific role:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h4>Next.js 16 (Frontend)</h4>
+          <p>The user interface — what SaaS Owners and Affiliates see and interact with. Built with React components and server-side rendering for fast page loads.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔷</div>
+          <h4>Convex (Backend + Database)</h4>
+          <p>The brain and memory of the system. Handles all business logic, data storage, and real-time updates. Every function (query, mutation, action) lives here.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔐</div>
+          <h4>Better Auth (Authentication)</h4>
+          <p>Manages user sign-up, sign-in, password resets, and session management. Keeps the system secure and ensures only authorized users can access data.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎨</div>
+          <h4>Tailwind CSS v4 (Styling)</h4>
+          <p>Makes everything look good. A utility-first CSS framework that styles all the components with consistent design tokens.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 6.2: Data Flow Architecture -->
+    <div class="screen fade-in">
+      <h3>How Data Flows Through the System</h3>
+      <p>Here's the complete data flow when a payment webhook arrives — the most complex path in the system:</p>
+
+      <div class="arch-diagram">
+        <div class="arch-row">
+          <div class="arch-node">🌐 SaligPay<br><span style="font-size: 0.75rem; opacity: 0.7;">Payment System</span></div>
+        </div>
+        <div class="arch-arrow">↓ sends webhook</div>
+        <div class="arch-row">
+          <div class="arch-node">🔌 HTTP Endpoint<br><span style="font-size: 0.75rem; opacity: 0.7;">convex/http.ts</span></div>
+        </div>
+        <div class="arch-arrow">↓ validates & stores</div>
+        <div class="arch-row">
+          <div class="arch-node">📦 rawWebhooks Table<br><span style="font-size: 0.75rem; opacity: 0.7;">Deduplication check</span></div>
+        </div>
+        <div class="arch-arrow">↓ normalizes to BillingEvent</div>
+        <div class="arch-row">
+          <div class="arch-node">⚙️ Commission Engine<br><span style="font-size: 0.75rem; opacity: 0.7;">commissionEngine.ts</span></div>
+        </div>
+        <div class="arch-arrow">↓ creates conversion + commission</div>
+        <div class="arch-row">
+          <div class="arch-node highlight">✅ Commission Created<br><span style="font-size: 0.75rem; opacity: 0.7;">Pending or Approved</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 6.3: Key Convex Patterns -->
+    <div class="screen fade-in">
+      <h3>Key Convex Patterns Used Throughout</h3>
+      <p>Understanding these patterns will help you read and modify any file in this codebase:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h4>Queries (read data)</h4>
+          <p>Use <code>query</code> to read data from the database. They're reactive — when data changes, the UI updates automatically. Always use indexes for efficient reads.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">✏️</div>
+          <h4>Mutations (write data)</h4>
+          <p>Use <code>mutation</code> to create, update, or delete data. They run in transactions — either everything succeeds or everything fails. No partial updates.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <h4>Actions (external calls)</h4>
+          <p>Use <code>action</code> to call external APIs (like sending emails or processing webhooks). They run in Node.js, not in the database runtime, so they can use any npm package.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔒</div>
+          <h4>Internal Functions</h4>
+          <p>Use <code>internalQuery</code>, <code>internalMutation</code>, and <code>internalAction</code> for functions that should only be called by other Convex functions, not directly from the frontend.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span style="margin-left: 8px;">The standard function pattern used everywhere</span>
+        </div>
+        <div class="code-body">
+<pre><span class="cm">// Every Convex function follows this pattern:</span>
+
+<span class="kw">export const</span> <span class="fn">myFunction</span> = <span class="fn">query</span>({
+  <span class="cm">// 1. Define what arguments it accepts</span>
+  <span class="type">args</span>: {
+    <span class="type">affiliateId</span>: <span class="fn">v.id</span>(<span class="str">"affiliates"</span>),
+  },
+  <span class="cm">// 2. Define what it returns</span>
+  <span class="type">returns</span>: <span class="fn">v.object</span>({
+    <span class="type">name</span>: <span class="fn">v.string</span>(),
+    <span class="type">email</span>: <span class="fn">v.string</span>(),
+  }),
+  <span class="cm">// 3. The actual logic</span>
+  <span class="type">handler</span>: <span class="kw">async</span> (ctx, args) => {
+    <span class="kw">const</span> affiliate = <span class="kw">await</span> ctx.db.<span class="fn">get</span>(args.affiliateId);
+    <span class="kw">return</span> { name: affiliate.name, email: affiliate.email };
+  },
+});</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 6.4: The Database Schema -->
+    <div class="screen fade-in">
+      <h3>The Database Schema — Your Data Blueprint</h3>
+      <p>The schema file (<code>convex/schema.ts</code>) is the single source of truth for every piece of data in the system. Here are the core tables:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>What It Stores</th>
+            <th>Key Fields</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>tenants</strong></td>
+            <td>SaaS companies using the platform</td>
+            <td>name, slug, domain, plan, branding</td>
+          </tr>
+          <tr>
+            <td><strong>users</strong></td>
+            <td>People within tenants (owners, managers, members)</td>
+            <td>tenantId, email, role</td>
+          </tr>
+          <tr>
+            <td><strong>affiliates</strong></td>
+            <td>External promoters earning commissions</td>
+            <td>tenantId, uniqueCode, status, fraudSignals</td>
+          </tr>
+          <tr>
+            <td><strong>campaigns</strong></td>
+            <td>Affiliate programs with commission rules</td>
+            <td>commissionType, commissionValue, cookieDuration</td>
+          </tr>
+          <tr>
+            <td><strong>referralLinks</strong></td>
+            <td>Tracking links connecting affiliates to campaigns</td>
+            <td>affiliateId, campaignId, code</td>
+          </tr>
+          <tr>
+            <td><strong>clicks</strong></td>
+            <td>Recorded click events</td>
+            <td>affiliateId, referralLinkId, dedupeKey</td>
+          </tr>
+          <tr>
+            <td><strong>conversions</strong></td>
+            <td>Recorded sale events with attribution</td>
+            <td>affiliateId, amount, attributionSource</td>
+          </tr>
+          <tr>
+            <td><strong>commissions</strong></td>
+            <td>Calculated earnings for affiliates</td>
+            <td>affiliateId, amount, status, batchId</td>
+          </tr>
+          <tr>
+            <td><strong>payoutBatches</strong></td>
+            <td>Grouped payout records</td>
+            <td>totalAmount, affiliateCount, status</td>
+          </tr>
+          <tr>
+            <td><strong>payouts</strong></td>
+            <td>Individual payments to affiliates</td>
+            <td>affiliateId, batchId, amount, status</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quiz 6 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Quick Check — Module 6</h3>
+      <div class="quiz-question" data-correct="1">
+        <p>Q1: You need to add a new field to track an affiliate's social media profile URL. Where do you make this change?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) In the frontend component where the profile is displayed</button></li>
+          <li><button class="quiz-btn" data-index="1">B) In convex/schema.ts to add the field to the affiliates table, then update the relevant mutations and queries</button></li>
+          <li><button class="quiz-btn" data-index="2">C) In the database directly using a SQL command</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! In Convex, the schema file is the source of truth. You add the field to the <code>affiliates</code> table definition in <code>schema.ts</code>, then update any mutations that create/update affiliates and any queries that return affiliate data.</div>
+        <div class="quiz-explanation wrong-exp">Think about the architecture. Convex uses a schema-first approach — the schema file defines the database structure. You can't modify the database directly with SQL (Convex isn't SQL-based), and the frontend can't store data without the backend supporting it.</div>
+      </div>
+      <div class="quiz-question" data-correct="2">
+        <p>Q2: Why are webhook processing functions implemented as "actions" rather than "mutations"?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Because actions are faster than mutations</button></li>
+          <li><button class="quiz-btn" data-index="1">B) Because actions can be called from the frontend directly</button></li>
+          <li><button class="quiz-btn" data-index="2">C) Because actions run in Node.js and can call external APIs, while mutations run in the database runtime</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! Webhook processing needs to make HTTP calls (to normalize payloads, call external services, etc.). Actions run in the Node.js runtime which supports the full Node.js ecosystem. Mutations run in Convex's V8 runtime which doesn't support HTTP calls or dynamic imports.</div>
+        <div class="quiz-explanation wrong-exp">The key difference is the runtime environment. Actions run in Node.js (full ecosystem access), while mutations run in Convex's V8 isolate (database-only, no external calls). Webhook processing needs to handle HTTP requests and potentially call external services.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     MODULE 7: THE BIG PICTURE
+     ======================================== -->
+<section class="module" id="module7">
+  <div class="module-inner">
+    <div class="module-label">Module 7</div>
+    <h2>The Big Picture — What You Can Do With This Knowledge</h2>
+    <p class="lead">You now understand how this entire affiliate system works. Let's connect the dots and talk about practical skills you can use.</p>
+
+    <!-- Screen 7.1: The Complete Flow Recap -->
+    <div class="screen fade-in">
+      <h3>The Complete Flow — From Start to Finish</h3>
+      <p>Let's trace one complete journey from the perspective of a real person:</p>
+
+      <div class="metaphor">
+        <div class="metaphor-label">📖 The Story of Jamie and TechFlow</div>
+        <p><strong>Jamie</strong> is a tech blogger who joins <strong>TechFlow's</strong> affiliate program. She gets a unique referral link: <code>techflow.com?ref=JAMIE8X2</code>. She writes a review of TechFlow and includes her link. <strong>Alex</strong>, a reader, clicks the link and signs up for TechFlow's ₱2,000/month plan. The system records the click, places a cookie, and when Alex's payment goes through, a webhook triggers. The system creates a conversion, calculates Jamie's 20% commission (₱400), and marks it as pending. The SaaS Owner reviews and approves it. At the end of the month, Jamie's ₱400 is included in a payout batch. The owner marks it as paid, and Jamie receives her money. If Alex renews next month and the campaign has recurring commissions, Jamie earns another commission automatically.</p>
+      </div>
+    </div>
+
+    <!-- Screen 7.2: Practical Skills -->
+    <div class="screen fade-in">
+      <h3>Practical Skills You Now Have</h3>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <h4>Steer AI Coding Tools Better</h4>
+          <p>Now you can tell an AI: "Add a new commission status called 'under_review' and update the approval workflow" — and it will know exactly which files to touch: <code>commissions.ts</code>, the schema, and the UI components.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h4>Debug "It's Not Showing Up" Problems</h4>
+          <p>When an affiliate says "my commission isn't showing," you now know to check: Is the conversion linked to a click? Is the commission created? What's its status? Is it in a payout batch?</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🏗️</div>
+          <h4>Make Architectural Decisions</h4>
+          <p>You understand why data is organized the way it is — tenant isolation, indexed queries, denormalized counters. You can evaluate whether a new feature fits the existing patterns or needs a new approach.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🗣️</div>
+          <h4>Communicate With Engineers</h4>
+          <p>You now know the vocabulary: webhooks, mutations, tenant isolation, attribution windows, idempotency. You can have informed conversations about technical decisions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 7.3: Common Modifications -->
+    <div class="screen fade-in">
+      <h3>Common Modifications — Where to Look</h3>
+      <p>Here's a quick reference for where to make changes when you need to modify the system:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>If you want to...</th>
+            <th>Look in these files</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Add a new database field</td>
+            <td><code>convex/schema.ts</code> → then update mutations & queries</td>
+          </tr>
+          <tr>
+            <td>Change commission calculation</td>
+            <td><code>convex/commissions.ts</code> and <code>convex/commissionEngine.ts</code></td>
+          </tr>
+          <tr>
+            <td>Add a new fraud detection signal</td>
+            <td><code>convex/fraudDetection.ts</code> — add to SIGNAL_WEIGHTS and detection logic</td>
+          </tr>
+          <tr>
+            <td>Modify the payout process</td>
+            <td><code>convex/payouts.ts</code> — generatePayoutBatch and markPayoutAsPaid</td>
+          </tr>
+          <tr>
+            <td>Handle a new webhook event</td>
+            <td><code>convex/webhooks.ts</code> → <code>convex/commissionEngine.ts</code></td>
+          </tr>
+          <tr>
+            <td>Change the affiliate registration flow</td>
+            <td><code>convex/affiliates.ts</code> — registerAffiliate mutation</td>
+          </tr>
+          <tr>
+            <td>Add email notifications</td>
+            <td><code>convex/emails.ts</code> (or the email sending module)</td>
+          </tr>
+          <tr>
+            <td>Modify the UI dashboard</td>
+            <td><code>src/app/(auth)/dashboard/</code> — the Next.js page components</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Screen 7.4: Final Thoughts -->
+    <div class="screen fade-in">
+      <h3>Final Thoughts</h3>
+      <p>You've just walked through one of the most complex parts of this entire codebase — the affiliate lifecycle. From the first click to the final payout, every step is carefully orchestrated to ensure accuracy, fairness, and fraud prevention.</p>
+
+      <div class="callout aha">
+        <div class="callout-icon">🎓</div>
+        <div class="callout-content">
+          <strong>What makes this system production-grade</strong>
+          <p>It's not just that it works — it's that it handles edge cases: duplicate webhooks, expired cookies, self-referral fraud, commission reversals, tier limits, multi-tenant isolation, audit trails, and email notifications. Every "what if" scenario has been thought through and coded for. That's the difference between a prototype and a production system.</p>
+        </div>
+      </div>
+
+      <p>The best way to deepen your understanding is to <strong>trace the data flow yourself</strong>. Pick a specific scenario — like "what happens when a customer gets a refund" — and follow it through the code from the webhook to the commission reversal. You'll be surprised how much clearer it becomes when you've seen the whole journey.</p>
+    </div>
+
+    <!-- Quiz 7 -->
+    <div class="quiz fade-in">
+      <h3>🧠 Final Check — Module 7</h3>
+      <div class="quiz-question" data-correct="2">
+        <p>Q1: An affiliate complains that their commission from a sale was reversed. The sale wasn't refunded. What's the most likely cause?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) The system randomly reverses commissions</button></li>
+          <li><button class="quiz-btn" data-index="1">B) The affiliate's account was suspended</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The customer filed a chargeback with their bank, which triggered an automatic commission reversal</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Right! Chargebacks trigger automatic commission reversals. Unlike refunds (which the merchant initiates), chargebacks are customer disputes through their bank. The system treats both as reasons to reverse commissions, but chargebacks also add a fraud signal since they can indicate problematic customer behavior.</div>
+        <div class="quiz-explanation wrong-exp">The system doesn't randomly reverse commissions — every reversal has a specific trigger. The two reversal triggers are refunds and chargebacks. If the sale wasn't refunded, a chargeback is the most likely cause.</div>
+      </div>
+      <div class="quiz-question" data-correct="1">
+        <p>Q2: You're asked to add a "top affiliate of the month" feature. Which data would you need to query?</p>
+        <ul class="quiz-options">
+          <li><button class="quiz-btn" data-index="0">A) Just the clicks table — the affiliate with the most clicks is the top performer</button></li>
+          <li><button class="quiz-btn" data-index="1">B) The commissions table, filtered by status "approved" or "paid" and by date range, grouped by affiliateId</button></li>
+          <li><button class="quiz-btn" data-index="2">C) The affiliates table sorted by creation date</button></li>
+        </ul>
+        <div class="quiz-explanation correct-exp">✅ Exactly! "Top affiliate" means the one who generated the most revenue (commissions). You'd query the commissions table, filter to approved/paid commissions within the month, group by affiliateId, and sum the amounts. Clicks alone don't measure performance — conversions and commissions do.</div>
+        <div class="quiz-explanation wrong-exp">Clicks measure traffic, not revenue. An affiliate could have 1,000 clicks but zero sales. The real measure of performance is commissions earned. You'd need to query the commissions table, filter by status and date range, and aggregate by affiliate.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================
+     FOOTER
+     ======================================== -->
+<footer class="course-footer">
+  <h2>🎉 Course Complete!</h2>
+  <p>You now understand how a production-grade affiliate marketing system works — from clicks to commissions to payouts, including fraud detection and multi-tenant architecture.</p>
+</footer>
+
+<!-- ========================================
+     TOOLTIP POPUP
+     ======================================== -->
+<div class="tooltip-popup" id="tooltipPopup"></div>
+
+<!-- ========================================
+     JAVASCRIPT
+     ======================================== -->
+<script>
+(function() {
+  'use strict';
+
+  // --- Progress Bar ---
+  const navProgress = document.getElementById('navProgress');
+  function updateProgress() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    navProgress.style.width = progress + '%';
+  }
+
+  // --- Active Nav Link ---
+  const navLinks = document.querySelectorAll('.nav-links a');
+  const modules = document.querySelectorAll('.module');
+  function updateActiveLink() {
+    let current = '';
+    modules.forEach(m => {
+      if (window.scrollY >= m.offsetTop - 200) {
+        current = m.id;
+      }
+    });
+    navLinks.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+    });
+  }
+
+  // --- Scroll Animations ---
+  const fadeEls = document.querySelectorAll('.fade-in');
+  function checkFade() {
+    fadeEls.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.85) {
+        el.classList.add('visible');
+      }
+    });
+  }
+
+  // --- Throttled Scroll Handler ---
+  let ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        updateProgress();
+        updateActiveLink();
+        checkFade();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Initial calls
+  updateProgress();
+  updateActiveLink();
+  checkFade();
+
+  // --- Tooltips ---
+  const tooltipPopup = document.getElementById('tooltipPopup');
+  const tooltipTriggers = document.querySelectorAll('.tooltip-trigger');
+  let activeTooltip = null;
+
+  tooltipTriggers.forEach(trigger => {
+    trigger.addEventListener('mouseenter', function(e) {
+      const tip = this.getAttribute('data-tip');
+      if (!tip) return;
+      tooltipPopup.textContent = tip;
+      tooltipPopup.classList.add('visible');
+      activeTooltip = this;
+      positionTooltip(this);
+    });
+
+    trigger.addEventListener('mouseleave', function() {
+      tooltipPopup.classList.remove('visible');
+      activeTooltip = null;
+    });
+
+    trigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      const tip = this.getAttribute('data-tip');
+      if (!tip) return;
+      if (activeTooltip === this) {
+        tooltipPopup.classList.remove('visible');
+        activeTooltip = null;
+      } else {
+        tooltipPopup.textContent = tip;
+        tooltipPopup.classList.add('visible');
+        activeTooltip = this;
+        positionTooltip(this);
+      }
+    });
+  });
+
+  function positionTooltip(trigger) {
+    const rect = trigger.getBoundingClientRect();
+    const popupRect = tooltipPopup.getBoundingClientRect();
+    let left = rect.left + (rect.width / 2) - (popupRect.width / 2);
+    let top = rect.bottom + 8;
+
+    // Keep within viewport
+    if (left < 8) left = 8;
+    if (left + popupRect.width > window.innerWidth - 8) {
+      left = window.innerWidth - popupRect.width - 8;
+    }
+    if (top + popupRect.height > window.innerHeight - 8) {
+      top = rect.top - popupRect.height - 8;
+    }
+
+    tooltipPopup.style.left = left + 'px';
+    tooltipPopup.style.top = top + 'px';
+  }
+
+  // Close tooltip on outside click
+  document.addEventListener('click', function(e) {
+    if (activeTooltip && !e.target.classList.contains('tooltip-trigger')) {
+      tooltipPopup.classList.remove('visible');
+      activeTooltip = null;
+    }
+  });
+
+  // --- Quiz Logic ---
+  const quizQuestions = document.querySelectorAll('.quiz-question');
+  quizQuestions.forEach(question => {
+    const correctIndex = parseInt(question.getAttribute('data-correct'));
+    const buttons = question.querySelectorAll('.quiz-btn');
+    const explanations = question.querySelectorAll('.quiz-explanation');
+
+    buttons.forEach((btn, index) => {
+      btn.addEventListener('click', function() {
+        // Prevent re-answering
+        if (this.classList.contains('disabled')) return;
+
+        const isCorrect = index === correctIndex;
+
+        buttons.forEach(b => {
+          b.classList.add('disabled');
+          const bIndex = parseInt(b.getAttribute('data-index'));
+          if (bIndex === correctIndex) {
+            b.classList.add('correct');
+          } else if (bIndex === index && !isCorrect) {
+            b.classList.add('wrong');
+          }
+        });
+
+        if (isCorrect) {
+          explanations[0].classList.add('show');
+        } else {
+          explanations[1].classList.add('show');
+        }
+      });
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
