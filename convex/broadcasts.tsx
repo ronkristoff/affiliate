@@ -3,23 +3,13 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { internal, api } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
-import { components } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
 import BroadcastEmail from "./emails/BroadcastEmail";
 import { getAuthenticatedUser, getTenantId, requireTenantId } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
-
-const resend: Resend = new Resend(components.resend, {
-  testMode: false,
-});
-
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "boboddy.business";
-const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
-
-const getFromAddress = (prefix: string) => `${FROM_NAME} <${prefix}@${EMAIL_DOMAIN}>`;
+import { sendEmail, getFromAddress } from "./emailService";
 
 const BATCH_SIZE = 100;
 const BATCH_DELAY_MS = 100;
@@ -417,8 +407,8 @@ async function sendSingleBroadcastEmail(
     // Construct unsubscribe URL (placeholder - connect to actual unsubscribe endpoint when available)
     const unsubscribeUrl = `${APP_URL}/api/unsubscribe?affiliate=${args.affiliateId}`;
 
-    // Story 10.6: Capture Resend message ID for webhook matching
-    const sendResult = await resend.sendEmail(ctx, {
+    // Send via unified email service (supports both Resend and Postmark)
+    const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
       from: getFromAddress("broadcasts"),
       to: args.affiliateEmail,
       subject: args.subject,
@@ -432,39 +422,21 @@ async function sendSingleBroadcastEmail(
           unsubscribeUrl={unsubscribeUrl}
         />
       ),
+      tracking: {
+        tenantId: args.tenantId,
+        type: "broadcast",
+        affiliateId: args.affiliateId,
+        broadcastId: args.broadcastId,
+      },
     });
 
-    // Extract Resend message ID from response
-    // Resend returns { id: string } on success
-    const resendMessageId = (sendResult as unknown as { id?: string })?.id;
-
-    // Track successful email with broadcast/affiliate linkage and resendMessageId (Story 10.6)
-    await ctx.runMutation(internal.emails.trackEmailSent, {
-      tenantId: args.tenantId,
-      type: "broadcast",
-      recipientEmail: args.affiliateEmail,
-      subject: args.subject,
-      status: "sent",
-      broadcastId: args.broadcastId,
-      affiliateId: args.affiliateId,
-      resendMessageId,
-    });
+    if (!emailResult.success) {
+      throw new Error("Email send failed");
+    }
 
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // Track failed attempt with broadcast/affiliate linkage (Story 10.6)
-    await ctx.runMutation(internal.emails.trackEmailSent, {
-      tenantId: args.tenantId,
-      type: "broadcast",
-      recipientEmail: args.affiliateEmail,
-      subject: args.subject,
-      status: "failed",
-      errorMessage,
-      broadcastId: args.broadcastId,
-      affiliateId: args.affiliateId,
-    });
 
     // Retry with exponential backoff via scheduler (non-blocking)
     if (currentAttempt < MAX_RETRIES) {
@@ -524,8 +496,8 @@ export const retryFailedBroadcastEmail = internalAction({
       // Construct unsubscribe URL
       const unsubscribeUrl = `${APP_URL}/api/unsubscribe?affiliate=${args.affiliateId}`;
 
-      // Story 10.6: Capture Resend message ID for webhook matching
-      const sendResult = await resend.sendEmail(ctx, {
+      // Send via unified email service
+      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("broadcasts"),
         to: args.affiliateEmail,
         subject: args.subject,
@@ -539,20 +511,17 @@ export const retryFailedBroadcastEmail = internalAction({
             unsubscribeUrl={unsubscribeUrl}
           />
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "broadcast",
+          affiliateId: args.affiliateId,
+          broadcastId: args.broadcastId,
+        },
       });
 
-      // Track successful email with linkage (Story 10.6)
-      const resendMessageId = (sendResult as unknown as { id?: string })?.id;
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "broadcast",
-        recipientEmail: args.affiliateEmail,
-        subject: args.subject,
-        status: "sent",
-        broadcastId: args.broadcastId,
-        affiliateId: args.affiliateId,
-        resendMessageId,
-      });
+      if (!emailResult.success) {
+        throw new Error("Email send failed");
+      }
 
       // Increment sentCount and decrement failedCount on broadcast record
       const broadcast = await ctx.runQuery(internal.broadcasts.getBroadcastInternal, {
@@ -576,18 +545,6 @@ export const retryFailedBroadcastEmail = internalAction({
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track retry failure with linkage (Story 10.6)
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "broadcast",
-        recipientEmail: args.affiliateEmail,
-        subject: args.subject,
-        status: "failed",
-        errorMessage: `Retry attempt ${args.attempt}: ${errorMessage}`,
-        broadcastId: args.broadcastId,
-        affiliateId: args.affiliateId,
-      });
 
       // If more retries available, schedule another one
       if (args.attempt < MAX_RETRIES) {

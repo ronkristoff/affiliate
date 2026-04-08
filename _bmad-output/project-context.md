@@ -143,9 +143,14 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Email Rules
 
-1. **Use Resend Component** - Send emails via `@convex-dev/resend`
-
-2. **Template Format** - Use `@react-email/components` for templates in `convex/emails/`
+1. **Use unified email service** - Send emails via `convex/emailService.ts` abstraction (`sendEmail` action or `sendEmailFromMutation` mutation). NEVER use Resend directly.
+2. **Provider routing** - `EMAIL_PROVIDER` Convex env var controls routing: `resend` (default) or `postmark`. Both providers supported.
+3. **From-address** - Use `getFromAddress(prefix)` from `emailService.ts`. Never hardcode domain.
+4. **Template Format** - Use `@react-email/components` for templates in `convex/emails/`
+5. **Tracking** - Pass `tracking` param to email service for opt-in `emails` table records. Never do manual `ctx.db.insert("emails", ...)`.
+6. **Mutation context** - Use `sendEmailFromMutation` (Resend-only). Postmark throws in mutation context.
+7. **Action context** - Use `ctx.runAction(internal.emailService.sendEmail, ...)` for full provider routing.
+8. **Webhooks** - Resend webhook at `POST /webhooks/resend`, Postmark webhook at `POST /webhooks/postmark`.
 
 ### Skills to Load
 

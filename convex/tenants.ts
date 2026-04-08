@@ -12,12 +12,7 @@ import DeletionReminderEmail from "./emails/DeletionReminderEmail";
 import DomainChangeNotificationEmail from "./emails/DomainChangeNotificationEmail";
 import { render } from "@react-email/components";
 import React from "react";
-import { components } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
-
-const resendInstance: Resend = new Resend(components.resend, {
-  testMode: false,
-});
+import { sendEmailFromMutation, sendEmail, getFromAddress } from "./emailService";
 
 
 /**
@@ -270,8 +265,8 @@ export const sendDomainChangeNotification = internalMutation({
     }
 
     try {
-      await resendInstance.sendEmail(ctx, {
-        from: "Affiliate Notifications <notifications@boboddy.business>",
+      await sendEmailFromMutation(ctx, {
+        from: getFromAddress("notifications"),
         to: affiliate.email,
         subject: `Important: ${tenant.name} has updated their website domain`,
         html: await render(
@@ -282,6 +277,10 @@ export const sendDomainChangeNotification = internalMutation({
             newDomain: args.newDomain,
           })
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "domain_change_notification",
+        },
       });
 
       console.log(`Domain change notification sent to ${affiliate.email}`);
@@ -1365,7 +1364,7 @@ export const deleteTenantData = internalMutation({
  * @param tenantId - The tenant being deleted
  * @param deletionDate - The scheduled deletion date
  */
-export const sendDeletionReminder = internalAction({
+export const sendTenantDeletionReminder = internalAction({
   args: {
     tenantId: v.id("tenants"),
     deletionDate: v.number(),
@@ -1398,19 +1397,15 @@ export const sendDeletionReminder = internalAction({
 
     // Send reminder email
     const emailProps = { deletionDate: deletionDateStr, daysUntilDeletion };
-    await resendInstance.sendEmail(ctx, {
-      from: "Salig Affiliate <billing@boboddy.business>",
+    await ctx.runAction(internal.emailService.sendEmail, {
+      from: getFromAddress("billing"),
       to: owner.email,
       subject: "Urgent: Your account will be deleted soon",
       html: await render(React.createElement(DeletionReminderEmail, emailProps)),
-    });
-
-    // Log email to tenant's email history
-    await ctx.runMutation(internal.tenants._logEmailSentInternal, {
-      tenantId: args.tenantId,
-      type: "deletion_reminder",
-      recipientEmail: owner.email,
-      subject: "Urgent: Your account will be deleted soon",
+      tracking: {
+        tenantId: args.tenantId,
+        type: "deletion_reminder",
+      },
     });
 
     // Log to audit
@@ -1430,31 +1425,12 @@ export const sendDeletionReminder = internalAction({
   },
 });
 
+export const sendDeletionReminder = sendTenantDeletionReminder;
+
 /**
  * Internal helper to log email sent to tenant's email history.
  * Called by actions that send emails.
  */
-export const _logEmailSentInternal = internalMutation({
-  args: {
-    tenantId: v.id("tenants"),
-    type: v.string(),
-    recipientEmail: v.string(),
-    subject: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.insert("emails", {
-      tenantId: args.tenantId,
-      type: args.type,
-      recipientEmail: args.recipientEmail,
-      subject: args.subject,
-      status: "sent",
-      sentAt: Date.now(),
-    });
-    return null;
-  },
-});
-
 /**
  * Internal helper to log audit events.
  * Called by actions that need audit logging.
@@ -1503,7 +1479,7 @@ export const checkAndSendDeletionReminders = internalAction({
 
     for (const tenant of tenants) {
       // Send reminder via the action
-      await ctx.runAction(internal.tenants.sendDeletionReminder, {
+      await ctx.runAction(internal.tenants.sendTenantDeletionReminder, {
         tenantId: tenant._id,
         deletionDate: tenant.deletionScheduledDate!,
       });

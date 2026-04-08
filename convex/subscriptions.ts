@@ -372,16 +372,7 @@ export const cancelSubscription = mutation({
         previousPlan: currentPlan,
         accessEndDate,
         deletionDate,
-      });
-
-      // Log email to tenant's email history (Task 4.4)
-      await ctx.db.insert("emails", {
         tenantId: authUser.tenantId,
-        type: "cancellation_confirmation",
-        recipientEmail: user.email,
-        subject: "Your Subscription Has Been Cancelled",
-        status: "sent",
-        sentAt: Date.now(),
       });
     }
 
@@ -683,6 +674,7 @@ export const upgradeTier = mutation({
         proratedAmount,
         effectiveDate: newBillingStart,
         newBillingAmount: newPrice,
+        tenantId: authUser.tenantId,
       });
     }
 
@@ -812,6 +804,7 @@ export const downgradeTier = mutation({
         newPlan: args.targetPlan,
         effectiveDate,
         newBillingAmount: targetTierConfig.price,
+        tenantId: authUser.tenantId,
       });
     }
 

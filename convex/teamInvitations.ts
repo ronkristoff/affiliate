@@ -6,16 +6,10 @@ import { hasPermission, Role } from "./permissions";
 import { api, internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-import { components } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
+import { sendEmailFromMutation, getFromAddress } from "./emailService";
 import TeamInvitationEmail from "./emails/TeamInvitation";
 import TeamWelcomeEmail from "./emails/TeamWelcome";
 import TeamAcceptedNotificationEmail from "./emails/TeamAcceptedNotification";
-
-// Initialize Resend with the convex component
-const resend = new Resend(components.resend, {
-  testMode: process.env.NODE_ENV === "test",
-});
 
 /**
  * Team Invitation System
@@ -224,9 +218,8 @@ export const scheduleInvitationEmail = internalMutation({
     const primaryColor = tenant.branding?.primaryColor || "#1c2260";
 
     try {
-      // AC2: Actually send the invitation email via Resend
-      await resend.sendEmail(ctx, {
-        from: "Team Invitation <onboarding@boboddy.business>",
+      await sendEmailFromMutation(ctx, {
+        from: getFromAddress("onboarding"),
         to: args.email,
         subject: `You're invited to join ${tenant.name} as a ${args.role}`,
         html: await render(
@@ -242,31 +235,12 @@ export const scheduleInvitationEmail = internalMutation({
             primaryColor,
           })
         ),
-      });
-
-      // Track email in the emails table
-      await ctx.db.insert("emails", {
-        tenantId: args.tenantId,
-        type: "team_invitation",
-        recipientEmail: args.email,
-        subject: `You're invited to join ${tenant.name} as a ${args.role}`,
-        status: "sent",
-        sentAt: Date.now(),
+        tracking: { tenantId: args.tenantId, type: "team_invitation" },
       });
 
       console.log(`Team invitation email sent to ${args.email}`);
     } catch (error) {
       console.error("Failed to send invitation email:", error);
-
-      // Track failed email
-      await ctx.db.insert("emails", {
-        tenantId: args.tenantId,
-        type: "team_invitation",
-        recipientEmail: args.email,
-        subject: `You're invited to join ${tenant.name} as a ${args.role}`,
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      });
     }
 
     return null;
@@ -488,8 +462,8 @@ export const scheduleAcceptanceEmails = internalMutation({
 
     // Send welcome email to new team member
     try {
-      await resend.sendEmail(ctx, {
-        from: "Team Welcome <onboarding@boboddy.business>",
+      await sendEmailFromMutation(ctx, {
+        from: getFromAddress("onboarding"),
         to: args.email,
         subject: `Welcome to ${portalName}!`,
         html: await render(
@@ -503,29 +477,12 @@ export const scheduleAcceptanceEmails = internalMutation({
             primaryColor,
           })
         ),
-      });
-
-      // Track email
-      await ctx.db.insert("emails", {
-        tenantId: args.tenantId,
-        type: "team_welcome",
-        recipientEmail: args.email,
-        subject: `Welcome to ${portalName}!`,
-        status: "sent",
-        sentAt: Date.now(),
+        tracking: { tenantId: args.tenantId, type: "team_welcome" },
       });
 
       console.log(`Welcome email sent to ${args.email}`);
     } catch (error) {
       console.error("Failed to send welcome email:", error);
-      await ctx.db.insert("emails", {
-        tenantId: args.tenantId,
-        type: "team_welcome",
-        recipientEmail: args.email,
-        subject: `Welcome to ${portalName}!`,
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      });
     }
 
     // Send notification to tenant owner(s)
@@ -542,8 +499,8 @@ export const scheduleAcceptanceEmails = internalMutation({
 
       if (ownerEmails.length > 0) {
         for (const ownerEmail of ownerEmails) {
-          await resend.sendEmail(ctx, {
-            from: "Team Notifications <notifications@boboddy.business>",
+          await sendEmailFromMutation(ctx, {
+            from: getFromAddress("notifications"),
             to: ownerEmail,
             subject: `New team member joined ${portalName}`,
             html: await render(
@@ -559,16 +516,7 @@ export const scheduleAcceptanceEmails = internalMutation({
                 primaryColor,
               })
             ),
-          });
-
-          // Track email
-          await ctx.db.insert("emails", {
-            tenantId: args.tenantId,
-            type: "team_accepted_notification",
-            recipientEmail: ownerEmail,
-            subject: `New team member joined ${portalName}`,
-            status: "sent",
-            sentAt: Date.now(),
+            tracking: { tenantId: args.tenantId, type: "team_accepted_notification" },
           });
         }
 

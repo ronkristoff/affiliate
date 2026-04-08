@@ -1,9 +1,7 @@
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
-import { components } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
 import FraudAlertEmail from "./emails/FraudAlertEmail";
@@ -11,16 +9,7 @@ import CommissionConfirmedEmail from "./emails/CommissionConfirmedEmail";
 import PayoutSentEmail from "./emails/PayoutSentEmail";
 import NewReferralAlertEmail from "./emails/NewReferralAlertEmail";
 import { renderTemplate } from "./templates";
-
-const resend: Resend = new Resend(components.resend, {
-  testMode: false,
-});
-
-// Configurable email domain - should be set in Convex environment
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "boboddy.business";
-const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
-
-const getFromAddress = (prefix: string) => `${FROM_NAME} <${prefix}@${EMAIL_DOMAIN}>`;
+import { sendEmail, getFromAddress } from "./emailService";
 
 /**
  * Track email sent status in the database.
@@ -38,6 +27,9 @@ export const trackEmailSent = internalMutation({
     broadcastId: v.optional(v.id("broadcastEmails")),
     affiliateId: v.optional(v.id("affiliates")),
     resendMessageId: v.optional(v.string()),
+    // Multi-provider email support
+    provider: v.optional(v.union(v.literal("resend"), v.literal("postmark"))),
+    postmarkMessageId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -52,6 +44,8 @@ export const trackEmailSent = internalMutation({
       broadcastId: args.broadcastId,
       affiliateId: args.affiliateId,
       resendMessageId: args.resendMessageId,
+      provider: args.provider,
+      postmarkMessageId: args.postmarkMessageId,
       deliveryStatus: args.status === "sent" ? "sent" : undefined,
     });
 
@@ -61,12 +55,14 @@ export const trackEmailSent = internalMutation({
 
 /**
  * Internal mutation: Update email delivery status from webhook event.
- * Finds the email by resendMessageId and updates tracking fields.
+ * Supports both Resend and Postmark provider lookups.
  * Also updates broadcast aggregate counts if the email is a broadcast.
  */
 export const updateEmailDeliveryStatus = internalMutation({
   args: {
-    resendMessageId: v.string(),
+    provider: v.union(v.literal("resend"), v.literal("postmark")),
+    resendMessageId: v.optional(v.string()),
+    postmarkMessageId: v.optional(v.string()),
     eventType: v.union(
       v.literal("delivered"),
       v.literal("opened"),
@@ -79,19 +75,31 @@ export const updateEmailDeliveryStatus = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Find email by resendMessageId
-    const email = await ctx.db
-      .query("emails")
-      .withIndex("by_resend_message_id", (q) =>
-        q.eq("resendMessageId", args.resendMessageId)
-      )
-      .unique();
-
-    if (!email) {
-      return null; // Email not found - might be non-broadcast email
+    // 1. Lookup email by provider-specific index
+    let email;
+    if (args.provider === "resend") {
+      if (!args.resendMessageId) throw new Error("resendMessageId required for resend provider");
+      email = await ctx.db
+        .query("emails")
+        .withIndex("by_resend_message_id", (q) =>
+          q.eq("resendMessageId", args.resendMessageId)
+        )
+        .unique();
+    } else {
+      if (!args.postmarkMessageId) throw new Error("postmarkMessageId required for postmark provider");
+      email = await ctx.db
+        .query("emails")
+        .withIndex("by_postmark_message_id", (q) =>
+          q.eq("postmarkMessageId", args.postmarkMessageId)
+        )
+        .unique();
     }
 
-    // Build update object based on event type
+    if (!email) {
+      return null; // Email not found - might be non-tracked email
+    }
+
+    // 2. Build update object based on event type
     const updates: Record<string, unknown> = {};
 
     switch (args.eventType) {
@@ -119,7 +127,7 @@ export const updateEmailDeliveryStatus = internalMutation({
 
     await ctx.db.patch(email._id, updates);
 
-    // Update broadcast aggregate counts if this is a broadcast email
+    // 3. Update broadcast aggregate counts if this is a broadcast email
     if (email.broadcastId) {
       await ctx.runMutation(internal.emails.updateBroadcastAggregateCount, {
         broadcastId: email.broadcastId,
@@ -127,8 +135,9 @@ export const updateEmailDeliveryStatus = internalMutation({
       });
     }
 
-    // Log bounce/complaint events for admin review (AC #6)
+    // 4. Log bounce/complaint events for admin review
     if (args.eventType === "bounced" || args.eventType === "complained") {
+      const messageId = args.provider === "resend" ? args.resendMessageId : args.postmarkMessageId;
       await ctx.db.insert("auditLogs", {
         tenantId: email.tenantId,
         action: `email_${args.eventType}`,
@@ -136,7 +145,8 @@ export const updateEmailDeliveryStatus = internalMutation({
         entityId: email._id,
         actorType: "system",
         newValue: {
-          resendMessageId: args.resendMessageId,
+          provider: args.provider,
+          providerMessageId: messageId,
           recipientEmail: email.recipientEmail,
           reason: args.reason,
           timestamp: args.timestamp,
@@ -198,42 +208,30 @@ export const updateBroadcastAggregateCount = internalMutation({
 });
 
 /**
- * Internal query: Find email by resendMessageId.
- * Used by webhook handler to look up email records.
+ * Internal mutation: Store raw webhook payload for audit/debugging.
+ * Supports both Postmark and other webhook sources.
  */
-export const getEmailByResendMessageId = internalQuery({
+export const storeRawWebhook = internalMutation({
   args: {
-    resendMessageId: v.string(),
+    source: v.string(),
+    eventId: v.string(),
+    eventType: v.string(),
+    rawPayload: v.string(),
+    signatureValid: v.boolean(),
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("emails"),
-      tenantId: v.id("tenants"),
-      broadcastId: v.optional(v.id("broadcastEmails")),
-      recipientEmail: v.string(),
-      deliveryStatus: v.optional(v.string()),
-    }),
-    v.null()
-  ),
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const email = await ctx.db
-      .query("emails")
-      .withIndex("by_resend_message_id", (q) =>
-        q.eq("resendMessageId", args.resendMessageId)
-      )
-      .unique();
+    await ctx.db.insert("rawWebhooks", {
+      source: args.source,
+      eventId: args.eventId,
+      eventType: args.eventType,
+      rawPayload: args.rawPayload,
+      signatureValid: args.signatureValid,
+      status: "processed",
+      processedAt: Date.now(),
+    });
 
-    if (!email) {
-      return null;
-    }
-
-    return {
-      _id: email._id,
-      tenantId: email.tenantId,
-      broadcastId: email.broadcastId,
-      recipientEmail: email.recipientEmail,
-      deliveryStatus: email.deliveryStatus,
-    };
+    return null;
   },
 });
 
@@ -330,8 +328,8 @@ export const sendFraudAlertEmail = internalAction({
       // Email subject with warning emoji (AC #9)
       const subject = "🚨 Fraud Alert: Self-Referral Detected";
 
-      // Send the email via Resend
-      await resend.sendEmail(ctx, {
+      // Send the email via unified email service
+      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("security"),
         to: ownerEmail,
         subject,
@@ -349,35 +347,16 @@ export const sendFraudAlertEmail = internalAction({
             dashboardUrl={dashboardUrl}
           />
         ),
-      });
-
-      // Track successful email
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "fraud_alert_self_referral",
-        recipientEmail: ownerEmail,
-        subject,
-        status: "sent",
-      });
-
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track the failure
-      try {
-        await ctx.runMutation(internal.emails.trackEmailSent, {
+        tracking: {
           tenantId: args.tenantId,
           type: "fraud_alert_self_referral",
-          recipientEmail: "unknown",
-          subject: "🚨 Fraud Alert: Self-Referral Detected",
-          status: "failed",
-          errorMessage,
-        });
-      } catch {
-        // Silently fail tracking - original error is more important
-      }
+          affiliateId: args.affiliateId,
+        },
+      });
 
+      return { success: emailResult.success };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
     }
   },
@@ -490,52 +469,26 @@ export const sendCommissionConfirmedEmail = internalAction({
         );
       }
 
-      // Send the email via Resend
-      await resend.sendEmail(ctx, {
+      // Send the email via unified email service
+      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
         subject: finalSubject,
         html,
-      });
-
-      // Log successful email with SLA info
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "commission_confirmed",
-        recipientEmail: args.affiliateEmail,
-        subject: finalSubject,
-        status: "sent",
-      });
-
-      // Log SLA breach if applicable
-      if (slaBreached) {
-        await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+        tracking: {
           tenantId: args.tenantId,
-          action: "EMAIL_SLA_BREACH",
-          commissionId: args.commissionId,
+          type: "commission_confirmed",
           affiliateId: args.affiliateId,
-          actorType: "system",
-          metadata: {
-            emailType: "commission_confirmed",
-            delayMs: now - (args.approvalTimestamp ?? now),
-            slaDeadlineMs: slaDeadline,
-          },
-        });
+        },
+      });
+
+      if (!emailResult.success) {
+        throw new Error("Email send failed");
       }
 
-      return { success: true, retryCount: currentAttempt, slaBreached };
+      return { success: true, retryCount: currentAttempt };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Log failed attempt for commission_confirmed
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "commission_confirmed",
-        recipientEmail: args.affiliateEmail,
-        subject: `Commission Confirmed: ${args.commissionAmount.toLocaleString("en-US", { style: "currency", currency })}`,
-        status: "failed",
-        errorMessage,
-      });
 
       // If this was the last attempt, return failure
       if (currentAttempt >= maxRetries) {
@@ -669,36 +622,26 @@ export const sendPayoutSentEmail = internalAction({
         );
       }
 
-      // Send the email via Resend
-      await resend.sendEmail(ctx, {
+      // Send the email via unified email service
+      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
         subject: finalSubject,
         html,
+        tracking: {
+          tenantId: args.tenantId,
+          type: "payout_sent",
+          affiliateId: args.affiliateId,
+        },
       });
 
-      // Log successful payout email
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "payout_sent",
-        recipientEmail: args.affiliateEmail,
-        subject: finalSubject,
-        status: "sent",
-      });
+      if (!emailResult.success) {
+        throw new Error("Email send failed");
+      }
 
       return { success: true, retryCount: currentAttempt };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Log failed attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "payout_sent",
-        recipientEmail: args.affiliateEmail,
-        subject,
-        status: "failed",
-        errorMessage,
-      });
 
       // If this was the last attempt, return failure
       if (currentAttempt >= maxRetries) {
@@ -783,8 +726,8 @@ export const sendNewReferralAlertEmail = internalAction({
     const subject = `New Referral: ${args.affiliateName} - ${args.commissionAmount.toLocaleString("en-US", { style: "currency", currency })}`;
 
     try {
-      // Send the email via Resend
-      await resend.sendEmail(ctx, {
+      // Send the email via unified email service
+      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.ownerEmail,
         subject,
@@ -807,47 +750,20 @@ export const sendNewReferralAlertEmail = internalAction({
             currency={currency}
           />
         ),
-      });
-
-      // Log successful email with SLA info
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "new_referral_alert",
-        recipientEmail: args.ownerEmail,
-        subject,
-        status: "sent",
-      });
-
-      // Log SLA breach if applicable
-      if (slaBreached) {
-        await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tracking: {
           tenantId: args.tenantId,
-          action: "EMAIL_SLA_BREACH",
-          entityType: "conversion",
-          entityId: args.conversionId,
-          actorType: "system",
-          metadata: {
-            emailType: "new_referral_alert",
-            delayMs: now - args.conversionTimestamp,
-            slaDeadlineMs: slaDeadline,
-            affiliateId: args.affiliateId,
-          },
-        });
+          type: "new_referral_alert",
+          affiliateId: args.affiliateId,
+        },
+      });
+
+      if (!emailResult.success) {
+        throw new Error("Email send failed");
       }
 
       return { success: true, retryCount: currentAttempt, slaBreached };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Log failed attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "new_referral_alert",
-        recipientEmail: args.ownerEmail,
-        subject,
-        status: "failed",
-        errorMessage,
-      });
 
       // If this was the last attempt, return failure
       if (currentAttempt >= maxRetries) {

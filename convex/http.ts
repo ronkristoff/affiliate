@@ -689,8 +689,22 @@ http.route({
 
       const reason = event.data?.reason || event.data?.description || undefined;
 
+      // Step 5.5: Store raw webhook for audit trail (parity with Postmark webhook)
+      try {
+        await ctx.runMutation(internal.emails.storeRawWebhook, {
+          source: "resend",
+          eventId: emailId,
+          eventType,
+          rawPayload: rawBody,
+          signatureValid: !!signature,
+        });
+      } catch (storeError) {
+        console.error("Failed to store raw Resend webhook:", storeError);
+      }
+
       // Step 6: Update email record and broadcast aggregates
       await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        provider: "resend",
         resendMessageId: emailId,
         eventType: internalEventType,
         timestamp,
@@ -709,6 +723,142 @@ http.route({
 // Options handler for Resend webhook CORS preflight
 http.route({
   path: "/webhooks/resend",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: webhookCorsHeaders,
+    });
+  }),
+});
+
+// Postmark Webhook Handler
+// Multi-provider email support: receive Postmark delivery webhooks
+http.route({
+  path: "/webhooks/postmark",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      // Step 1: Verify webhook auth via custom header
+      const webhookSecret = req.headers.get("x-webhook-secret") || "";
+      const postmarkWebhookSecret = process.env.POSTMARK_WEBHOOK_SECRET || "";
+
+      if (postmarkWebhookSecret && webhookSecret !== postmarkWebhookSecret) {
+        console.error("Postmark webhook auth failed: invalid X-Webhook-Secret");
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      if (!postmarkWebhookSecret) {
+        console.warn(
+          "POSTMARK_WEBHOOK_SECRET not configured - skipping auth verification"
+        );
+      }
+
+      // Step 2: Read raw body
+      const rawBody = await req.text();
+
+      // Step 3: Parse payload
+      let payload;
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        console.error("Failed to parse Postmark webhook payload");
+        return new Response("Invalid JSON", { status: 400 });
+      }
+
+      const recordType = payload.RecordType;
+      const messageId = payload.MessageID;
+
+      if (!messageId || !recordType) {
+        console.error("Postmark webhook missing MessageID or RecordType");
+        return new Response("Missing required fields", { status: 400 });
+      }
+
+      // Step 4: Map Postmark RecordType to internal event types
+      const eventTypeMap: Record<
+        string,
+        "delivered" | "opened" | "clicked" | "bounced" | "complained"
+      > = {
+        Delivery: "delivered",
+        Open: "opened",
+        Click: "clicked",
+        Bounce: "bounced",
+        SpamComplaint: "complained",
+      };
+
+      const eventType = eventTypeMap[recordType];
+      if (!eventType) {
+        // Unknown event type - acknowledge but don't process
+        console.log(`Unknown Postmark RecordType: ${recordType}`);
+        return new Response("OK", { status: 200 });
+      }
+
+      // Step 5: Store raw webhook for audit/debugging
+      const signatureValid = !postmarkWebhookSecret || webhookSecret === postmarkWebhookSecret;
+      const eventId = `${messageId}_${recordType}`;
+      try {
+        await ctx.runMutation(internal.emails.storeRawWebhook, {
+          source: "postmark",
+          eventId,
+          eventType: recordType,
+          rawPayload: rawBody,
+          signatureValid,
+        });
+      } catch (storeError) {
+        // Non-blocking: log but continue processing
+        console.error("Failed to store raw Postmark webhook:", storeError);
+      }
+
+      // Step 6: Extract timestamp per event type
+      let timestamp: number;
+      switch (recordType) {
+        case "Delivery":
+          timestamp = payload.DeliveredAt
+            ? new Date(payload.DeliveredAt).getTime()
+            : Date.now();
+          break;
+        case "Bounce":
+        case "SpamComplaint":
+          // Postmark uses BouncedAt for both Bounce and SpamComplaint events
+          timestamp = payload.BouncedAt
+            ? new Date(payload.BouncedAt).getTime()
+            : Date.now();
+          break;
+        case "Open":
+        case "Click":
+          timestamp = payload.ReceivedAt
+            ? new Date(payload.ReceivedAt).getTime()
+            : Date.now();
+          break;
+        default:
+          timestamp = Date.now();
+      }
+
+      // Step 7: Extract reason for bounces/complaints
+      const reason =
+        payload.Details || payload.Description || undefined;
+
+      // Step 8: Update email delivery status
+      await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        provider: "postmark",
+        postmarkMessageId: messageId,
+        eventType,
+        timestamp,
+        reason,
+      });
+
+      return new Response("OK", { status: 200 });
+    } catch (error) {
+      console.error("Postmark webhook processing error:", error);
+      // Always return 200 to prevent Postmark from retrying
+      return new Response("OK", { status: 200 });
+    }
+  }),
+});
+
+// Options handler for Postmark webhook CORS preflight
+http.route({
+  path: "/webhooks/postmark",
   method: "OPTIONS",
   handler: httpAction(async (_ctx, _req) => {
     return new Response(null, {

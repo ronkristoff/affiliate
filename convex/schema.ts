@@ -482,6 +482,9 @@ export default defineSchema({
     broadcastId: v.optional(v.id("broadcastEmails")), // Link to broadcast for recipient queries
     affiliateId: v.optional(v.id("affiliates")), // Link to affiliate for name resolution
     resendMessageId: v.optional(v.string()), // Resend message ID for webhook matching
+    // Multi-provider email support (PR: multi-provider-email-postmark)
+    provider: v.optional(v.union(v.literal("resend"), v.literal("postmark"))),
+    postmarkMessageId: v.optional(v.string()), // Postmark message ID for webhook matching
     deliveryStatus: v.optional(v.union(
       v.literal("queued"),
       v.literal("sent"),
@@ -500,7 +503,8 @@ export default defineSchema({
     .index("by_tenant_and_status", ["tenantId", "status"])
     .index("by_recipient", ["recipientEmail"])
     .index("by_broadcast", ["broadcastId"]) // Recipient list queries (Story 10.6)
-    .index("by_resend_message_id", ["resendMessageId"]), // Webhook matching (Story 10.6)
+    .index("by_resend_message_id", ["resendMessageId"]) // Webhook matching (Story 10.6)
+    .index("by_postmark_message_id", ["postmarkMessageId"]), // Postmark webhook matching
 
   // Broadcast emails table (Story 10.5)
   // Tracks broadcast email campaigns sent by SaaS Owners to all active affiliates

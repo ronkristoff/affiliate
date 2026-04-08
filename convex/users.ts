@@ -4,15 +4,9 @@ import { Id, Doc } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
 import { getTenantId, requireTenantId, getTenant, getAuthenticatedUser } from "./tenantContext";
 import { internal } from "./_generated/api";
-import { Resend } from "@convex-dev/resend";
-import { components } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-
-// Initialize Resend with the convex component
-const resend = new Resend(components.resend, {
-  testMode: process.env.NODE_ENV === "test",
-});
+import { sendEmail, getFromAddress } from "./emailService";
 
 /**
  * User document type for type safety.
@@ -824,9 +818,9 @@ export const sendRemovalNotification = internalAction({
     const TeamRemovalEmail = (await import("./emails/TeamRemovalNotification")).default;
 
     try {
-      // Send email via Resend component
-      await resend.sendEmail(ctx, {
-        from: "Team Notifications <notifications@boboddy.business>",
+      // Send via unified email service
+      await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("notifications"),
         to: user.email,
         subject: `You've been removed from ${tenant.name}`,
         html: await render(
@@ -839,30 +833,15 @@ export const sendRemovalNotification = internalAction({
             reason: args.reason,
           })
         ),
-      });
-
-      // Track email in the emails table via runMutation
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "team_removal_notification",
-        recipientEmail: user.email,
-        subject: `You've been removed from ${tenant.name}`,
-        status: "sent",
+        tracking: {
+          tenantId: args.tenantId,
+          type: "team_removal_notification",
+        },
       });
 
       console.log(`Team removal notification sent to ${user.email}`);
     } catch (error) {
       console.error("Failed to send removal notification:", error);
-
-      // Track failed email via runMutation
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "team_removal_notification",
-        recipientEmail: user.email,
-        subject: `You've been removed from ${tenant.name}`,
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      });
     }
 
     return null;

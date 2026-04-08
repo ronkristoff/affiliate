@@ -14,26 +14,17 @@ import AffiliateSuspensionEmail from "./emails/AffiliateSuspensionEmail";
 import AffiliateReactivationEmail from "./emails/AffiliateReactivationEmail";
 import { type MutationCtx, action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Resend } from "@convex-dev/resend";
-import { components } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
 import ResetPasswordEmail from "./emails/resetPassword";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { sendEmailFromMutation, sendEmail, getFromAddress } from "./emailService";
 
-export const resend: Resend = new Resend(components.resend, {
-  testMode: false,
-});
+// Re-export getFromAddress for callers that need from-address construction
+export { getFromAddress };
 
-// Configurable email domain - must be set in Convex environment
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN;
-if (!EMAIL_DOMAIN) {
-  throw new Error("EMAIL_DOMAIN environment variable is required. Set it in Convex environment settings.");
-}
-const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
-
-const getFromAddress = (prefix: string) => `${FROM_NAME} <${prefix}@${EMAIL_DOMAIN}>`;
+// ── Group A: Better Auth helpers (untracked) ────────────────────────────────
 
 export const sendEmailVerification = async (
   ctx: MutationCtx,
@@ -45,7 +36,7 @@ export const sendEmailVerification = async (
     url: string;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Verify your email address",
@@ -63,7 +54,7 @@ export const sendOTPVerification = async (
     code: string;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Verify your email address",
@@ -81,7 +72,7 @@ export const sendMagicLink = async (
     url: string;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Sign in to your account",
@@ -99,13 +90,15 @@ export const sendResetPassword = async (
     url: string;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Reset your password",
     html: await render(<ResetPasswordEmail url={url} />),
   });
 };
+
+// ── Group B: Billing helpers (with tracking) ────────────────────────────────
 
 export const sendUpgradeConfirmation = async (
   ctx: MutationCtx,
@@ -116,6 +109,7 @@ export const sendUpgradeConfirmation = async (
     proratedAmount,
     effectiveDate,
     newBillingAmount,
+    tenantId,
   }: {
     to: string;
     previousPlan: string;
@@ -123,9 +117,10 @@ export const sendUpgradeConfirmation = async (
     proratedAmount: number;
     effectiveDate: number;
     newBillingAmount: number;
+    tenantId: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your subscription has been upgraded!",
@@ -138,6 +133,10 @@ export const sendUpgradeConfirmation = async (
         newBillingAmount={newBillingAmount}
       />
     ),
+    tracking: {
+      tenantId,
+      type: "billing_upgrade",
+    },
   });
 };
 
@@ -149,15 +148,17 @@ export const sendDowngradeConfirmation = async (
     newPlan,
     effectiveDate,
     newBillingAmount,
+    tenantId,
   }: {
     to: string;
     previousPlan: string;
     newPlan: string;
     effectiveDate: number;
     newBillingAmount: number;
+    tenantId: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your subscription plan has been changed",
@@ -169,6 +170,10 @@ export const sendDowngradeConfirmation = async (
         newBillingAmount={newBillingAmount}
       />
     ),
+    tracking: {
+      tenantId,
+      type: "billing_downgrade",
+    },
   });
 };
 
@@ -179,14 +184,16 @@ export const sendCancellationConfirmation = async (
     previousPlan,
     accessEndDate,
     deletionDate,
+    tenantId,
   }: {
     to: string;
     previousPlan: string;
     accessEndDate: number;
     deletionDate: number;
+    tenantId: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your Subscription Has Been Cancelled",
@@ -197,22 +204,32 @@ export const sendCancellationConfirmation = async (
         deletionDate={deletionDate}
       />
     ),
+    tracking: {
+      tenantId,
+      type: "billing_cancellation",
+    },
   });
 };
 
-export const sendDeletionReminder = async (
+/**
+ * Send subscription deletion reminder email.
+ * Renamed from sendDeletionReminder to avoid collision with tenants.ts.
+ */
+export const sendSubscriptionDeletionReminder = async (
   ctx: MutationCtx,
   {
     to,
     deletionDate,
     daysUntilDeletion,
+    tenantId,
   }: {
     to: string;
     deletionDate: number;
     daysUntilDeletion: number;
+    tenantId: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Urgent: Your account will be deleted soon",
@@ -222,8 +239,17 @@ export const sendDeletionReminder = async (
         daysUntilDeletion={daysUntilDeletion}
       />
     ),
+    tracking: {
+      tenantId,
+      type: "billing_deletion_reminder",
+    },
   });
 };
+
+// Backward compatibility alias — callers that use the old name
+export const sendDeletionReminder = sendSubscriptionDeletionReminder;
+
+// ── Group C: Affiliate helpers ──────────────────────────────────────────────
 
 /**
  * Send welcome email to new affiliate after registration.
@@ -265,8 +291,8 @@ export const sendAffiliateWelcomeEmail = async (
 
   for (let attempt = 0; attempt <= maxAttempts; attempt++) {
     try {
-      // Send the email via Resend
-      await resend.sendEmail(ctx, {
+      // Send via unified email service (Resend-only from mutation context)
+      await sendEmailFromMutation(ctx, {
         from: getFromAddress("onboarding"),
         to,
         subject,
@@ -283,35 +309,15 @@ export const sendAffiliateWelcomeEmail = async (
             contactEmail={contactEmail}
           />
         ),
-      });
-
-      // Log successful email
-      if (tenantId) {
-        await ctx.db.insert("emails", {
+        tracking: tenantId ? {
           tenantId,
           type: "affiliate_welcome",
-          recipientEmail: to,
-          subject,
-          status: "sent",
-          sentAt: Date.now(),
-        });
-      }
+        } : undefined,
+      });
 
       return; // Success, exit function
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Log failed attempt
-      if (tenantId) {
-        await ctx.db.insert("emails", {
-          tenantId,
-          type: "affiliate_welcome",
-          recipientEmail: to,
-          subject,
-          status: "failed",
-          errorMessage,
-        });
-      }
 
       // If this was the last attempt, throw the error
       if (attempt === maxAttempts) {
@@ -365,8 +371,8 @@ export const sendAffiliateWelcomeEmailWithRetry = internalAction({
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        // Send the email via Resend
-        await resend.sendEmail(ctx as unknown as MutationCtx, {
+        // Send via unified email service (full provider routing from action context)
+        const result = await ctx.runAction(internal.emailService.sendEmail, {
           from: getFromAddress("onboarding"),
           to: args.to,
           subject,
@@ -383,31 +389,17 @@ export const sendAffiliateWelcomeEmailWithRetry = internalAction({
               contactEmail={args.contactEmail}
             />
           ),
+          tracking: {
+            tenantId: args.tenantId,
+            type: "affiliate_welcome",
+            affiliateId: args.affiliateId,
+          },
         });
 
-        // Log successful email
-        await ctx.runMutation(internal.emails.trackEmailSent, {
-          tenantId: args.tenantId,
-          type: "affiliate_welcome",
-          recipientEmail: args.to,
-          subject,
-          status: "sent",
-        });
-
-        return { success: true, retryCount: attempt };
+        return { success: result.success, retryCount: attempt };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         retryCount = attempt;
-
-        // Log failed attempt
-        await ctx.runMutation(internal.emails.trackEmailSent, {
-          tenantId: args.tenantId,
-          type: "affiliate_welcome",
-          recipientEmail: args.to,
-          subject,
-          status: "failed",
-          errorMessage,
-        });
 
         // If this was the last attempt, return failure
         if (attempt === maxRetries) {
@@ -417,7 +409,7 @@ export const sendAffiliateWelcomeEmailWithRetry = internalAction({
         // Calculate exponential backoff delay
         const delay = baseDelay * Math.pow(2, attempt);
 
-        // Wait for the delay (in a real implementation, you'd use a scheduler)
+        // Wait for the delay
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -442,6 +434,7 @@ export const sendNewAffiliateNotificationEmail = async (
     brandLogoUrl,
     brandPrimaryColor,
     dashboardUrl,
+    tenantId,
   }: {
     to: string;
     affiliateName: string;
@@ -453,9 +446,10 @@ export const sendNewAffiliateNotificationEmail = async (
     brandLogoUrl?: string;
     brandPrimaryColor?: string;
     dashboardUrl?: string;
+    tenantId?: Id<"tenants">;
   },
 ) => {
-  await resend.sendEmail(ctx, {
+  await sendEmailFromMutation(ctx, {
     from: getFromAddress("notifications"),
     to,
     subject: `New Affiliate Application from ${affiliateName}`,
@@ -472,8 +466,14 @@ export const sendNewAffiliateNotificationEmail = async (
         dashboardUrl={dashboardUrl}
       />
     ),
+    tracking: tenantId ? {
+      tenantId,
+      type: "new_affiliate_notification",
+    } : undefined,
   });
 };
+
+// ── Group D: Action functions (fix pre-tracking bug) ───────────────────────
 
 /**
  * Action: Send approval email to affiliate.
@@ -493,21 +493,12 @@ export const sendApprovalEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
+    const subject = `Your application to ${args.portalName} has been approved!`;
     try {
-      // Track the email attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_approved",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your application to ${args.portalName} has been approved!`,
-        status: "sent",
-      });
-
-      // Send the email via Resend
-      await resend.sendEmail(ctx as unknown as MutationCtx, {
+      await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject: `Your application to ${args.portalName} has been approved!`,
+        subject,
         html: await render(
           <AffiliateApprovalEmail
             affiliateName={args.affiliateName}
@@ -519,22 +510,16 @@ export const sendApprovalEmail = action({
             contactEmail={args.contactEmail}
           />
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "affiliate_approved",
+          affiliateId: args.affiliateId,
+        },
       });
 
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track the failure
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_approved",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your application to ${args.portalName} has been approved!`,
-        status: "failed",
-        errorMessage,
-      });
-
       return { success: false, error: errorMessage };
     }
   },
@@ -558,21 +543,12 @@ export const sendRejectionEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
+    const subject = `Update on your ${args.portalName} affiliate application`;
     try {
-      // Track the email attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_rejected",
-        recipientEmail: args.affiliateEmail,
-        subject: `Update on your ${args.portalName} affiliate application`,
-        status: "sent",
-      });
-
-      // Send the email via Resend
-      await resend.sendEmail(ctx as unknown as MutationCtx, {
+      await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject: `Update on your ${args.portalName} affiliate application`,
+        subject,
         html: await render(
           <AffiliateRejectionEmail
             affiliateName={args.affiliateName}
@@ -583,22 +559,16 @@ export const sendRejectionEmail = action({
             contactEmail={args.contactEmail}
           />
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "affiliate_rejected",
+          affiliateId: args.affiliateId,
+        },
       });
 
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track the failure
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_rejected",
-        recipientEmail: args.affiliateEmail,
-        subject: `Update on your ${args.portalName} affiliate application`,
-        status: "failed",
-        errorMessage,
-      });
-
       return { success: false, error: errorMessage };
     }
   },
@@ -622,21 +592,12 @@ export const sendSuspensionEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
+    const subject = `Your ${args.portalName} affiliate account has been suspended`;
     try {
-      // Track the email attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_suspended",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been suspended`,
-        status: "sent",
-      });
-
-      // Send the email via Resend
-      await resend.sendEmail(ctx as unknown as MutationCtx, {
+      await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been suspended`,
+        subject,
         html: await render(
           <AffiliateSuspensionEmail
             affiliateName={args.affiliateName}
@@ -647,22 +608,16 @@ export const sendSuspensionEmail = action({
             contactEmail={args.contactEmail}
           />
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "affiliate_suspended",
+          affiliateId: args.affiliateId,
+        },
       });
 
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track the failure
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_suspended",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been suspended`,
-        status: "failed",
-        errorMessage,
-      });
-
       return { success: false, error: errorMessage };
     }
   },
@@ -686,21 +641,12 @@ export const sendReactivationEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
+    const subject = `Your ${args.portalName} affiliate account has been reactivated!`;
     try {
-      // Track the email attempt
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_reactivated",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been reactivated!`,
-        status: "sent",
-      });
-
-      // Send the email via Resend
-      await resend.sendEmail(ctx as unknown as MutationCtx, {
+      await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been reactivated!`,
+        subject,
         html: await render(
           <AffiliateReactivationEmail
             affiliateName={args.affiliateName}
@@ -711,25 +657,17 @@ export const sendReactivationEmail = action({
             contactEmail={args.contactEmail}
           />
         ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "affiliate_reactivated",
+          affiliateId: args.affiliateId,
+        },
       });
 
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Track the failure
-      await ctx.runMutation(internal.emails.trackEmailSent, {
-        tenantId: args.tenantId,
-        type: "affiliate_reactivated",
-        recipientEmail: args.affiliateEmail,
-        subject: `Your ${args.portalName} affiliate account has been reactivated!`,
-        status: "failed",
-        errorMessage,
-      });
-
       return { success: false, error: errorMessage };
     }
   },
 });
-
-
