@@ -1244,7 +1244,7 @@ export const backfillPayoutAuditLogs = internalAction({
             metadata: {
               payoutsMarked: batchPayouts.length,
               totalAmount: batch.totalAmount,
-              payoutIds: batchPayouts.map((p) => p._id),
+              payoutIds: batchPayouts.map((p: any) => p._id),
             },
           });
           batchCompletedCreated++;

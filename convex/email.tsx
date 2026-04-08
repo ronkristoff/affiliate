@@ -19,7 +19,13 @@ import React from "react";
 import ResetPasswordEmail from "./emails/resetPassword";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { sendEmailFromMutation, sendEmail, getFromAddress } from "./emailService";
+import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
+import { sendEmail, getFromAddress } from "./emailService";
+
+// Workaround: RegisteredMutation type doesn't expose callable signature to tsc,
+// but Convex runtime supports calling internal mutations directly with (ctx, args).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sendEmailFromMutation = _sendEmailFromMutation as any;
 
 // Re-export getFromAddress for callers that need from-address construction
 export { getFromAddress };

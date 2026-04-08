@@ -1890,7 +1890,7 @@ export const exportCommissionsCSV = action({
     const endDate = args.dateRange?.end ?? now;
 
     const filtered = commissions.filter(
-      (c) => c._creationTime >= startDate && c._creationTime <= endDate
+      (c: any) => c._creationTime >= startDate && c._creationTime <= endDate
     );
 
     const formatDate = (timestamp: number) => {

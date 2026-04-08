@@ -68,6 +68,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
 
         // Process webhook event
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "resend_msg_123",
           eventType: "delivered",
           timestamp: Date.now(),
@@ -104,6 +105,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "resend_msg_open",
           eventType: "opened",
           timestamp: Date.now(),
@@ -137,6 +139,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "resend_msg_click",
           eventType: "clicked",
           timestamp: Date.now(),
@@ -194,6 +197,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "resend_msg_bounce",
           eventType: "bounced",
           timestamp: Date.now(),
@@ -256,6 +260,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "resend_msg_complain",
           eventType: "complained",
           timestamp: Date.now(),
@@ -276,6 +281,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
       await t.run(async (ctx) => {
         // Should not throw even if email doesn't exist
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "nonexistent_msg_id",
           eventType: "delivered",
           timestamp: Date.now(),
@@ -307,6 +313,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "msg_audit_bounce",
           eventType: "bounced",
           timestamp: Date.now(),
@@ -348,6 +355,7 @@ describe("Webhook Event Handler Tests (Story 10.6)", () => {
         });
 
         await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+          provider: "resend",
           resendMessageId: "msg_audit_complain",
           eventType: "complained",
           timestamp: Date.now(),
@@ -916,6 +924,7 @@ describe("Sequential webhook events for same email (Story 10.6)", () => {
 
       // Step 1: Delivered
       await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        provider: "resend",
         resendMessageId: "lifecycle_msg",
         eventType: "delivered",
         timestamp: Date.now() - 5000,
@@ -930,6 +939,7 @@ describe("Sequential webhook events for same email (Story 10.6)", () => {
 
       // Step 2: Opened
       await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        provider: "resend",
         resendMessageId: "lifecycle_msg",
         eventType: "opened",
         timestamp: Date.now() - 3000,
@@ -944,6 +954,7 @@ describe("Sequential webhook events for same email (Story 10.6)", () => {
 
       // Step 3: Clicked
       await ctx.runMutation(internal.emails.updateEmailDeliveryStatus, {
+        provider: "resend",
         resendMessageId: "lifecycle_msg",
         eventType: "clicked",
         timestamp: Date.now(),

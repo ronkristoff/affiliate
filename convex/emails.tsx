@@ -282,7 +282,7 @@ export const sendFraudAlertEmail = internalAction({
     matchedIndicators: v.array(v.string()),
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
     try {
       // Get tenant info for branding
       const tenant = await ctx.runQuery(internal.tenants.getTenantInternal, {
@@ -309,7 +309,7 @@ export const sendFraudAlertEmail = internalAction({
       }
 
       // Get SaaS Owner email from users table (role = "owner")
-      const ownerUser = await ctx.runQuery(internal.users.getOwnerByTenantInternal, {
+      const ownerUser: any = await ctx.runQuery(internal.users.getOwnerByTenantInternal, {
         tenantId: args.tenantId,
       });
 
@@ -317,7 +317,7 @@ export const sendFraudAlertEmail = internalAction({
         return { success: false, error: "Owner user not found" };
       }
 
-      const ownerEmail = ownerUser.email;
+      const ownerEmail: string = ownerUser.email;
       const brandName = tenant.branding?.portalName || tenant.name || "Your Portal";
       const brandLogo = tenant.branding?.logoUrl;
       const brandColor = tenant.branding?.primaryColor || "#1c2260";
@@ -329,7 +329,7 @@ export const sendFraudAlertEmail = internalAction({
       const subject = "🚨 Fraud Alert: Self-Referral Detected";
 
       // Send the email via unified email service
-      const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
+      const emailResult: { success: boolean; messageId?: string } = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("security"),
         to: ownerEmail,
         subject,

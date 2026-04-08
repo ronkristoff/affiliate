@@ -12,7 +12,10 @@ import DeletionReminderEmail from "./emails/DeletionReminderEmail";
 import DomainChangeNotificationEmail from "./emails/DomainChangeNotificationEmail";
 import { render } from "@react-email/components";
 import React from "react";
-import { sendEmailFromMutation, sendEmail, getFromAddress } from "./emailService";
+import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
+import { sendEmail, getFromAddress } from "./emailService";
+// Workaround: RegisteredMutation type doesn't expose callable signature to tsc.
+const sendEmailFromMutation = _sendEmailFromMutation as any;
 
 
 /**

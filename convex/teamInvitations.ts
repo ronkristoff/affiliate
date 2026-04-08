@@ -6,7 +6,10 @@ import { hasPermission, Role } from "./permissions";
 import { api, internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-import { sendEmailFromMutation, getFromAddress } from "./emailService";
+import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
+import { getFromAddress } from "./emailService";
+// Workaround: RegisteredMutation type doesn't expose callable signature to tsc.
+const sendEmailFromMutation = _sendEmailFromMutation as any;
 import TeamInvitationEmail from "./emails/TeamInvitation";
 import TeamWelcomeEmail from "./emails/TeamWelcome";
 import TeamAcceptedNotificationEmail from "./emails/TeamAcceptedNotification";

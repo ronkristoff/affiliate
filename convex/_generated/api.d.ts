@@ -32,6 +32,8 @@ import type * as dashboard from "../dashboard.js";
 import type * as dashboardExport from "../dashboardExport.js";
 import type * as debugAuth from "../debugAuth.js";
 import type * as email from "../email.js";
+import type * as emailService from "../emailService.js";
+import type * as emailServiceMutation from "../emailServiceMutation.js";
 import type * as emails from "../emails.js";
 import type * as emails_AffiliateApprovalEmail from "../emails/AffiliateApprovalEmail.js";
 import type * as emails_AffiliateReactivationEmail from "../emails/AffiliateReactivationEmail.js";
@@ -132,6 +134,8 @@ declare const fullApi: ApiFromModules<{
   dashboardExport: typeof dashboardExport;
   debugAuth: typeof debugAuth;
   email: typeof email;
+  emailService: typeof emailService;
+  emailServiceMutation: typeof emailServiceMutation;
   emails: typeof emails;
   "emails/AffiliateApprovalEmail": typeof emails_AffiliateApprovalEmail;
   "emails/AffiliateReactivationEmail": typeof emails_AffiliateReactivationEmail;
