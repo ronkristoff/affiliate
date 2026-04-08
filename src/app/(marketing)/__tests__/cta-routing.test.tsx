@@ -79,7 +79,7 @@ import { HeroSection } from "@/app/(marketing)/_components/HeroSection";
 import { PricingSection } from "@/app/(marketing)/_components/PricingSection";
 import { FinalCTASection } from "@/app/(marketing)/_components/FinalCTASection";
 import { MarketingNav } from "@/app/(marketing)/_components/MarketingNav";
-import { SaligPayCallout } from "@/app/(marketing)/_components/SaligPayCallout";
+import { IntegrationCallout } from "@/app/(marketing)/_components/IntegrationCallout";
 
 describe("CTA Routing to Signup (AC: #1)", () => {
   describe("HeroSection CTA", () => {
@@ -166,15 +166,15 @@ describe("CTA Routing to Signup (AC: #1)", () => {
     });
   });
 
-  describe("SaligPayCallout CTA", () => {
+  describe("IntegrationCallout CTA", () => {
     it("should link to /sign-up", () => {
-      render(<SaligPayCallout />);
+      render(<IntegrationCallout />);
       const ctaLink = screen.getByRole("link", { name: /start your free trial/i });
       expect(ctaLink).toHaveAttribute("href", "/sign-up");
     });
 
     it("should display correct CTA button text", () => {
-      render(<SaligPayCallout />);
+      render(<IntegrationCallout />);
       const ctaLink = screen.getByRole("link", { name: /start your free trial/i });
       expect(ctaLink).toHaveTextContent("Start your free trial");
     });
@@ -255,8 +255,8 @@ describe("Mobile CTA Accessibility (AC: #5)", () => {
       });
     });
 
-    it("SaligPayCallout CTA button should have min-h-[44px]", () => {
-      render(<SaligPayCallout />);
+    it("IntegrationCallout CTA button should have min-h-[44px]", () => {
+      render(<IntegrationCallout />);
       const ctaLink = screen.getByRole("link", { name: /start your free trial/i });
       const button = ctaLink.querySelector("button");
       expect(button?.className).toContain("min-h-[44px]");

@@ -114,7 +114,7 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 2. GHL Agency Pro — scale plan, active (converted Nov 2025) — SaligPay
+  // 2. GHL Agency Pro — scale plan, active (converted Nov 2025) — SaligPay (billing provider)
   // =========================================================================
   {
     name: "GHL Agency Pro",
@@ -173,7 +173,7 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 4. Manila SaaS Labs — growth plan, past_due (converted Dec 2025) — SaligPay
+  // 4. Manila SaaS Labs — growth plan, past_due (converted Dec 2025) — SaligPay (billing provider)
   // =========================================================================
   {
     name: "Manila SaaS Labs",
@@ -298,7 +298,7 @@ const TEST_TENANTS: TestTenant[] = [
   },
 
   // =========================================================================
-  // 8. SEAsia Tech Ventures — scale plan, active (converted Dec 2025) — SaligPay
+  // 8. SEAsia Tech Ventures — scale plan, active (converted Dec 2025) — SaligPay (billing provider)
   // =========================================================================
   {
     name: "SEAsia Tech Ventures",

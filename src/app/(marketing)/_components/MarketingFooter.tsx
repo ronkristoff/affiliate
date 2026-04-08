@@ -35,12 +35,12 @@ export function MarketingFooter() {
           <div className="col-span-2 md:col-span-1">
             <Logo href="/" variant="light" />
             <p className="text-white/60 text-base mb-6 leading-relaxed">
-              Launch, manage, and pay your affiliate program natively on SaligPay.
+              Launch, manage, and pay your affiliate program with any payment provider.
             </p>
             <div className="flex items-center gap-4 text-sm text-white/50">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[#22d3ee]" />
-                <span>Built on SaligPay</span>
+                <span>Stripe &amp; SaligPay ready</span>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function MarketingFooter() {
               </div>
               <div className="flex items-center gap-2 text-sm text-white/40">
                 <Zap className="w-4 h-4 text-[#22d3ee]" />
-                <span>Powered by SaligPay</span>
+                <span>Works with any provider</span>
               </div>
             </div>
           </div>

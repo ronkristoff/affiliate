@@ -45,7 +45,7 @@ const ReducedMotionHero = () => (
             </span>
           </h1>
           <p className="text-xl sm:text-2xl text-[#474747] mb-10 max-w-xl leading-relaxed font-medium">
-            The only affiliate platform built natively on SaligPay. Launch in 15 minutes 
+            The affiliate platform for SaaS businesses. Launch in 15 minutes 
             with automatic tracking, fraud detection, and payouts your affiliates can trust.
           </p>
           <div className="flex flex-col sm:flex-row gap-5 mb-12">
@@ -212,7 +212,7 @@ export function HeroSection() {
                 transition: 'opacity 0.6s ease-out 0.35s, transform 0.6s ease-out 0.35s',
               }}
             >
-              The only affiliate platform built natively on SaligPay. Launch in 15 minutes 
+              The affiliate platform for SaaS businesses. Launch in 15 minutes 
               with automatic tracking, fraud detection, and payouts your affiliates can trust.
             </p>
 

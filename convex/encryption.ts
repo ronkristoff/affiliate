@@ -1,5 +1,5 @@
 /**
- * Simple credential obfuscation for SaligPay tokens
+ * Simple credential obfuscation for payment provider tokens
  * 
  * This provides basic obfuscation for stored credentials.
  * For production, use proper encryption with environment-configured keys.

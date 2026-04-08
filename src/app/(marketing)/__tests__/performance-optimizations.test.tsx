@@ -86,7 +86,7 @@ describe("Story 12.7: Responsive Load Time - Performance Optimizations", () => {
           if (loaderPath.includes("SocialProofBar")) return "SocialProofBar";
           if (loaderPath.includes("ProblemSection")) return "ProblemSection";
           if (loaderPath.includes("FeaturesSection")) return "FeaturesSection";
-          if (loaderPath.includes("SaligPayCallout")) return "SaligPayCallout";
+          if (loaderPath.includes("IntegrationCallout")) return "IntegrationCallout";
           if (loaderPath.includes("HowItWorksSection")) return "HowItWorksSection";
           if (loaderPath.includes("PricingSection")) return "PricingSection";
           if (loaderPath.includes("TestimonialsSection")) return "TestimonialsSection";
@@ -101,7 +101,7 @@ describe("Story 12.7: Responsive Load Time - Performance Optimizations", () => {
         "SocialProofBar",
         "ProblemSection",
         "FeaturesSection",
-        "SaligPayCallout",
+        "IntegrationCallout",
         "HowItWorksSection",
         "PricingSection",
         "TestimonialsSection",

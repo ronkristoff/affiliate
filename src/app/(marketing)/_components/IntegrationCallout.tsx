@@ -11,7 +11,7 @@ const stats = [
   { value: "99.99%", label: "accuracy", icon: CheckCircle2 },
 ];
 
-export function SaligPayCallout() {
+export function IntegrationCallout() {
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -45,7 +45,7 @@ export function SaligPayCallout() {
   }, [prefersReducedMotion]);
 
   return (
-    <section id="saligpay" ref={sectionRef} className="py-24 bg-[#0e1333] text-white relative overflow-hidden">
+    <section id="integration" ref={sectionRef} className="py-24 bg-[#0e1333] text-white relative overflow-hidden">
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{
           backgroundImage: `linear-gradient(90deg, white 1px, transparent 1px), linear-gradient(white 1px, transparent 1px)`,
@@ -67,7 +67,7 @@ export function SaligPayCallout() {
               }}
             >
               <span className="w-2 h-2 rounded-full bg-[#22d3ee]" />
-              Native Integration
+              Multi-Provider
             </span>
             
             <h2 
@@ -78,9 +78,8 @@ export function SaligPayCallout() {
                 transition: 'opacity 0.6s ease-out 0.2s, transform 0.6s ease-out 0.2s',
               }}
             >
-              Built natively on{" "}
-              <span className="text-[#22d3ee]">SaligPay</span>.<br />
-              Not bolted on.
+              Works with{" "}
+              <span className="text-[#22d3ee]">any payment provider.</span>
             </h2>
             
             <p 
@@ -92,7 +91,7 @@ export function SaligPayCallout() {
               }}
             >
               Most affiliate tools connect via webhooks — fragile pipes that break, lag, or miss events entirely. 
-              Affilio runs directly on SaligPay's infrastructure, so every payment event flows through instantly and reliably.
+              Affilio integrates directly with Stripe, SaligPay, and more, so every payment event flows through instantly and reliably.
             </p>
 
             <div 

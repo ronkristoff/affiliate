@@ -283,8 +283,8 @@ export default function SignIn() {
             Your affiliate<br />program,<br /><span className="text-[#1fb5a5]">on autopilot.</span>
           </h1>
           <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
-            Commission tracking, payout management, and a branded affiliate portal — all natively
-            integrated with SaligPay.
+            Commission tracking, payout management, and a branded affiliate portal — works with
+            any payment provider.
           </p>
         </div>
 
@@ -307,7 +307,7 @@ export default function SignIn() {
             </div>
             <div>
               <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Commissions tracked</div>
-              <div className="text-sm text-white font-semibold mt-px">Zero-latency SaligPay integration</div>
+              <div className="text-sm text-white font-semibold mt-px">Real-time payment integration</div>
             </div>
           </div>
           <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">

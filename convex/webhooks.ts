@@ -11,7 +11,7 @@ const CENTS_PER_CURRENCY_UNIT = 100;
 // ============================================
 
 /**
- * Supported billing event types from SaligPay webhooks
+ * Supported billing event types from payment provider webhooks
  */
 export type BillingEventType =
   | "payment.updated"
@@ -59,7 +59,7 @@ export interface BillingEvent {
 }
 
 /**
- * Normalize a SaligPay webhook payload to BillingEvent format
+ * Normalize a billing provider webhook payload to BillingEvent format
  * Returns null if the payload structure is invalid
  */
 export function normalizeToBillingEvent(payload: any): BillingEvent | null {

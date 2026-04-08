@@ -9,7 +9,7 @@ const testimonials = [
     name: "Alex R.",
     role: "SaaS Founder",
     location: "Philippines",
-    quote: "We launched our affiliate program in under an hour. The SaligPay integration means every sale is tracked perfectly — no more spreadsheet gymnastics.",
+    quote: "We launched our affiliate program in under an hour. The payment integration means every sale is tracked perfectly — no more spreadsheet gymnastics.",
     initials: "AR",
   },
   {

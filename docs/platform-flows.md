@@ -51,7 +51,7 @@ A multi-step wizard guides Alex through:
 |------|-------------|
 | 1 | Welcome — verify email, enter business name |
 | 2 | Install tracking snippet (`<script>` tag) |
-| 3 | Connect billing provider (SaligPay or Stripe) |
+| 3 | Connect a billing provider (SaligPay or Stripe) |
 | 4 | Create first campaign |
 | 5 | Invite affiliates or share portal link |
 
@@ -81,6 +81,8 @@ Each plan change writes a `billingHistory` record for audit.
 |----------|-------------------|----------------|
 | **SaligPay** | `tenant.saligPayCredentials` (clientId, clientSecret) | `payment.updated`, `subscription.created/updated/cancelled`, `refund.created`, `chargeback.created` |
 | **Stripe** | `tenant.stripeCredentials` (signingSecret) | Same event types, normalized to `BillingEvent` |
+
+> **Note:** Both providers are supported equally. SaligPay supports optional metadata-based attribution (`_affilio_ref` in the payment payload). Stripe requires the `Affilio.referral()` lead matching approach (see Flow 3.4).
 
 ### Key Database Tables
 
@@ -342,11 +344,11 @@ Customer pays ─────── Webhook arrives with customer email
     The lead is the bridge.
 ```
 
-**Why is it split this way?** Because signup and payment are separate events on the merchant's site. The merchant controls the signup form (where they call `Affilio.referral()`), but the payment is processed by Stripe/SaligPay (where they can't inject affiliate data). The lead bridges the gap.
+**Why is it split this way?** Because signup and payment are separate events on the merchant's site. The merchant controls the signup form (where they call `Affilio.referral()`), but the payment is processed by their billing provider (where they can't inject affiliate data). The lead bridges the gap.
 
 **What happens if `Affilio.referral()` is never called?** The webhook arrives with `alex@example.com`, but there's no `referralLeads` record for that email → no attribution found → the sale is recorded as an **organic conversion** (no commission for Jamie). This is why adding `Affilio.referral()` to the signup form is critical.
 
-**What about SaligPay (metadata fallback)?** SaligPay can optionally pass `_affilio_ref` metadata directly in the payment payload. In that case, the webhook already has the affiliate code and **skips** the lead lookup entirely. But for Stripe (and the recommended universal approach), the lead matching is required because Stripe webhooks don't carry affiliate metadata.
+**What about providers with metadata support?** Some billing providers (like SaligPay) can optionally pass `_affilio_ref` metadata directly in the payment payload. In that case, the webhook already has the affiliate code and **skips** the lead lookup entirely. For Stripe (and as the recommended universal approach), the lead matching is required because Stripe webhooks don't carry affiliate metadata.
 
 #### 3.5 Webhook-Triggered Conversions
 
@@ -824,5 +826,5 @@ The complete journey from click to payout:
 | `POST` | `/track/referral` | Create referral lead from `Affilio.referral()` | Public (via publicKey/cookie) |
 | `POST` | `/api/tracking/ping` | Tracking snippet health ping | Public (via publicKey) |
 | `POST` | `/api/tracking/referral-ping` | Referral health ping | Public (via publicKey) |
-| `POST` | `/api/webhooks/saligpay` | SaligPay billing webhook | Signature verification |
-| `POST` | `/api/webhooks/stripe` | Stripe billing webhook | Signature verification |
+| `POST` | `/api/webhooks/saligpay` | Billing provider webhook (SaligPay) | Signature verification |
+| `POST` | `/api/webhooks/stripe` | Billing provider webhook (Stripe) | Signature verification |

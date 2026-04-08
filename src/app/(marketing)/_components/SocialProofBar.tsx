@@ -13,12 +13,12 @@ const stats = [
     subtext: "No card required",
   },
   {
-    id: "saligpay-integration",
+    id: "payment-integration",
     icon: Zap,
     value: "0",
     unit: "",
     label: "webhook setup",
-    subtext: "Native SaligPay integration",
+    subtext: "Connect any payment provider",
   },
   {
     id: "quick-setup",

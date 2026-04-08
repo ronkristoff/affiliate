@@ -718,7 +718,7 @@ http.route({
   }),
 });
 
-// SaligPay Webhook Handler
+// Billing Provider Webhook Handler (SaligPay)
 // Story 6.5: Mock Payment Webhook Processing
 // AC1: Process webhook events to create conversions
 // AC3: Store raw webhook for audit
@@ -1479,7 +1479,7 @@ http.route({
 // =============================================================================
 // Mock Stripe Webhook Trigger — POST /api/mock/stripe-webhook
 // Local development endpoint for testing the Stripe webhook pipeline
-// Mirrors existing POST /api/mock/trigger-payment pattern for SaligPay
+// Mirrors existing POST /api/mock/trigger-payment pattern (billing provider agnostic)
 // =============================================================================
 http.route({
   path: "/api/mock/stripe-webhook",

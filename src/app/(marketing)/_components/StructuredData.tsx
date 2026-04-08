@@ -43,7 +43,7 @@ export function StructuredData() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description:
-          "Affiliate program management with native SaligPay integration for SaaS businesses.",
+          "Affiliate program management with multi-provider payment integration for SaaS businesses.",
         offers,
       },
     ],

@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 const steps = [
   {
     number: 1,
-    title: "Connect SaligPay",
-    description: "Paste your SaligPay API key. That's it — no webhooks, no callback URLs.",
+    title: "Connect Your Provider",
+    description: "Link your Stripe, SaligPay, or preferred payment provider. One setup — automatic tracking from day one.",
     tag: "~30 seconds",
     icon: "⚡",
   },

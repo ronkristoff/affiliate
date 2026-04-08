@@ -21,7 +21,7 @@ const resendInstance: Resend = new Resend(components.resend, {
 
 
 /**
- * SaligPay connection status types
+ * Billing provider connection status types (SaligPay)
  */
 export type SaligPayConnectionMode = "mock" | "real";
 
@@ -767,7 +767,7 @@ export const generateSlug = query({
 });
 
 /**
- * Get SaligPay connection status for a tenant
+ * Get billing provider connection status for a tenant (SaligPay integration)
  */
 export const getSaligPayConnectionStatus = query({
   args: {
@@ -801,7 +801,7 @@ export const getSaligPayConnectionStatus = query({
 });
 
 /**
- * Connect SaligPay with mock credentials
+ * Connect billing provider with mock credentials (SaligPay integration)
  * Used for development/testing - generates mock tokens
  */
 export const connectMockSaligPay = mutation({
@@ -893,7 +893,7 @@ export const connectMockSaligPay = mutation({
 });
 
 /**
- * Disconnect SaligPay integration
+ * Disconnect billing provider integration (SaligPay)
  */
 export const disconnectSaligPay = mutation({
   args: {

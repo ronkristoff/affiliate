@@ -96,7 +96,7 @@ export default function AttributionSettingsPage() {
           <AlertDescription>
             Attribution connects affiliate referrals to actual conversions. When a customer clicks 
             an affiliate link, we store their code in a cookie. During checkout, this code is passed 
-            to SaligPay through metadata. When the payment completes, our webhook extracts the 
+            to your payment provider through metadata. When the payment completes, our webhook extracts the 
             attribution data and creates a conversion record linked to the affiliate.
           </AlertDescription>
         </Alert>
@@ -106,7 +106,7 @@ export default function AttributionSettingsPage() {
           <CardHeader>
             <CardTitle>Quick Reference</CardTitle>
             <CardDescription>
-              Metadata fields required in SaligPay checkout
+              Metadata fields required in your payment provider checkout
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -144,7 +144,7 @@ export default function AttributionSettingsPage() {
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Conversions not attributed:</strong> Verify metadata fields match exactly (case-sensitive)</li>
               <li><strong>Missing affiliate code:</strong> Ensure tracking snippet is installed and working</li>
-              <li><strong>Webhook not firing:</strong> Check SaligPay connection status in settings</li>
+              <li><strong>Webhook not firing:</strong> Check your payment provider connection status in settings</li>
               <li><strong>Organic traffic showing:</strong> Normal for direct customers without affiliate referral</li>
             </ul>
           </AlertDescription>

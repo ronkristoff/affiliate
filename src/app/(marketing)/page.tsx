@@ -26,8 +26,8 @@ const FeaturesSection = dynamic(
   }
 );
 
-const SaligPayCallout = dynamic(
-  () => import("./_components/SaligPayCallout").then((mod) => ({ default: mod.SaligPayCallout })),
+const IntegrationCallout = dynamic(
+  () => import("./_components/IntegrationCallout").then((mod) => ({ default: mod.IntegrationCallout })),
   {
     loading: () => <div className="py-20 bg-[var(--brand-dark)]" aria-hidden="true"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-96 animate-pulse bg-white/5 rounded-xl" /></div>,
   }
@@ -69,27 +69,27 @@ const MarketingFooter = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: "Affiliate Program Management for SaaS on SaligPay",
-  description: "Launch your SaaS affiliate program on SaligPay. Automatic commission tracking, branded portal, fraud detection. 14-day free trial, no credit card required.",
+  title: "Affiliate Program Management for SaaS Businesses",
+  description: "Launch your SaaS affiliate program with Stripe, SaligPay, or any payment provider. Automatic commission tracking, branded portal, fraud detection. 14-day free trial, no credit card required.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Affilio — Affiliate Program Management for SaaS on SaligPay",
-    description: "Launch, manage, and track your SaaS affiliate program natively on SaligPay. 14-day free trial.",
+    title: "Affilio — Affiliate Program Management for SaaS",
+    description: "Launch, manage, and track your SaaS affiliate program with any payment provider. 14-day free trial.",
     url: "/",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Affilio — Affiliate Program Management for SaaS on SaligPay",
+        alt: "Affilio — Affiliate Program Management for SaaS",
       },
     ],
   },
   twitter: {
     title: "Affilio — Affiliate Program Management for SaaS",
-    description: "Launch, manage, and track your SaaS affiliate program natively on SaligPay. 14-day free trial.",
+    description: "Launch, manage, and track your SaaS affiliate program with any payment provider. 14-day free trial.",
     images: ["/opengraph-image"],
   },
 };
@@ -109,7 +109,7 @@ export default function MarketingPage() {
         <SocialProofBar />
         <ProblemSection />
         <FeaturesSection />
-        <SaligPayCallout />
+        <IntegrationCallout />
         <HowItWorksSection />
         <PricingSection />
         <TestimonialsSection />

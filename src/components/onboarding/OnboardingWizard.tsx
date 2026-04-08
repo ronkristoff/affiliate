@@ -276,7 +276,7 @@ export function OnboardingWizard() {
 function WelcomeStepContent() {
   const features = [
     "Track affiliate commissions automatically",
-    "Connect Stripe or SaligPay for payments",
+    "Connect Stripe, SaligPay, or any payment provider",
     "Invite team members to help manage",
     "Monitor performance with real-time analytics",
   ];
@@ -708,7 +708,7 @@ $("#signup-form").on("submit", function(e) {
         </ul>
       </div>
 
-      {/* SaligPay Advanced (collapsible) */}
+      {/* Provider-Specific Advanced (collapsible) */}
       {connectedProvider === "saligpay" && (
         <div className="space-y-2">
           <details className="text-sm">
@@ -718,7 +718,7 @@ $("#signup-form").on("submit", function(e) {
             <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
               <p>
                 For click-level precision, you can optionally pass attribution metadata
-                through your SaligPay checkout:
+                through your payment provider checkout:
               </p>
               <div className="rounded bg-gray-900 p-2">
                 <code className="text-xs text-green-400 block break-all">

@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 const features = [
   {
     icon: Zap,
-    title: "Native SaligPay Integration",
-    description: "Built directly on SaligPay's API. Every payment, upgrade, and refund automatically flows through — no webhooks needed.",
+    title: "Multi-Provider Integration",
+    description: "Connect Stripe, SaligPay, or any payment provider. Every payment, upgrade, and refund automatically flows through — no manual setup needed.",
     highlight: "Zero configuration",
   },
   {
@@ -34,7 +34,7 @@ const features = [
   {
     icon: Wallet,
     title: "Payout Workflow",
-    description: "Batch payouts, track status, and handle rejections — all from one dashboard. Pay affiliates via bank transfer or SaligPay.",
+    description: "Batch payouts, track status, and handle rejections — all from one dashboard. Pay affiliates via bank transfer or direct deposit.",
     highlight: "One-click payouts",
   },
   {

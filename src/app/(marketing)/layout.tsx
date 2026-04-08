@@ -6,11 +6,12 @@ export const metadata: Metadata = {
     template: "%s | Affilio",
     default: "Affilio — Affiliate Program Management for SaaS",
   },
-  description: "Launch, manage, and pay your affiliate program natively on SaligPay. Set up in under 15 minutes with zero webhook configuration.",
+  description: "Launch, manage, and pay your affiliate program with any payment provider. Set up in under 15 minutes with zero webhook configuration.",
   keywords: [
     "affiliate program",
     "affiliate management",
     "SaaS",
+    "Stripe",
     "SaligPay",
     "commission tracking",
     "referral tracking",
