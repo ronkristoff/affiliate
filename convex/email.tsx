@@ -55,16 +55,21 @@ export const sendOTPVerification = async (
   {
     to,
     code,
+    purpose,
   }: {
     to: string;
     code: string;
+    purpose?: "email-verification" | "sign-in" | "forget-password";
   },
 ) => {
+  const subject = purpose === "forget-password"
+    ? "Reset your password"
+    : "Verify your email address";
   await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
-    subject: "Verify your email address",
-    html: await render(<VerifyOTP code={code} />),
+    subject,
+    html: await render(<VerifyOTP code={code} purpose={purpose} />),
   });
 };
 
@@ -695,10 +700,15 @@ export const sendAuthEmail = internalAction({
     to: v.string(),
     url: v.optional(v.string()),
     otp: v.optional(v.string()),
+    purpose: v.optional(v.union(
+      v.literal("email-verification"),
+      v.literal("sign-in"),
+      v.literal("forget-password")
+    )),
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
-    console.log(`[emailService] sendAuthEmail called: type=${args.type}, to=${args.to}`);
+    console.log(`[emailService] sendAuthEmail called: type=${args.type}, purpose=${args.purpose ?? "(none)"}, to=${args.to}`);
     try {
       let subject: string;
       let html: string;
@@ -717,8 +727,12 @@ export const sendAuthEmail = internalAction({
           html = await render(<ResetPasswordEmail url={args.url!} />);
           break;
         case "otp":
-          subject = "Verify your email address";
-          html = await render(<VerifyOTP code={args.otp!} />);
+          subject = args.purpose === "forget-password"
+            ? "Reset your password"
+            : args.purpose === "sign-in"
+              ? "Sign in to your account"
+              : "Verify your email address";
+          html = await render(<VerifyOTP code={args.otp!} purpose={args.purpose} />);
           break;
       }
 

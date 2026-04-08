@@ -143,17 +143,24 @@ const createOptions = (ctx: GenericCtx) =>
         },
       }),
       emailOTP({
-        async sendVerificationOTP({ email, otp }) {
+        async sendVerificationOTP({ email, otp, type }) {
+          const purpose = type === "forget-password"
+            ? "forget-password"
+            : type === "sign-in"
+              ? "sign-in"
+              : "email-verification";
           if ("runAction" in ctx) {
             await (ctx as any).runAction(internal.email.sendAuthEmail, {
               type: "otp",
               to: email,
               otp,
+              purpose,
             });
           } else {
             await sendOTPVerification(requireMutationCtx(ctx) as any, {
               to: email,
               code: otp,
+              purpose,
             });
           }
         },

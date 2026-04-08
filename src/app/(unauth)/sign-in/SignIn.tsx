@@ -222,8 +222,9 @@ export default function SignIn() {
     setForgotPasswordLoading(true);
 
     try {
-      const { error } = await authClient.forgetPassword.emailOtp({
+      const { error } = await authClient.requestPasswordReset({
         email: values.email,
+        redirectTo: window.location.origin + "/reset-password",
       });
 
       if (error) {

@@ -3,10 +3,110 @@ import { components } from "./_generated/api";
 import { query, mutation, internalQuery } from "./_generated/server";
 import { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { scrypt } from "@noble/hashes/scrypt";
+import { hexToBytes } from "@noble/hashes/utils";
 
 export const betterAuthComponent = createClient<DataModel>(
   components.betterAuth
 );
+
+// ── Password reuse check ────────────────────────────────────────────────────
+// Uses the same scrypt parameters as Better Auth to verify whether a new
+// password matches the current one. Called from the reset-password page
+// BEFORE actually resetting, so the user gets a clear error upfront.
+
+// scrypt config must match better-auth/crypto/password.ts exactly
+const SCRYPT_CONFIG = { N: 16384, r: 16, p: 1, dkLen: 64 };
+
+export const checkResetPasswordReuse = mutation({
+  args: {
+    token: v.string(),
+    newPassword: v.string(),
+  },
+  returns: v.object({
+    isReuse: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    // Use the Better Auth adapter (findMany) to query component-scoped tables.
+    // Component table indexes are not exposed via ctx.db.withIndex().
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const factory: any = betterAuthComponent.adapter(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db: any = factory({ options: {} });
+
+    // 1. Look up the verification token
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const verifications: any[] = await db.findMany({ model: "verification" });
+    const identifier = `reset-password:${args.token}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const verification = verifications.find((v: any) => v.identifier === identifier);
+
+    console.log("[checkReuse] identifier:", identifier);
+    console.log("[checkReuse] verifications count:", verifications.length);
+    console.log("[checkReuse] verification found:", !!verification);
+
+    if (!verification) {
+      return { isReuse: false };
+    }
+
+    if (verification.expiresAt < Date.now()) {
+      return { isReuse: false };
+    }
+
+    const userId = verification.value;
+    console.log("[checkReuse] userId:", userId);
+
+    // 2. Find the credential account for this user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const accounts: any[] = await db.findMany({ model: "account" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const credentialAccount = accounts.find(
+      (a: any) => a.userId === userId && a.providerId === "credential" && a.password
+    );
+
+    console.log("[checkReuse] accounts count:", accounts.length);
+    console.log("[checkReuse] credentialAccount found:", !!credentialAccount);
+
+    if (!credentialAccount) {
+      return { isReuse: false };
+    }
+
+    const storedHash: string = credentialAccount.password;
+    console.log("[checkReuse] storedHash parts:", storedHash?.split(":").length);
+
+    if (!storedHash) {
+      return { isReuse: false };
+    }
+
+    const [saltHex, keyHex] = storedHash.split(":");
+    if (!saltHex || !keyHex) {
+      return { isReuse: false };
+    }
+
+    // 3. Verify the new password against the stored hash using STATIC imports
+    //    (dynamic imports are NOT supported in Convex mutations — they silently fail)
+    try {
+      const derivedKey = scrypt(args.newPassword.normalize("NFKC"), hexToBytes(saltHex), SCRYPT_CONFIG);
+      const derivedHex = Array.from(new Uint8Array(derivedKey.buffer))
+        .map((b: number) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      console.log("[checkReuse] hash match:", derivedHex === keyHex);
+
+      if (derivedHex === keyHex) {
+        return {
+          isReuse: true,
+          error: "You cannot reuse your current password. Please choose a different one.",
+        };
+      }
+    } catch (err) {
+      console.error("[checkReuse] scrypt error:", err);
+    }
+
+    return { isReuse: false };
+  },
+});
 
 /**
  * Get the current authenticated user with tenant context.

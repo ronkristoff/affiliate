@@ -24,9 +24,9 @@ import {
 // ── Centralized from-address ─────────────────────────────────────────────────
 
 const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || "developer@microsource.com.ph";
-const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
+const FROM_NAME = process.env.EMAIL_FROM_NAME || "Microsource Support";
 
-/** Returns the single verified from-address: "Salig Affiliate <developer@microsource.com.ph>" */
+/** Returns the single verified from-address: "Microsource Support <developer@microsource.com.ph>" */
 export const getFromAddress = (_prefix?: string) =>
   `${FROM_NAME} <${FROM_ADDRESS}>`;
 

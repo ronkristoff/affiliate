@@ -91,8 +91,8 @@ export function BaseEmail({
   previewText,
   footerLinks = [],
   footerText,
-  brandName = "Better Auth",
-  brandTagline = "Simple, secure authentication for your applications",
+  brandName = "Microsource Support",
+  brandTagline = "Affiliate management powered by Microsource",
   brandLogoUrl,
 }: BaseEmailProps) {
   return (
