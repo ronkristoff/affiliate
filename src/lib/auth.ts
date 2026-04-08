@@ -58,10 +58,20 @@ const createOptions = (ctx: GenericCtx) =>
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
-        await sendEmailVerification(requireMutationCtx(ctx) as any, {
-          to: user.email,
-          url,
-        });
+        if ("runAction" in ctx) {
+          // Action context — use sendAuthEmail action (supports Postmark)
+          await (ctx as any).runAction(internal.email.sendAuthEmail, {
+            type: "verifyEmail",
+            to: user.email,
+            url,
+          });
+        } else {
+          // Mutation context — use direct sendEmailFromMutation (Resend only)
+          await sendEmailVerification(requireMutationCtx(ctx) as any, {
+            to: user.email,
+            url,
+          });
+        }
       },
     },
     emailAndPassword: {
@@ -70,10 +80,18 @@ const createOptions = (ctx: GenericCtx) =>
       // pnpm convex env set RESEND_API_KEY your-api-key
       requireEmailVerification: false,
       sendResetPassword: async ({ user, url }) => {
-        await sendResetPassword(requireMutationCtx(ctx) as any, {
-          to: user.email,
-          url,
-        });
+        if ("runAction" in ctx) {
+          await (ctx as any).runAction(internal.email.sendAuthEmail, {
+            type: "resetPassword",
+            to: user.email,
+            url,
+          });
+        } else {
+          await sendResetPassword(requireMutationCtx(ctx) as any, {
+            to: user.email,
+            url,
+          });
+        }
       },
     },
     socialProviders: {
@@ -110,18 +128,34 @@ const createOptions = (ctx: GenericCtx) =>
       anonymous(),
       magicLink({
         sendMagicLink: async ({ email, url }) => {
-          await sendMagicLink(requireMutationCtx(ctx) as any, {
-            to: email,
-            url,
-          });
+          if ("runAction" in ctx) {
+            await (ctx as any).runAction(internal.email.sendAuthEmail, {
+              type: "magicLink",
+              to: email,
+              url,
+            });
+          } else {
+            await sendMagicLink(requireMutationCtx(ctx) as any, {
+              to: email,
+              url,
+            });
+          }
         },
       }),
       emailOTP({
         async sendVerificationOTP({ email, otp }) {
-          await sendOTPVerification(requireMutationCtx(ctx) as any, {
-            to: email,
-            code: otp,
-          });
+          if ("runAction" in ctx) {
+            await (ctx as any).runAction(internal.email.sendAuthEmail, {
+              type: "otp",
+              to: email,
+              otp,
+            });
+          } else {
+            await sendOTPVerification(requireMutationCtx(ctx) as any, {
+              to: email,
+              code: otp,
+            });
+          }
         },
       }),
       twoFactor(),

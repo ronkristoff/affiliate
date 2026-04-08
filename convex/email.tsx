@@ -677,3 +677,63 @@ export const sendReactivationEmail = action({
     }
   },
 });
+
+// ── Group E: Internal action for Better Auth emails (works in any ctx) ───────
+// Better Auth callbacks can run in mutation OR action context.
+// `requireMutationCtx` throws when called from action context.
+// This action uses the full sendEmail path (supports both Resend and Postmark).
+// Called via ctx.runAction from auth callbacks.
+
+export const sendAuthEmail = internalAction({
+  args: {
+    type: v.union(
+      v.literal("verifyEmail"),
+      v.literal("magicLink"),
+      v.literal("resetPassword"),
+      v.literal("otp")
+    ),
+    to: v.string(),
+    url: v.optional(v.string()),
+    otp: v.optional(v.string()),
+  },
+  returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+    console.log(`[emailService] sendAuthEmail called: type=${args.type}, to=${args.to}`);
+    try {
+      let subject: string;
+      let html: string;
+
+      switch (args.type) {
+        case "verifyEmail":
+          subject = "Verify your email address";
+          html = await render(<VerifyEmail url={args.url!} />);
+          break;
+        case "magicLink":
+          subject = "Sign in to your account";
+          html = await render(<MagicLinkEmail url={args.url!} />);
+          break;
+        case "resetPassword":
+          subject = "Reset your password";
+          html = await render(<ResetPasswordEmail url={args.url!} />);
+          break;
+        case "otp":
+          subject = "Verify your email address";
+          html = await render(<VerifyOTP code={args.otp!} />);
+          break;
+      }
+
+      const result: { success: boolean; messageId?: string } = await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("onboarding"),
+        to: args.to,
+        subject,
+        html,
+      });
+
+      return { success: result.success, error: result.success ? undefined : "Email send failed" };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[emailService] sendAuthEmail FAILED: ${errorMessage}`);
+      return { success: false, error: errorMessage };
+    }
+  },
+});

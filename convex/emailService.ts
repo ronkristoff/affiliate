@@ -12,7 +12,7 @@
  * Both paths include opt-in tracking, centralized from-address, and error handling.
  */
 
-import Postmark from "postmark";
+import * as Postmark from "postmark";
 import { Resend } from "@convex-dev/resend";
 import { components, internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -23,15 +23,12 @@ import {
 
 // ── Centralized from-address ─────────────────────────────────────────────────
 
-const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN;
-if (!EMAIL_DOMAIN) {
-  throw new Error("EMAIL_DOMAIN env var is required for email service");
-}
+const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || "developer@microsource.com.ph";
 const FROM_NAME = process.env.EMAIL_FROM_NAME || "Salig Affiliate";
 
-/** Build a from-address like "Salig Affiliate <prefix@domain.com>" */
-export const getFromAddress = (prefix: string) =>
-  `${FROM_NAME} <${prefix}@${EMAIL_DOMAIN}>`;
+/** Returns the single verified from-address: "Salig Affiliate <developer@microsource.com.ph>" */
+export const getFromAddress = (_prefix?: string) =>
+  `${FROM_NAME} <${FROM_ADDRESS}>`;
 
 // ── Provider validation ──────────────────────────────────────────────────────
 
