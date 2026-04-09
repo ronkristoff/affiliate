@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -18,8 +19,6 @@ import {
 import { Loader2, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
 
 const signInSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -71,7 +70,7 @@ export function AffiliateSignInForm({
     try {
       // Sign in via Better Auth (same as SaaS owners)
       const { error: authError } = await authClient.signIn.email({
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
       });
 
@@ -165,17 +164,13 @@ export function AffiliateSignInForm({
             <FormItem>
               <div className="flex items-center justify-between">
                 <FormLabel>Password</FormLabel>
-                <a
-                  href="#"
+                <Link
+                  href={`/portal/forgot-password?tenant=${tenantSlug}`}
                   className="text-xs font-medium hover:underline"
                   style={{ color: primaryColor }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                  // TODO: Implement password reset flow
-                  }}
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <FormControl>
                 <Input

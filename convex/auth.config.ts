@@ -1,9 +1,6 @@
-// eslint-disable-next-line import/no-anonymous-default-export
+import { getAuthConfigProvider } from "@convex-dev/better-auth/auth-config";
+import type { AuthConfig } from "convex/server";
+
 export default {
-  providers: [
-    {
-      domain: `${process.env.CONVEX_SITE_URL}`,
-      applicationID: "convex",
-    },
-  ],
-};
+  providers: [getAuthConfigProvider()],
+} satisfies AuthConfig;

@@ -23,6 +23,7 @@ import { betterAuthComponent } from "./auth";
 
 /**
  * Generate a cryptographically secure random session token.
+ * @deprecated Only used by legacy loginAffiliate mutation. New code uses Better Auth sessions.
  */
 function generateSessionToken(): string {
   const array = new Uint8Array(32);
@@ -32,12 +33,15 @@ function generateSessionToken(): string {
 
 /**
  * Session expiration time (7 days in milliseconds)
+ * @deprecated Only used by legacy loginAffiliate mutation.
  */
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Create a new affiliate session with server-side tracking.
  * Returns the session token to be stored client-side.
+ *
+ * @deprecated Only used by legacy loginAffiliate mutation. New code uses Better Auth sessions.
  */
 async function createAffiliateSession(
   ctx: any,
@@ -146,9 +150,10 @@ export const getCurrentAffiliate = query({
     }
 
     // Look up affiliate by email across all tenants
+    const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const affiliate = await ctx.db
       .query("affiliates")
-      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (!affiliate) {
@@ -231,7 +236,7 @@ export const createAffiliateAccountInternal = internalMutation({
     email: v.string(),
     firstName: v.string(),
     lastName: v.string(),
-    passwordHash: v.string(),
+    passwordHash: v.optional(v.string()),
     promotionChannel: v.optional(v.string()),
     uniqueCode: v.string(),
     campaignSlug: v.optional(v.string()),
@@ -557,11 +562,81 @@ export const registerAffiliateAccount = action({
 });
 
 /**
- * Login affiliate.
- * Validates credentials and returns session data if successful.
+ * Complete affiliate sign-up — creates the affiliate record AFTER Better Auth
+ * has already created the auth user (via authClient.signUp.email on the client).
  *
- * NOTE: The recommended sign-in path uses Better Auth (authClient.signIn.email).
- * This mutation is kept for backward compatibility with the /api/affiliate-auth route.
+ * This is the two-step affiliate registration flow:
+ *   Step 1 (client): authClient.signUp.email({ email, password, name, additionalFields: { userType: "affiliate" } })
+ *   Step 2 (server): completeAffiliateSignUp({ tenantSlug, email, name, ... })
+ *
+ * No password handling here — Better Auth owns all credential management.
+ */
+export const completeAffiliateSignUp = action({
+  args: {
+    tenantSlug: v.string(),
+    email: v.string(),
+    name: v.string(),
+    promotionChannel: v.optional(v.string()),
+    campaignSlug: v.optional(v.string()),
+    recaptchaToken: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    affiliateId: v.optional(v.id("affiliates")),
+    uniqueCode: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    status: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; affiliateId?: Id<"affiliates">; uniqueCode?: string; referralCode?: string; status?: string; error?: string }> => {
+    // Validate reCAPTCHA token if provided (bot protection)
+    if (args.recaptchaToken) {
+      const recaptchaResult: { success: boolean; score?: number; error?: string } = await ctx.runAction(
+        internal.affiliateAuth.validateRecaptchaToken,
+        { token: args.recaptchaToken },
+      );
+      if (!recaptchaResult.success) {
+        return {
+          success: false,
+          error: recaptchaResult.error || "Verification failed — please try again",
+        };
+      }
+    }
+
+    // Generate unique referral code
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const array = new Uint8Array(8);
+    crypto.getRandomValues(array);
+    let uniqueCode = "";
+    for (let i = 0; i < 8; i++) {
+      uniqueCode += chars.charAt(array[i] % chars.length);
+    }
+
+    const result: { success: boolean; affiliateId?: Id<"affiliates">; uniqueCode?: string; referralCode?: string; status?: string; error?: string } = await ctx.runMutation(internal.affiliateAuth.createAffiliateAccountInternal, {
+      tenantSlug: args.tenantSlug,
+      email: args.email.trim().toLowerCase(),
+      firstName: args.name.split(" ")[0] || "",
+      lastName: args.name.split(" ").slice(1).join(" ") || "",
+      passwordHash: "", // Not needed — Better Auth handles credentials
+      promotionChannel: args.promotionChannel,
+      uniqueCode,
+      campaignSlug: args.campaignSlug,
+    });
+
+    return result;
+  },
+});
+
+/**
+ * Login affiliate (LEGACY — kept for backward compatibility).
+ *
+ * The recommended sign-in path uses Better Auth (authClient.signIn.email).
+ * New integrations should use the Better Auth sign-in flow and
+ * `completeAffiliateSignUp` for registration.
+ *
+ * This mutation validates credentials stored in the affiliates table
+ * and creates a custom session. It does NOT interact with Better Auth.
+ * @deprecated Use authClient.signIn.email() instead.
  */
 export const loginAffiliate = mutation({
   args: {
@@ -645,6 +720,10 @@ export const loginAffiliate = mutation({
 /**
  * Validate session token and return affiliate data.
  * Used by middleware to verify session from cookie.
+ */
+/**
+ * Validate an affiliate session token.
+ * @deprecated Use Better Auth sessions via getCurrentAffiliate query instead.
  */
 export const validateAffiliateSession = query({
   args: {

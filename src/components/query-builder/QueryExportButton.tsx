@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -57,7 +58,7 @@ export function QueryExportButton({
         toast.success(`Exported ${rows.length} rows`);
       } else {
         const result = await exportAction({
-          tenantId: tenantId as string,
+          tenantId: tenantId as Id<"tenants">,
           columns,
           rows,
         });

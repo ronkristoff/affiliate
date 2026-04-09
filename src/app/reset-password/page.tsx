@@ -19,8 +19,6 @@ import { authClient } from "@/lib/auth-client";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 
 const resetPasswordSchema = z.object({
   password: z
@@ -118,8 +116,6 @@ function ResetPasswordForm() {
   const token = searchParams.get("token");
   const errorCode = searchParams.get("error");
 
-  const checkReuse = useMutation(api.auth.checkResetPasswordReuse);
-
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -142,20 +138,6 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      // Check if the new password is the same as the current one
-      const reuseCheck = await checkReuse({
-        token,
-        newPassword: data.password,
-      });
-
-      if (reuseCheck.isReuse) {
-        setLoading(false);
-        form.setError("root", {
-          message: reuseCheck.error || "You cannot reuse your current password. Please choose a different one.",
-        });
-        return;
-      }
-
       await authClient.resetPassword(
         { token, newPassword: data.password },
         {

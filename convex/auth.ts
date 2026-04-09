@@ -1,112 +1,251 @@
-import { createClient } from "@convex-dev/better-auth";
-import { components } from "./_generated/api";
-import { query, mutation, internalQuery } from "./_generated/server";
+import { createClient, type GenericCtx } from "@convex-dev/better-auth";
+import { convex } from "@convex-dev/better-auth/plugins";
+import { requireMutationCtx } from "@convex-dev/better-auth/utils";
+import { anonymous, genericOAuth, twoFactor, magicLink, emailOTP } from "better-auth/plugins";
+import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
+import { components, internal } from "./_generated/api";
+import { query, internalQuery, QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { scrypt } from "@noble/hashes/scrypt";
-import { hexToBytes } from "@noble/hashes/utils";
+import {
+  sendMagicLink,
+  sendOTPVerification,
+  sendEmailVerification,
+  sendResetPassword,
+} from "./email"; // Relative path within convex/
+import authConfig from "./auth.config";
 
 export const betterAuthComponent = createClient<DataModel>(
   components.betterAuth
 );
 
-// ── Password reuse check ────────────────────────────────────────────────────
-// Uses the same scrypt parameters as Better Auth to verify whether a new
-// password matches the current one. Called from the reset-password page
-// BEFORE actually resetting, so the user gets a clear error upfront.
+// ── Auth factory (moved from src/lib/auth.ts — eliminates cross-boundary import) ──
 
-// scrypt config must match better-auth/crypto/password.ts exactly
-const SCRYPT_CONFIG = { N: 16384, r: 16, p: 1, dkLen: 64 };
+const siteUrl = process.env.SITE_URL;
+if (!siteUrl) {
+  throw new Error("SITE_URL environment variable is required");
+}
 
-export const checkResetPasswordReuse = mutation({
-  args: {
-    token: v.string(),
-    newPassword: v.string(),
-  },
-  returns: v.object({
-    isReuse: v.boolean(),
-    error: v.optional(v.string()),
-  }),
-  handler: async (ctx, args) => {
-    // Use the Better Auth adapter (findMany) to query component-scoped tables.
-    // Component table indexes are not exposed via ctx.db.withIndex().
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const factory: any = betterAuthComponent.adapter(ctx);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db: any = factory({ options: {} });
+const createOptions = (ctx: GenericCtx) =>
+  ({
+    baseURL: siteUrl,
+    database: betterAuthComponent.adapter(ctx as any),
+    secret: process.env.BETTER_AUTH_SECRET,
+    advanced: {
+      disableCSRFCheck: false,
+      useSecureCookies: process.env.NODE_ENV === "production",
+    },
+    session: {
+      // Session expires in 7 days (604800 seconds)
+      expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
+      // Update the session age every day to keep it fresh
+      updateAge: 60 * 60 * 24, // 24 hours in seconds
+      // Cookie cache settings for performance
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 5, // 5 minutes
+      },
+    },
+    account: {
+      accountLinking: {
+        enabled: true,
+        allowDifferentEmails: true,
+      },
+    },
+    emailVerification: {
+      sendVerificationEmail: async ({ user, url }) => {
+        if ("runAction" in ctx) {
+          // Action context — use sendAuthEmail action (supports Postmark)
+          await (ctx as any).runAction(internal.email.sendAuthEmail, {
+            type: "verifyEmail",
+            to: user.email,
+            url,
+          });
+        } else {
+          // Mutation context — use direct sendEmailFromMutation (Resend only)
+          await sendEmailVerification(requireMutationCtx(ctx) as any, {
+            to: user.email,
+            url,
+          });
+        }
+      },
+    },
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: false,
+      sendResetPassword: async ({ user, url }) => {
+        if ("runAction" in ctx) {
+          await (ctx as any).runAction(internal.email.sendAuthEmail, {
+            type: "resetPassword",
+            to: user.email,
+            url,
+          });
+        } else {
+          await sendResetPassword(requireMutationCtx(ctx) as any, {
+            to: user.email,
+            url,
+          });
+        }
+      },
+    },
+    socialProviders: {
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID as string,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      },
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID as string,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        accessType: "offline",
+        prompt: "select_account consent",
+      },
+    },
+    user: {
+      // Store company name, domain, and user type for tenant/routing
+      additionalFields: {
+        companyName: {
+          type: "string",
+          required: false,
+          input: true,
+        },
+        domain: {
+          type: "string",
+          required: false,
+          input: true,
+        },
+        userType: {
+          type: "string",
+          required: false,
+          input: true,
+        },
+      },
+      deleteUser: {
+        enabled: true,
+      },
+    },
+    plugins: [
+      anonymous(),
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          if ("runAction" in ctx) {
+            await (ctx as any).runAction(internal.email.sendAuthEmail, {
+              type: "magicLink",
+              to: email,
+              url,
+            });
+          } else {
+            await sendMagicLink(requireMutationCtx(ctx) as any, {
+              to: email,
+              url,
+            });
+          }
+        },
+      }),
+      emailOTP({
+        async sendVerificationOTP({ email, otp, type }) {
+          const purpose = type === "forget-password"
+            ? "forget-password"
+            : type === "sign-in"
+              ? "sign-in"
+              : "email-verification";
+          if ("runAction" in ctx) {
+            await (ctx as any).runAction(internal.email.sendAuthEmail, {
+              type: "otp",
+              to: email,
+              otp,
+              purpose,
+            });
+          } else {
+            await sendOTPVerification(requireMutationCtx(ctx) as any, {
+              to: email,
+              code: otp,
+              purpose,
+            });
+          }
+        },
+      }),
+      twoFactor(),
+      genericOAuth({
+        config: [
+          {
+            providerId: "slack",
+            clientId: process.env.SLACK_CLIENT_ID as string,
+            clientSecret: process.env.SLACK_CLIENT_SECRET as string,
+            discoveryUrl: "https://slack.com/.well-known/openid-configuration",
+            scopes: ["openid", "email", "profile"],
+          },
+        ],
+      }),
+    ],
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            if ("runMutation" in ctx) {
+              const email = user.email.trim().toLowerCase();
+              const userType = (user as any).userType;
+              try {
+                if (userType === "affiliate") {
+                  // Affiliate routing is handled by completeAffiliateSignUp action (Task 19).
+                  // This hook is a no-op for affiliates — the affiliate record is created
+                  // after Better Auth user creation, not during.
+                } else {
+                  await ctx.runMutation(internal.users.syncUserCreation, {
+                    email,
+                    name: user.name || undefined,
+                    companyName: (user as any).companyName || undefined,
+                    domain: (user as any).domain || undefined,
+                    authId: user.id,
+                  });
+                }
+              } catch (err) {
+                console.error("[Better Auth] syncUserCreation failed (non-fatal):", err);
+              }
+            }
+          },
+        },
+        delete: {
+          after: async (user) => {
+            if ("runMutation" in ctx && "db" in ctx) {
+              const mutationCtx = ctx as MutationCtx;
+              const email = user.email.trim().toLowerCase();
+              try {
+                await ctx.runMutation(internal.users.syncUserDeletion, { email });
+                // Also mark matching affiliate records as removed (soft-delete).
+                // An email can exist in affiliates on multiple tenants — prefer
+                // soft-delete over hard-delete to preserve multi-tenant affiliates.
+                const affiliates = await mutationCtx.db
+                  .query("affiliates")
+                  .withIndex("by_email", (q) => q.eq("email", email))
+                  .take(50);
+                for (const affiliate of affiliates) {
+                  if (affiliate.status !== "removed") {
+                    await mutationCtx.db.patch(affiliate._id as Id<"affiliates">, { status: "removed" });
+                  }
+                }
+              } catch (err) {
+                console.error("[Better Auth] syncUserDeletion failed (non-fatal):", err);
+              }
+            }
+          },
+        },
+      },
+    },
+  } satisfies BetterAuthOptions);
 
-    // 1. Look up the verification token
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const verifications: any[] = await db.findMany({ model: "verification" });
-    const identifier = `reset-password:${args.token}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const verification = verifications.find((v: any) => v.identifier === identifier);
+export const createAuth = (ctx: GenericCtx) => {
+  const options = createOptions(ctx);
+  return betterAuth({
+    ...options,
+    plugins: [
+      ...options.plugins,
+      convex({ authConfig }),
+    ],
+  });
+};
 
-    console.log("[checkReuse] identifier:", identifier);
-    console.log("[checkReuse] verifications count:", verifications.length);
-    console.log("[checkReuse] verification found:", !!verification);
-
-    if (!verification) {
-      return { isReuse: false };
-    }
-
-    if (verification.expiresAt < Date.now()) {
-      return { isReuse: false };
-    }
-
-    const userId = verification.value;
-    console.log("[checkReuse] userId:", userId);
-
-    // 2. Find the credential account for this user
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const accounts: any[] = await db.findMany({ model: "account" });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const credentialAccount = accounts.find(
-      (a: any) => a.userId === userId && a.providerId === "credential" && a.password
-    );
-
-    console.log("[checkReuse] accounts count:", accounts.length);
-    console.log("[checkReuse] credentialAccount found:", !!credentialAccount);
-
-    if (!credentialAccount) {
-      return { isReuse: false };
-    }
-
-    const storedHash: string = credentialAccount.password;
-    console.log("[checkReuse] storedHash parts:", storedHash?.split(":").length);
-
-    if (!storedHash) {
-      return { isReuse: false };
-    }
-
-    const [saltHex, keyHex] = storedHash.split(":");
-    if (!saltHex || !keyHex) {
-      return { isReuse: false };
-    }
-
-    // 3. Verify the new password against the stored hash using STATIC imports
-    //    (dynamic imports are NOT supported in Convex mutations — they silently fail)
-    try {
-      const derivedKey = scrypt(args.newPassword.normalize("NFKC"), hexToBytes(saltHex), SCRYPT_CONFIG);
-      const derivedHex = Array.from(new Uint8Array(derivedKey.buffer))
-        .map((b: number) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      console.log("[checkReuse] hash match:", derivedHex === keyHex);
-
-      if (derivedHex === keyHex) {
-        return {
-          isReuse: true,
-          error: "You cannot reuse your current password. Please choose a different one.",
-        };
-      }
-    } catch (err) {
-      console.error("[checkReuse] scrypt error:", err);
-    }
-
-    return { isReuse: false };
-  },
-});
+// Type export for client-side inference
+export const authWithoutCtx = createAuth({} as any);
 
 /**
  * Get the current authenticated user with tenant context.
@@ -149,9 +288,10 @@ export const getCurrentUser = query({
     }
 
     // Find user by email across all tenants using index
+    const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const appUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (!appUser) {
@@ -246,9 +386,10 @@ export const validateTenantAccess = query({
     }
 
     // Find user and check tenant using index
+    const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const appUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (!appUser) {
@@ -282,9 +423,10 @@ export const getCurrentTenantId = query({
       return null;
     }
 
+    const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const appUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     // Check if user has been removed (soft-deleted)
@@ -314,9 +456,10 @@ export const getUserTypeByEmail = query({
   ),
   handler: async (ctx, args) => {
     // 1. Check users table (SaaS Owners)
+    const cleanEmail = args.email.trim().toLowerCase();
     const appUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (appUser && appUser.status !== "removed") {
@@ -326,7 +469,7 @@ export const getUserTypeByEmail = query({
     // 2. Check affiliates table — resolve tenant slug for portal redirect
     const affiliate = await ctx.db
       .query("affiliates")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (affiliate) {
@@ -362,7 +505,7 @@ export const getAuthenticatedUserType = query({
       return null;
     }
 
-    const email = betterAuthUser.email;
+    const email = betterAuthUser.email.trim().toLowerCase();
 
     // 1. Check users table (SaaS Owners)
     const appUser = await ctx.db
@@ -408,9 +551,10 @@ export const getUserRole = query({
       return null;
     }
 
+    const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const appUser = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", betterAuthUser.email))
+      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
       .first();
 
     if (!appUser || appUser.status === "removed") {

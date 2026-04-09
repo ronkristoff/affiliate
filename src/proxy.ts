@@ -1,24 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { getSessionCookie } from "better-auth/cookies";
-import { createAuth } from "./lib/auth";
+import { isAuthenticated as checkIsAuthenticated } from "@/lib/auth-server";
 import { NextRequest, NextResponse } from "next/server";
-import { betterFetch } from "@better-fetch/fetch";
-
-type Session = ReturnType<typeof createAuth>["$Infer"]["Session"];
-
-const getSession = async (request: NextRequest) => {
-  const { data: session } = await betterFetch<Session>(
-    "/api/auth/get-session",
-    {
-      baseURL: request.nextUrl.origin,
-      headers: {
-        cookie: request.headers.get("cookie") ?? "",
-        origin: request.nextUrl.origin,
-      },
-    },
-  );
-  return session;
-};
 
 // Public routes that don't require authentication (SaaS Owner)
 const publicRoutes = [
@@ -37,6 +18,7 @@ const affiliatePublicRoutes = [
   "/portal/login",
   "/portal/register",
   "/portal/forgot-password",
+  "/portal/reset-password",
 ];
 
 // Platform admin routes (require owner session + admin role)
@@ -48,6 +30,7 @@ const affiliateProtectedRoutes = [
   "/portal/earnings",
   "/portal/links",
   "/portal/account",
+  "/portal/assets",
 ];
 
 /**
@@ -68,13 +51,11 @@ function isAffiliateRoute(pathname: string): boolean {
  * Multi-tenant isolation is enforced at the Convex layer, not in middleware.
  */
 export default async function proxy(request: NextRequest) {
-  const ownerSessionCookie = getSessionCookie(request);
   const pathname = request.nextUrl.pathname;
-  
-  // Both owners and affiliates authenticate through Better Auth now.
+
+  // Both owners and affiliates authenticate through Better Auth.
   // Role-based access (owner vs affiliate) is enforced at the Convex layer.
-  // The proxy only needs to know whether ANY valid session exists.
-  const isAuthenticated = !!ownerSessionCookie;
+  const isAuthed = await checkIsAuthenticated();
 
   // Check if route is admin (platform admin)
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
@@ -82,15 +63,30 @@ export default async function proxy(request: NextRequest) {
   // Check if route is public (SaaS Owner)
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   const isMarketingRoute = marketingRoutes.includes(pathname);
-  
+
   // Check if route is affiliate-related
   const isAffiliatePublicRoute = affiliatePublicRoutes.some(route => pathname === route || pathname.startsWith(route));
   const isAffiliateProtectedRoute = affiliateProtectedRoutes.some(route => pathname.startsWith(route));
   const isAffiliatePath = isAffiliateRoute(pathname);
 
+  // Clean up legacy affiliate_session cookie from browsers
+  if (isAffiliatePath) {
+    const affiliateSessionCookie = request.cookies.get("affiliate_session");
+    if (affiliateSessionCookie) {
+      const response = isAuthed ? NextResponse.next() : NextResponse.redirect(
+        new URL("/portal/login", request.url)
+      );
+      response.cookies.set("affiliate_session", "", {
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
+    }
+  }
+
   // Handle admin routes — require authentication; role verified at Convex layer
   if (isAdminRoute) {
-    if (!isAuthenticated) {
+    if (!isAuthed) {
       const signInUrl = new URL("/sign-in", request.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);
@@ -101,17 +97,14 @@ export default async function proxy(request: NextRequest) {
   // Handle affiliate routes
   if (isAffiliatePath) {
     // Affiliate public routes (login, register)
-    // Don't auto-redirect authenticated users away — we can't distinguish
-    // owner vs affiliate from cookies alone. The client-side components
-    // (ResolvePortalTenant, getCurrentAffiliate) handle that.
     if (isAffiliatePublicRoute) {
       return NextResponse.next();
     }
-    
+
     // Affiliate protected routes
     if (isAffiliateProtectedRoute || (isAffiliatePath && !isAffiliatePublicRoute)) {
       // Require authentication (role verified at Convex layer)
-      if (!isAuthenticated) {
+      if (!isAuthed) {
         const loginUrl = new URL("/portal/login", request.url);
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
@@ -123,14 +116,14 @@ export default async function proxy(request: NextRequest) {
   // Allow public and marketing routes
   if (isPublicRoute || isMarketingRoute) {
     // If authenticated and trying to access auth pages, redirect to dashboard
-    if (isAuthenticated && publicRoutes.some(route => pathname.startsWith(route))) {
+    if (isAuthed && publicRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
 
   // Protected routes require authentication
-  if (!isAuthenticated) {
+  if (!isAuthed) {
     // Store the intended URL to redirect back after login
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("callbackUrl", pathname);

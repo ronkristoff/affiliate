@@ -147,9 +147,10 @@ export default function SignIn() {
     }
 
     try {
+      const cleanEmail = values.email.trim().toLowerCase();
       const { data, error: authError } = await authClient.signIn.email(
         {
-          email: values.email,
+          email: cleanEmail,
           password: values.password,
         },
         {

@@ -1,8 +1,7 @@
 import "./polyfills";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { betterAuthComponent } from "./auth";
-import { createAuth } from "../src/lib/auth";
+import { betterAuthComponent, createAuth } from "./auth";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";

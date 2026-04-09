@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { api } from "@/convex/_generated/api";
 import { Logo } from "@/components/shared/Logo";
 import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
@@ -116,6 +117,9 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { executeRecaptcha } = useGoogleReCaptcha();
+  const completeSignUpMutation = useMutation(api.users.completeSignUp);
+
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("growth");
   const [isAnnual, setIsAnnual] = useState(false);
 
@@ -134,7 +138,6 @@ export default function SignUp() {
   });
 
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
-  const completeSignUp = useMutation(api.users.completeSignUp);
 
   const password = form.watch("password");
 
@@ -222,11 +225,23 @@ export default function SignUp() {
         return;
       }
 
+      // Execute reCAPTCHA for bot protection
+      let recaptchaToken: string | null = null;
+      if (executeRecaptcha) {
+        try {
+          recaptchaToken = await executeRecaptcha("owner_sign_up");
+        } catch {
+          // reCAPTCHA failed — continue without it (non-blocking)
+        }
+      }
+
       // Step 1: Create auth user via Better Auth (email, password, name only).
+      const cleanEmail = values.email.trim().toLowerCase();
+      const cleanName = `${values.firstName.trim()} ${values.lastName.trim()}`;
       const { data, error } = await authClient.signUp.email({
-        email: values.email,
+        email: cleanEmail,
         password: values.password,
-        name: `${values.firstName} ${values.lastName}`,
+        name: cleanName,
       });
 
       if (error) {
@@ -237,9 +252,9 @@ export default function SignUp() {
 
       // Step 2: Create tenant + user record in app tables via Convex mutation
       try {
-        await completeSignUp({
-          email: values.email.trim(),
-          name: `${values.firstName} ${values.lastName}`,
+        await completeSignUpMutation({
+          email: cleanEmail,
+          name: cleanName,
           companyName: values.companyName.trim(),
           domain: cleanedDomain,
           plan: selectedPlan,

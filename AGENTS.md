@@ -47,10 +47,25 @@ pnpm convex env set VARIABLE_NAME value
 pnpm convex env set VARIABLE_NAME value --prod
 ```
 ## 🧠 Core Engineering Principles
-Before writing any code, internalize these two non-negotiable rules:
+Before writing any code, internalize these three non-negotiable rules:
 
 1.  **Solve the Root Cause**: Do not "punt" or implement "band-aid" solutions (e.g., adding a `setTimeout` to fix a race condition or a `!` to bypass a type error). Identify why the failure is happening at its source and fix the underlying logic.
 2.  **Search Before Creating**: Before building a new UI component, **search the codebase** (specifically `src/components/`) to see if a reusable component already exists. Always aim for design consistency by extending existing patterns rather than introducing one-off variations.
+3.  **Exhaust Libraries & Frameworks First**: Before writing custom logic, **exhaust the available library APIs, framework features, and plugin ecosystems first**. Never re-implement what a dependency already provides. If a library doesn't support a feature, the correct extension point is the library's plugin/hook system — not raw crypto, custom implementations, or manual workarounds. This applies to the entire app, not just auth.
+
+    **Examples (auth — Better Auth):**
+    - ❌ Manual scrypt hashing for password comparison → ✅ `auth.api.verifyPassword()` or `auth.api.changePassword()`
+    - ❌ Custom session token generation/lookup → ✅ Better Auth session management
+    - ❌ Manual cookie-based CSRF → ✅ Built-in CSRF protection (`advanced.disableCSRFCheck`)
+    - ❌ Custom rate limiting middleware → ✅ `rateLimit()` plugin
+
+    **Examples (general):**
+    - ❌ Custom date formatting logic → ✅ `date-fns` (already installed)
+    - ❌ Hand-rolled form validation → ✅ Zod schemas + `react-hook-form` resolvers
+    - ❌ Custom debounce/throttle → ✅ Framework utilities or a lightweight library
+    - ❌ Manual cookie parsing → ✅ Better Auth's built-in cookie handling or `universal-cookie`
+    - ❌ Custom data fetching with `useEffect` + `useState` → ✅ Convex `useQuery`/`useMutation`
+    - ❌ Manual `<select>` dropdown → ✅ Radix UI `Select` (already in project)
 
 ## 🛠️ Dynamic Skill Loading & Task Initialization
 Before performing any task, the agent MUST execute the following protocol:
@@ -290,10 +305,27 @@ c.status === "confirmed"
 c.status === "approved"
 ```
 
-### Authentication
+### Authentication Architecture
 
-- Use `authClient` from `@/lib/auth-client` for client-side auth
-- Use `api.auth.getCurrentUser` query to get current user data
+All authentication is handled by **Better Auth** (v1.5.3) via the `@convex-dev/better-auth` Convex component.
+
+**Key files:**
+- `convex/auth.ts` — `createAuth` factory, `betterAuthComponent`, all auth queries/mutations
+- `convex/auth.config.ts` — `getAuthConfigProvider()` (Convex auth config)
+- `src/lib/auth-client.ts` — Client-side `authClient` (React hooks + plugins)
+- `src/lib/auth-server.ts` — Server-side utilities (`isAuthenticated`, `getToken`, `handler`)
+- `src/proxy.ts` — Route protection via `isAuthenticated()` from auth-server
+
+**Two-step registration pattern:**
+1. Client calls `authClient.signUp.email({ email, password, name })` → Better Auth creates the user
+2. Client calls `completeSignUp()` or `completeAffiliateSignUp()` → Convex creates the app record
+
+**Affiliate auth:** Affiliates authenticate through the SAME Better Auth flow as SaaS owners. Role-based access is enforced at the Convex query layer, not in the proxy.
+
+**Key rules:**
+- NEVER use `@noble/hashes`, `crypto.subtle`, or manual password hashing — Better Auth handles all credential management
+- NEVER create custom session management — use Better Auth sessions
+- Use `isAuthenticated()` from `@/lib/auth-server` in proxy/route protection — NOT `getSessionCookie` or `betterFetch`
 - Route protection is handled in `src/proxy.ts` (replaces middleware.ts in Next.js 16)
 
 ### Route Structure
@@ -354,11 +386,15 @@ export default function DashboardPage() {
 ### Key Files & Patterns
 
 - `src/lib/utils.ts`: Contains `cn()` utility for Tailwind class merging
-- `src/lib/auth.ts`: Server-side Better Auth configuration
-- `src/lib/auth-client.ts`: Client-side auth instance
+- `src/lib/auth.ts`: Type re-exports from `convex/auth.ts` (thin bridge file)
+- `src/lib/auth-client.ts`: Client-side `authClient` (React hooks + plugins)
+- `src/lib/auth-server.ts`: Server-side `isAuthenticated`, `getToken`, `handler` via `convexBetterAuthNextJs`
+- `convex/auth.ts`: `createAuth` factory, `betterAuthComponent`, auth queries/mutations
+- `convex/auth.config.ts`: `getAuthConfigProvider()` for Convex Better Auth component
 - `convex/schema.ts`: Database schema definition
-- `convex/auth.ts`: Auth-related Convex functions
-- `src/proxy.ts`: Route protection middleware
+- `src/proxy.ts`: Route protection via `isAuthenticated()` from auth-server
+- `src/app/layout.tsx`: Root layout — passes `initialToken` to `ConvexClientProvider` for SSR auth
+- `src/app/ConvexClientProvider.tsx`: Wraps app in `ConvexBetterAuthProvider` with `initialToken` prop
 
 ### UI Components
 
@@ -458,11 +494,6 @@ pnpm convex run testData:seedAllTestData --typecheck=disable -- '{}'
 ### Test Credentials
 
 All test accounts use password: **`TestPass123!`**
-
-Pre-computed scrypt hash (for programmatic use):
-```
-b1fb84d0f1c6feb781d661faecc3eeb6:4840a3170ce388473977f0fef10160e603fc9d95a74f55b2bfbf7626d0879e545a1fe515d12b36f0230bce85f6d4f6de3cf8f98f9a1daca3deeefd06e76a2000
-```
 
 ### Seed Data Summary
 

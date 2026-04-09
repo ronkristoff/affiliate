@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -55,7 +56,7 @@ export default function PortalAccountPage() {
   };
 
   const handleChangePassword = async (affiliateId: string, newPassword: string) => {
-    return await changePassword({ affiliateId, newPassword });
+    return await changePassword({ affiliateId: affiliateId as Id<"affiliates">, newPassword });
   };
 
   return (

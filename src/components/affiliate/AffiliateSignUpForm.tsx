@@ -8,6 +8,7 @@ import { z } from "zod/v4";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -93,7 +94,7 @@ export function AffiliateSignUpForm({
     },
   });
 
-  const signUp = useAction(api.affiliateAuth.registerAffiliateAccount);
+  const completeSignUp = useAction(api.affiliateAuth.completeAffiliateSignUp);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
   const onSubmit = useCallback(async (data: SignUpFormData) => {
@@ -101,47 +102,59 @@ export function AffiliateSignUpForm({
     setError(null);
 
     try {
-      let recaptchaToken: string | null = null;
+      const cleanEmail = data.email.trim().toLowerCase();
+      const cleanName = `${data.firstName.trim()} ${data.lastName.trim()}`;
 
+      // Execute reCAPTCHA for bot protection (non-blocking)
+      let recaptchaToken: string | null = null;
       if (executeRecaptcha) {
         try {
           recaptchaToken = await executeRecaptcha("affiliate_registration");
-        } catch (recaptchaError) {
-          console.error("reCAPTCHA execution failed:", recaptchaError);
-          setError("Unable to verify — please check your connection and try again");
-          setIsLoading(false);
-          return;
+        } catch {
+          // Non-blocking — continue without it
         }
       }
 
-      if (!recaptchaToken) {
-        setError("Verification failed — please try again");
+      // Step 1: Create auth user via Better Auth
+      const { error: authError } = await authClient.signUp.email({
+        email: cleanEmail,
+        password: data.password,
+        name: cleanName,
+        // Mark as affiliate so the databaseHooks.user.create.after knows
+        // not to create a users-table record (owner flow).
+        callbackURL: "/portal/login",
+        fetchOptions: {
+          onSuccess: () => {},
+        },
+      });
+
+      if (authError) {
+        setError(authError.message || "Sign up failed");
         setIsLoading(false);
         return;
       }
 
-      const result = await signUp({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        password: data.password,
+      // Step 2: Create affiliate record via Convex action
+      const result = await completeSignUp({
         tenantSlug,
+        email: cleanEmail,
+        name: cleanName,
         promotionChannel: data.promotionChannel,
-        recaptchaToken,
         campaignSlug,
+        recaptchaToken: recaptchaToken ?? undefined,
       });
 
       if (result.success) {
         setSuccess(true);
       } else {
-        setError(result.error || "Failed to create account");
+        setError(result.error || "Failed to create affiliate account");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setIsLoading(false);
     }
-  }, [executeRecaptcha, signUp, tenantSlug, campaignSlug]);
+  }, [executeRecaptcha, completeSignUp, tenantSlug, campaignSlug]);
 
   /* ── Success State ── */
   if (success) {

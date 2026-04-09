@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/next-theme/theme-provider";
 
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { getToken } from "@/lib/auth-server";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -30,31 +31,48 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+// Decode JWT payload without a library (JWT is base64url-encoded)
+function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64url").toString()
+    );
+    if (payload.exp == null) return true; // missing exp → treat as expired
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true; // Malformed token — treat as expired
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const token = await getToken();
+  const initialToken = isTokenExpired(token ?? null) ? null : token ?? null;
+
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <body
         className={`${poppins.variable} ${passionOne.variable} min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-body)] antialiased`}
         style={{ fontFamily: 'var(--font-poppins), system-ui, sans-serif' }}
       >
-         <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            <ConvexClientProvider>
-              <NuqsAdapter defaultOptions={{ clearOnDefault: true }}>
-                <main className="flex-1 flex flex-col">
-                  {children}
-                </main>
-              </NuqsAdapter>
-            </ConvexClientProvider>
-          </ThemeProvider>
+          <ThemeProvider
+             attribute="class"
+             defaultTheme="light"
+             enableSystem={false}
+             disableTransitionOnChange
+           >
+             <ConvexClientProvider initialToken={initialToken}>
+               <NuqsAdapter defaultOptions={{ clearOnDefault: true }}>
+                 <main className="flex-1 flex flex-col">
+                   {children}
+                 </main>
+               </NuqsAdapter>
+             </ConvexClientProvider>
+           </ThemeProvider>
       </body>
     </html>
   );
