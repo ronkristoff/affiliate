@@ -1,7 +1,7 @@
 import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
-import { getAuthenticatedUser, requireAffiliateTenantId } from "./tenantContext";
+import { getAuthenticatedUser, getTenantId, getAffiliateTenantId } from "./tenantContext";
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
@@ -583,7 +583,13 @@ export const getAffiliateCommissions = query({
     })
   ),
   handler: async (ctx, args) => {
-    const tenantId = await requireAffiliateTenantId(ctx);
+    // Support both admin/owner (users table) and affiliate (affiliates table) callers.
+    // Admin pages use this to view any affiliate's commissions; the affiliate portal
+    // uses this for self-service commission history.
+    const tenantId = (await getTenantId(ctx)) ?? (await getAffiliateTenantId(ctx));
+    if (!tenantId) {
+      throw new Error("Unauthorized: Authentication required");
+    }
 
     // Verify affiliate belongs to tenant and get referral code
     const affiliate = await ctx.db.get(args.affiliateId);
