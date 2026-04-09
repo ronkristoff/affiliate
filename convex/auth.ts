@@ -239,7 +239,13 @@ export const createAuth = (ctx: GenericCtx) => {
     ...options,
     plugins: [
       ...options.plugins,
-      convex({ authConfig }),
+      convex({
+        authConfig,
+        // Auto-rotate JWKS keys if the algorithm changed (e.g. after
+        // upgrading from Better Auth 1.4.x to 1.5.x).  Remove this
+        // option once every client has obtained a fresh token.
+        jwksRotateOnTokenGenerationError: true,
+      }),
     ],
   });
 };
