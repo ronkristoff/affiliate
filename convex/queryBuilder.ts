@@ -271,6 +271,7 @@ export const executeQuery = query({
       alias: v.optional(v.string()),
     })),
     filters: v.optional(v.array(filterValidator)),
+    filterLogic: v.optional(v.union(v.literal("and"), v.literal("or"))),
     joins: v.optional(v.array(joinValidator)),
     aggregations: v.optional(v.array(aggregationValidator)),
     groupBy: v.optional(v.array(v.object({
@@ -281,6 +282,7 @@ export const executeQuery = query({
       start: v.number(),
       end: v.number(),
     })),
+    rowLimit: v.optional(v.number()),
     paginationOpts: v.optional(v.object({
       numItems: v.number(),
       cursor: v.union(v.string(), v.null()),
@@ -375,7 +377,8 @@ export const executeQuery = query({
 
     // 6. Execute query on primary table
     const primaryTable = args.tables[0];
-    const MAX_ROWS = 5000;
+    const effectiveRowLimit = args.rowLimit ?? 5000;
+    const MAX_ROWS = Math.min(effectiveRowLimit, 5000); // Hard cap at 5000
 
     // Fetch data from primary table
     const allRows = await fetchTableRows(ctx, primaryTable, tenantId, MAX_ROWS);
@@ -396,7 +399,7 @@ export const executeQuery = query({
 
     // Apply custom filters
     if (args.filters && args.filters.length > 0) {
-      filteredRows = applyFilters(filteredRows, args.filters);
+      filteredRows = applyFilters(filteredRows, args.filters, args.filterLogic ?? "and");
     }
 
     // Handle joins (in-memory join for secondary tables)
@@ -1097,62 +1100,59 @@ function applyFilters(
     value?: unknown;
     valueTo?: unknown;
     values?: unknown[];
-  }>
+  }>,
+  filterLogic: "and" | "or" = "and"
 ): Record<string, unknown>[] {
-  return rows.filter((row) => {
-    for (const filter of filters) {
-      const fieldValue = (row as Record<string, unknown>)[filter.column];
-      const value = filter.value;
+  const matchesFilter = (row: Record<string, unknown>, filter: typeof filters[number]): boolean => {
+    const fieldValue = row[filter.column];
+    const value = filter.value;
 
-      switch (filter.operator) {
-        case "equals":
-          if (fieldValue !== value) return false;
-          break;
-        case "not_equals":
-          if (fieldValue === value) return false;
-          break;
-        case "contains":
-          if (typeof fieldValue !== "string" || typeof value !== "string") return false;
-          if (!fieldValue.toLowerCase().includes(value.toLowerCase())) return false;
-          break;
-        case "not_contains":
-          if (typeof fieldValue !== "string" || typeof value !== "string") return false;
-          if (fieldValue.toLowerCase().includes(value.toLowerCase())) return false;
-          break;
-        case "gt":
-          if (typeof fieldValue !== "number" || typeof value !== "number") return false;
-          if (!(fieldValue > value)) return false;
-          break;
-        case "gte":
-          if (typeof fieldValue !== "number" || typeof value !== "number") return false;
-          if (!(fieldValue >= value)) return false;
-          break;
-        case "lt":
-          if (typeof fieldValue !== "number" || typeof value !== "number") return false;
-          if (!(fieldValue < value)) return false;
-          break;
-        case "lte":
-          if (typeof fieldValue !== "number" || typeof value !== "number") return false;
-          if (!(fieldValue <= value)) return false;
-          break;
-        case "between":
-          if (typeof fieldValue !== "number") return false;
-          if (typeof value !== "number" || typeof filter.valueTo !== "number") return false;
-          if (!(fieldValue >= value && fieldValue <= filter.valueTo)) return false;
-          break;
-        case "in_list":
-          if (filter.values && !filter.values.includes(fieldValue)) return false;
-          break;
-        case "is_null":
-          if (fieldValue !== null && fieldValue !== undefined) return false;
-          break;
-        case "is_not_null":
-          if (fieldValue === null || fieldValue === undefined) return false;
-          break;
-      }
+    switch (filter.operator) {
+      case "equals":
+        return fieldValue === value;
+      case "not_equals":
+        return fieldValue !== value;
+      case "contains":
+        if (typeof fieldValue !== "string" || typeof value !== "string") return false;
+        return fieldValue.toLowerCase().includes(value.toLowerCase());
+      case "not_contains":
+        if (typeof fieldValue !== "string" || typeof value !== "string") return false;
+        return !fieldValue.toLowerCase().includes(value.toLowerCase());
+      case "gt":
+        if (typeof fieldValue !== "number" || typeof value !== "number") return false;
+        return fieldValue > value;
+      case "gte":
+        if (typeof fieldValue !== "number" || typeof value !== "number") return false;
+        return fieldValue >= value;
+      case "lt":
+        if (typeof fieldValue !== "number" || typeof value !== "number") return false;
+        return fieldValue < value;
+      case "lte":
+        if (typeof fieldValue !== "number" || typeof value !== "number") return false;
+        return fieldValue <= value;
+      case "between":
+        if (typeof fieldValue !== "number") return false;
+        if (typeof value !== "number" || typeof filter.valueTo !== "number") return false;
+        return fieldValue >= value && fieldValue <= filter.valueTo;
+      case "in_list":
+        if (filter.values) return filter.values.includes(fieldValue);
+        return false;
+      case "is_null":
+        return fieldValue === null || fieldValue === undefined;
+      case "is_not_null":
+        return fieldValue !== null && fieldValue !== undefined;
+      default:
+        return true;
     }
-    return true;
-  });
+  };
+
+  if (filterLogic === "or") {
+    // OR: row passes if ANY filter matches
+    return rows.filter((row) => filters.some((filter) => matchesFilter(row, filter)));
+  }
+
+  // AND (default): row passes only if ALL filters match
+  return rows.filter((row) => filters.every((filter) => matchesFilter(row, filter)));
 }
 
 async function applyJoins(

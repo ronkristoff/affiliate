@@ -592,16 +592,6 @@ function QueryBuilderContent() {
     }
   }, [view, hasSavedQueries]);
 
-  // ─── Shared Dirty-Check Dialog ─────────────────────────────────
-  const confirmIfDirty = useCallback((action: () => void) => {
-    if (isDirty) {
-      setPendingDirtyAction(() => action);
-      setDirtyCheckDialogOpen(true);
-    } else {
-      action();
-    }
-  }, [isDirty]);
-
   // ─── Query Builder Hook ────────────────────────────────────────
   const {
     config,
@@ -630,17 +620,27 @@ function QueryBuilderContent() {
     clearHistory,
   } = useQueryBuilder();
 
+  // ─── Shared Dirty-Check Dialog ─────────────────────────────────
+  const confirmIfDirty = useCallback((action: () => void) => {
+    if (isDirty) {
+      setPendingDirtyAction(() => action);
+      setDirtyCheckDialogOpen(true);
+    } else {
+      action();
+    }
+  }, [isDirty]);
+
   // ─── Query Execution ───────────────────────────────────────────
   const queryArgs = {
     tables: config.tables,
     columns: config.columns,
     filters: config.filters.length > 0 ? config.filters : undefined,
-    // filterLogic intentionally omitted — backend executeQuery doesn't accept it yet.
-    // The filterLogic state is still tracked in config for the preview sentence.
+    filterLogic: config.filterLogic,
     joins: config.joins.length > 0 ? config.joins : undefined,
     aggregations: config.aggregations.length > 0 ? config.aggregations : undefined,
     groupBy: config.groupBy.length > 0 ? config.groupBy : undefined,
     dateRange: dateRange ? { start: dateRange.start, end: dateRange.end } : undefined,
+    rowLimit: config.rowLimit,
   };
 
   const hasValidConfig =
