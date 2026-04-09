@@ -580,6 +580,10 @@ export const getAffiliateCommissions = query({
       // Self-referral fraud detection fields (Story 5.6)
       isSelfReferral: v.optional(v.boolean()),
       fraudIndicators: v.optional(v.array(v.string())),
+      // NEW computation fields for affiliate portal
+      commissionType: v.string(),
+      effectiveRate: v.number(),
+      saleAmount: v.optional(v.number()),
     })
   ),
   handler: async (ctx, args) => {
@@ -676,25 +680,46 @@ export const getAffiliateCommissions = query({
       }
     }
 
+    // Build full document maps for computation fields
+    const campaignDocMap = new Map(campaignDocs.filter(Boolean).map((c: any) => [c._id, c]));
+    const conversionDocMap = new Map(conversionDocs.filter(Boolean).map((c: any) => [c._id, c]));
+
     // Build result array using batched lookups
-    const commissionsWithCampaigns = filteredCommissions.map(commission => ({
-      _id: commission._id,
-      _creationTime: commission._creationTime,
-      affiliateId: commission.affiliateId,
-      campaignId: commission.campaignId,
-      conversionId: commission.conversionId,
-      amount: commission.amount,
-      status: commission.status,
-      campaignName: campaignNameMap.get(commission.campaignId.toString()) ?? "Unknown Campaign",
-      customerEmail: commission.conversionId
-        ? conversionEmailMap.get(commission.conversionId.toString())
-        : undefined,
-      createdAt: commission._creationTime,
-      referralCode, // Include for sharing (AC10)
-      // Self-referral fraud detection fields
-      isSelfReferral: commission.isSelfReferral,
-      fraudIndicators: commission.fraudIndicators,
-    }));
+    const commissionsWithCampaigns = filteredCommissions.map(commission => {
+      const campaignDoc = campaignDocMap.get(commission.campaignId);
+      const commissionType = campaignDoc?.commissionType ?? "percentage";
+      const activeOverride = affiliate?.commissionOverrides?.find(
+        (o: any) => o.campaignId === commission.campaignId && o.status === "active"
+      );
+      const effectiveRate = activeOverride?.rate ?? (campaignDoc?.commissionValue ?? 0);
+      const conversionDoc = commission.conversionId
+        ? conversionDocMap.get(commission.conversionId)
+        : undefined;
+      const saleAmount = conversionDoc?.amount;
+
+      return {
+        _id: commission._id,
+        _creationTime: commission._creationTime,
+        affiliateId: commission.affiliateId,
+        campaignId: commission.campaignId,
+        conversionId: commission.conversionId,
+        amount: commission.amount,
+        status: commission.status,
+        campaignName: campaignNameMap.get(commission.campaignId.toString()) ?? "Unknown Campaign",
+        customerEmail: commission.conversionId
+          ? conversionEmailMap.get(commission.conversionId.toString())
+          : undefined,
+        createdAt: commission._creationTime,
+        referralCode, // Include for sharing (AC10)
+        // Self-referral fraud detection fields
+        isSelfReferral: commission.isSelfReferral,
+        fraudIndicators: commission.fraudIndicators,
+        // Computation fields
+        commissionType,
+        effectiveRate,
+        saleAmount,
+      };
+    });
 
     return commissionsWithCampaigns;
   },
@@ -1410,7 +1435,7 @@ export const listCommissionsEnriched = query({
 
       let customerEmail: string | undefined;
       if (conversion) {
-        customerEmail = (conversion as any).customerEmail;
+        customerEmail = conversion.customerEmail;
       }
 
       return {
@@ -1424,8 +1449,8 @@ export const listCommissionsEnriched = query({
         status: commission.status,
         eventMetadata: commission.eventMetadata,
         reversalReason: commission.reversalReason,
-        transactionId: (commission as any).transactionId,
-        batchId: (commission as any).batchId,
+        transactionId: commission.transactionId,
+        batchId: commission.batchId,
         isSelfReferral: commission.isSelfReferral,
         fraudIndicators: commission.fraudIndicators,
         affiliateName: affiliate?.name ?? "Unknown",
@@ -1471,6 +1496,7 @@ export const listCommissionsPaginated = query({
     affiliateSearch: v.optional(v.string()),
     customerSearch: v.optional(v.string()),
     planEventSearch: v.optional(v.string()),
+    batchIdFilter: v.optional(v.id("payoutBatches")),
     // Optional sorting
     sortBy: v.optional(v.union(
       v.literal("_creationTime"),
@@ -1563,6 +1589,10 @@ export const listCommissionsPaginated = query({
       commissions = commissions.filter((c) => c.campaignId === args.campaignIdFilter);
     }
 
+    if (args.batchIdFilter) {
+      commissions = commissions.filter((c) => c.batchId === args.batchIdFilter);
+    }
+
     // Batch-fetch unique affiliates, campaigns, conversions
     const affiliateIds = [...new Set(commissions.map((c) => c.affiliateId))];
     const campaignIds = [...new Set(commissions.map((c) => c.campaignId))];
@@ -1618,8 +1648,8 @@ export const listCommissionsPaginated = query({
         status: commission.status,
         eventMetadata: commission.eventMetadata,
         reversalReason: commission.reversalReason,
-        transactionId: (commission as any).transactionId,
-        batchId: (commission as any).batchId,
+        transactionId: commission.transactionId,
+        batchId: commission.batchId,
         isSelfReferral: commission.isSelfReferral,
         fraudIndicators: commission.fraudIndicators,
         affiliateName: affiliate?.name ?? "Unknown",
@@ -1749,6 +1779,26 @@ export const getCommissionDetail = query({
       customerEmail: v.optional(v.string()),
       planInfo: v.optional(v.string()),
       planEvent: v.string(),
+      // NEW computation fields
+      commissionType: v.string(),
+      campaignDefaultRate: v.number(),
+      effectiveRate: v.number(),
+      isOverride: v.boolean(),
+      saleAmount: v.optional(v.number()),
+      recurringCommission: v.boolean(),
+      recurringRate: v.optional(v.number()),
+      recurringRateType: v.optional(v.string()),
+      // NEW audit trail
+      auditTrail: v.array(v.object({
+        _id: v.id("auditLogs"),
+        _creationTime: v.number(),
+        action: v.string(),
+        actorId: v.optional(v.string()),
+        actorType: v.string(),
+        previousValue: v.optional(v.any()),
+        newValue: v.optional(v.any()),
+        metadata: v.optional(v.any()),
+      })),
     }),
     v.null()
   ),
@@ -1772,12 +1822,14 @@ export const getCommissionDetail = query({
 
     let customerEmail: string | undefined;
     let planInfo: string | undefined;
+    let conversionAmount: number | undefined;
 
     if (commission.conversionId) {
       const conversion = await ctx.db.get(commission.conversionId);
       if (conversion) {
-        customerEmail = (conversion as any).customerEmail;
-        const meta = (conversion as any).metadata;
+        customerEmail = conversion.customerEmail;
+        conversionAmount = conversion.amount;
+        const meta = conversion.metadata;
         if (meta?.planId) {
           planInfo = meta.planId;
         } else if (meta?.subscriptionId) {
@@ -1785,6 +1837,34 @@ export const getCommissionDetail = query({
         }
       }
     }
+
+    // Compute effective rate (check for affiliate-specific override)
+    const activeOverride = affiliate?.commissionOverrides?.find(
+      (o: any) => o.campaignId === commission.campaignId && o.status === "active"
+    );
+    const effectiveRate = activeOverride?.rate ?? campaign?.commissionValue ?? 0;
+    const isOverride = !!activeOverride;
+
+    // Fetch audit trail for this commission
+    const allAuditLogs = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "commission").eq("entityId", args.commissionId)
+      )
+      .order("asc")
+      .collect();
+    const auditTrail = allAuditLogs
+      .filter((log) => log.tenantId === commission.tenantId)
+      .map((log) => ({
+        _id: log._id,
+        _creationTime: log._creationTime,
+        action: log.action,
+        actorId: log.actorId,
+        actorType: log.actorType,
+        previousValue: log.previousValue,
+        newValue: log.newValue,
+        metadata: log.metadata,
+      }));
 
     return {
       _id: commission._id,
@@ -1797,8 +1877,8 @@ export const getCommissionDetail = query({
       status: commission.status,
       eventMetadata: commission.eventMetadata,
       reversalReason: commission.reversalReason,
-      transactionId: (commission as any).transactionId,
-      batchId: (commission as any).batchId,
+      transactionId: commission.transactionId,
+      batchId: commission.batchId,
       isSelfReferral: commission.isSelfReferral,
       fraudIndicators: commission.fraudIndicators,
       affiliateName: affiliate?.name ?? "Unknown",
@@ -1807,6 +1887,17 @@ export const getCommissionDetail = query({
       customerEmail,
       planInfo,
       planEvent: `${campaign?.name ?? "Unknown"} · ${formatEventType(commission.eventMetadata?.source)}`,
+      // Computation fields
+      commissionType: campaign?.commissionType ?? "N/A",
+      campaignDefaultRate: campaign?.commissionValue ?? 0,
+      effectiveRate,
+      isOverride,
+      saleAmount: conversionAmount,
+      recurringCommission: campaign?.recurringCommission ?? false,
+      recurringRate: campaign?.recurringRate,
+      recurringRateType: campaign?.recurringRateType,
+      // Audit trail
+      auditTrail,
     };
   },
 });

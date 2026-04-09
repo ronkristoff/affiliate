@@ -1,6 +1,10 @@
 "use client";
 
-import { Clock, UserCheck, UserX, ShieldAlert, Mail, UserPlus } from "lucide-react";
+import {
+  Clock, UserCheck, UserX, ShieldAlert, Mail, UserPlus,
+  PlusCircle, CheckCircle, XCircle, RotateCcw, RefreshCw,
+  AlertTriangle, TrendingUp, TrendingDown, HelpCircle,
+} from "lucide-react";
 
 interface ActivityItem {
   _id: string;
@@ -28,6 +32,19 @@ const actionIcons: Record<string, React.ReactNode> = {
   affiliate_bulk_rejected: <UserX className="h-4 w-4 text-[var(--danger)]" />,
   email_send_failed: <Mail className="h-4 w-4 text-[var(--danger)]" />,
   permission_denied: <ShieldAlert className="h-4 w-4 text-[var(--danger)]" />,
+  // Commission action types
+  COMMISSION_CREATED: <PlusCircle className="h-4 w-4 text-[var(--info)]" />,
+  COMMISSION_APPROVED: <CheckCircle className="h-4 w-4 text-[var(--success)]" />,
+  COMMISSION_DECLINED: <XCircle className="h-4 w-4 text-[var(--danger)]" />,
+  COMMISSION_REVERSED: <RotateCcw className="h-4 w-4 text-[var(--warning)]" />,
+  COMMISSION_STATUS_CHANGE: <RefreshCw className="h-4 w-4 text-[var(--info)]" />,
+  commission_rejected_payment_failed: <AlertTriangle className="h-4 w-4 text-[var(--danger)]" />,
+  commission_adjusted_upgrade: <TrendingUp className="h-4 w-4 text-[var(--info)]" />,
+  commission_adjusted_downgrade: <TrendingDown className="h-4 w-4 text-[var(--warning)]" />,
+  self_referral_detected: <ShieldAlert className="h-4 w-4 text-[var(--danger)]" />,
+  fraud_alert_email_failed: <Mail className="h-4 w-4 text-[var(--danger)]" />,
+  commission_rejected_payment_pending: <Clock className="h-4 w-4 text-[var(--warning)]" />,
+  commission_rejected_payment_unknown: <HelpCircle className="h-4 w-4 text-[var(--warning)]" />,
 };
 
 const actionLabels: Record<string, string> = {
@@ -41,6 +58,19 @@ const actionLabels: Record<string, string> = {
   email_send_failed: "Email Delivery Failed",
   permission_denied: "Access Denied",
   affiliate_status_updated: "Status Updated",
+  // Commission action types
+  COMMISSION_CREATED: "Commission Created",
+  COMMISSION_APPROVED: "Commission Approved",
+  COMMISSION_DECLINED: "Commission Declined",
+  COMMISSION_REVERSED: "Commission Reversed",
+  COMMISSION_STATUS_CHANGE: "Status Changed",
+  commission_rejected_payment_failed: "Payment Failed",
+  commission_adjusted_upgrade: "Commission Adjusted (Upgrade)",
+  commission_adjusted_downgrade: "Commission Adjusted (Downgrade)",
+  self_referral_detected: "Self-Referral Detected",
+  fraud_alert_email_failed: "Fraud Alert Email Failed",
+  commission_rejected_payment_pending: "Payment Pending",
+  commission_rejected_payment_unknown: "Payment Unknown",
 };
 
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {

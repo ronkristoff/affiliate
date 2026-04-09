@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -53,6 +53,9 @@ import {
   Loader2,
   Eye,
   TrendingUp,
+  Package,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +65,9 @@ import { SearchField } from "@/components/ui/SearchField";
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { dateToTimestamp, dateToStartTimestamp, timestampToDateInput } from "@/lib/date-utils";
 import { CopyableId } from "@/components/shared/CopyableId";
+import { CommissionComputationSection } from "@/components/shared/CommissionComputationSection";
+import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
+import Link from "next/link";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,6 +102,26 @@ interface EnrichedCommission {
 
 interface CommissionDetail extends EnrichedCommission {
   planInfo?: string;
+  // Computation fields from getCommissionDetail
+  commissionType?: string;
+  campaignDefaultRate?: number;
+  effectiveRate?: number;
+  isOverride?: boolean;
+  saleAmount?: number | null;
+  recurringCommission?: boolean;
+  recurringRate?: number;
+  recurringRateType?: string;
+  // Audit trail
+  auditTrail?: Array<{
+    _id: string;
+    _creationTime: number;
+    action: string;
+    actorId?: string;
+    actorType: string;
+    previousValue?: any;
+    newValue?: any;
+    metadata?: any;
+  }>;
 }
 
 interface CommissionStats {
@@ -214,6 +240,7 @@ function CommissionsContent() {
   const [affiliateSearch, setAffiliateSearch] = useQueryState("affiliate", parseAsString.withDefault(""));
   const [customerSearch, setCustomerSearch] = useQueryState("customer", parseAsString.withDefault(""));
   const [planEventSearch, setPlanEventSearch] = useQueryState("planEvent", parseAsString.withDefault(""));
+  const [batchIdFilter, setBatchIdFilter] = useQueryState("batchId", parseAsString.withDefault(""));
 
   // ── Mutations ───────────────────────────────────────────────────────────
   const approveCommission = useMutation(api.commissions.approveCommission);
@@ -226,6 +253,14 @@ function CommissionsContent() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [commissionDetail, setCommissionDetail] = useState<CommissionDetail | null>(null);
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
+  const [showSourceEvent, setShowSourceEvent] = useState(false);
+
+  // Reset collapsible sections when commission changes
+  useEffect(() => {
+    setShowAuditTrail(false);
+    setShowSourceEvent(false);
+  }, [selectedCommission?._id]);
 
   // Dialogs
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
@@ -245,6 +280,9 @@ function CommissionsContent() {
   const parsedAmountMax = amountMax ? parseFloat(amountMax) : undefined;
   const parsedDateAfter = dateAfter ? dateToStartTimestamp(dateAfter) : undefined;
   const parsedDateBefore = dateBefore ? dateToTimestamp(dateBefore) : undefined;
+  const safeBatchId = batchIdFilter && batchIdFilter.startsWith("j")
+    ? (batchIdFilter as Id<"payoutBatches">)
+    : undefined;
 
   const paginatedResult = useQuery(
     api.commissions.listCommissionsPaginated,
@@ -261,6 +299,7 @@ function CommissionsContent() {
       affiliateSearch: affiliateSearch.trim() || undefined,
       customerSearch: customerSearch.trim() || undefined,
       planEventSearch: planEventSearch.trim() || undefined,
+      batchIdFilter: safeBatchId,
       sortBy: sortBy as "_creationTime" | "amount" | "affiliateName" | "campaignName" | "customerEmail" | "planEvent" | "status",
       sortOrder,
     } : "skip"
@@ -326,9 +365,12 @@ function CommissionsContent() {
     if (planEventSearch.trim()) {
       filters.push({ columnKey: "planEvent", type: "text", value: planEventSearch.trim() });
     }
+    if (batchIdFilter) {
+      filters.push({ columnKey: "batchId", label: "Batch Filter" } as any);
+    }
     return filters;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, campaignFilter, searchQuery, amountMin, amountMax, dateAfter, dateBefore, affiliateSearch, customerSearch, planEventSearch]);
+  }, [statusFilter, campaignFilter, searchQuery, amountMin, amountMax, dateAfter, dateBefore, affiliateSearch, customerSearch, planEventSearch, batchIdFilter]);
 
   // ── Handle filter removal ────────────────────────────────────────────────
   const handleRemoveFilter = (key: string) => {
@@ -347,6 +389,7 @@ function CommissionsContent() {
       case "affiliate": setAffiliateSearch(""); break;
       case "customer": setCustomerSearch(""); break;
       case "planEvent": setPlanEventSearch(""); break;
+      case "batchId": setBatchIdFilter(""); break;
     }
     setPage(1);
   };
@@ -362,6 +405,7 @@ function CommissionsContent() {
     setAffiliateSearch("");
     setCustomerSearch("");
     setPlanEventSearch("");
+    setBatchIdFilter("");
     setPage(1);
   };
 
@@ -399,6 +443,9 @@ function CommissionsContent() {
         case "planEvent":
           setPlanEventSearch((filter as any).value ?? "");
           break;
+        case "batchId":
+          setBatchIdFilter((filter as any).value ?? "");
+          break;
       }
     }
 
@@ -410,6 +457,7 @@ function CommissionsContent() {
     if (!activeKeys.has("affiliate")) setAffiliateSearch("");
     if (!activeKeys.has("customer")) setCustomerSearch("");
     if (!activeKeys.has("planEvent")) setPlanEventSearch("");
+    if (!activeKeys.has("batchId")) setBatchIdFilter("");
 
     setPage(1);
   };
@@ -818,6 +866,21 @@ function CommissionsContent() {
                   </span>
                 </div>
 
+                {/* Commission Computation Breakdown */}
+                <CommissionComputationSection
+                  variant="full"
+                  commissionType={effectiveDetail.commissionType ?? "N/A"}
+                  effectiveRate={effectiveDetail.effectiveRate ?? 0}
+                  campaignDefaultRate={effectiveDetail.campaignDefaultRate}
+                  isOverride={effectiveDetail.isOverride}
+                  saleAmount={effectiveDetail.saleAmount ?? null}
+                  amount={effectiveDetail.amount}
+                  recurringCommission={effectiveDetail.recurringCommission}
+                  recurringRate={effectiveDetail.recurringRate}
+                  recurringRateType={effectiveDetail.recurringRateType}
+                  currency="PHP"
+                />
+
                 {/* Commission Details */}
                 <div>
                   <h4 className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-3">
@@ -844,6 +907,19 @@ function CommissionsContent() {
                     )}
                   </div>
                 </div>
+
+                {/* Payout Batch Link */}
+                {effectiveDetail.batchId && (
+                  <div className="mt-4">
+                    <Link
+                      href={`/payouts/batches/${effectiveDetail.batchId}`}
+                      className="flex items-center gap-2 text-[13px] text-[var(--primary)] hover:underline"
+                    >
+                      <Package className="h-4 w-4" />
+                      View Payout Batch
+                    </Link>
+                  </div>
+                )}
 
                 {/* Fraud Signals */}
                 <div>
@@ -884,6 +960,70 @@ function CommissionsContent() {
                     </div>
                   )}
                 </div>
+
+                {/* Activity Timeline (collapsible) */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAuditTrail(!showAuditTrail)}
+                    className="flex w-full items-center justify-between h-auto px-0 hover:bg-transparent"
+                  >
+                    <span className="text-[13px] font-medium text-[var(--text-heading)]">
+                      Activity Timeline
+                    </span>
+                    {showAuditTrail ? (
+                      <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+                    )}
+                  </Button>
+                  {showAuditTrail && (
+                    <div className="mt-3">
+                      {(effectiveDetail.auditTrail?.length ?? 0) === 1 &&
+                      effectiveDetail.auditTrail?.[0]?.action === "COMMISSION_CREATED" ? (
+                        <div className="mb-3 rounded-md bg-blue-50 p-2 text-[11px] text-blue-700">
+                          Auto-approved — no manual review events.
+                        </div>
+                      ) : null}
+                      <ActivityTimeline activities={effectiveDetail.auditTrail ?? []} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Source Event Metadata (collapsible) */}
+                {effectiveDetail.eventMetadata && (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSourceEvent(!showSourceEvent)}
+                      className="flex w-full items-center justify-between h-auto px-0 hover:bg-transparent"
+                    >
+                      <span className="text-[13px] font-medium text-[var(--text-heading)]">
+                        Source Event
+                      </span>
+                      {showSourceEvent ? (
+                        <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+                      )}
+                    </Button>
+                    {showSourceEvent && (
+                      <div className="mt-3 space-y-0">
+                        <DetailRow label="Source" value={effectiveDetail.eventMetadata.source} />
+                        <DetailRow
+                          label="Transaction ID"
+                          value={effectiveDetail.eventMetadata.transactionId ?? "N/A"}
+                        />
+                        <DetailRow
+                          label="Timestamp"
+                          value={formatDetailDate(new Date(effectiveDetail.eventMetadata.timestamp).getTime())}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               /* Loading skeleton while detail query resolves */

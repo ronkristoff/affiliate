@@ -509,6 +509,24 @@ export function BatchDetailContent() {
         </Button>
       ),
     },
+    {
+      key: "viewCommissions",
+      header: "",
+      align: "right",
+      cell: () => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[var(--text-muted)] hover:text-[var(--text-heading)] text-[12px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/commissions?batchId=${batchId}`);
+          }}
+        >
+          View Commissions
+        </Button>
+      ),
+    },
   ];
 
   // ── Detail sheet helpers ──────────────────────────────────────────────

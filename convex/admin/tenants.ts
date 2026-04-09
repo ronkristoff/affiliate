@@ -1386,3 +1386,166 @@ export const getTenantAuditLog = query({
     };
   },
 });
+
+/**
+ * Get full commission detail for admin — includes computation breakdown and audit trail.
+ * Scoped to a specific tenant for security.
+ */
+export const getAdminCommissionDetail = query({
+  args: {
+    tenantId: v.id("tenants"),
+    commissionId: v.id("commissions"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("commissions"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      affiliateId: v.id("affiliates"),
+      campaignId: v.id("campaigns"),
+      conversionId: v.optional(v.id("conversions")),
+      amount: v.number(),
+      status: v.string(),
+      eventMetadata: v.optional(v.object({
+        source: v.string(),
+        transactionId: v.optional(v.string()),
+        timestamp: v.number(),
+        subscriptionId: v.optional(v.string()),
+      })),
+      reversalReason: v.optional(v.string()),
+      transactionId: v.optional(v.string()),
+      batchId: v.optional(v.id("payoutBatches")),
+      isSelfReferral: v.optional(v.boolean()),
+      fraudIndicators: v.optional(v.array(v.string())),
+      affiliateName: v.string(),
+      affiliateEmail: v.string(),
+      campaignName: v.string(),
+      customerEmail: v.optional(v.string()),
+      planInfo: v.optional(v.string()),
+      planEvent: v.string(),
+      // Computation fields
+      commissionType: v.string(),
+      campaignDefaultRate: v.number(),
+      effectiveRate: v.number(),
+      isOverride: v.boolean(),
+      saleAmount: v.optional(v.number()),
+      recurringCommission: v.boolean(),
+      recurringRate: v.optional(v.number()),
+      recurringRateType: v.optional(v.string()),
+      // Audit trail
+      auditTrail: v.array(v.object({
+        _id: v.id("auditLogs"),
+        _creationTime: v.number(),
+        action: v.string(),
+        actorId: v.optional(v.string()),
+        actorType: v.string(),
+        previousValue: v.optional(v.any()),
+        newValue: v.optional(v.any()),
+        metadata: v.optional(v.any()),
+      })),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    if (!admin) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const commission = await ctx.db.get(args.commissionId);
+    if (!commission || commission.tenantId !== args.tenantId) {
+      return null;
+    }
+
+    const affiliate = await ctx.db.get(commission.affiliateId);
+    const campaign = await ctx.db.get(commission.campaignId);
+
+    let customerEmail: string | undefined;
+    let planInfo: string | undefined;
+    let conversionAmount: number | undefined;
+
+    if (commission.conversionId) {
+      const conversion = await ctx.db.get(commission.conversionId);
+      if (conversion) {
+        customerEmail = conversion.customerEmail;
+        conversionAmount = conversion.amount;
+        const meta = conversion.metadata;
+        if (meta?.planId) {
+          planInfo = meta.planId;
+        } else if (meta?.subscriptionId) {
+          planInfo = "Subscription";
+        }
+      }
+    }
+
+    // Compute effective rate (check for affiliate-specific override)
+    const activeOverride = affiliate?.commissionOverrides?.find(
+      (o: any) => o.campaignId === commission.campaignId && o.status === "active"
+    );
+    const effectiveRate = activeOverride?.rate ?? campaign?.commissionValue ?? 0;
+    const isOverride = !!activeOverride;
+
+    // Inline event type formatter (private in commissions.ts)
+    const formatEventType = (source: string | undefined) => {
+      if (source === "webhook") return "Subscription";
+      if (source === "manual") return "Manual Entry";
+      if (source === "api") return "API Triggered";
+      return source ?? "Event";
+    };
+
+    // Fetch audit trail for this commission
+    const allAuditLogs = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "commission").eq("entityId", args.commissionId)
+      )
+      .order("asc")
+      .collect();
+    const auditTrail = allAuditLogs
+      .filter((log) => log.tenantId === commission.tenantId)
+      .map((log) => ({
+        _id: log._id,
+        _creationTime: log._creationTime,
+        action: log.action,
+        actorId: log.actorId,
+        actorType: log.actorType,
+        previousValue: log.previousValue,
+        newValue: log.newValue,
+        metadata: log.metadata,
+      }));
+
+    return {
+      _id: commission._id,
+      _creationTime: commission._creationTime,
+      tenantId: commission.tenantId,
+      affiliateId: commission.affiliateId,
+      campaignId: commission.campaignId,
+      conversionId: commission.conversionId,
+      amount: commission.amount,
+      status: commission.status,
+      eventMetadata: commission.eventMetadata,
+      reversalReason: commission.reversalReason,
+      transactionId: commission.transactionId,
+      batchId: commission.batchId,
+      isSelfReferral: commission.isSelfReferral,
+      fraudIndicators: commission.fraudIndicators,
+      affiliateName: affiliate?.name ?? "Unknown",
+      affiliateEmail: affiliate?.email ?? "Unknown",
+      campaignName: campaign?.name ?? "Unknown",
+      customerEmail,
+      planInfo,
+      planEvent: `${campaign?.name ?? "Unknown"} · ${formatEventType(commission.eventMetadata?.source)}`,
+      // Computation fields
+      commissionType: campaign?.commissionType ?? "N/A",
+      campaignDefaultRate: campaign?.commissionValue ?? 0,
+      effectiveRate,
+      isOverride,
+      saleAmount: conversionAmount,
+      recurringCommission: campaign?.recurringCommission ?? false,
+      recurringRate: campaign?.recurringRate,
+      recurringRateType: campaign?.recurringRateType,
+      // Audit trail
+      auditTrail,
+    };
+  },
+});

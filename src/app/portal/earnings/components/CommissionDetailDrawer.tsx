@@ -8,6 +8,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CommissionComputationSection } from '@/components/shared/CommissionComputationSection';
 
 interface CommissionDetailDrawerProps {
   commission: {
@@ -18,6 +20,9 @@ interface CommissionDetailDrawerProps {
     createdAt: number;
     customerEmail?: string;
     conversionId?: string;
+    commissionType?: string;
+    effectiveRate?: number;
+    saleAmount?: number | null;
   } | null;
   isOpen: boolean;
   onClose: () => void;
@@ -56,12 +61,9 @@ export function CommissionDetailDrawer({ commission, isOpen, onClose }: Commissi
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold">Commission Details</DialogTitle>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
         </DialogHeader>
 
@@ -75,6 +77,16 @@ export function CommissionDetailDrawer({ commission, isOpen, onClose }: Commissi
               {commission.status.charAt(0).toUpperCase() + commission.status.slice(1)}
             </span>
           </div>
+
+          {/* Commission Computation Breakdown (simplified for affiliates) */}
+          <CommissionComputationSection
+            variant="simplified"
+            commissionType={commission.commissionType ?? "percentage"}
+            effectiveRate={commission.effectiveRate ?? 0}
+            saleAmount={commission.saleAmount ?? null}
+            amount={commission.amount}
+            currency="USD"
+          />
 
           {/* Details Section */}
           <div className="space-y-4">

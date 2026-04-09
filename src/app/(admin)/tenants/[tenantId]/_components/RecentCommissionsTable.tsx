@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import {
   DataTable,
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AdminCommissionDrawer } from "./AdminCommissionDrawer";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,6 +82,8 @@ export function RecentCommissionsTable({
   isLoading,
   tenantId,
 }: RecentCommissionsTableProps) {
+  const [selectedCommissionId, setSelectedCommissionId] = useState<string | null>(null);
+
   // ── Columns ──────────────────────────────────────────────────────────────
   const columns: TableColumn<Commission>[] = [
     {
@@ -171,6 +175,15 @@ export function RecentCommissionsTable({
         isLoading={isLoading}
         emptyMessage="No commissions yet. Commissions will appear here once affiliates start generating sales."
         hidePagination
+        onRowClick={(row) => setSelectedCommissionId(row._id)}
+        rowClassName={() => "cursor-pointer"}
+      />
+
+      <AdminCommissionDrawer
+        tenantId={tenantId}
+        commissionId={selectedCommissionId}
+        isOpen={!!selectedCommissionId}
+        onClose={() => setSelectedCommissionId(null)}
       />
     </div>
   );
