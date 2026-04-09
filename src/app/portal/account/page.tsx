@@ -55,8 +55,8 @@ export default function PortalAccountPage() {
     return await updateProfile({ payoutMethod });
   };
 
-  const handleChangePassword = async (affiliateId: string, newPassword: string) => {
-    return await changePassword({ affiliateId: affiliateId as Id<"affiliates">, newPassword });
+  const handleChangePassword = async (affiliateId: string, currentPassword: string, newPassword: string) => {
+    return await changePassword({ affiliateId: affiliateId as Id<"affiliates">, currentPassword, newPassword });
   };
 
   return (

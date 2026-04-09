@@ -807,6 +807,7 @@ export const logoutAffiliate = mutation({
 export const changeAffiliatePassword = mutation({
   args: {
     affiliateId: v.id("affiliates"),
+    currentPassword: v.string(),
     newPassword: v.string(),
   },
   returns: v.object({
@@ -819,12 +820,32 @@ export const changeAffiliatePassword = mutation({
       return { success: false, error: "Affiliate not found" };
     }
 
+    // Verify the current password matches the stored hash
+    const existingHash = affiliate.passwordHash;
+    if (existingHash) {
+      const encoder = new TextEncoder();
+      const [saltHex, hashHex] = existingHash.split(":");
+      const salt = new Uint8Array(saltHex.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+      const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(args.currentPassword), "PBKDF2", false, ["deriveBits"]);
+      const hashBuffer = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
+      const currentHashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      if (currentHashHex !== hashHex) {
+        return { success: false, error: "Current password is incorrect" };
+      }
+    }
+
+    // Prevent reusing the same password
+    if (args.newPassword === args.currentPassword) {
+      return { success: false, error: "Your new password must be different from your current password." };
+    }
+
     // Hash new password (PBKDF2)
     const encoder = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(args.newPassword), "PBKDF2", false, ["deriveBits"]);
-    const hashBuffer = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
-    const newPasswordHash = Array.from(salt).map(b => b.toString(16).padStart(2, "0")).join("") + ":" + Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+    const newSalt = crypto.getRandomValues(new Uint8Array(16));
+    const newKeyMaterial = await crypto.subtle.importKey("raw", encoder.encode(args.newPassword), "PBKDF2", false, ["deriveBits"]);
+    const newHashBuffer = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: newSalt, iterations: 100000, hash: "SHA-256" }, newKeyMaterial, 256);
+    const newPasswordHash = Array.from(newSalt).map(b => b.toString(16).padStart(2, "0")).join("") + ":" + Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     await ctx.db.patch(args.affiliateId, { passwordHash: newPasswordHash });
 

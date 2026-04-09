@@ -9,15 +9,17 @@ import { Shield, Loader2, Eye, EyeOff, Check } from 'lucide-react';
 
 interface PasswordSectionProps {
   affiliateId: string;
-  onChangePassword: (affiliateId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  onChangePassword: (affiliateId: string, currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   primaryColor: string;
 }
 
 export function PasswordSection({ affiliateId, onChangePassword, primaryColor }: PasswordSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,11 @@ export function PasswordSection({ affiliateId, onChangePassword, primaryColor }:
   const handleSave = async () => {
     setError(null);
     setSuccess(false);
+
+    if (!currentPassword.trim()) {
+      setError('Please enter your current password');
+      return;
+    }
 
     if (!newPassword.trim()) {
       setError('Please enter a new password');
@@ -44,13 +51,19 @@ export function PasswordSection({ affiliateId, onChangePassword, primaryColor }:
       return;
     }
 
+    if (newPassword === currentPassword) {
+      setError('Your new password must be different from your current password');
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const result = await onChangePassword(affiliateId, newPassword);
+      const result = await onChangePassword(affiliateId, currentPassword, newPassword);
       if (result.success) {
         setSuccess(true);
         setIsEditing(false);
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => setSuccess(false), 3000);
@@ -67,6 +80,7 @@ export function PasswordSection({ affiliateId, onChangePassword, primaryColor }:
   const handleCancel = () => {
     setIsEditing(false);
     setError(null);
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
   };
@@ -109,6 +123,32 @@ export function PasswordSection({ affiliateId, onChangePassword, primaryColor }:
           </div>
         ) : (
           <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-password" className="text-xs">
+                Current Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrent ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="h-9 text-sm pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-900"
+                >
+                  {showCurrent ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-password" className="text-xs">
                 New Password

@@ -2,6 +2,7 @@ import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { requireMutationCtx } from "@convex-dev/better-auth/utils";
 import { anonymous, genericOAuth, twoFactor, magicLink, emailOTP } from "better-auth/plugins";
+import { createAuthMiddleware, APIError } from "better-auth/api";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
 import { components, internal } from "./_generated/api";
 import { query, internalQuery, QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
@@ -230,6 +231,126 @@ const createOptions = (ctx: GenericCtx) =>
           },
         },
       },
+    },
+    // Prevent password reuse on reset and change flows.
+    // This hook runs BEFORE Better Auth processes the request, so we can
+    // reject a new password that matches the current one.
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        // Only intercept password-changing endpoints
+        const passwordChangingPaths = [
+          "/reset-password",
+          "/change-password",
+          "/email-otp/reset-password",
+        ];
+        if (!passwordChangingPaths.includes(ctx.path)) {
+          return;
+        }
+
+        // Email OTP reset-password uses `password` field instead of `newPassword`
+        const newPassword: string | undefined =
+          ctx.body?.newPassword || ctx.body?.password;
+        if (!newPassword) {
+          return;
+        }
+
+        // ── /reset-password ──────────────────────────────────────────────
+        // In the reset-password flow we don't have the current password
+        // in the request body, but we CAN look up the user from the token
+        // via the internal adapter and compare against the stored hash.
+        // Better Auth stores verification tokens as "reset-password:<token>".
+        if (ctx.path === "/reset-password") {
+          const token: string | undefined =
+            ctx.body?.token || ctx.query?.token;
+          if (!token) return;
+
+          try {
+            // Look up the verification record to get the userId
+            const verification = await ctx.context.internalAdapter.findVerificationValue(
+              `reset-password:${token}`,
+            );
+            if (!verification) return;
+
+            const userId = verification.value;
+
+            // Look up the credential account for this user
+            const accounts = await ctx.context.internalAdapter.findAccounts(
+              userId,
+            );
+            const credentialAccount = accounts.find(
+              (a: any) => a.providerId === "credential" && a.password,
+            );
+            if (!credentialAccount) return;
+
+            // Verify the new password against the stored hash
+            const isSame = await ctx.context.password.verify({
+              password: newPassword,
+              hash: credentialAccount.password as string,
+            });
+            if (isSame) {
+              throw new APIError("BAD_REQUEST", {
+                message:
+                  "Your new password must be different from your current password.",
+              });
+            }
+          } catch (err) {
+            // Only re-throw our own APIError — let Better Auth handle its own errors
+            if (err instanceof APIError) throw err;
+            // If anything else fails (e.g. token lookup), let the request
+            // proceed normally so Better Auth can return its own error.
+            return;
+          }
+        }
+
+        // ── /email-otp/reset-password ────────────────────────────────────
+        // The email OTP flow uses `email` + `otp` (already verified by
+        // Better Auth) and `password` for the new password.  We look up
+        // the user's credential account and verify the new password differs.
+        if (ctx.path === "/email-otp/reset-password") {
+          const email: string | undefined = ctx.body?.email;
+          if (!email) return;
+
+          try {
+            const user = await ctx.context.internalAdapter.findUserByEmail(email);
+            if (!user) return;
+
+            const accounts = await ctx.context.internalAdapter.findAccounts(user.user.id);
+            const credentialAccount = accounts.find(
+              (a: any) => a.providerId === "credential" && a.password,
+            );
+            if (!credentialAccount) return;
+
+            const isSame = await ctx.context.password.verify({
+              password: newPassword,
+              hash: credentialAccount.password as string,
+            });
+            if (isSame) {
+              throw new APIError("BAD_REQUEST", {
+                message:
+                  "Your new password must be different from your current password.",
+              });
+            }
+          } catch (err) {
+            if (err instanceof APIError) throw err;
+            return;
+          }
+        }
+
+        // ── /change-password ────────────────────────────────────────────
+        // The change-password flow requires the current password, so we can
+        // verify that the new password differs from it directly.
+        if (ctx.path === "/change-password") {
+          const currentPassword: string | undefined = ctx.body?.currentPassword;
+          if (!currentPassword) return;
+
+          if (newPassword === currentPassword) {
+            throw new APIError("BAD_REQUEST", {
+              message:
+                "Your new password must be different from your current password.",
+            });
+          }
+        }
+      }),
     },
   } satisfies BetterAuthOptions);
 
