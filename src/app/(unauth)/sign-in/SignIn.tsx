@@ -350,8 +350,8 @@ export default function SignIn() {
               </svg>
             </div>
             <div>
-              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">White-labeled portal</div>
-              <div className="text-sm text-white font-semibold mt-px">Your brand. Your affiliates. Zero salig marks.</div>
+              <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Custom affiliate portal</div>
+              <div className="text-sm text-white font-semibold mt-px">Fully branded experience for your affiliates</div>
             </div>
           </div>
         </div>
