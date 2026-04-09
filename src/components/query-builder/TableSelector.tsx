@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useMemo, useCallback } from "react";import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Database,
   Table2,
+  Unplug,
+  Route,
 } from "lucide-react";
+import type { SuggestedJoin } from "./types";
 
 interface TableMetadata {
   name: string;
@@ -21,6 +24,60 @@ interface TableMetadata {
 interface TableSelectorProps {
   selectedTables: string[];
   onSelectionChange: (tables: string[]) => void;
+}
+
+/**
+ * Build an adjacency graph from suggestedJoins and check if a target table
+ * is reachable from any of the already-selected tables via BFS.
+ * Returns "direct" if there's a direct join, "transitive" if reachable
+ * through intermediate tables, or "none" if no path exists.
+ */
+function getJoinReachability(
+  selectedTables: string[],
+  targetTable: string,
+  suggestedJoins: SuggestedJoin[]
+): "direct" | "transitive" | "none" {
+  // Already selected — always reachable
+  if (selectedTables.includes(targetTable)) return "direct";
+  if (selectedTables.length === 0) return "direct"; // Nothing selected yet, everything is fair game
+  if (suggestedJoins.length === 0) return "direct"; // No join metadata, allow all
+
+  // Build undirected adjacency graph
+  const adjacency = new Map<string, Set<string>>();
+  const addEdge = (a: string, b: string) => {
+    if (!adjacency.has(a)) adjacency.set(a, new Set());
+    if (!adjacency.has(b)) adjacency.set(b, new Set());
+    adjacency.get(a)!.add(b);
+    adjacency.get(b)!.add(a);
+  };
+
+  for (const join of suggestedJoins) {
+    addEdge(join.leftTable, join.rightTable);
+  }
+
+  // Check for direct join with any selected table
+  const directConnected = selectedTables.some((sel) => {
+    const neighbors = adjacency.get(sel);
+    return neighbors?.has(targetTable) ?? false;
+  });
+  if (directConnected) return "direct";
+
+  // BFS from all selected tables to find transitive paths
+  const visited = new Set<string>(selectedTables);
+  const queue = [...selectedTables];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const neighbors = adjacency.get(current);
+    if (!neighbors) continue;
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) continue;
+      visited.add(neighbor);
+      if (neighbor === targetTable) return "transitive";
+      queue.push(neighbor);
+    }
+  }
+
+  return "none";
 }
 
 function TableSelectorSkeleton() {
@@ -44,6 +101,9 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
   const tables = Array.isArray(metadata)
     ? (metadata as unknown as TableMetadata[])
     : ((metadata.tables ?? []) as unknown as TableMetadata[]);
+  const suggestedJoins = Array.isArray(metadata)
+    ? ([] as SuggestedJoin[])
+    : ((metadata.suggestedJoins ?? []) as unknown as SuggestedJoin[]);
 
   if (tables.length === 0) {
     return (
@@ -53,39 +113,68 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
     );
   }
 
-  const sortedTables = [...tables].sort(
-    (a, b) => a.label.localeCompare(b.label)
+  const sortedTables = useMemo(
+    () => [...tables].sort((a, b) => a.label.localeCompare(b.label)),
+    [tables]
   );
 
-  const handleToggle = (tableName: string) => {
+  // Memoized reachability map — computed once per render cycle
+  const reachabilityMap = useMemo(() => {
+    const map = new Map<string, "direct" | "transitive" | "none">();
+    for (const table of tables) {
+      map.set(table.name, getJoinReachability(selectedTables, table.name, suggestedJoins));
+    }
+    return map;
+  }, [tables, selectedTables, suggestedJoins]);
+
+  const handleToggle = useCallback((tableName: string) => {
     if (selectedTables.includes(tableName)) {
       onSelectionChange(selectedTables.filter((t) => t !== tableName));
     } else {
       onSelectionChange([...selectedTables, tableName]);
     }
-  };
+  }, [selectedTables, onSelectionChange]);
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {sortedTables.map((table) => {
         const isSelected = selectedTables.includes(table.name);
+        const reachability = reachabilityMap.get(table.name) ?? "direct";
+        const isDisabled = reachability === "none";
+        const isTransitive = reachability === "transitive";
+
         return (
           <div
             key={table.name}
             role="button"
-            tabIndex={0}
-            onClick={() => handleToggle(table.name)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleToggle(table.name); } }}
+            tabIndex={isDisabled ? -1 : 0}
+            onClick={() => !isDisabled && handleToggle(table.name)}
+            onKeyDown={(e) => {
+              if (isDisabled) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleToggle(table.name);
+              }
+            }}
+            title={isDisabled
+              ? "No join path to selected tables — select an intermediate table first"
+              : isTransitive
+                ? "Connected via an intermediate table"
+                : undefined
+            }
             className={cn(
               "relative flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all duration-200",
               isSelected
                 ? "border-[#1c2260] bg-[#eff6ff] shadow-sm ring-1 ring-[#1c2260]/20"
-                : "border-[var(--border)] bg-white hover:border-[#1fb5a5]/40 hover:bg-[#fafbfe] hover:shadow-sm"
+                : isDisabled
+                  ? "border-[var(--border)] bg-[var(--muted)]/40 opacity-50 cursor-not-allowed"
+                  : "border-[var(--border)] bg-white hover:border-[#1fb5a5]/40 hover:bg-[#fafbfe] hover:shadow-sm"
             )}
           >
             <div className="flex items-start gap-3 w-full">
               <Checkbox
                 checked={isSelected}
+                disabled={isDisabled}
                 onCheckedChange={() => handleToggle(table.name)}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -109,6 +198,18 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
               {isSelected && (
                 <Badge variant="default" className="text-[10px] px-1.5 py-0">
                   Selected
+                </Badge>
+              )}
+              {isDisabled && !isSelected && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-red-500 border-red-200 bg-red-50">
+                  <Unplug className="w-2.5 h-2.5 mr-1" />
+                  No join path
+                </Badge>
+              )}
+              {isTransitive && !isSelected && selectedTables.length >= 2 && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-200 bg-amber-50">
+                  <Route className="w-2.5 h-2.5 mr-1" />
+                  Indirect
                 </Badge>
               )}
             </div>

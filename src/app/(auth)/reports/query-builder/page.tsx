@@ -64,7 +64,6 @@ import {
   Redo2,
   Pin,
   PanelRight,
-  LayoutGrid,
   ArrowLeft,
   TrendingUp,
   BarChart3,
@@ -314,8 +313,8 @@ function ColumnCollisionWarningAlert({ config }: { config: QueryConfig }) {
 
 // ─── Next Step Hints (for smart section ordering) ────────────────
 function getNextStepSection(config: QueryConfig): string | null {
-  if (config.tables.length === 0) return "tables";
-  if (config.columns.length === 0) return "columns";
+  if (config.tables.length === 0) return "tablesAndColumns";
+  if (config.columns.length === 0) return "tablesAndColumns";
   if (config.tables.length >= 2) {
     const secondaryTables = new Set(config.columns.filter((c) => c.table !== config.tables[0]).map((c) => c.table));
     const joinedTables = new Set(config.joins.flatMap((j) => [j.leftTable, j.rightTable]));
@@ -560,7 +559,7 @@ function QueryBuilderContent() {
   const [shareDialogQueryId, setShareDialogQueryId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ start: number; end: number; preset?: string } | null>(null);
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
-  const [isSplitView, setIsSplitView] = useState(false);
+  const [isBuilderCollapsed, setIsBuilderCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobileSlideOver, setIsMobileSlideOver] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
@@ -572,16 +571,17 @@ function QueryBuilderContent() {
   const lastDatePresetRef = useRef<string>("");
 
   // ─── Split-pane matchMedia listener ────────────────────────────
+  // Auto-collapse builder panel when viewport shrinks below desktop breakpoint
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1280px)");
     const handler = (e: MediaQueryListEvent) => {
-      if (!e.matches && isSplitView) {
-        setIsSplitView(false);
+      if (!e.matches && !isBuilderCollapsed) {
+        setIsBuilderCollapsed(true);
       }
     };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [isSplitView]);
+  }, [isBuilderCollapsed]);
 
   // ─── Sidebar default-open logic ────────────────────────────────
   useEffect(() => {
@@ -742,7 +742,7 @@ function QueryBuilderContent() {
   const navigateToLanding = useCallback(() => {
     const doNavigate = () => {
       setView("landing");
-      setIsSplitView(false);
+      setIsBuilderCollapsed(false);
       // Clear ?q= param to prevent broken browser back/forward
       router.replace(pathname, { scroll: false });
     };
@@ -778,6 +778,13 @@ function QueryBuilderContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
+
+      // ⌘B — toggle builder collapse (no modifier needed, but allow with mod too)
+      if (e.key === "b" && mod && view === "builder") {
+        e.preventDefault();
+        setIsBuilderCollapsed((prev) => !prev);
+        return;
+      }
       if (!mod) return;
 
       if (e.key === "Enter") {
@@ -839,9 +846,9 @@ function QueryBuilderContent() {
   }, [config.groupBy, config.columns, results]);
 
   // ─── Accordion Section Management ──────────────────────────────
-  const [openSection, setOpenSection] = useState<string | null>("tables");
+  const [openSection, setOpenSection] = useState<string | null>("tablesAndColumns");
   const [pinnedSections, setPinnedSections] = useState<Set<string>>(new Set());
-  const sectionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const sectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleSectionToggle = useCallback((sectionId: string) => {
     if (pinnedSections.has(sectionId)) return; // Pinned sections ignore toggle
@@ -903,16 +910,15 @@ function QueryBuilderContent() {
   // ─── Smart Section Ordering ────────────────────────────────────
   const sectionOrder = useMemo(() => {
     const nextStep = getNextStepSection(config);
-    const defaultOrder = ["tables", "columns", "filters", "joins", "aggregations"];
+    const defaultOrder = ["tablesAndColumns", "filters", "joins", "aggregations"];
 
     // Build list of visible section IDs
     const visible: string[] = [];
     for (const id of defaultOrder) {
-      if (id === "columns" && config.tables.length > 0) visible.push(id);
+      if (id === "tablesAndColumns") visible.push(id);
       else if (id === "filters" && config.tables.length > 0) visible.push(id);
       else if (id === "joins" && config.tables.length >= 2) visible.push(id);
       else if (id === "aggregations" && config.tables.length > 0) visible.push(id);
-      else if (id === "tables") visible.push(id);
     }
 
     // Put nextStep recommendation first
@@ -964,7 +970,6 @@ function QueryBuilderContent() {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
-  const isDesktopSplit = isSplitView && isDesktopBreakpoint;
 
   return (
     <>
@@ -1066,23 +1071,6 @@ function QueryBuilderContent() {
             >
               <Bookmark className="w-3 h-3" />
             </Button>
-
-            {/* Split View toggle — only visible ≥1280px in results/builder */}
-            {view !== "landing" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSplitView((prev) => !prev)}
-                className={cn(
-                  "gap-1.5 text-[var(--text-muted)] hidden xl:flex",
-                  isSplitView && "bg-[var(--muted)] text-[var(--text-heading)]"
-                )}
-                aria-label="Toggle split view"
-              >
-                <LayoutGrid className="w-3 h-3" />
-                Split
-              </Button>
-            )}
 
             {/* Date range picker — visible in results and builder, and landing with config */}
             {view !== "landing" && (
@@ -1301,59 +1289,16 @@ function QueryBuilderContent() {
                 <QueryPreviewSentence config={config} />
               )}
 
-              {/* Results — full-width or split-pane */}
-              {isDesktopSplit ? (
-                <div
-                  className="grid gap-6"
-                  style={{
-                    gridTemplateColumns: "minmax(400px, 1fr) minmax(500px, 1.5fr)",
-                  }}
-                >
-                  {/* Builder panels in split left column */}
-                  <BuilderSections
-                    config={config}
-                    loadConfig={loadConfig}
-                    setTables={setTables}
-                    addColumn={addColumn}
-                    removeColumn={removeColumn}
-                    updateColumnAlias={updateColumnAlias}
-                    addFilter={addFilter}
-                    removeFilter={removeFilter}
-                    updateFilter={updateFilter}
-                    setFilterLogic={setFilterLogic}
-                    addJoin={addJoin}
-                    removeJoin={removeJoin}
-                    addAggregation={addAggregation}
-                    removeAggregation={removeAggregation}
-                    setGroupBy={setGroupBy}
-                    openSection={openSection}
-                    pinnedSections={pinnedSections}
-                    sectionOrder={sectionOrder}
-                    onSectionToggle={handleSectionToggle}
-                    onPinToggle={handlePinToggle}
-                  />
-                  {/* Results in right column */}
-                  <div className="sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-auto rounded-xl border border-[var(--border)] bg-white">
-                    <ResultsTable
-                      results={results?.rows ?? null}
-                      columns={resultColumns}
-                      isLoading={hasRunQuery && !results}
-                      totalRows={results?.totalRows}
-                      groupByColumn={groupByColumn}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[var(--border)] bg-white">
-                  <ResultsTable
-                    results={results?.rows ?? null}
-                    columns={resultColumns}
-                    isLoading={hasRunQuery && !results}
-                    totalRows={results?.totalRows}
-                    groupByColumn={groupByColumn}
-                  />
-                </div>
-              )}
+              {/* Results — full-width (split view only in builder) */}
+              <div className="rounded-xl border border-[var(--border)] bg-white">
+                <ResultsTable
+                  results={results?.rows ?? null}
+                  columns={resultColumns}
+                  isLoading={hasRunQuery && !results}
+                  totalRows={results?.totalRows}
+                  groupByColumn={groupByColumn}
+                />
+              </div>
             </div>
           </FadeIn>
         )}
@@ -1363,17 +1308,27 @@ function QueryBuilderContent() {
         {/* ═══════════════════════════════════════════════════════ */}
         {view === "builder" && (
           <>
-            {/* Desktop builder (≥1280px) */}
+            {/* Desktop builder (≥1280px) — always split view */}
             <FadeIn className="hidden xl:block">
               <div className="space-y-4">
                 {/* Query preview sentence */}
                 <QueryPreviewSentence config={config} />
 
-                {isDesktopSplit ? (
+                <div
+                  className="grid relative"
+                  style={{
+                    gridTemplateColumns: isBuilderCollapsed
+                      ? "0px 1fr"
+                      : "minmax(400px, 1fr) minmax(500px, 1.5fr)",
+                    transition: "grid-template-columns 300ms ease",
+                  }}
+                >
+                  {/* Builder panels — left column */}
                   <div
-                    className="grid gap-6"
+                    className="overflow-hidden"
                     style={{
-                      gridTemplateColumns: "minmax(400px, 1fr) minmax(500px, 1.5fr)",
+                      opacity: isBuilderCollapsed ? 0 : 1,
+                      transition: "opacity 200ms ease",
                     }}
                   >
                     <BuilderSections
@@ -1398,7 +1353,15 @@ function QueryBuilderContent() {
                       onSectionToggle={handleSectionToggle}
                       onPinToggle={handlePinToggle}
                     />
-                    <div className="sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-auto rounded-xl border border-[var(--border)] bg-white">
+                  </div>
+
+                  {/* Results — right column (aria-live announces when results load) */}
+                  <div
+                    className="sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-auto rounded-xl border border-[var(--border)] bg-white p-4"
+                    aria-live="polite"
+                    aria-atomic="false"
+                  >
+                    {hasRunQuery ? (
                       <ResultsTable
                         results={results?.rows ?? null}
                         columns={resultColumns}
@@ -1406,46 +1369,38 @@ function QueryBuilderContent() {
                         totalRows={results?.totalRows}
                         groupByColumn={groupByColumn}
                       />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <BuilderSections
-                      config={config}
-                      loadConfig={loadConfig}
-                      setTables={setTables}
-                      addColumn={addColumn}
-                      removeColumn={removeColumn}
-                      updateColumnAlias={updateColumnAlias}
-                      addFilter={addFilter}
-                      removeFilter={removeFilter}
-                      updateFilter={updateFilter}
-                      setFilterLogic={setFilterLogic}
-                      addJoin={addJoin}
-                      removeJoin={removeJoin}
-                      addAggregation={addAggregation}
-                      removeAggregation={removeAggregation}
-                      setGroupBy={setGroupBy}
-                      openSection={openSection}
-                      pinnedSections={pinnedSections}
-                      sectionOrder={sectionOrder}
-                      onSectionToggle={handleSectionToggle}
-                      onPinToggle={handlePinToggle}
-                    />
-                    {/* Results full-width at bottom */}
-                    {hasRunQuery && (
-                      <div className="rounded-xl border border-[var(--border)] bg-white">
-                        <ResultsTable
-                          results={results?.rows ?? null}
-                          columns={resultColumns}
-                          isLoading={hasRunQuery && !results}
-                          totalRows={results?.totalRows}
-                          groupByColumn={groupByColumn}
-                        />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 text-[var(--text-muted)]">
+                        <Play className="w-10 h-10 mb-3 opacity-20" />
+                        <p className="text-sm font-medium">Run your query to see results</p>
+                        <p className="text-xs mt-1 opacity-60">Select columns and click Run Query</p>
                       </div>
                     )}
-                  </>
-                )}
+                  </div>
+
+                  {/* Collapse/expand toggle — at column boundary via grid placement */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsBuilderCollapsed((prev) => !prev)}
+                    className={cn(
+                      "absolute top-3 z-10 w-6 h-12 rounded-r-md border border-l-0 border-[var(--border)] bg-white shadow-sm hover:bg-[var(--hover)]",
+                      "col-start-1 row-start-1 justify-center",
+                      isBuilderCollapsed && "left-0"
+                    )}
+                    style={{
+                      justifySelf: isBuilderCollapsed ? "start" : "end",
+                      transition: "justify-self 300ms ease",
+                    }}
+                    aria-label={isBuilderCollapsed ? "Expand builder" : "Collapse builder"}
+                    title={isBuilderCollapsed ? "Show builder (⌘B)" : "Hide builder (⌘B)"}
+                  >
+                    <PanelRight className={cn(
+                      "w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-300",
+                      isBuilderCollapsed && "rotate-180"
+                    )} />
+                  </Button>
+                </div>
               </div>
             </FadeIn>
 
@@ -1457,14 +1412,22 @@ function QueryBuilderContent() {
                   {hasConfigContent && (
                     <QueryPreviewSentence config={config} />
                   )}
-                  <div className="rounded-xl border border-[var(--border)] bg-white">
-                    <ResultsTable
-                      results={results?.rows ?? null}
-                      columns={resultColumns}
-                      isLoading={hasRunQuery && !results}
-                      totalRows={results?.totalRows}
-                      groupByColumn={groupByColumn}
-                    />
+                  <div className="rounded-xl border border-[var(--border)] bg-white p-4" aria-live="polite">
+                    {hasRunQuery ? (
+                      <ResultsTable
+                        results={results?.rows ?? null}
+                        columns={resultColumns}
+                        isLoading={hasRunQuery && !results}
+                        totalRows={results?.totalRows}
+                        groupByColumn={groupByColumn}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 text-[var(--text-muted)]">
+                        <Play className="w-10 h-10 mb-3 opacity-20" />
+                        <p className="text-sm font-medium">Run your query to see results</p>
+                        <p className="text-xs mt-1 opacity-60">Select columns and click Run Query</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </FadeIn>
@@ -1536,8 +1499,8 @@ function QueryBuilderContent() {
           <div
             className={cn(
               "fixed top-0 left-0 z-50 h-full w-[280px] bg-white border-r border-[var(--border)] shadow-xl xl:shadow-lg transition-transform duration-300",
-              isSplitView
-                ? "shadow-2xl" // Always overlay when split active
+              view === "builder"
+                ? "shadow-2xl" // Always overlay when builder (split) active
                 : "xl:relative xl:shadow-none"
             )}
           >
@@ -1729,31 +1692,38 @@ function BuilderSections({
       alert?: React.ReactNode;
       children: React.ReactNode;
     }> = {
-      tables: {
-        title: "Tables",
-        description: "Choose which tables to query",
+      tablesAndColumns: {
+        title: "Tables & Columns",
+        description: config.tables.length > 0
+          ? `${config.tables.length} table${config.tables.length > 1 ? "s" : ""} selected · ${config.columns.length} column${config.columns.length !== 1 ? "s" : ""}`
+          : "Choose tables and columns to query",
         icon: <Database className="w-4 h-4" />,
-        status: config.tables.length > 0 ? "completed" : undefined,
-        children: (
-          <TableSelector
-            selectedTables={config.tables}
-            onSelectionChange={setTables}
-          />
-        ),
-      },
-      columns: {
-        title: "Columns",
-        description: "Select columns to include in results",
-        icon: <Columns3 className="w-4 h-4" />,
         status: config.tables.length > 0 && config.columns.length > 0 ? "completed" : undefined,
         alert: <ColumnCollisionWarningAlert config={config} />,
         children: (
-          <ColumnSelector
-            selectedTables={config.tables}
-            selectedColumns={config.columns}
-            onSelectionChange={(cols) => loadConfig({ ...config, columns: cols })}
-            onUpdateAlias={updateColumnAlias}
-          />
+          <div className="space-y-5">
+            <TableSelector
+              selectedTables={config.tables}
+              onSelectionChange={setTables}
+            />
+            {config.tables.length > 0 && (
+              <div className="border-t border-[var(--border)] pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Columns3 className="w-4 h-4 text-[var(--text-muted)]" />
+                  <span className="text-sm font-semibold text-[var(--text-heading)]">Columns</span>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {config.columns.length} selected
+                  </Badge>
+                </div>
+                <ColumnSelector
+                  selectedTables={config.tables}
+                  selectedColumns={config.columns}
+                  onSelectionChange={(cols) => loadConfig({ ...config, columns: cols })}
+                  onUpdateAlias={updateColumnAlias}
+                />
+              </div>
+            )}
+          </div>
         ),
       },
       filters: {

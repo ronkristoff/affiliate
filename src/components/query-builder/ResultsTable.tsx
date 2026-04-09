@@ -197,7 +197,7 @@ export function ResultsTable({
   return (
     <div className="space-y-3">
       {/* ─── Toolbar ─────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1 py-1">
         <div className="text-sm text-[var(--text-muted)]">
           {totalRows !== undefined ? (
             <>

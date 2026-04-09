@@ -16,20 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { JoinBuilderSkeleton } from "./skeletons";
 import { generateId } from "@/hooks/useQueryBuilder";
 import type { QueryConfig, JoinType } from "@/hooks/useQueryBuilder";
+import type { SuggestedJoin } from "./types";
 import { Plus, Trash2, AlertTriangle, Zap, Check } from "lucide-react";
 
 interface TableMeta {
   name: string;
   label: string;
   columns: Array<{ name: string; type: string; label?: string }>;
-}
-
-interface SuggestedJoin {
-  leftTable: string;
-  leftField: string;
-  rightTable: string;
-  rightField: string;
-  label: string;
 }
 
 interface JoinBuilderProps {
