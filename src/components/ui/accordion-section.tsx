@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Pin } from "lucide-react";
 
 interface AccordionSectionProps {
   title: string;
@@ -15,6 +15,10 @@ interface AccordionSectionProps {
   open?: boolean;
   /** Controlled mode callback */
   onOpenChange?: (open: boolean) => void;
+  /** When true, section cannot be collapsed by clicking the header */
+  pinned?: boolean;
+  /** Optional alert banner rendered above children inside the body area */
+  alert?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -33,6 +37,8 @@ export function AccordionSection({
   status,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  pinned = false,
+  alert,
   children,
 }: AccordionSectionProps) {
   // Determine if controlled on first render and lock it in
@@ -60,6 +66,7 @@ export function AccordionSection({
 
   const isOpen = isControlled ? !!controlledOpen : internalOpen;
   const handleToggle = () => {
+    if (pinned) return; // Pinned sections cannot be collapsed
     const newOpen = !isOpen;
     if (isControlled) {
       controlledOnOpenChange?.(newOpen);
@@ -68,11 +75,19 @@ export function AccordionSection({
     }
   };
 
+  // Generate a stable section ID for aria-controls
+  const sectionId = useRef(
+    `accordion-section-${Math.random().toString(36).substring(2, 9)}`
+  );
+
   return (
-    <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+    <div className="border border-[var(--border)] rounded-xl overflow-hidden" id={sectionId.current}>
       <button
         type="button"
         onClick={handleToggle}
+        aria-expanded={isOpen}
+        aria-controls={`${sectionId.current}-content`}
+        id={`${sectionId.current}-trigger`}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--hover)] transition-colors"
       >
         {icon && (
@@ -105,6 +120,11 @@ export function AccordionSection({
             </span>
           )}
         </span>
+        {pinned && (
+          <span className="shrink-0 text-amber-500" title="Pinned — click to unpin">
+            <Pin className="w-3.5 h-3.5" />
+          </span>
+        )}
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -120,8 +140,11 @@ export function AccordionSection({
           gridTemplateRows: isOpen ? "1fr" : "0fr",
         }}
       >
-        <div className="overflow-hidden">
-          <div className="px-4 pb-4 pt-1">{children}</div>
+        <div className="overflow-hidden" id={`${sectionId.current}-content`} role="region" aria-labelledby={`${sectionId.current}-trigger`}>
+          <div className="px-4 pb-4 pt-1">
+            {alert && <div className="mb-3">{alert}</div>}
+            {children}
+          </div>
         </div>
       </div>
     </div>
