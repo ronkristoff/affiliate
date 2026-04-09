@@ -13,6 +13,7 @@ import {
   sendOTPVerification,
   sendEmailVerification,
   sendResetPassword,
+  sendPasswordChanged,
 } from "./email"; // Relative path within convex/
 import authConfig from "./auth.config";
 
@@ -235,6 +236,8 @@ const createOptions = (ctx: GenericCtx) =>
     // Prevent password reuse on reset and change flows.
     // This hook runs BEFORE Better Auth processes the request, so we can
     // reject a new password that matches the current one.
+    // It also stashes the user's email on ctx.context so hooks.after can
+    // send a "password changed" notification (by then the token is consumed).
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         // Only intercept password-changing endpoints
@@ -282,6 +285,12 @@ const createOptions = (ctx: GenericCtx) =>
             );
             if (!credentialAccount) return;
 
+            // Stash user email for hooks.after (token will be consumed by then)
+            const user = await ctx.context.internalAdapter.findUserById(userId);
+            if (user?.email) {
+              (ctx.context as any).__passwordChangeEmail = user.email;
+            }
+
             // Verify the new password against the stored hash
             const isSame = await ctx.context.password.verify({
               password: newPassword,
@@ -309,6 +318,9 @@ const createOptions = (ctx: GenericCtx) =>
         if (ctx.path === "/email-otp/reset-password") {
           const email: string | undefined = ctx.body?.email;
           if (!email) return;
+
+          // Stash email for hooks.after
+          (ctx.context as any).__passwordChangeEmail = email;
 
           try {
             const user = await ctx.context.internalAdapter.findUserByEmail(email);
@@ -343,12 +355,45 @@ const createOptions = (ctx: GenericCtx) =>
           const currentPassword: string | undefined = ctx.body?.currentPassword;
           if (!currentPassword) return;
 
+          // Stash email for hooks.after (from session)
+          if (ctx.context.session?.user?.email) {
+            (ctx.context as any).__passwordChangeEmail = ctx.context.session.user.email;
+          }
+
           if (newPassword === currentPassword) {
             throw new APIError("BAD_REQUEST", {
               message:
                 "Your new password must be different from your current password.",
             });
           }
+        }
+      }),
+      // Send "password changed" notification email after successful reset/change.
+      // Reads the email stashed by hooks.before — by this point the reset
+      // token has already been consumed, so a fresh lookup would fail.
+      after: createAuthMiddleware(async (afterCtx) => {
+        const email = (afterCtx.context as any).__passwordChangeEmail as string | undefined;
+        if (!email) {
+          return; // Not a password-changing request, or before-hook didn't resolve it
+        }
+
+        try {
+          // Send the notification email using the outer Convex ctx (GenericCtx)
+          // captured in createOptions closure — NOT afterCtx which is the
+          // Better Auth middleware context and lacks runAction/runMutation.
+          if ("runAction" in ctx) {
+            await (ctx as any).runAction(internal.email.sendAuthEmail, {
+              type: "passwordChanged",
+              to: email,
+            });
+          } else {
+            await sendPasswordChanged(requireMutationCtx(ctx) as any, { to: email });
+          }
+
+          console.log(`[Auth] Password change notification sent to ${email}`);
+        } catch (err) {
+          // Non-fatal — never block the auth response for a notification email
+          console.error("[Auth] Failed to send password change notification (non-fatal):", err);
         }
       }),
     },

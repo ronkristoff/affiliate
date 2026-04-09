@@ -57,6 +57,7 @@ import type * as emails_TeamWelcome from "../emails/TeamWelcome.js";
 import type * as emails_UpgradeConfirmationEmail from "../emails/UpgradeConfirmationEmail.js";
 import type * as emails_components_BaseEmail from "../emails/components/BaseEmail.js";
 import type * as emails_magicLink from "../emails/magicLink.js";
+import type * as emails_passwordChanged from "../emails/passwordChanged.js";
 import type * as emails_resetPassword from "../emails/resetPassword.js";
 import type * as emails_verifyEmail from "../emails/verifyEmail.js";
 import type * as emails_verifyOTP from "../emails/verifyOTP.js";
@@ -159,6 +160,7 @@ declare const fullApi: ApiFromModules<{
   "emails/UpgradeConfirmationEmail": typeof emails_UpgradeConfirmationEmail;
   "emails/components/BaseEmail": typeof emails_components_BaseEmail;
   "emails/magicLink": typeof emails_magicLink;
+  "emails/passwordChanged": typeof emails_passwordChanged;
   "emails/resetPassword": typeof emails_resetPassword;
   "emails/verifyEmail": typeof emails_verifyEmail;
   "emails/verifyOTP": typeof emails_verifyOTP;

@@ -17,6 +17,7 @@ import { v } from "convex/values";
 import { render } from "@react-email/components";
 import React from "react";
 import ResetPasswordEmail from "./emails/resetPassword";
+import PasswordChangedEmail from "./emails/passwordChanged";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
@@ -106,6 +107,22 @@ export const sendResetPassword = async (
     to,
     subject: "Reset your password",
     html: await render(<ResetPasswordEmail url={url} />),
+  });
+};
+
+export const sendPasswordChanged = async (
+  ctx: MutationCtx,
+  {
+    to,
+  }: {
+    to: string;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("onboarding"),
+    to,
+    subject: "Your password has been changed",
+    html: await render(<PasswordChangedEmail />),
   });
 };
 
@@ -695,6 +712,7 @@ export const sendAuthEmail = internalAction({
       v.literal("verifyEmail"),
       v.literal("magicLink"),
       v.literal("resetPassword"),
+      v.literal("passwordChanged"),
       v.literal("otp")
     ),
     to: v.string(),
@@ -725,6 +743,10 @@ export const sendAuthEmail = internalAction({
         case "resetPassword":
           subject = "Reset your password";
           html = await render(<ResetPasswordEmail url={args.url!} />);
+          break;
+        case "passwordChanged":
+          subject = "Your password has been changed";
+          html = await render(<PasswordChangedEmail />);
           break;
         case "otp":
           subject = args.purpose === "forget-password"
