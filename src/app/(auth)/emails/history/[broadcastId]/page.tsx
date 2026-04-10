@@ -168,6 +168,9 @@ function BroadcastDetailContent() {
             : "Not yet sent"
         }
         className="top-[var(--sub-nav-h)]"
+        actions={
+          <ExportButton onClick={handleExport} isExporting={exporting} />
+        }
       >
         <div className="flex items-center gap-3 min-w-0">
           <h1 className="text-[17px] font-bold text-[var(--text-heading)] truncate max-w-md">
@@ -180,7 +183,6 @@ function BroadcastDetailContent() {
             </Badge>
           )}
         </div>
-        <ExportButton onClick={handleExport} isExporting={exporting} />
       </PageTopbar>
 
       {/* Page Content */}

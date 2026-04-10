@@ -253,11 +253,13 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
-        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
-        <div className="flex items-center">
+      <PageTopbar
+        description="Track your affiliate program performance and key metrics at a glance"
+        actions={
           <DateRangeSelector value={range} onChange={handleDateRangeChange} />
-        </div>
+        }
+      >
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
       </PageTopbar>
 
       {/* Page Content */}

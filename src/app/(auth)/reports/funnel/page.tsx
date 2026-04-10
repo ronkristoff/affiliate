@@ -257,17 +257,21 @@ function FunnelPageContent() {
       )}
 
       {/* Sticky Top Bar */}
-      <PageTopbar description="Track your click-to-commission conversion pipeline">
+      <PageTopbar
+        description="Track your click-to-commission conversion pipeline"
+        actions={
+          <div className="flex items-center gap-2">
+            <CampaignFilterDropdown
+              selectedCampaignId={selectedCampaignId}
+              onCampaignSelect={setSelectedCampaignId}
+            />
+            {canViewSensitiveData && (
+              <ExportButton onClick={handleExport} isExporting={isExporting} />
+            )}
+          </div>
+        }
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Conversion Funnel</h1>
-        <div className="flex items-center gap-2">
-          <CampaignFilterDropdown
-            selectedCampaignId={selectedCampaignId}
-            onCampaignSelect={setSelectedCampaignId}
-          />
-          {canViewSensitiveData && (
-            <ExportButton onClick={handleExport} isExporting={isExporting} />
-          )}
-        </div>
       </PageTopbar>
 
       {/* Page Content */}

@@ -123,20 +123,24 @@ function AffiliatePerformancePage() {
   return (
     <>
       {/* Sticky Top Bar */}
-      <PageTopbar description="View and analyze affiliate performance metrics">
+      <PageTopbar
+        description="View and analyze affiliate performance metrics"
+        actions={
+          <div className="flex items-center gap-2">
+            {isViewer && (
+              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                Read-only view
+              </span>
+            )}
+            <ExportButton
+              onClick={handleExport}
+              isExporting={isExporting}
+              disabled={!canExport}
+            />
+          </div>
+        }
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Affiliate Performance</h1>
-        <div className="flex items-center gap-2">
-          {isViewer && (
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
-              Read-only view
-            </span>
-          )}
-          <ExportButton
-            onClick={handleExport}
-            isExporting={isExporting}
-            disabled={!canExport}
-          />
-        </div>
       </PageTopbar>
 
       {/* Page Content */}

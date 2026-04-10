@@ -178,17 +178,19 @@ function FraudDashboardContent() {
   return (
     <>
       {/* Sticky Top Bar */}
-      <PageTopbar description="Monitor fraud signals, risk trends, and flagged commissions">
-        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Fraud & Risk</h1>
-        <div className="flex items-center gap-2">
-          {canExport && (
+      <PageTopbar
+        description="Monitor fraud signals, risk trends, and flagged commissions"
+        actions={
+          canExport && (
             <ExportButton
               onClick={handleExport}
               isExporting={isExporting}
               disabled={!fraudExportData || fraudExportData.data.length === 0}
             />
-          )}
-        </div>
+          )
+        }
+      >
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Fraud & Risk</h1>
       </PageTopbar>
 
       {/* Page Content */}

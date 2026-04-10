@@ -979,101 +979,77 @@ function QueryBuilderContent() {
           { label: "Reports", href: "/reports" },
           { label: "Query Builder" },
         ]}
-      >
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
-            Query Builder
-          </h1>
+        actions={
+          view !== "landing" ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Undo/Redo */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo (⌘Z)"
+                className="gap-1.5 text-[var(--text-muted)]"
+              >
+                <Undo2 className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo (⌘⇧Z)"
+                className="gap-1.5 text-[var(--text-muted)]"
+              >
+                <Redo2 className="w-3 h-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={!hasValidConfig}
+                title="Reset query"
+                className="gap-1.5 text-[var(--text-muted)]"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSaveDialogOpen(true)}
+                disabled={!hasValidConfig}
+                title="⌘+S to save"
+                className="gap-1.5"
+              >
+                <Save className="w-3 h-3" />
+                Save
+              </Button>
+              <QueryExportButton
+                hasResults={!!results && results.rows.length > 0}
+                columns={config.columns}
+                rows={results?.rows ?? []}
+                totalRows={results?.totalRows ?? 0}
+                tenantId={tenantId ?? ""}
+              />
 
-          {/* Back button — visible in results and builder views */}
-          {view !== "landing" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={navigateToLanding}
-              className="gap-1.5 text-[var(--text-muted)]"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
-          )}
+              <HealthIndicator health={health} />
 
-          <div className="flex-1" />
+              {/* Sidebar toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                className={cn(
+                  "gap-1.5 text-[var(--text-muted)]",
+                  sidebarOpen && "bg-[var(--muted)] text-[var(--text-heading)]"
+                )}
+                aria-label="Toggle saved queries"
+              >
+                <Bookmark className="w-3 h-3" />
+              </Button>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Undo/Redo — visible in results and builder, and landing when config has content */}
-            {view !== "landing" && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={undo}
-                  disabled={!canUndo}
-                  title="Undo (⌘Z)"
-                  className="gap-1.5 text-[var(--text-muted)]"
-                >
-                  <Undo2 className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={redo}
-                  disabled={!canRedo}
-                  title="Redo (⌘⇧Z)"
-                  className="gap-1.5 text-[var(--text-muted)]"
-                >
-                  <Redo2 className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  disabled={!hasValidConfig}
-                  title="Reset query"
-                  className="gap-1.5 text-[var(--text-muted)]"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSaveDialogOpen(true)}
-                  disabled={!hasValidConfig}
-                  title="⌘+S to save"
-                  className="gap-1.5"
-                >
-                  <Save className="w-3 h-3" />
-                  Save
-                </Button>
-                <QueryExportButton
-                  hasResults={!!results && results.rows.length > 0}
-                  columns={config.columns}
-                  rows={results?.rows ?? []}
-                  totalRows={results?.totalRows ?? 0}
-                  tenantId={tenantId ?? ""}
-                />
-              </>
-            )}
-
-            <HealthIndicator health={health} />
-
-            {/* Sidebar toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen((prev) => !prev)}
-              className={cn(
-                "gap-1.5 text-[var(--text-muted)]",
-                sidebarOpen && "bg-[var(--muted)] text-[var(--text-heading)]"
-              )}
-              aria-label="Toggle saved queries"
-            >
-              <Bookmark className="w-3 h-3" />
-            </Button>
-
-            {/* Date range picker — visible in results and builder, and landing with config */}
-            {view !== "landing" && (
+              {/* Date range picker */}
               <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -1129,39 +1105,60 @@ function QueryBuilderContent() {
                   </div>
                 </PopoverContent>
               </Popover>
-            )}
 
-            {/* Run Query button — always visible */}
+              {/* Run Query */}
+              <Button
+                size="sm"
+                onClick={handleRunQuery}
+                disabled={!hasValidConfig || health.status === "error"}
+                className="gap-1.5"
+                title="⌘ Enter"
+              >
+                <Play className="w-3 h-3" />
+                Run Query
+              </Button>
+
+              {/* Row limit */}
+              {hasValidConfig && (
+                <div className="flex items-center gap-1.5 ml-1">
+                  <label htmlFor="row-limit" className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">Limit</label>
+                  <input
+                    id="row-limit"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={config.rowLimit}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (val > 0 && val <= 1000) setRowLimit(val);
+                    }}
+                    className="w-16 h-7 text-[12px] text-center rounded-md border border-[var(--border)] bg-white px-1 focus:outline-none focus:ring-1 focus:ring-[#1c2260]/30"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <HealthIndicator health={health} />
+          )
+        }
+      >
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
+            Query Builder
+          </h1>
+
+          {/* Back button — visible in results and builder views */}
+          {view !== "landing" && (
             <Button
+              variant="ghost"
               size="sm"
-              onClick={handleRunQuery}
-              disabled={!hasValidConfig || health.status === "error"}
-              className="gap-1.5"
-              title="⌘ Enter"
+              onClick={navigateToLanding}
+              className="gap-1.5 text-[var(--text-muted)]"
             >
-              <Play className="w-3 h-3" />
-              Run Query
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-
-            {/* Row limit — visible in results and builder */}
-            {view !== "landing" && hasValidConfig && (
-              <div className="flex items-center gap-1.5 ml-1">
-                <label htmlFor="row-limit" className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">Limit</label>
-                <input
-                  id="row-limit"
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={config.rowLimit}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (val > 0 && val <= 1000) setRowLimit(val);
-                  }}
-                  className="w-16 h-7 text-[12px] text-center rounded-md border border-[var(--border)] bg-white px-1 focus:outline-none focus:ring-1 focus:ring-[#1c2260]/30"
-                />
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </PageTopbar>
 

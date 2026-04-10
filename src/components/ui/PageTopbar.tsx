@@ -14,6 +14,12 @@ interface PageTopbarProps {
   description?: string;
   /** Optional breadcrumb trail shown above the page title */
   breadcrumbs?: BreadcrumbItem[];
+  /**
+   * Optional actions rendered between the page title (left) and the
+   * notification bell (far right). Use this for primary / secondary
+   * action buttons that need to sit at the right side of the topbar.
+   */
+  actions?: React.ReactNode;
 }
 
 /**
@@ -21,16 +27,19 @@ interface PageTopbarProps {
  *
  * Provides consistent styling: sticky positioning, surface background,
  * bottom border, and horizontal padding. Each page provides its own
- * content (title, breadcrumb, actions) via `children`.
+ * content (title, breadcrumb) via `children` and action buttons via
+ * the optional `actions` prop.
+ *
+ * Layout: [title / breadcrumb ……… actions | 🔔]
  *
  * An optional `description` renders a subtle line under the heading area.
  * Optional `breadcrumbs` renders a navigation trail above the title.
  *
- * A notification bell (Radix Popover) is rendered on the right side of
- * the top bar, automatically showing unread count and panel for the
- * authenticated user.
+ * A notification bell (Radix Popover) is always rendered on the far
+ * right of the top bar, automatically showing unread count and panel
+ * for the authenticated user.
  */
-export function PageTopbar({ children, className, description, breadcrumbs }: PageTopbarProps) {
+export function PageTopbar({ children, className, description, breadcrumbs, actions }: PageTopbarProps) {
   return (
     <div
       className={cn(
@@ -67,6 +76,7 @@ export function PageTopbar({ children, className, description, breadcrumbs }: Pa
 
       <div className="flex items-center justify-between w-full gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1">{children}</div>
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
         <TopbarNotificationBell />
       </div>
       {description && (

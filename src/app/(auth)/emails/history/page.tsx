@@ -379,16 +379,18 @@ function BroadcastHistoryPage() {
       {/* Top Bar */}
       <PageTopbar
         description="View previously sent broadcast emails with delivery tracking"
+        actions={
+          <Button size="sm" asChild>
+            <Link href="/emails/broadcast">
+              <Send className="w-3.5 h-3.5" />
+              New Broadcast
+            </Link>
+          </Button>
+        }
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
           Broadcast History
         </h1>
-        <Button size="sm" asChild>
-          <Link href="/emails/broadcast">
-            <Send className="w-3.5 h-3.5" />
-            New Broadcast
-          </Link>
-        </Button>
       </PageTopbar>
 
       {/* Tabs */}

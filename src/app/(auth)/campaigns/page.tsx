@@ -67,14 +67,14 @@ export default function CampaignsPage() {
       {/* Top Bar */}
       <PageTopbar
         description="Create and manage your affiliate campaigns with custom commission structures"
-      >
-        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
-        <div className="flex items-center gap-3">
+        actions={
           <Button size="sm" onClick={() => setIsCreateSheetOpen(true)}>
             <Plus className="w-3.5 h-3.5" />
             New Campaign
           </Button>
-        </div>
+        }
+      >
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaigns</h1>
       </PageTopbar>
 
       {/* Page Content */}

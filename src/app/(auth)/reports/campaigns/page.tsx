@@ -134,18 +134,22 @@ export default function CampaignReportsPage() {
       )}
 
       {/* Sticky Top Bar */}
-      <PageTopbar description="Track and analyze your campaign metrics">
+      <PageTopbar
+        description="Track and analyze your campaign metrics"
+        actions={
+          <div className="flex items-center gap-2">
+            <CampaignFilterDropdown
+              selectedCampaignId={selectedCampaignId}
+              onCampaignSelect={setSelectedCampaignId}
+            />
+            <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
+            {canViewSensitiveData && (
+              <ExportButton onClick={handleExport} isExporting={isExporting} />
+            )}
+          </div>
+        }
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Campaign Performance</h1>
-        <div className="flex items-center gap-2">
-          <CampaignFilterDropdown
-            selectedCampaignId={selectedCampaignId}
-            onCampaignSelect={setSelectedCampaignId}
-          />
-          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
-          {canViewSensitiveData && (
-            <ExportButton onClick={handleExport} isExporting={isExporting} />
-          )}
-        </div>
       </PageTopbar>
 
       {/* Page Content */}

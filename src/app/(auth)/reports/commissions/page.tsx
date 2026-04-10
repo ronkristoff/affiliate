@@ -164,13 +164,15 @@ function CommissionSummaryContent() {
   return (
     <>
       {/* Sticky Top Bar */}
-      <PageTopbar description="Review commission status, aging, and distribution">
-        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
-        <div className="flex items-center gap-2">
-          {canExport && (
+      <PageTopbar
+        description="Review commission status, aging, and distribution"
+        actions={
+          canExport && (
             <ExportButton onClick={handleExport} isExporting={isExporting} />
-          )}
-        </div>
+          )
+        }
+      >
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Commissions</h1>
       </PageTopbar>
 
       {/* Page Content */}

@@ -89,18 +89,20 @@ export default function ReportsIndexPage() {
       <PageTopbar
         description="Overview of your affiliate program performance"
         breadcrumbs={[{ label: "Insights", href: "/reports" }, { label: "Overview" }]}
+        actions={
+          <div className="flex items-center gap-2">
+            <CampaignFilterDropdown
+              selectedCampaignId={selectedCampaignId}
+              onCampaignSelect={setSelectedCampaignId}
+            />
+            <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
+            {canExport && (
+              <ExportButton onClick={handleExport} isExporting={isExporting} />
+            )}
+          </div>
+        }
       >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Reports</h1>
-        <div className="flex items-center gap-2">
-          <CampaignFilterDropdown
-            selectedCampaignId={selectedCampaignId}
-            onCampaignSelect={setSelectedCampaignId}
-          />
-          <DateRangeSelector value={dateRange?.isCustom ? "custom" : (dateRange?.preset ?? "thisMonth")} onChange={handleDateRangeChange} />
-          {canExport && (
-            <ExportButton onClick={handleExport} isExporting={isExporting} />
-          )}
-        </div>
       </PageTopbar>
 
       {/* Page Content */}

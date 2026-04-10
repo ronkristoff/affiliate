@@ -64,7 +64,15 @@ export default function CampaignListingPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar description="Browse and manage all active, draft, and archived campaigns">
+      <PageTopbar
+        description="Browse and manage all active, draft, and archived campaigns"
+        actions={
+          <Button size="sm" onClick={() => setIsCreateSheetOpen(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            New Campaign
+          </Button>
+        }
+      >
         <div className="flex items-center gap-4">
           <Link
             href="/campaigns"
@@ -75,12 +83,6 @@ export default function CampaignListingPage() {
           </Link>
           <span className="text-[#d1d5db]">/</span>
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">All Campaigns</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button size="sm" onClick={() => setIsCreateSheetOpen(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            New Campaign
-          </Button>
         </div>
       </PageTopbar>
 

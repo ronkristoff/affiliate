@@ -152,14 +152,18 @@ function TierConfigContent() {
   if (tierConfigs.length === 0) {
     return (
       <div className="min-h-screen bg-[var(--bg-page)]">
-        <PageTopbar description="Manage platform tier definitions, pricing, limits, and feature gates">
+        <PageTopbar
+          description="Manage platform tier definitions, pricing, limits, and feature gates"
+          actions={
+            <Button size="sm" onClick={() => setShowCreateSheet(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Tier
+            </Button>
+          }
+        >
           <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
             Tier Configuration
           </h1>
-          <Button size="sm" onClick={() => setShowCreateSheet(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Tier
-          </Button>
         </PageTopbar>
         <div className="px-8 pt-6 pb-8">
           <FadeIn>
@@ -185,14 +189,18 @@ function TierConfigContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
-      <PageTopbar description="Manage platform tier definitions, pricing, limits, and feature gates">
+      <PageTopbar
+        description="Manage platform tier definitions, pricing, limits, and feature gates"
+        actions={
+          <Button size="sm" onClick={() => setShowCreateSheet(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Tier
+          </Button>
+        }
+      >
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
           Tier Configuration
         </h1>
-        <Button size="sm" onClick={() => setShowCreateSheet(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Tier
-        </Button>
       </PageTopbar>
 
       {/* Page Content */}

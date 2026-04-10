@@ -115,13 +115,15 @@ function PayoutHistoryContent() {
   return (
     <>
       {/* Sticky Top Bar */}
-      <PageTopbar description="Track payout batches, monthly trends, and export data">
-        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payout History & Trends</h1>
-        <div className="flex items-center gap-2">
-          {canExport && (
+      <PageTopbar
+        description="Track payout batches, monthly trends, and export data"
+        actions={
+          canExport && (
             <ExportButton onClick={handleExport} isExporting={isExporting} />
-          )}
-        </div>
+          )
+        }
+      >
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Payout History & Trends</h1>
       </PageTopbar>
 
       {/* Page Content */}

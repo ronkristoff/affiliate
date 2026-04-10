@@ -89,16 +89,19 @@ function CampaignDetailSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Topbar skeleton */}
-      <PageTopbar>
+      <PageTopbar
+        actions={
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-16 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+          </div>
+        }
+      >
         <div className="flex items-center gap-3">
           <Skeleton className="h-5 w-5" />
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-4 w-48" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-16 rounded-lg" />
-          <Skeleton className="h-8 w-20 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
         </div>
       </PageTopbar>
 
@@ -434,8 +437,56 @@ function CampaignDetailContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* ── Sticky Top Bar ───────────────────────────────────────────────── */}
-      <PageTopbar description="Manage campaign details, track performance, and monitor affiliate enrollments">
-        {/* Left: Breadcrumb */}
+      <PageTopbar
+        description="Manage campaign details, track performance, and monitor affiliate enrollments"
+        actions={
+          campaign.status !== "archived" ? (
+            <>
+              <Button
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-1.5 bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-secondary)]"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePauseResume}
+                className="gap-1.5 border-[#d1d5db] text-[#4b5563] hover:bg-gray-50 hover:text-[#1f2937]"
+              >
+                {campaign.status === "active" ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5" />
+                    Resume
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowArchiveConfirm(true)}
+                className="gap-1.5 text-[#9ca3af] hover:text-destructive hover:bg-red-50"
+              >
+                <Archive className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          ) : (
+            <span className="text-[12px] font-medium text-[var(--text-muted)] px-2.5 py-1 rounded-full bg-gray-100">
+              Archived
+            </span>
+          )
+        }
+      >
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2.5">
           <Link
             href="/campaigns"
@@ -450,57 +501,6 @@ function CampaignDetailContent() {
           </span>
           <StatusDot status={campaign.status} />
         </div>
-
-        {/* Right: Actions */}
-        {campaign.status !== "archived" ? (
-          <div className="flex items-center gap-2">
-            {/* Edit — primary action */}
-            <Button
-              size="sm"
-              onClick={() => setIsEditing(true)}
-              className="gap-1.5 bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-secondary)]"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Edit
-            </Button>
-
-            {/* Pause / Resume — status toggle pill */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePauseResume}
-              className="gap-1.5 border-[#d1d5db] text-[#4b5563] hover:bg-gray-50 hover:text-[#1f2937]"
-            >
-              {campaign.status === "active" ? (
-                <>
-                  <Pause className="w-3.5 h-3.5" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5" />
-                  Resume
-                </>
-              )}
-            </Button>
-
-            {/* Archive — tertiary action, not prominent */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowArchiveConfirm(true)}
-              className="gap-1.5 text-[#9ca3af] hover:text-destructive hover:bg-red-50"
-            >
-              <Archive className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-medium text-[var(--text-muted)] px-2.5 py-1 rounded-full bg-gray-100">
-              Archived
-            </span>
-          </div>
-        )}
       </PageTopbar>
 
       {/* ── Page Content ─────────────────────────────────────────────────── */}
