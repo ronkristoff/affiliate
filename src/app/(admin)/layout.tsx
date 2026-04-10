@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { AdminSidebar } from "./_components/AdminSidebar";
@@ -44,18 +44,28 @@ export default function AdminLayout({
   const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
 
-  // Redirect non-admins to dashboard via useEffect (React 19 / Next.js 16 requirement)
+  // Track whether auth exchange has fully completed.
+  // ConvexClientProvider uses ssr: false, so on hard refresh:
+  //   undefined → null (auth exchanging) → user object (session restored)
+  // The null→user transition confirms auth is done. We only redirect
+  // non-admins AFTER this point, never during the brief null phase.
+  const authReady = useRef(false);
+  if (user && user.role === "admin") {
+    authReady.current = true;
+  }
+
   useEffect(() => {
-    if (user === null || (user && user.role !== "admin")) {
+    if (authReady.current && (user === null || (user && user.role !== "admin"))) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
-  // Verify admin role at Convex layer
+  // Show skeleton while auth is loading
   if (user === undefined) {
     return <AdminLayoutSkeleton />;
   }
 
+  // Block non-admins (keep showing skeleton while redirect triggers)
   if (user === null || user.role !== "admin") {
     return (
       <div className="flex min-h-screen items-center justify-center">
