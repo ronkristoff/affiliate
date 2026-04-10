@@ -598,6 +598,24 @@ export const archiveCampaign = mutation({
       status: "archived",
     });
 
+    try {
+      const ownerUser = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .first();
+      if (ownerUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: user.tenantId,
+          userId: ownerUser._id,
+          type: "campaign.archived",
+          title: "Campaign Archived",
+          message: `Campaign "${campaign.name}" has been archived.`,
+          severity: "info",
+        });
+      }
+    } catch {}
+
     return args.campaignId;
   },
 });
@@ -635,6 +653,24 @@ export const pauseCampaign = mutation({
       status: "paused",
     });
 
+    try {
+      const ownerUser = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .first();
+      if (ownerUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: user.tenantId,
+          userId: ownerUser._id,
+          type: "campaign.paused",
+          title: "Campaign Paused",
+          message: `Campaign "${campaign.name}" has been paused.`,
+          severity: "info",
+        });
+      }
+    } catch {}
+
     return args.campaignId;
   },
 });
@@ -671,6 +707,24 @@ export const resumeCampaign = mutation({
     await ctx.db.patch(args.campaignId, {
       status: "active",
     });
+
+    try {
+      const ownerUser = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .first();
+      if (ownerUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: user.tenantId,
+          userId: ownerUser._id,
+          type: "campaign.resumed",
+          title: "Campaign Resumed",
+          message: `Campaign "${campaign.name}" has been resumed.`,
+          severity: "success",
+        });
+      }
+    } catch {}
 
     return args.campaignId;
   },

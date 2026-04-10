@@ -14,16 +14,14 @@ import {
 interface CancellationConfirmationEmailProps {
   previousPlan: string;
   accessEndDate: number;
-  deletionDate: number;
+  deletionDate?: number;
 }
 
 export default function CancellationConfirmationEmail({
   previousPlan,
   accessEndDate,
-  deletionDate,
 }: CancellationConfirmationEmailProps) {
   const accessDate = new Date(accessEndDate).toLocaleDateString();
-  const deleteDate = new Date(deletionDate).toLocaleDateString();
 
   return (
     <Html>
@@ -38,7 +36,7 @@ export default function CancellationConfirmationEmail({
           </Text>
 
           <Section style={alertBox}>
-            <Heading style={alertTitle}>Important Dates</Heading>
+            <Heading style={alertTitle}>Subscription Details</Heading>
             <ul style={list}>
               <li style={listItem}>
                 <strong>Previous Plan:</strong> {previousPlan.toUpperCase()}
@@ -46,29 +44,29 @@ export default function CancellationConfirmationEmail({
               <li style={listItem}>
                 <strong>Access Ends:</strong> {accessDate}
               </li>
-              <li style={listItem}>
-                <strong>Data Deleted:</strong> {deleteDate} (30 days after access ends)
-              </li>
             </ul>
           </Section>
+
+          <Text style={highlightBox}>
+            Your account is now read-only. You can reactivate at any time to restore full access.
+          </Text>
 
           <Text style={text}>
             <strong>What happens next:</strong>
           </Text>
           <ul style={bulletList}>
-            <li>You can access your data (read-only) until {accessDate}</li>
-            <li>You cannot create or modify new data</li>
-            <li>Billing has stopped - no further charges</li>
-            <li>Your data will be permanently deleted on {deleteDate}</li>
-            <li>You will receive a reminder email 7 days before deletion</li>
+            <li>Your account is in read-only mode — no new data can be created or modified</li>
+            <li>Billing has stopped — no further charges</li>
+            <li>All your data is preserved and accessible</li>
+            <li>You can reactivate your subscription at any time to restore full access</li>
           </ul>
 
           <Text style={text}>
-            Need help or want to reactivate? Contact our support team.
+            Need help or want to reactivate?
           </Text>
 
           <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`}>
-            View Settings
+            Reactivate Subscription
           </Button>
         </Container>
       </Body>
@@ -137,6 +135,17 @@ const bulletList = {
   lineHeight: "24px",
   padding: "0 20px",
   marginBottom: "20px",
+};
+
+const highlightBox = {
+  color: "#1c2260",
+  fontSize: "16px",
+  lineHeight: "24px",
+  padding: "16px 20px",
+  backgroundColor: "#f0f4ff",
+  borderRadius: "8px",
+  margin: "20px",
+  fontWeight: "bold",
 };
 
 const button = {

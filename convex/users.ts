@@ -774,6 +774,20 @@ export const removeTeamMember = mutation({
       },
     });
 
+    // Team removed notification (non-fatal, best-effort)
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: currentUser.tenantId,
+        userId: args.userId,
+        type: "team.removed",
+        title: "Removed from Team",
+        message: `You have been removed from the team.${args.reason ? ` Reason: ${args.reason}` : ""}`,
+        severity: "warning",
+      });
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send team removed notification:", notifErr);
+    }
+
     // 9. Schedule removal notification email
     await ctx.scheduler.runAfter(0, internal.users.sendRemovalNotification, {
       userId: args.userId,

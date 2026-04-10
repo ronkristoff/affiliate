@@ -364,6 +364,43 @@ export const createCommissionFromConversionInternal = internalMutation({
       }
     }
 
+    // Commission earned notification (non-fatal, best-effort)
+    try {
+      const affiliateUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+        .first();
+      const ownerUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .take(5);
+      if (affiliateUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: args.tenantId,
+          userId: affiliateUser._id,
+          type: "commission.earned",
+          title: "New Commission",
+          message: `You earned a commission of ₱${commissionAmount.toFixed(2)}.`,
+          severity: "success",
+          shouldAggregate: true,
+        });
+      }
+      for (const owner of ownerUsers) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: args.tenantId,
+          userId: owner._id,
+          type: "commission.earned",
+          title: "New Commission",
+          message: `${affiliate.name || "An affiliate"} earned a commission of ₱${commissionAmount.toFixed(2)}.`,
+          severity: "success",
+          shouldAggregate: true,
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send commission earned notifications:", notifErr);
+    }
+
     return commissionId;
   },
 });
@@ -915,6 +952,44 @@ export const reverseCommissionInternal = internalMutation({
         reason: args.reversalReason,
       },
     });
+
+    // Commission reversed notification (non-fatal, best-effort)
+    try {
+      const affiliateDoc = await ctx.db.get(commission.affiliateId);
+      if (affiliateDoc) {
+        const affiliateUser = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", affiliateDoc.email))
+          .first();
+        if (affiliateUser) {
+          await ctx.runMutation(internal.notifications.createNotification, {
+            tenantId: commission.tenantId,
+            userId: affiliateUser._id,
+            type: "commission.reversed",
+            title: "Commission Reversed",
+            message: `Your commission of ₱${commission.amount.toFixed(2)} has been reversed (${args.reversalReason}).`,
+            severity: "critical",
+          });
+        }
+      }
+      const ownerUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", commission.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .take(5);
+      for (const owner of ownerUsers) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: commission.tenantId,
+          userId: owner._id,
+          type: "commission.reversed",
+          title: "Commission Reversed",
+          message: `A commission of ₱${commission.amount.toFixed(2)} has been reversed (${args.reversalReason}).`,
+          severity: "critical",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send commission reversed notifications:", notifErr);
+    }
     
     return null;
   },
@@ -1000,6 +1075,29 @@ export const approveCommission = mutation({
         campaignId: commission.campaignId,
       },
     });
+
+    // Commission approved notification (non-fatal, best-effort)
+    try {
+      const affiliateDoc = await ctx.db.get(commission.affiliateId);
+      if (affiliateDoc) {
+        const affiliateUser = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", affiliateDoc.email))
+          .first();
+        if (affiliateUser) {
+          await ctx.runMutation(internal.notifications.createNotification, {
+            tenantId: user.tenantId,
+            userId: affiliateUser._id,
+            type: "commission.approved",
+            title: "Commission Approved",
+            message: `Your commission of ₱${commission.amount.toFixed(2)} has been approved.`,
+            severity: "success",
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send commission approved notification:", notifErr);
+    }
 
     // 7. Send commission approved email (Story 10.2)
     // Track approval timestamp for 5-minute SLA monitoring
@@ -1170,6 +1268,29 @@ export const declineCommission = mutation({
       },
     });
     
+    // Commission declined notification (non-fatal, best-effort)
+    try {
+      const affiliateDoc = await ctx.db.get(commission.affiliateId);
+      if (affiliateDoc) {
+        const affiliateUser = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", affiliateDoc.email))
+          .first();
+        if (affiliateUser) {
+          await ctx.runMutation(internal.notifications.createNotification, {
+            tenantId: user.tenantId,
+            userId: affiliateUser._id,
+            type: "commission.declined",
+            title: "Commission Declined",
+            message: `Your commission of ₱${commission.amount.toFixed(2)} has been declined.`,
+            severity: "warning",
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send commission declined notification:", notifErr);
+    }
+
     return {
       success: true,
       commissionId: args.commissionId,

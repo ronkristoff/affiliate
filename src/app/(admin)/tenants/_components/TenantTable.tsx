@@ -16,6 +16,8 @@ import { StatusBadge } from "./StatusBadge";
 import { PlanBadge } from "./PlanBadge";
 import { Eye } from "lucide-react";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, XCircle } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,6 +45,8 @@ interface Tenant {
   affiliateCount: number;
   mrr: number;
   isFlagged: boolean;
+  isBillingOverdue?: boolean;
+  isTrialExpired?: boolean;
 }
 
 interface TenantTableProps {
@@ -123,7 +127,7 @@ export function TenantTable({
         cell: (row) => (
           <div className="flex items-center gap-3">
             <TenantAvatar name={row.name} />
-            <div>
+            <div className="min-w-0">
               <div className="text-[13px] font-semibold text-[var(--text-heading)]">
                 {row.name}
               </div>
@@ -133,6 +137,36 @@ export function TenantTable({
             </div>
           </div>
         ),
+      },
+      {
+        key: "billingAlert",
+        header: "",
+        sortable: false,
+        width: 40,
+        hideOnMobile: false,
+        cell: (row) => {
+          if (row.isTrialExpired) {
+            return (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700"
+                title="Trial expired"
+              >
+                <XCircle className="h-3 w-3" />
+              </span>
+            );
+          }
+          if (row.isBillingOverdue) {
+            return (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
+                title="Billing overdue"
+              >
+                <AlertTriangle className="h-3 w-3" />
+              </span>
+            );
+          }
+          return null;
+        },
       },
       {
         key: "plan",
@@ -250,7 +284,13 @@ export function TenantTable({
       activeFilters={activeFilters}
       onFilterChange={onFilterChange}
       rowClassName={(row) =>
-        row.isFlagged ? "!bg-[var(--warning-bg)]" : ""
+        row.isTrialExpired
+          ? "!border-l-4 !border-l-red-500 !bg-red-50/50"
+          : row.isBillingOverdue
+            ? "!border-l-4 !border-l-amber-500 !bg-amber-50/50"
+            : row.isFlagged
+              ? "!bg-[var(--warning-bg)]"
+              : ""
       }
       onRowClick={(row) => {
         if (onViewTenant) {

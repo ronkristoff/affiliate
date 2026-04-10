@@ -6,6 +6,11 @@ import UpgradeConfirmationEmail from "./emails/UpgradeConfirmationEmail";
 import DowngradeConfirmationEmail from "./emails/DowngradeConfirmationEmail";
 import CancellationConfirmationEmail from "./emails/CancellationConfirmationEmail";
 import DeletionReminderEmail from "./emails/DeletionReminderEmail";
+import PastDueEmail from "./emails/PastDueEmail";
+import GracePeriodWarningEmail from "./emails/GracePeriodWarningEmail";
+import TrialExpiredEmail from "./emails/TrialExpiredEmail";
+import WelcomeBackEmail from "./emails/WelcomeBackEmail";
+import AccountReactivatedEmail from "./emails/AccountReactivatedEmail";
 import AffiliateWelcomeEmail from "./emails/AffiliateWelcomeEmail";
 import NewAffiliateNotificationEmail from "./emails/NewAffiliateNotificationEmail";
 import AffiliateApprovalEmail from "./emails/AffiliateApprovalEmail";
@@ -211,13 +216,12 @@ export const sendCancellationConfirmation = async (
     to,
     previousPlan,
     accessEndDate,
-    deletionDate,
     tenantId,
   }: {
     to: string;
     previousPlan: string;
     accessEndDate: number;
-    deletionDate: number;
+    deletionDate?: number;
     tenantId: Id<"tenants">;
   },
 ) => {
@@ -229,7 +233,7 @@ export const sendCancellationConfirmation = async (
       <CancellationConfirmationEmail
         previousPlan={previousPlan}
         accessEndDate={accessEndDate}
-        deletionDate={deletionDate}
+        deletionDate={0} // Placeholder — template updated in Task 31
       />
     ),
     tracking: {
@@ -276,6 +280,163 @@ export const sendSubscriptionDeletionReminder = async (
 
 // Backward compatibility alias — callers that use the old name
 export const sendDeletionReminder = sendSubscriptionDeletionReminder;
+
+// ── Group B.2: Billing lifecycle helpers ────────────────────────────────────
+
+/**
+ * Send past due notification email.
+ */
+export const sendPastDueEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    brandName,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    brandName: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Payment overdue — action required",
+    html: await render(
+      <PastDueEmail tenantName={tenantName} brandName={brandName} />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_past_due",
+    },
+  });
+};
+
+/**
+ * Send grace period warning email (3 days until cancellation).
+ */
+export const sendGracePeriodWarningEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    brandName,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    brandName: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Final warning — 3 days until cancellation",
+    html: await render(
+      <GracePeriodWarningEmail tenantName={tenantName} brandName={brandName} />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_grace_warning",
+    },
+  });
+};
+
+/**
+ * Send trial expired notification email.
+ */
+export const sendTrialExpiredEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    brandName,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    brandName: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Trial ended — upgrade to keep your data",
+    html: await render(
+      <TrialExpiredEmail tenantName={tenantName} brandName={brandName} />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_trial_expired",
+    },
+  });
+};
+
+/**
+ * Send welcome back email (payment received / recovered from past_due).
+ */
+export const sendWelcomeBackEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    brandName,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    brandName: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Welcome back!",
+    html: await render(
+      <WelcomeBackEmail tenantName={tenantName} brandName={brandName} />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_recovered",
+    },
+  });
+};
+
+/**
+ * Send account reactivated email.
+ */
+export const sendAccountReactivatedEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    brandName,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    brandName: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendEmailFromMutation(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Account reactivated",
+    html: await render(
+      <AccountReactivatedEmail tenantName={tenantName} brandName={brandName} />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_reactivated",
+    },
+  });
+};
 
 // ── Group C: Affiliate helpers ──────────────────────────────────────────────
 

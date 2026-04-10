@@ -57,4 +57,31 @@ crons.interval(
   {}
 );
 
+// Billing lifecycle enforcement — runs daily
+// Auto-transitions subscription statuses based on billing dates
+crons.interval(
+  "billing-cycle-enforcer",
+  { hours: 24 },
+  internal.billingLifecycle.enforceBillingLifecycle,
+  {}
+);
+
+// Notification cleanup — runs daily
+// Deletes expired notifications (older than 90 days) in batches of 1000
+crons.interval(
+  "notification-cleanup",
+  { hours: 24 },
+  internal.notifications.clearExpiredNotifications,
+  {}
+);
+
+// Notification unread count reconciliation — runs daily
+// Fixes drift in denormalized unread counters on users table
+crons.interval(
+  "notification-reconciliation",
+  { hours: 24 },
+  internal.notifications.reconcileUnreadCounts,
+  {}
+);
+
 export default crons;

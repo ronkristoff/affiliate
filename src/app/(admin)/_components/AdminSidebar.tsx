@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { SignOutIconButton } from "@/components/shared/SignOutIconButton";
+import { NotificationPanel } from "@/components/notifications/NotificationPanel";
 
 interface AdminNavItem {
   href: string;
@@ -92,8 +93,8 @@ export function AdminSidebar() {
   return (
     <aside className="w-[240px] bg-[#0e1333] min-h-screen flex flex-col fixed top-0 left-0 z-[100]">
       {/* Logo */}
-      <Link href="/tenants" className="px-5 py-6 border-b border-white/[0.08] block">
-        <div className="flex items-center gap-2.5">
+      <div className="px-5 py-6 border-b border-white/[0.08] flex items-center justify-between">
+        <Link href="/tenants" className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#1fb5a5] rounded-lg flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -102,8 +103,9 @@ export function AdminSidebar() {
           <div className="text-[15px] font-bold text-white tracking-[-0.3px]">
             salig<span className="text-[#1fb5a5]">admin</span>
           </div>
-        </div>
-      </Link>
+        </Link>
+        <NotificationPanel userId={user._id} />
+      </div>
 
       {/* Admin Label */}
       <div className="px-5 py-3.5 border-b border-white/[0.08]">

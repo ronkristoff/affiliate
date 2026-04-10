@@ -1,9 +1,9 @@
 "use client";
 
 import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
-import { Users, Clock, ShieldAlert, UserX } from "lucide-react";
+import { Users, Clock, ShieldAlert, UserX, AlertTriangle } from "lucide-react";
 
-export const FILTERS = ["all", "active", "trial", "flagged", "suspended"] as const;
+export const FILTERS = ["all", "active", "trial", "flagged", "suspended", "past_due", "billing_overdue"] as const;
 export type Filter = (typeof FILTERS)[number];
 
 interface FilterPillsProps {
@@ -15,6 +15,8 @@ interface FilterPillsProps {
     trial: number;
     suspended: number;
     flagged: number;
+    pastDue: number;
+    billingOverdue: number;
   };
   isLoading?: boolean;
 }
@@ -52,6 +54,20 @@ function buildTabs(
       count: counts?.suspended,
       icon: <UserX className="h-3.5 w-3.5" />,
       activeColor: "bg-gray-500",
+    },
+    {
+      key: "past_due",
+      label: "Past Due",
+      count: counts?.pastDue,
+      icon: <Clock className="h-3.5 w-3.5" />,
+      activeColor: "bg-red-500",
+    },
+    {
+      key: "billing_overdue",
+      label: "Needs Attention",
+      count: counts?.billingOverdue,
+      icon: <AlertTriangle className="h-3.5 w-3.5" />,
+      activeColor: "bg-amber-600",
     },
   ];
 }

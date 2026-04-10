@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { SignOutIconButton } from "@/components/shared/SignOutIconButton";
+import { NotificationPanel } from "@/components/notifications/NotificationPanel";
 
 interface NavItem {
   href: string;
@@ -274,9 +275,10 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Logo */}
       <div className={cn(
         "border-b border-white/[0.06] flex items-center",
-        isCollapsed ? "px-4 py-5 justify-center" : "px-5 py-5"
+        isCollapsed ? "px-2 py-4 justify-center gap-1" : "px-5 py-5 justify-between"
       )}>
         <Logo href="/dashboard" variant="light" collapsed={isCollapsed} />
+        <NotificationPanel userId={user._id} />
       </div>
 
       {/* Tenant Info */}

@@ -152,7 +152,7 @@ export const createTeamInvitation = mutation({
     await ctx.db.insert("auditLogs", {
       tenantId,
       action: "team_invitation_created",
-      entityType: "teamInvitation",
+      entityType: "teamInvitations",
       entityId: invitationId,
       actorId: authUser.userId,
       actorType: "user",
@@ -162,6 +162,26 @@ export const createTeamInvitation = mutation({
         expiresAt,
       },
     });
+
+    // Team invited notification (non-fatal, best-effort)
+    try {
+      const inviteeUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+        .first();
+      if (inviteeUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId,
+          userId: inviteeUser._id,
+          type: "team.invited",
+          title: "Team Invitation",
+          message: `You have been invited to join the team as ${args.role}.`,
+          severity: "info",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send team invited notification:", notifErr);
+    }
 
     // Schedule email sending via internal mutation
     // Get inviter name for the email (use email prefix as name)
@@ -699,6 +719,27 @@ export const completeInvitationAcceptance = mutation({
         name: args.name,
         role: invitation.role,
       });
+
+      // Team accepted notification to owners (non-fatal, best-effort)
+      try {
+        const ownerUsers = await ctx.db
+          .query("users")
+          .withIndex("by_tenant", (q) => q.eq("tenantId", invitation.tenantId))
+          .filter((q) => q.eq(q.field("role") as any, "owner"))
+          .take(5);
+        for (const owner of ownerUsers) {
+          await ctx.runMutation(internal.notifications.createNotification, {
+            tenantId: invitation.tenantId,
+            userId: owner._id,
+            type: "team.accepted",
+            title: "Team Member Joined",
+            message: `${args.name} (${invitation.email}) has joined the team as ${invitation.role}.`,
+            severity: "info",
+          });
+        }
+      } catch (notifErr) {
+        console.error("[Notification] Failed to send team accepted notifications:", notifErr);
+      }
 
       return {
         success: true,

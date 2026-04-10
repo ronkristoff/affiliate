@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { TenantAvatar } from "@/app/(admin)/tenants/_components/TenantAvatar";
 import { StatusBadge } from "@/app/(admin)/tenants/_components/StatusBadge";
+import { SubscriptionStatusBadge } from "@/app/(admin)/tenants/_components/SubscriptionStatusBadge";
 import { PlanBadge } from "@/app/(admin)/tenants/_components/PlanBadge";
 import { Button } from "@/components/ui/button";
 import { Mail, UserCog, Globe, Users, Wallet, Zap, Calendar } from "lucide-react";
@@ -19,6 +20,9 @@ interface TenantHeaderProps {
     ownerName: string | undefined;
     plan: string;
     status: string;
+    subscriptionStatus?: string | null;
+    trialEndsAt?: number | null;
+    billingEndDate?: number | null;
     createdAt: number;
     saligPayStatus: string | undefined;
     affiliateCount: {
@@ -45,6 +49,15 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
     ? "flagged"
     : (tenant.status as "active" | "trial" | "suspended" | "flagged");
 
+  // Compute effective subscription status (same logic as list + SubscriptionSummaryCard)
+  const now = Date.now();
+  let effectiveSubStatus = tenant.subscriptionStatus;
+  if (tenant.trialEndsAt != null && tenant.trialEndsAt < now && tenant.subscriptionStatus !== "active" && tenant.subscriptionStatus !== "cancelled") {
+    effectiveSubStatus = "cancelled";
+  } else if (tenant.subscriptionStatus === "active" && tenant.billingEndDate != null && tenant.billingEndDate < now) {
+    effectiveSubStatus = "past_due";
+  }
+
   const joinDate = new Date(tenant.createdAt * 1000).toLocaleDateString();
 
   return (
@@ -63,6 +76,9 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
               </h1>
               <StatusBadge status={displayStatus} />
               <PlanBadge plan={tenant.plan} />
+              {effectiveSubStatus && (
+                <SubscriptionStatusBadge status={effectiveSubStatus} />
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 text-[13px] text-[#6b7280]">

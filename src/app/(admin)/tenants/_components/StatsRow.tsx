@@ -1,7 +1,7 @@
 "use client";
 
 import { MetricCard } from "@/components/ui/MetricCard";
-import { Users, CreditCard, TrendingUp, Ban, AlertTriangle } from "lucide-react";
+import { Users, CreditCard, TrendingUp, Ban, AlertTriangle, Clock } from "lucide-react";
 
 interface StatsRowProps {
   stats: {
@@ -10,6 +10,7 @@ interface StatsRowProps {
     trial: number;
     suspended: number;
     flagged: number;
+    pastDue?: number;
     deltaThisWeek: number;
   } | undefined;
   isLoading: boolean;
@@ -17,7 +18,7 @@ interface StatsRowProps {
 
 export function StatsRow({ stats, isLoading }: StatsRowProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
       <MetricCard
         label="Total Tenants"
         numericValue={stats?.total ?? 0}
@@ -50,6 +51,13 @@ export function StatsRow({ stats, isLoading }: StatsRowProps) {
         isLoading={isLoading}
         variant="yellow"
         icon={<Ban className="w-4 h-4" />}
+      />
+      <MetricCard
+        label="Past Due"
+        numericValue={stats?.pastDue ?? 0}
+        isLoading={isLoading}
+        variant="red"
+        icon={<Clock className="w-4 h-4" />}
       />
       <MetricCard
         label="Flagged"

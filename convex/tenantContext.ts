@@ -205,7 +205,8 @@ export async function requireAffiliateTenantId(
 /**
  * Check if write operations are allowed for the current tenant.
  * Write operations are blocked when:
- * 1. Subscription is cancelled AND billing period has ended
+ * 1. subscriptionStatus is "past_due" (immediate block)
+ * 2. subscriptionStatus is "cancelled" (regardless of billingEndDate)
  * 
  * @param ctx - The Convex context
  * @returns Object with canWrite flag and reason if blocked
@@ -219,15 +220,21 @@ export async function checkWriteAccess(
     return { canWrite: false, reason: "Tenant not found" };
   }
 
-  const now = Date.now();
   const subscriptionStatus = tenant.subscriptionStatus;
-  const billingEndDate = tenant.billingEndDate;
 
-  // If subscription is cancelled and billing period has ended, block writes
-  if (subscriptionStatus === "cancelled" && billingEndDate && now >= billingEndDate) {
+  // Block writes for past_due subscriptions (immediate)
+  if (subscriptionStatus === "past_due") {
     return { 
       canWrite: false, 
-      reason: "Write operations are blocked because your subscription was cancelled and the billing period has ended" 
+      reason: "Write operations are blocked because your subscription payment is overdue" 
+    };
+  }
+
+  // Block writes for all cancelled subscriptions (regardless of reason)
+  if (subscriptionStatus === "cancelled") {
+    return { 
+      canWrite: false, 
+      reason: "Write operations are blocked because your subscription has been cancelled" 
     };
   }
 

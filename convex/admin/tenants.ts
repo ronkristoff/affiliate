@@ -116,6 +116,8 @@ export interface TenantRow {
   affiliateCount: number;
   mrr: number;
   isFlagged: boolean;
+  isBillingOverdue: boolean;
+  isTrialExpired: boolean;
 }
 
 // =============================================================================
@@ -134,7 +136,10 @@ export const searchTenants = query({
         v.literal("active"),
         v.literal("trial"),
         v.literal("suspended"),
-        v.literal("flagged")
+        v.literal("flagged"),
+        v.literal("past_due"),
+        v.literal("billing_overdue"),
+        v.literal("cancelled")
       )
     ),
     cursor: v.optional(v.string()),
@@ -155,6 +160,8 @@ export const searchTenants = query({
         affiliateCount: v.number(),
         mrr: v.number(),
         isFlagged: v.boolean(),
+        isBillingOverdue: v.boolean(),
+        isTrialExpired: v.boolean(),
       })
     ),
     nextCursor: v.optional(v.string()),
@@ -174,15 +181,19 @@ export const searchTenants = query({
       cursor: args.cursor ?? null,
     };
 
+    // Filters that map to indexed tenant.status field
+    const indexedStatuses = new Set(["active", "trial", "suspended"]);
+    const computedStatuses = new Set(["flagged", "past_due", "billing_overdue", "cancelled"]);
+
     let baseQuery;
-    if (args.statusFilter && args.statusFilter !== "flagged") {
+    if (args.statusFilter && indexedStatuses.has(args.statusFilter)) {
       // Use the by_status index when filtering by a real status field
       baseQuery = ctx.db
         .query("tenants")
         .withIndex("by_status", (q: any) => q.eq("status", args.statusFilter))
         .order("desc");
     } else {
-      // Default: all tenants, newest first
+      // Default: all tenants, newest first (for "flagged", "past_due", "billing_overdue", "cancelled" we filter in-memory below)
       baseQuery = ctx.db.query("tenants").order("desc");
     }
 
@@ -202,6 +213,15 @@ export const searchTenants = query({
 
       // For "flagged" filter, skip non-flagged tenants
       if (args.statusFilter === "flagged" && !flagged) continue;
+
+      // For computed-status filters, skip non-matching tenants
+      if (args.statusFilter === "past_due" && tenant.subscriptionStatus !== "past_due") continue;
+      if (args.statusFilter === "billing_overdue") {
+        const isBillingOverdue = tenant.subscriptionStatus === "past_due" ||
+          (tenant.billingEndDate !== undefined && tenant.billingEndDate < Date.now() && tenant.subscriptionStatus === "active");
+        if (!isBillingOverdue) continue;
+      }
+      if (args.statusFilter === "cancelled" && tenant.subscriptionStatus !== "cancelled") continue;
 
       // ownerEmail is the only remaining per-tenant lookup
       const ownerEmail = await getTenantOwnerEmail(ctx, tenant._id);
@@ -223,6 +243,10 @@ export const searchTenants = query({
         mrr: (stats.commissionsConfirmedValueThisMonth ?? 0)
           + (stats.commissionsConfirmedValueLastMonth ?? 0),
         isFlagged: flagged,
+        isBillingOverdue: tenant.subscriptionStatus === "past_due" ||
+          (tenant.billingEndDate !== undefined && tenant.billingEndDate < Date.now() && tenant.subscriptionStatus === "active"),
+        isTrialExpired: tenant.trialEndsAt !== undefined && tenant.trialEndsAt < Date.now() &&
+          (tenant.subscriptionStatus === "cancelled" || tenant.subscriptionStatus === undefined),
       });
     }
 
@@ -247,10 +271,11 @@ export const searchTenants = query({
 
     // ── Step 5: Get total count (lightweight: capped .take() on index) ──
     // Convex allows only 1 .paginate() per function, so we use .take() here.
-    // For status filter we use the index; for "flagged" or "all" we do a
-    // capped count. The exact count is best-effort for the list view.
+    // For indexed status filters we use the index; for computed filters
+    // ("flagged", "past_due", "billing_overdue", "cancelled") or "all" we
+    // do a capped count. The exact count is best-effort for the list view.
     let total: number;
-    if (args.statusFilter && args.statusFilter !== "flagged") {
+    if (args.statusFilter && indexedStatuses.has(args.statusFilter)) {
       const statusTenants = await ctx.db
         .query("tenants")
         .withIndex("by_status", (q: any) => q.eq("status", args.statusFilter))
@@ -284,6 +309,7 @@ export const getPlatformStats = query({
     trial: v.number(),
     suspended: v.number(),
     flagged: v.number(),
+    pastDue: v.number(),
     deltaThisWeek: v.number(),
   }),
   handler: async (ctx) => {
@@ -298,12 +324,14 @@ export const getPlatformStats = query({
     let trial = 0;
     let suspended = 0;
     let flagged = 0;
+    let pastDue = 0;
     const oneWeekAgo = Date.now() / 1000 - 7 * 24 * 60 * 60;
 
     for (const tenant of allTenants) {
       if (tenant.status === "active") active++;
       if (tenant.status === "trial") trial++;
       if (tenant.status === "suspended") suspended++;
+      if (tenant.subscriptionStatus === "past_due") pastDue++;
 
       // Inline flag check — O(1) using tenant fields + tenantStats
       const now = Date.now() / 1000;
@@ -323,6 +351,7 @@ export const getPlatformStats = query({
       trial,
       suspended,
       flagged,
+      pastDue,
       deltaThisWeek,
     };
   },

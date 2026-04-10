@@ -22,6 +22,8 @@ export interface TenantDetail {
   trialEndsAt?: number | null;
   cancellationDate?: number | null;
   deletionScheduledDate?: number | null;
+  cancelledReason?: "grace_expired" | "trial_expired" | "admin_cancelled" | "owner_cancelled" | null;
+  pastDueSince?: number | null;
   affiliateCount: {
     total: number;
     active: number;

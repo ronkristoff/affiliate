@@ -15,7 +15,7 @@ interface MetricCardProps {
     isPositive: boolean;
     label?: string;
   };
-  variant?: "blue" | "green" | "yellow" | "gray";
+  variant?: "blue" | "green" | "yellow" | "gray" | "red";
   isLoading?: boolean;
   prefix?: string;
   className?: string;
@@ -40,6 +40,7 @@ const variantStyles = {
   green: "bg-[var(--bg-surface)]",
   yellow: "bg-[var(--bg-surface)]",
   gray: "bg-[var(--bg-surface)]",
+  red: "bg-[var(--bg-surface)]",
 };
 
 const accentGradientMap: Record<string, string> = {
@@ -47,6 +48,7 @@ const accentGradientMap: Record<string, string> = {
   green: "linear-gradient(135deg, var(--success) 0%, #059669 100%)",
   yellow: "linear-gradient(135deg, var(--warning) 0%, #d97706 100%)",
   gray: "linear-gradient(135deg, var(--text-muted) 0%, #4b5563 100%)",
+  red: "linear-gradient(135deg, var(--danger) 0%, #b91c1c 100%)",
 };
 
 const iconBgMap: Record<string, string> = {
@@ -54,6 +56,7 @@ const iconBgMap: Record<string, string> = {
   green: "bg-[var(--success-bg)] text-[var(--success-text)]",
   yellow: "bg-[var(--warning-bg)] text-[var(--warning-text)]",
   gray: "bg-[var(--bg-page)] text-[var(--text-muted)]",
+  red: "bg-red-50 text-[var(--danger)]",
 };
 
 export function MetricCard({

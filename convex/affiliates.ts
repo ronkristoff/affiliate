@@ -1643,6 +1643,38 @@ export const suspendAffiliate = mutation({
       await ctx.db.patch(args.affiliateId, { fraudSignals });
     }
 
+    // Notify owner and affiliate
+    try {
+      const affiliateUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+        .first();
+      if (affiliateUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId,
+          userId: affiliateUser._id,
+          type: "affiliate.suspended",
+          title: "Affiliate Suspended",
+          message: `Your affiliate account has been suspended.${args.reason ? ` Reason: ${args.reason}` : ""}`,
+          severity: "warning",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify affiliate on suspension:", notifErr);
+    }
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId,
+        userId: authUser.userId,
+        type: "affiliate.suspended",
+        title: "Affiliate Suspended",
+        message: `You suspended affiliate ${affiliate.name} (${affiliate.email}).${args.reason ? ` Reason: ${args.reason}` : ""}`,
+        severity: "warning",
+      });
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify owner on suspension:", notifErr);
+    }
+
     // Invalidate all affiliate sessions
     await ctx.runMutation(internal.affiliates.invalidateAffiliateSessions, {
       affiliateId: args.affiliateId,
@@ -1752,6 +1784,38 @@ export const reactivateAffiliate = mutation({
     await ctx.db.patch(args.affiliateId, { status: "active" });
 
     await updateAffiliateCount(ctx, tenantId, "suspended", "active");
+
+    // Notify owner and affiliate
+    try {
+      const affiliateUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+        .first();
+      if (affiliateUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId,
+          userId: affiliateUser._id,
+          type: "affiliate.reactivated",
+          title: "Affiliate Reactivated",
+          message: `Your affiliate account has been reactivated. You can now access the portal again.`,
+          severity: "success",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify affiliate on reactivation:", notifErr);
+    }
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId,
+        userId: authUser.userId,
+        type: "affiliate.reactivated",
+        title: "Affiliate Reactivated",
+        message: `You reactivated affiliate ${affiliate.name} (${affiliate.email}).`,
+        severity: "success",
+      });
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify owner on reactivation:", notifErr);
+    }
 
     // Attribution Resilience: Generate coupon code on reactivation (preserves existing if present)
     ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
@@ -1902,6 +1966,38 @@ export const approveAffiliate = mutation({
       console.error("[CouponCode] Failed to generate coupon code on approval:", err);
     });
 
+    // Notify owner and affiliate
+    try {
+      const affiliateUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+        .first();
+      if (affiliateUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId,
+          userId: affiliateUser._id,
+          type: "affiliate.approved",
+          title: "Affiliate Approved",
+          message: `Your affiliate application has been approved. Welcome to the program!`,
+          severity: "info",
+        });
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify affiliate on approval:", notifErr);
+    }
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId,
+        userId: authUser.userId,
+        type: "affiliate.approved",
+        title: "Affiliate Approved",
+        message: `You approved affiliate ${affiliate.name} (${affiliate.email}).`,
+        severity: "info",
+      });
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify owner on affiliate approval:", notifErr);
+    }
+
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
@@ -2011,6 +2107,20 @@ export const rejectAffiliate = mutation({
     await ctx.db.patch(args.affiliateId, { status: "rejected" });
 
     await updateAffiliateCount(ctx, tenantId, "pending", "rejected");
+
+    // Notify owner
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId,
+        userId: authUser.userId,
+        type: "affiliate.rejected",
+        title: "Affiliate Rejected",
+        message: `You rejected affiliate ${affiliate.name} (${affiliate.email}).${args.reason ? ` Reason: ${args.reason}` : ""}`,
+        severity: "warning",
+      });
+    } catch (notifErr) {
+      console.error("[Notification] Failed to notify owner on affiliate rejection:", notifErr);
+    }
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {

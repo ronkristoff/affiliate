@@ -19,6 +19,14 @@ export default defineSchema({
     trackingPublicKey: v.optional(v.string()),
     trackingVerifiedAt: v.optional(v.number()),
     // Universal billing provider: "saligpay" | "stripe" | undefined (no provider)
+    // Billing lifecycle enforcement fields
+    cancelledReason: v.optional(v.union(
+      v.literal("grace_expired"),
+      v.literal("trial_expired"),
+      v.literal("admin_cancelled"),
+      v.literal("owner_cancelled"),
+    )),
+    pastDueSince: v.optional(v.number()),
     billingProvider: v.optional(v.union(
       v.literal("saligpay"),
       v.literal("stripe"),
@@ -135,6 +143,8 @@ export default defineSchema({
       canViewCommissions: v.boolean(),
     })),
     authId: v.optional(v.string()),
+    // Denormalized notification unread count for O(1) reads
+    notificationUnreadCount: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
     .index("by_email", ["email"])
@@ -712,4 +722,31 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"])
     .index("by_expires_at", ["expiresAt"]),
+
+  // In-app notifications table
+  // Centralized notification system for all platform events
+  // See docs/billing-lifecycle-enforcement-notifications.md for event catalog
+  notifications: defineTable({
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    type: v.string(), // Category.type key, e.g. "billing.past_due"
+    title: v.string(),
+    message: v.string(),
+    severity: v.union(
+      v.literal("info"),
+      v.literal("warning"),
+      v.literal("success"),
+      v.literal("critical"),
+    ),
+    actionUrl: v.optional(v.string()),
+    actionLabel: v.optional(v.string()),
+    isRead: v.boolean(),
+    readAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()), // 90 days from creation
+    metadata: v.optional(v.any()),
+    aggregatedCount: v.number(), // Number of aggregated events (default 1)
+    aggregationDate: v.optional(v.number()), // UTC day boundary for grouping
+  }).index("by_user_created", ["userId"])
+    .index("by_user_unread", ["userId", "isRead"])
+    .index("by_tenant", ["tenantId"]),
 });

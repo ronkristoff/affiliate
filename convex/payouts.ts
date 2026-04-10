@@ -879,6 +879,29 @@ export const markPayoutAsPaid = mutation({
     // Update denormalized totalPaidOut counter
     await incrementTotalPaidOut(ctx, tenantId, payout.amount);
 
+    // Payout processed notification (non-fatal, best-effort)
+    try {
+      const affiliateDoc = await ctx.db.get(payout.affiliateId);
+      if (affiliateDoc) {
+        const affiliateUser = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", affiliateDoc.email))
+          .first();
+        if (affiliateUser) {
+          await ctx.runMutation(internal.notifications.createNotification, {
+            tenantId,
+            userId: affiliateUser._id,
+            type: "payout.processed",
+            title: "Payout Processed",
+            message: `Your payout of ₱${payout.amount.toFixed(2)} has been processed.${args.paymentReference ? ` Ref: ${args.paymentReference}` : ""}`,
+            severity: "success",
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send payout processed notification:", notifErr);
+    }
+
     // --- Schedule payout notification email (Story 13.4) ---
     let emailScheduled = false;
     try {
@@ -1017,6 +1040,31 @@ export const markBatchAsPaid = mutation({
       batchTotalPaid += payout.amount;
     }
     await incrementTotalPaidOut(ctx, tenantId, batchTotalPaid);
+
+    // Payout processed notifications for all affiliates (non-fatal, best-effort)
+    try {
+      for (const payout of pendingPayouts) {
+        const affiliate = await ctx.db.get(payout.affiliateId);
+        if (affiliate) {
+          const affiliateUser = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+            .first();
+          if (affiliateUser) {
+            await ctx.runMutation(internal.notifications.createNotification, {
+              tenantId,
+              userId: affiliateUser._id,
+              type: "payout.processed",
+              title: "Payout Processed",
+              message: `Your payout of ₱${payout.amount.toFixed(2)} has been processed.${args.paymentReference ? ` Ref: ${args.paymentReference}` : ""}`,
+              severity: "success",
+            });
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error("[Notification] Failed to send batch payout processed notifications:", notifErr);
+    }
 
     // --- Schedule payout notification emails for all affiliates (Story 13.4) ---
     let emailsScheduled = 0;

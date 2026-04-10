@@ -12,6 +12,7 @@ import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { Id } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { requireAdmin } from "./_helpers";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
 
@@ -34,7 +35,13 @@ export const getTenantSubscription = query({
     billingEndDate: v.optional(v.number()),
     trialEndsAt: v.optional(v.number()),
     cancellationDate: v.optional(v.number()),
-    deletionScheduledDate: v.optional(v.number()),
+    cancelledReason: v.optional(v.union(
+      v.literal("grace_expired"),
+      v.literal("trial_expired"),
+      v.literal("admin_cancelled"),
+      v.literal("owner_cancelled"),
+    )),
+    pastDueSince: v.optional(v.number()),
     isTrial: v.boolean(),
     trialDaysRemaining: v.optional(v.number()),
     billingCycleDaysRemaining: v.optional(v.number()),
@@ -77,7 +84,8 @@ export const getTenantSubscription = query({
       billingEndDate: tenant.billingEndDate,
       trialEndsAt: tenant.trialEndsAt,
       cancellationDate: tenant.cancellationDate,
-      deletionScheduledDate: tenant.deletionScheduledDate,
+      cancelledReason: tenant.cancelledReason as "grace_expired" | "trial_expired" | "admin_cancelled" | "owner_cancelled" | undefined,
+      pastDueSince: tenant.pastDueSince,
       isTrial,
       trialDaysRemaining,
       billingCycleDaysRemaining,
@@ -195,6 +203,8 @@ export const getPlatformRevenueMetrics = query({
     let scaleCount = 0;
     let growthMRR = 0;
     let scaleMRR = 0;
+    let trialConvertedCount = 0;
+    let payingFromTrial = 0;
 
     const now = Date.now();
 
@@ -240,35 +250,21 @@ export const getPlatformRevenueMetrics = query({
         scaleCount++;
         if (status === "active" || status === "past_due") scaleMRR += price;
       }
+
+      // Track trial conversion: tenant was on trial (has past trial end) and is now paying
+      const wasOnTrial = tenant.trialEndsAt !== undefined && tenant.trialEndsAt <= now;
+      const isNowPaying = (status === "active" || status === "past_due") && tenant.plan !== "starter";
+      if (wasOnTrial) {
+        trialConvertedCount++;
+        if (isNowPaying) {
+          payingFromTrial++;
+        }
+      }
     }
 
     totalMRR = activeMRR + pastDueMRR;
 
-    // Trial conversion rate: tenants with plan !== "starter" AND subscriptionStatus === "active"
-    // divided by tenants with billingHistory event "trial_conversion"
-    const uniqueTrialConvertedTenantIds = new Set<string>();
-
-    // Query billingHistory to find trial_conversion events — capped at 500
-    const allBillingHistory = await ctx.db
-      .query("billingHistory")
-      .order("desc")
-      .take(500);
-
-    for (const event of allBillingHistory) {
-      if (event.event === "trial_conversion") {
-        uniqueTrialConvertedTenantIds.add(event.tenantId);
-      }
-    }
-
-    const trialConvertedCount = uniqueTrialConvertedTenantIds.size;
-    // Use the same derived status logic for consistency
-    const payingFromTrial = allTenants.filter((t) => {
-      if (t.plan === "starter") return false;
-      if (t.subscriptionStatus === "active") return true;
-      // If subscriptionStatus is undefined but plan is paid, treat as active
-      if (!t.subscriptionStatus) return true;
-      return false;
-    }).length;
+    // Trial conversion rate: percentage of expired-trial tenants that converted to paid
     const trialConversionRate = trialConvertedCount > 0
       ? Math.round((payingFromTrial / trialConvertedCount) * 100)
       : 0;
@@ -481,6 +477,13 @@ export const adminChangePlan = mutation({
       },
     });
 
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.plan_changed",
+      title: "Plan Changed",
+      message: `Your plan has been changed to ${args.targetPlan}.`,
+      severity: "info",
+    });
+
     return { success: true, previousPlan, newPlan: args.targetPlan };
   },
 });
@@ -548,13 +551,20 @@ export const adminExtendTrial = mutation({
       },
     });
 
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.trial_extended",
+      title: "Trial Extended",
+      message: `Your trial has been extended by ${args.additionalDays} days.`,
+      severity: "info",
+    });
+
     return { success: true, newTrialEndsAt };
   },
 });
 
 /**
  * Admin cancels a tenant's subscription.
- * Schedules deletion relative to billing cycle end (matches owner's cancel pattern).
+ * Sets cancelledReason to "admin_cancelled". No auto-deletion.
  */
 export const adminCancelSubscription = mutation({
   args: {
@@ -563,7 +573,6 @@ export const adminCancelSubscription = mutation({
   },
   returns: v.object({
     success: v.boolean(),
-    deletionScheduledDate: v.number(),
   }),
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx);
@@ -578,15 +587,21 @@ export const adminCancelSubscription = mutation({
     }
 
     const now = Date.now();
-    // Deletion scheduled relative to billing cycle end, not from now
-    const billingEnd = tenant.billingEndDate ?? now;
-    const deletionScheduledDate = billingEnd + 30 * 86400000;
 
     await ctx.db.patch(args.tenantId, {
       subscriptionStatus: "cancelled",
       cancellationDate: now,
-      deletionScheduledDate,
+      cancelledReason: "admin_cancelled" as const,
     });
+
+    // Pause all active campaigns (consistent with billing cron behaviour)
+    try {
+      await ctx.runMutation(internal.billingLifecycle.pauseAllActiveCampaignsForTenant, {
+        tenantId: args.tenantId,
+      });
+    } catch {
+      // Non-fatal — campaign pause failure shouldn't block admin action
+    }
 
     // Write billingHistory
     await ctx.db.insert("billingHistory", {
@@ -608,12 +623,51 @@ export const adminCancelSubscription = mutation({
       previousValue: { subscriptionStatus: tenant.subscriptionStatus },
       newValue: {
         subscriptionStatus: "cancelled",
-        deletionScheduledDate,
+        cancelledReason: "admin_cancelled",
       },
       metadata: { reason: args.reason },
     });
 
-    return { success: true, deletionScheduledDate };
+    // Send notification to tenant owner
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
+      .filter((q) => q.eq(q.field("role") as any, "owner"))
+      .take(5);
+
+    for (const owner of ownerUsers) {
+      try {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: args.tenantId,
+          userId: owner._id,
+          type: "billing.cancelled",
+          title: "Subscription Cancelled",
+          message: "Your subscription has been cancelled by the platform admin.",
+          severity: "warning",
+          actionUrl: "/settings/billing",
+          actionLabel: "View Billing",
+        });
+      } catch {
+        // Non-fatal — notification failure shouldn't block admin action
+      }
+    }
+
+    // Send admin notification for platform admin
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: args.tenantId,
+        userId: admin._id,
+        type: "admin.tenant_cancelled",
+        title: "Tenant Subscription Cancelled",
+        message: `${tenant.name} subscription has been cancelled.`,
+        severity: "info",
+        metadata: { reason: args.reason },
+      });
+    } catch {
+      // Non-fatal
+    }
+
+    return { success: true };
   },
 });
 
@@ -645,18 +699,30 @@ export const adminReactivateSubscription = mutation({
 
     const now = Date.now();
 
-    // Build patch — clear deletionScheduledDate to cancel any pending deletion
+    // Clear cancellation fields
     const patchFields: Record<string, any> = {
       subscriptionStatus: "active",
       cancellationDate: undefined,
-      deletionScheduledDate: undefined,
+      pastDueSince: undefined,
+      cancelledReason: undefined,
     };
 
-    // Set billing dates for all plans (starter gets 30-day cycle, paid plans get new cycle)
-    patchFields.billingStartDate = now;
-    patchFields.billingEndDate = now + 30 * 24 * 60 * 60 * 1000;
+    // Set billing dates only for paid plans (starter is free — no billing cycle)
+    if (tenant.plan !== "starter") {
+      patchFields.billingStartDate = now;
+      patchFields.billingEndDate = now + 30 * 24 * 60 * 60 * 1000;
+    }
 
     await ctx.db.patch(args.tenantId, patchFields);
+
+    // Resume paused campaigns
+    try {
+      await ctx.runMutation(internal.billingLifecycle.resumeAllPausedCampaignsForTenant, {
+        tenantId: args.tenantId,
+      });
+    } catch {
+      // Non-fatal — campaign resume failure shouldn't block reactivation
+    }
 
     // Write billingHistory
     await ctx.db.insert("billingHistory", {
@@ -680,6 +746,408 @@ export const adminReactivateSubscription = mutation({
       metadata: { reason: args.reason },
     });
 
+    // Notify tenant owner
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.reactivated",
+      title: "Account Reactivated",
+      message: "Your account has been reactivated. All features are now available.",
+      severity: "success",
+    });
+
+    // Notify platform admin
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: args.tenantId,
+        userId: admin._id,
+        type: "admin.tenant_reactivated",
+        title: "Tenant Reactivated",
+        message: `${tenant.name} has been reactivated.`,
+        severity: "info",
+        metadata: { reason: args.reason },
+      });
+    } catch {
+      // Non-fatal
+    }
+
     return { success: true };
   },
 });
+
+// =============================================================================
+// New Admin Billing Override Mutations
+// =============================================================================
+
+/**
+ * Admin extends billing for a tenant.
+ * Only available for active or past_due tenants.
+ */
+export const adminExtendBilling = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    additionalDays: v.number(),
+    reason: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    newBillingEndDate: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    if (
+      tenant.subscriptionStatus !== "active" &&
+      tenant.subscriptionStatus !== "past_due"
+    ) {
+      throw new Error("Can only extend billing for active or past_due subscriptions");
+    }
+
+    if (!Number.isInteger(args.additionalDays) || args.additionalDays < 1 || args.additionalDays > 365) {
+      throw new Error("Additional days must be between 1 and 365");
+    }
+
+    const now = Date.now();
+    const maxEnd = now + 365 * 86400000;
+    const newEnd = Math.min(
+      Math.max(tenant.billingEndDate ?? now, now) + args.additionalDays * 86400000,
+      maxEnd
+    );
+
+    await ctx.db.patch(args.tenantId, {
+      subscriptionStatus: "active",
+      billingEndDate: newEnd,
+      pastDueSince: undefined,
+    });
+
+    // Write billingHistory
+    await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: "admin_extend_billing",
+      amount: 0,
+      timestamp: now,
+      actorId: admin._id,
+    });
+
+    // Write auditLogs
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "ADMIN_EXTEND_BILLING",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: admin._id,
+      actorType: "admin",
+      previousValue: {
+        subscriptionStatus: tenant.subscriptionStatus,
+        billingEndDate: tenant.billingEndDate,
+      },
+      newValue: {
+        subscriptionStatus: "active",
+        billingEndDate: newEnd,
+      },
+      metadata: { additionalDays: args.additionalDays, reason: args.reason },
+    });
+
+    // Notify tenant owner
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.extended",
+      title: "Billing Extended",
+      message: `Your billing has been extended by ${args.additionalDays} days.`,
+      severity: "success",
+    });
+
+    return { success: true, newBillingEndDate: newEnd };
+  },
+});
+
+/**
+ * Admin resets a tenant to trial.
+ * Only available for cancelled or past_due tenants.
+ */
+export const adminResetToTrial = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    trialDays: v.number(),
+    reason: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    newTrialEndsAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    if (
+      tenant.subscriptionStatus !== "cancelled" &&
+      tenant.subscriptionStatus !== "past_due"
+    ) {
+      throw new Error("Can only reset to trial for cancelled or past_due subscriptions");
+    }
+
+    if (!Number.isInteger(args.trialDays) || args.trialDays < 1 || args.trialDays > 90) {
+      throw new Error("Trial days must be between 1 and 90");
+    }
+
+    const now = Date.now();
+    const newTrialEndsAt = now + args.trialDays * 86400000;
+
+    await ctx.db.patch(args.tenantId, {
+      subscriptionStatus: "trial",
+      trialEndsAt: newTrialEndsAt,
+      billingStartDate: undefined,
+      billingEndDate: undefined,
+      pastDueSince: undefined,
+      cancelledReason: undefined,
+      cancellationDate: undefined,
+    });
+
+    // Resume paused campaigns
+    try {
+      await ctx.runMutation(internal.billingLifecycle.resumeAllPausedCampaignsForTenant, {
+        tenantId: args.tenantId,
+      });
+    } catch {
+      // Non-fatal
+    }
+
+    // Write billingHistory
+    await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: "admin_reset_to_trial",
+      amount: 0,
+      timestamp: now,
+      actorId: admin._id,
+    });
+
+    // Write auditLogs
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "ADMIN_RESET_TO_TRIAL",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: admin._id,
+      actorType: "admin",
+      previousValue: { subscriptionStatus: tenant.subscriptionStatus },
+      newValue: { subscriptionStatus: "active", trialEndsAt: newTrialEndsAt },
+      metadata: { trialDays: args.trialDays, reason: args.reason },
+    });
+
+    // Notify tenant owner
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.reactivated",
+      title: "Trial Activated",
+      message: `Your account has been reset to a ${args.trialDays}-day trial.`,
+      severity: "info",
+    });
+
+    return { success: true, newTrialEndsAt };
+  },
+});
+
+/**
+ * Admin marks a tenant as paid (recovers from past_due or cancelled).
+ */
+export const adminMarkAsPaid = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    reason: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    if (
+      tenant.subscriptionStatus !== "past_due" &&
+      tenant.subscriptionStatus !== "cancelled"
+    ) {
+      throw new Error("Can only mark as paid for past_due or cancelled subscriptions");
+    }
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.tenantId, {
+      subscriptionStatus: "active",
+      billingStartDate: now,
+      billingEndDate: now + 30 * 86400000,
+      pastDueSince: undefined,
+      cancelledReason: undefined,
+      cancellationDate: undefined,
+    });
+
+    // Resume paused campaigns
+    try {
+      await ctx.runMutation(internal.billingLifecycle.resumeAllPausedCampaignsForTenant, {
+        tenantId: args.tenantId,
+      });
+    } catch {
+      // Non-fatal
+    }
+
+    // Write billingHistory
+    await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: "admin_mark_as_paid",
+      timestamp: now,
+      actorId: admin._id,
+    });
+
+    // Write auditLogs
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "ADMIN_MARK_AS_PAID",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: admin._id,
+      actorType: "admin",
+      previousValue: { subscriptionStatus: tenant.subscriptionStatus },
+      newValue: { subscriptionStatus: "active" },
+      metadata: { reason: args.reason },
+    });
+
+    // Notify tenant owner
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.recovered",
+      title: "Payment Received",
+      message: "Payment received. Your account is fully active again.",
+      severity: "success",
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Admin edits billing dates for a tenant.
+ * Does NOT change subscriptionStatus — only updates dates.
+ */
+export const adminEditBillingDates = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    billingStartDate: v.number(),
+    billingEndDate: v.number(),
+    reason: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    billingEndDateInPast: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const now = Date.now();
+    const maxEnd = now + 365 * 86400000;
+
+    // Validate dates
+    if (args.billingStartDate >= args.billingEndDate) {
+      throw new Error("Billing start date must be before billing end date");
+    }
+
+    if (args.billingEndDate > maxEnd) {
+      throw new Error("Billing end date must be within 365 days from now");
+    }
+
+    await ctx.db.patch(args.tenantId, {
+      billingStartDate: args.billingStartDate,
+      billingEndDate: args.billingEndDate,
+    });
+
+    // Write billingHistory
+    await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: "admin_edit_billing_dates",
+      timestamp: now,
+      actorId: admin._id,
+    });
+
+    // Write auditLogs
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "ADMIN_EDIT_BILLING_DATES",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: admin._id,
+      actorType: "admin",
+      previousValue: {
+        billingStartDate: tenant.billingStartDate,
+        billingEndDate: tenant.billingEndDate,
+      },
+      newValue: {
+        billingStartDate: args.billingStartDate,
+        billingEndDate: args.billingEndDate,
+      },
+      metadata: { reason: args.reason },
+    });
+
+    const billingEndDateInPast = args.billingEndDate < now;
+
+    // Notify tenant owner
+    await notifyTenantOwner(ctx, args.tenantId, {
+      type: "billing.extended",
+      title: "Billing Dates Updated",
+      message: "Your billing dates have been updated by the platform admin.",
+      severity: "info",
+    });
+
+    return { success: true, billingEndDateInPast };
+  },
+});
+
+// =============================================================================
+// Helper: Notify Tenant Owner
+// =============================================================================
+
+/**
+ * Find the owner user for a tenant and send them a notification.
+ * Non-fatal — if no owner found or notification fails, continues silently.
+ */
+async function notifyTenantOwner(
+  ctx: any,
+  tenantId: Id<"tenants">,
+  notification: {
+    type: string;
+    title: string;
+    message: string;
+    severity: "info" | "warning" | "success" | "critical";
+  }
+): Promise<void> {
+  try {
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+      .filter((q: any) => q.eq(q.field("role") as any, "owner"))
+      .take(5);
+
+    for (const owner of ownerUsers) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId,
+        userId: owner._id,
+        ...notification,
+      });
+    }
+  } catch (error) {
+    console.error(
+      `[admin.subscriptions] Failed to notify owner for tenant="${tenantId}":`,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}

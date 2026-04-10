@@ -46,7 +46,12 @@ export const getCurrentSubscription = query({
       billingEndDate: v.optional(v.number()),
       subscriptionId: v.optional(v.string()),
       cancellationDate: v.optional(v.number()),
-      deletionScheduledDate: v.optional(v.number()),
+      cancelledReason: v.optional(v.union(
+        v.literal("grace_expired"),
+        v.literal("trial_expired"),
+        v.literal("admin_cancelled"),
+        v.literal("owner_cancelled"),
+      )),
     }),
     v.null()
   ),
@@ -87,7 +92,7 @@ export const getCurrentSubscription = query({
       billingEndDate: tenant.billingEndDate,
       subscriptionId: tenant.subscriptionId,
       cancellationDate: tenant.cancellationDate,
-      deletionScheduledDate: tenant.deletionScheduledDate,
+      cancelledReason: tenant.cancelledReason as "grace_expired" | "trial_expired" | "admin_cancelled" | "owner_cancelled" | undefined,
     };
   },
 });
@@ -277,6 +282,19 @@ export const upgradeSubscription = mutation({
       },
     });
 
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.upgraded",
+        title: "Plan Upgraded",
+        message: `Your plan has been upgraded to ${args.plan.charAt(0).toUpperCase() + args.plan.slice(1)}.`,
+        severity: "info",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing",
+      });
+    } catch {}
+
     return { success: true, transactionId };
   },
 });
@@ -290,7 +308,6 @@ export const cancelSubscription = mutation({
   returns: v.object({
     success: v.boolean(),
     accessEndDate: v.number(),
-    deletionDate: v.number(),
   }),
   handler: async (ctx, _args) => {
     const authUser = await getAuthenticatedUser(ctx);
@@ -313,14 +330,13 @@ export const cancelSubscription = mutation({
 
     // Get access end date (current billing cycle end)
     const accessEndDate = tenant.billingEndDate || Date.now();
-    const deletionDate = accessEndDate + 30 * 24 * 60 * 60 * 1000; // 30 days after billing cycle
 
     // Update tenant subscription - keep plan but mark as cancelled
     // billingEndDate remains unchanged - access until cycle ends
     await ctx.db.patch(authUser.tenantId, {
       subscriptionStatus: "cancelled",
       cancellationDate: Date.now(),
-      deletionScheduledDate: deletionDate,
+      cancelledReason: "owner_cancelled" as const,
       // Plan remains unchanged - access continues until billingEndDate
     });
 
@@ -349,20 +365,10 @@ export const cancelSubscription = mutation({
       },
       newValue: {
         subscriptionStatus: "cancelled",
+        cancelledReason: "owner_cancelled",
         accessEndDate,
-        deletionScheduledDate: deletionDate,
       },
     });
-
-    // Schedule tenant deletion job (30 days from billing cycle end)
-    const timeUntilDeletion = deletionDate - Date.now();
-    if (timeUntilDeletion > 0) {
-      await ctx.scheduler.runAfter(
-        timeUntilDeletion,
-        internal.tenants.deleteTenantData,
-        { tenantId: authUser.tenantId }
-      );
-    }
 
     // Send confirmation email
     const user = await ctx.db.get(authUser.userId);
@@ -371,15 +377,25 @@ export const cancelSubscription = mutation({
         to: user.email,
         previousPlan: currentPlan,
         accessEndDate,
-        deletionDate,
         tenantId: authUser.tenantId,
       });
     }
 
+    // Send in-app notification
+    await ctx.runMutation(internal.notifications.createNotification, {
+      tenantId: authUser.tenantId,
+      userId: authUser.userId,
+      type: "billing.cancelled",
+      title: "Subscription Cancelled",
+      message: "Your subscription has been cancelled. Your account is now read-only.",
+      severity: "warning",
+      actionUrl: "/settings/billing",
+      actionLabel: "View Billing Settings",
+    });
+
     return {
       success: true,
       accessEndDate,
-      deletionDate,
     };
   },
 });
@@ -496,6 +512,19 @@ export const convertTrialToPaid = mutation({
         mockTransaction: args.mockPayment,
       },
     });
+
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.recovered",
+        title: "Trial Converted to Paid",
+        message: `Your trial has been successfully converted to the ${args.plan} plan. Welcome!`,
+        severity: "success",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing",
+      });
+    } catch {}
 
     return { success: true, transactionId };
   },
@@ -678,6 +707,19 @@ export const upgradeTier = mutation({
       });
     }
 
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.upgraded",
+        title: "Plan Upgraded",
+        message: `Your plan has been upgraded from ${currentPlan} to ${args.targetPlan}.`,
+        severity: "info",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing",
+      });
+    } catch {}
+
     return {
       success: true,
       transactionId,
@@ -807,6 +849,19 @@ export const downgradeTier = mutation({
         tenantId: authUser.tenantId,
       });
     }
+
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.downgraded",
+        title: "Plan Downgraded",
+        message: `Your plan has been downgraded from ${currentPlan} to ${args.targetPlan}. Changes take effect at next billing cycle.`,
+        severity: "info",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing",
+      });
+    } catch {}
 
     return {
       success: true,
