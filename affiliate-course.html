@@ -713,8 +713,255 @@ body {
 }
 
 /* ========================================
-   SCROLLBAR
-   ======================================== */
+    GROUP CHAT ANIMATION
+    ======================================== */
+.chat-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin: var(--space-8) 0;
+  max-width: 620px;
+}
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-4);
+}
+.chat-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.chat-header-info h4 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+.chat-header-info p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 180px;
+}
+.chat-message {
+  display: flex;
+  gap: var(--space-2);
+  max-width: 85%;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.chat-message.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chat-message.incoming {
+  align-self: flex-start;
+}
+.chat-message.outgoing {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.chat-message.system {
+  align-self: center;
+  max-width: 100%;
+  justify-content: center;
+}
+.chat-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.chat-msg-bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.chat-message.incoming .chat-msg-bubble {
+  background: var(--bg-cream);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+.chat-message.outgoing .chat-msg-bubble {
+  background: var(--accent);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.chat-message.system .chat-msg-bubble {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-style: italic;
+  padding: var(--space-1);
+  border: none;
+  border-radius: 0;
+}
+.chat-msg-bubble code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.chat-message.outgoing .chat-msg-bubble code {
+  background: rgba(255,255,255,0.2);
+}
+.chat-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-3);
+  transition: all 0.2s ease;
+}
+.chat-play-btn:hover {
+  background: var(--accent-light);
+}
+.chat-play-btn.played {
+  background: var(--bg-cream);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* ========================================
+    FLOW ANIMATION (Message / Data)
+    ======================================== */
+.flow-anim {
+  margin: var(--space-8) 0;
+}
+.flow-anim-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.flow-anim-node {
+  background: var(--bg-dark);
+  color: var(--text-on-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+  min-width: 120px;
+  border: 2px solid transparent;
+  transition: all 0.5s ease;
+  opacity: 0.3;
+}
+.flow-anim-node .fn-icon {
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 2px;
+}
+.flow-anim-node.active {
+  border-color: var(--accent);
+  opacity: 1;
+  box-shadow: 0 0 16px rgba(232, 93, 58, 0.25);
+  transform: scale(1.05);
+}
+.flow-anim-node.done {
+  border-color: var(--green);
+  opacity: 0.7;
+  transform: scale(1);
+  box-shadow: none;
+}
+.flow-anim-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  opacity: 0.25;
+  transition: opacity 0.5s ease, color 0.5s ease;
+  flex-shrink: 0;
+}
+.flow-anim-arrow.active {
+  opacity: 1;
+  color: var(--accent);
+}
+.flow-anim-arrow.done {
+  opacity: 0.5;
+  color: var(--green);
+}
+.flow-anim-desc {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-2);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.flow-anim-desc.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.flow-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-3);
+  transition: all 0.2s ease;
+}
+.flow-play-btn:hover {
+  background: var(--accent-light);
+}
+.flow-play-btn.played {
+  background: var(--bg-cream);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* ========================================
+    SCROLLBAR
+    ======================================== */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-warm); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -1433,6 +1680,78 @@ history.<span class="fn">replaceState</span>(
         <div class="callout-content">
           <strong>Why lead capture exists</strong>
           <p>Not every payment system supports passing affiliate metadata through webhooks. <strong>Stripe Connect</strong>, for example, doesn't carry an <code>_affilio_ref</code> field in its events. The lead capture system solves this: when the customer enters their email during signup (while the affiliate cookie is still active), the system records "this email was referred by Jamie." Later, when Stripe sends a <code>checkout.session.completed</code> webhook with the customer's email, the system matches it to the lead — and Jamie gets credit. <strong>This is how universal payment provider support works.</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3.2c: Group Chat — What Happens When Someone Clicks -->
+    <div class="screen fade-in">
+      <h3>Watch It Happen — A Click in Real Time</h3>
+      <p>Here's a simulated conversation between the browser, track.js, the server, and the database — showing exactly what happens during a single click, step by step. Press play to watch.</p>
+
+      <div class="chat-container" id="chat1">
+        <div class="chat-header">
+          <div class="chat-header-icon" style="background: var(--blue-bg);">🔄</div>
+          <div class="chat-header-info">
+            <h4>Click Tracking — Live Conversation</h4>
+            <p>Browser → track.js → Server → Database</p>
+          </div>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-message incoming" data-delay="0">
+            <div class="chat-msg-avatar" style="background: var(--blue-bg);">🖥️</div>
+            <div class="chat-msg-bubble">Hey! A visitor just landed on <code>/ref/JAMIE8X2</code>. What do I do?</div>
+          </div>
+          <div class="chat-message system" data-delay="400">
+            <div class="chat-msg-bubble">📄 track.js wakes up...</div>
+          </div>
+          <div class="chat-message outgoing" data-delay="800">
+            <div class="chat-msg-avatar" style="background: var(--teal-bg);">📄</div>
+            <div class="chat-msg-bubble">I see a referral code! Let me check for an existing cookie first...</div>
+          </div>
+          <div class="chat-message outgoing" data-delay="1400">
+            <div class="chat-msg-avatar" style="background: var(--teal-bg);">📄</div>
+            <div class="chat-msg-bubble">No existing cookie. Calling <code>GET /track/click?code=JAMIE8X2&t=tenantId</code></div>
+          </div>
+          <div class="chat-message system" data-delay="1800">
+            <div class="chat-msg-bubble">⚙️ Server processing request...</div>
+          </div>
+          <div class="chat-message incoming" data-delay="2200">
+            <div class="chat-msg-avatar" style="background: var(--purple-bg);">⚙️</div>
+            <div class="chat-msg-bubble">Looking up code JAMIE8X2... Affiliate found. Status: <strong>active</strong> ✓. Campaign: <strong>active</strong> ✓.</div>
+          </div>
+          <div class="chat-message incoming" data-delay="3000">
+            <div class="chat-msg-avatar" style="background: var(--purple-bg);">⚙️</div>
+            <div class="chat-msg-bubble">Deduplication check: key <code>192.168.1.42:JAMIE8X2:14</code> — no existing click. Recording new click.</div>
+          </div>
+          <div class="chat-message system" data-delay="3400">
+            <div class="chat-msg-bubble">🗄️ Database write...</div>
+          </div>
+          <div class="chat-message incoming" data-delay="3800">
+            <div class="chat-msg-avatar" style="background: var(--amber-bg);">🗄️</div>
+            <div class="chat-msg-bubble">Click saved! ID: <code>click_7x2k</code>. 1 database write.</div>
+          </div>
+          <div class="chat-message incoming" data-delay="4400">
+            <div class="chat-msg-avatar" style="background: var(--purple-bg);">⚙️</div>
+            <div class="chat-msg-bubble">Returning attribution data: code, clickId, cookieDurationDays=30.</div>
+          </div>
+          <div class="chat-message outgoing" data-delay="5000">
+            <div class="chat-msg-avatar" style="background: var(--teal-bg);">📄</div>
+            <div class="chat-msg-bubble">Got it! Setting <code>_affilio</code> cookie (30 days). Now cleaning the URL...</div>
+          </div>
+          <div class="chat-message outgoing" data-delay="5600">
+            <div class="chat-msg-avatar" style="background: var(--teal-bg);">📄</div>
+            <div class="chat-msg-bubble">Done! Customer now sees <code>techflow.com</code> — clean URL. They have no idea an affiliate was involved.</div>
+          </div>
+        </div>
+        <button class="chat-play-btn" data-chat="chat1">▶ Replay Animation</button>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>Notice the conversation pattern</strong>
+          <p>The browser doesn't talk to the database directly. It goes through track.js → server → database, and the response flows back the same way. This is the <strong>request-response cycle</strong> — a fundamental concept in web development. Every click on the internet works this way, whether it's a Google search, a like button, or an affiliate tracking link.</p>
         </div>
       </div>
     </div>
@@ -2433,6 +2752,64 @@ history.<span class="fn">replaceState</span>(
       </div>
     </div>
 
+    <!-- Screen 6.2b-anim: Animated Data Flow -->
+    <div class="screen fade-in">
+      <h3>Watch It Flow — A Webhook Becomes a Commission</h3>
+      <p>Press play to watch a Stripe payment event travel through the system step by step — from webhook arrival to commission creation. Each step highlights in sequence so you can see the data flow in action.</p>
+
+      <div class="flow-anim" id="flow1">
+        <!-- Row 1: Webhook arrival -->
+        <div class="flow-anim-row">
+          <div class="flow-anim-node" data-step="0">
+            <span class="fn-icon">💰</span>
+            Stripe<br><span style="opacity:0.6;font-size:0.7rem;">Payment completed</span>
+          </div>
+          <div class="flow-anim-arrow" data-step="0">→</div>
+          <div class="flow-anim-node" data-step="1">
+            <span class="fn-icon">🔌</span>
+            Webhook Endpoint<br><span style="opacity:0.6;font-size:0.7rem;">Verify signature</span>
+          </div>
+          <div class="flow-anim-arrow" data-step="1">→</div>
+          <div class="flow-anim-node" data-step="2">
+            <span class="fn-icon">📦</span>
+            rawWebhooks Table<br><span style="opacity:0.6;font-size:0.7rem;">Dedup by eventId</span>
+          </div>
+        </div>
+        <div class="flow-anim-desc" data-desc="0">Stripe sends <code>checkout.session.completed</code> with Alex's email but NO affiliate metadata.</div>
+
+        <!-- Row 2: Attribution + Commission -->
+        <div class="flow-anim-row" style="margin-top: var(--space-6);">
+          <div class="flow-anim-arrow" data-step="2" style="transform: rotate(90deg);">→</div>
+        </div>
+        <div class="flow-anim-row">
+          <div class="flow-anim-node" data-step="3">
+            <span class="fn-icon">🔍</span>
+            Lead Matching<br><span style="opacity:0.6;font-size:0.7rem;">Email → affiliate</span>
+          </div>
+          <div class="flow-anim-arrow" data-step="3">→</div>
+          <div class="flow-anim-node" data-step="4">
+            <span class="fn-icon">⚙️</span>
+            Commission Engine<br><span style="opacity:0.6;font-size:0.7rem;">Validate + calculate</span>
+          </div>
+          <div class="flow-anim-arrow" data-step="4">→</div>
+          <div class="flow-anim-node" data-step="5">
+            <span class="fn-icon">✅</span>
+            Commission Created<br><span style="opacity:0.6;font-size:0.7rem;">₱400 pending</span>
+          </div>
+        </div>
+        <div class="flow-anim-desc" data-desc="3">Lead match found! Alex's email → Jamie's affiliate. Commission: ₱2,000 × 20% = ₱400.</div>
+        <button class="flow-play-btn" data-flow="flow1">▶ Animate Flow</button>
+      </div>
+
+      <div class="callout aha">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>The key insight: two paths, one result</strong>
+          <p>Whether a payment comes through SaligPay (with affiliate metadata in the webhook) or Stripe (requiring email-based lead matching), the commission engine sees the same thing: a normalized <code>BillingEvent</code> with an attributed affiliate. The commission calculation is identical. This is the <strong>Adapter Pattern</strong> in action — different inputs, same processing.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Screen 6.2b: Dual Payment Provider Architecture -->
     <div class="screen fade-in">
       <h3>Dual Payment Provider Support</h3>
@@ -3054,6 +3431,118 @@ history.<span class="fn">replaceState</span>(
         }
       });
     });
+  });
+
+  // --- Chat Animation ---
+  const chatContainers = document.querySelectorAll('.chat-container');
+  chatContainers.forEach(container => {
+    const chatId = container.id;
+    const messages = container.querySelectorAll('.chat-message');
+    const playBtn = container.querySelector('.chat-play-btn');
+    let chatTimeouts = [];
+
+    function resetChat() {
+      chatTimeouts.forEach(t => clearTimeout(t));
+      chatTimeouts = [];
+      messages.forEach(m => m.classList.remove('visible'));
+    }
+
+    function playChat() {
+      resetChat();
+      playBtn.textContent = '⏳ Playing...';
+      playBtn.classList.add('played');
+
+      messages.forEach((msg, i) => {
+        const delay = parseInt(msg.getAttribute('data-delay')) || (i * 500);
+        const t = setTimeout(() => {
+          msg.classList.add('visible');
+          if (i === messages.length - 1) {
+            playBtn.textContent = '↻ Replay';
+            playBtn.classList.remove('played');
+          }
+        }, delay);
+        chatTimeouts.push(t);
+      });
+    }
+
+    if (playBtn) {
+      playBtn.addEventListener('click', playChat);
+    }
+  });
+
+  // --- Flow Animation ---
+  const flowAnims = document.querySelectorAll('.flow-anim');
+  flowAnims.forEach(flowEl => {
+    const flowId = flowEl.id;
+    const nodes = flowEl.querySelectorAll('.flow-anim-node');
+    const arrows = flowEl.querySelectorAll('.flow-anim-arrow');
+    const descs = flowEl.querySelectorAll('.flow-anim-desc');
+    const playBtn = flowEl.querySelector('.flow-play-btn');
+    let flowTimeouts = [];
+
+    function resetFlow() {
+      flowTimeouts.forEach(t => clearTimeout(t));
+      flowTimeouts = [];
+      nodes.forEach(n => { n.classList.remove('active', 'done'); });
+      arrows.forEach(a => { a.classList.remove('active', 'done'); });
+      descs.forEach(d => d.classList.remove('visible'));
+    }
+
+    function playFlow() {
+      resetFlow();
+      playBtn.textContent = '⏳ Animating...';
+      playBtn.classList.add('played');
+
+      // Collect all steps in order
+      const steps = [];
+      const seenSteps = new Set();
+      nodes.forEach(n => {
+        const s = parseInt(n.getAttribute('data-step'));
+        if (!seenSteps.has(s)) { seenSteps.add(s); steps.push(s); }
+      });
+
+      let stepIndex = 0;
+      function animateStep() {
+        if (stepIndex >= steps.length) {
+          playBtn.textContent = '↻ Replay';
+          playBtn.classList.remove('played');
+          return;
+        }
+        const currentStep = steps[stepIndex];
+
+        // Activate current nodes
+        nodes.forEach(n => {
+          const s = parseInt(n.getAttribute('data-step'));
+          if (s === currentStep) n.classList.add('active');
+          if (s < currentStep) { n.classList.remove('active'); n.classList.add('done'); }
+        });
+
+        // Activate current arrows
+        arrows.forEach(a => {
+          const s = parseInt(a.getAttribute('data-step'));
+          if (s === currentStep) a.classList.add('active');
+          if (s < currentStep) { a.classList.remove('active'); a.classList.add('done'); }
+        });
+
+        // Show description for key steps
+        descs.forEach(d => {
+          const s = parseInt(d.getAttribute('data-desc'));
+          if (s === currentStep) d.classList.add('visible');
+          else if (s < currentStep) d.classList.remove('visible');
+        });
+
+        stepIndex++;
+        const t = setTimeout(animateStep, 1200);
+        flowTimeouts.push(t);
+      }
+
+      const t = setTimeout(animateStep, 400);
+      flowTimeouts.push(t);
+    }
+
+    if (playBtn) {
+      playBtn.addEventListener('click', playFlow);
+    }
   });
 
 })();
