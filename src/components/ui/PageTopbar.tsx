@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { TopbarNotificationBell } from "@/components/notifications/TopbarNotificationBell";
 
 interface BreadcrumbItem {
   label: string;
@@ -24,6 +25,10 @@ interface PageTopbarProps {
  *
  * An optional `description` renders a subtle line under the heading area.
  * Optional `breadcrumbs` renders a navigation trail above the title.
+ *
+ * A notification bell (Radix Popover) is rendered on the right side of
+ * the top bar, automatically showing unread count and panel for the
+ * authenticated user.
  */
 export function PageTopbar({ children, className, description, breadcrumbs }: PageTopbarProps) {
   return (
@@ -60,8 +65,9 @@ export function PageTopbar({ children, className, description, breadcrumbs }: Pa
         </nav>
       )}
 
-      <div className="flex items-center justify-between w-full">
-        {children}
+      <div className="flex items-center justify-between w-full gap-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">{children}</div>
+        <TopbarNotificationBell />
       </div>
       {description && (
         <p className="text-[11.5px] text-[var(--text-muted)] mt-[-2px] leading-relaxed">

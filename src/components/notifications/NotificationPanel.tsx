@@ -8,7 +8,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useNotificationCount } from "./useNotificationCount";
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,6 +17,7 @@ interface NotificationPanelProps {
 }
 
 export function NotificationPanel({ userId }: NotificationPanelProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const { notifications, isLoading, markRead, markAllRead } = useNotifications(userId);
   const { total } = useNotificationCount(userId);
@@ -59,23 +60,31 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-0"
+        className="w-80 p-0 z-[200] rounded-xl border-[var(--border-light)] shadow-lg overflow-hidden"
         sideOffset={8}
         align="end"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-light)]">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--text-heading)]">Notifications</h3>
+            {total > 0 && (
+              <span className="inline-flex items-center justify-center h-5 min-w-5 rounded-full bg-[var(--bg-page)] px-1.5 text-[10px] font-bold text-[var(--text-muted)] border border-[var(--border-light)]">
+                {total}
+              </span>
+            )}
+          </div>
           {total > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 text-xs text-[var(--brand-secondary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-light)]"
               onClick={handleMarkAllRead}
               disabled={isMarkingAll}
             >
               {isMarkingAll ? (
                 <span className="flex items-center gap-1">
-                  <span className="h-3 w-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                  <span className="h-3 w-3 border-2 border-[var(--brand-primary)]/30 border-t-[var(--brand-primary)] rounded-full animate-spin" />
                   Marking...
                 </span>
               ) : (
@@ -88,12 +97,13 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
           )}
         </div>
 
+        {/* Notification list */}
         <div className="max-h-96 overflow-y-auto" role="list" aria-label="Recent notifications">
           {isLoading ? (
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-1">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-start gap-3 p-2">
-                  <Skeleton className="h-5 w-5 rounded" />
+                <div key={i} className="flex items-start gap-3 p-3">
+                  <Skeleton className="h-[18px] w-[18px] rounded" />
                   <div className="flex-1 space-y-1.5">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-full" />
@@ -102,12 +112,12 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
               ))}
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p>No notifications</p>
+            <div className="py-10 text-center">
+              <Bell className="h-8 w-8 mx-auto mb-2 text-[var(--text-muted)]/30" />
+              <p className="text-sm text-[var(--text-muted)]">No notifications</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-[var(--border-light)]">
               {notifications.map((notification: any) => (
                 <NotificationItem
                   key={notification._id}
@@ -120,14 +130,18 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
           )}
         </div>
 
-        <div className="border-t px-4 py-2">
-          <Link
-            href="/notifications"
-            className="block text-center text-xs font-medium text-primary hover:underline py-1"
-            onClick={() => setOpen(false)}
+        {/* Footer */}
+        <div className="border-t border-[var(--border-light)] px-4 py-2 bg-[var(--bg-page)]/40">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              router.push("/notifications");
+            }}
+            className="block w-full text-center text-xs font-medium text-[var(--brand-secondary)] hover:text-[var(--brand-primary)] py-1 transition-colors"
           >
             View all notifications
-          </Link>
+          </button>
         </div>
       </PopoverContent>
     </Popover>

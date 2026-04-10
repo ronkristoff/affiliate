@@ -172,12 +172,15 @@ function AuthLayoutSkeleton() {
         <div className="page-content">
           {/* PageTopbar skeleton */}
           <div className="sticky top-0 z-50 bg-[var(--bg-surface)] border-b border-[var(--border-light)] px-8 h-[60px] flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <Skeleton className="h-5 w-32" />
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-8 w-24 rounded-md" />
-                <Skeleton className="h-8 w-36 rounded-md" />
+            <div className="flex items-center justify-between w-full gap-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Skeleton className="h-5 w-32" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-8 w-24 rounded-md" />
+                  <Skeleton className="h-8 w-36 rounded-md" />
+                </div>
               </div>
+              <Skeleton className="h-8 w-8 rounded-md shrink-0" />
             </div>
           </div>
 

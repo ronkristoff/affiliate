@@ -9,7 +9,7 @@ import { NotificationItem } from "@/components/notifications/NotificationItem";
 import { useNotifications } from "@/components/notifications/useNotifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 // Filter options
 const FILTER_OPTIONS = [
@@ -25,7 +25,7 @@ const FILTER_OPTIONS = [
 
 type FilterKey = (typeof FILTER_OPTIONS)[number]["key"];
 
-function NotificationsContent() {
+export function NotificationsContent() {
   const user = useQuery(api.auth.getCurrentUser);
   const userId = user?._id;
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
@@ -44,9 +44,13 @@ function NotificationsContent() {
   } = useNotifications(userId);
 
   const unreadCount = useQuery(
-    userId && api.notifications.getUnreadNotificationCount,
-    userId ? { userId } : "SKIP"
+    api.notifications.getUnreadNotificationCount,
+    userId ? { userId } : "skip"
   );
+
+  // Track whether we've ever received data (to avoid skeleton flicker on tab switch)
+  const hasEverLoaded = useRef(false);
+  if (!isLoading) hasEverLoaded.current = true;
 
   // Sync filter state to hook
   const handleFilterChange = (key: FilterKey) => {
@@ -146,10 +150,10 @@ function NotificationsContent() {
       </div>
 
       {/* Notifications List */}
-      {isLoading ? (
+      {isLoading && !hasEverLoaded.current ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="rounded-lg border p-4 space-y-2">
+            <div key={i} className="rounded-xl border border-[var(--border-light)] bg-[var(--bg-surface)] p-4 space-y-2">
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-24" />
@@ -169,8 +173,8 @@ function NotificationsContent() {
         </div>
       ) : (
         <>
-          <div className="space-y-1 divide-y divide-border rounded-lg border" role="list" aria-label="Notifications">
-            {notifications.map((notification) => (
+          <div className="space-y-0 rounded-xl border border-[var(--border-light)] bg-[var(--bg-surface)] overflow-hidden divide-y divide-[var(--border-light)]" role="list" aria-label="Notifications">
+            {notifications.map((notification: any) => (
               <NotificationItem
                 key={notification._id}
                 notification={notification}
@@ -198,7 +202,7 @@ function NotificationsContent() {
   );
 }
 
-function NotificationsLoadingSkeleton() {
+export function NotificationsLoadingSkeleton() {
   return (
     <div className="container max-w-3xl mx-auto px-4 py-8">
       <Skeleton className="h-8 w-48 mb-6" />
@@ -209,7 +213,7 @@ function NotificationsLoadingSkeleton() {
       </div>
       <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="rounded-lg border p-4 space-y-2">
+          <div key={i} className="rounded-xl border border-[var(--border-light)] p-4 space-y-2">
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-3 w-full" />
             <Skeleton className="h-3 w-24" />
@@ -217,13 +221,5 @@ function NotificationsLoadingSkeleton() {
         ))}
       </div>
     </div>
-  );
-}
-
-export default function NotificationsPage() {
-  return (
-    <Suspense fallback={<NotificationsLoadingSkeleton />}>
-      <NotificationsContent />
-    </Suspense>
   );
 }

@@ -6,7 +6,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { SignOutIconButton } from "@/components/shared/SignOutIconButton";
-import { NotificationPanel } from "@/components/notifications/NotificationPanel";
 
 interface AdminNavItem {
   href: string;
@@ -104,7 +103,6 @@ export function AdminSidebar() {
             salig<span className="text-[#1fb5a5]">admin</span>
           </div>
         </Link>
-        <NotificationPanel userId={user._id} />
       </div>
 
       {/* Admin Label */}

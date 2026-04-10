@@ -5,9 +5,12 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useState, useCallback, useRef } from "react";
 
-const INITIAL_PAGINATION = {
+const INITIAL_PAGINATION: {
+  numItems: number;
+  cursor: string | null;
+} = {
   numItems: 20,
-  cursor: null as string | null,
+  cursor: null,
 };
 
 export function useNotifications(userId: Id<"users"> | undefined) {
