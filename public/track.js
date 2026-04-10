@@ -29,6 +29,7 @@
     key: null,
     tenantId: null,
     _initialized: false,
+    _couponCode: null, // Currently applied coupon code (separate from cookie)
 
     /**
      * Initialize the tracking library
@@ -64,6 +65,9 @@
       
       // Set up click event listeners
       this.setupClickTracking();
+
+      // Attribution Resilience: Auto-wire coupon input fields
+      this.setupCouponAutowire();
     },
 
     /**
@@ -415,6 +419,171 @@
 
     clearAffiliateCode: function() {
       this.clearCookie();
+    },
+
+    // =========================================================================
+    // Coupon Code API (Attribution Resilience)
+    // =========================================================================
+
+    /**
+     * Auto-wire coupon input fields with data-affilio-coupon-autowire attribute.
+     * Validates on input/change events and stores valid codes internally.
+     */
+    setupCouponAutowire: function() {
+      var self = this;
+      var inputs = document.querySelectorAll('input[data-affilio-coupon-autowire]');
+      
+      for (var i = 0; i < inputs.length; i++) {
+        (function(input) {
+          input.addEventListener('input', function() {
+            var code = input.value.trim();
+            if (code.length >= 3) {
+              self.validateCoupon(code).then(function(result) {
+                if (result.valid) {
+                  self._couponCode = code;
+                  self.log('info', 'Coupon auto-validated and stored: ' + code);
+                }
+              });
+            }
+          });
+          input.addEventListener('change', function() {
+            var code = input.value.trim();
+            if (code.length >= 3) {
+              self.validateCoupon(code).then(function(result) {
+                if (result.valid) {
+                  self._couponCode = code;
+                }
+              });
+            }
+          });
+        })(inputs[i]);
+      }
+    },
+
+    /**
+     * Apply a coupon code — validates via API and stores for conversion tracking.
+     * @param {string} code - Coupon code to apply
+     * @returns {Promise<{valid: boolean, affiliateName?: string, error?: string}>}
+     *
+     * Usage:
+     *   Affilio.applyCoupon('JUANKLOOK').then(function(result) {
+     *     if (result.valid) console.log('Coupon applied!');
+     *   });
+     */
+    applyCoupon: function(code) {
+      if (!code || typeof code !== 'string') {
+        return Promise.resolve({ valid: false, error: 'No coupon code provided' });
+      }
+
+      var self = this;
+      var url = '/track/validate-coupon?code=' + encodeURIComponent(code.toUpperCase()) + '&t=' + encodeURIComponent(this.tenantId);
+
+      return fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      })
+        .then(function(response) { return response.json(); })
+        .then(function(result) {
+          if (result.valid) {
+            self._couponCode = code.toUpperCase();
+            // Store in sa_aff cookie alongside existing attribution data (ADR-12)
+            self.updateCookieWithCoupon(code.toUpperCase());
+            self.log('info', 'Coupon applied: ' + code + ' (' + result.affiliateName + ')');
+          } else {
+            self._couponCode = null;
+          }
+          return result;
+        })
+        .catch(function(e) {
+          self.log('error', 'applyCoupon() failed: ' + e.message);
+          return { valid: false, error: 'Network error' };
+        });
+    },
+
+    /**
+     * Validate a coupon code without storing it.
+     * For merchant's custom UI integration.
+     * @param {string} code - Coupon code to validate
+     * @returns {Promise<{valid: boolean, affiliateName?: string, error?: string}>}
+     *
+     * Usage:
+     *   Affilio.validateCoupon('JUANKLOOK').then(function(result) {
+     *     if (result.valid) console.log('Valid! Affiliate: ' + result.affiliateName);
+     *   });
+     */
+    validateCoupon: function(code) {
+      if (!code || typeof code !== 'string') {
+        return Promise.resolve({ valid: false, error: 'No coupon code provided' });
+      }
+
+      var self = this;
+      var url = '/track/validate-coupon?code=' + encodeURIComponent(code.toUpperCase()) + '&t=' + encodeURIComponent(this.tenantId);
+
+      return fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      })
+        .then(function(response) { return response.json(); })
+        .then(function(result) { return result; })
+        .catch(function(e) {
+          self.log('error', 'validateCoupon() failed: ' + e.message);
+          return { valid: false, error: 'Network error' };
+        });
+    },
+
+    /**
+     * Get the currently applied coupon code.
+     * @returns {string|null} Applied coupon code or null
+     */
+    getCouponCode: function() {
+      return this._couponCode || null;
+    },
+
+    /**
+     * Update the sa_aff cookie with coupon code.
+     * Reads existing cookie data and adds couponCode field.
+     * ADR-12: Writes to sa_aff cookie (what the server reads), NOT _affilio.
+     */
+    updateCookieWithCoupon: function(code) {
+      // Read existing sa_aff cookie (server reads this one)
+      var existingCookie = null;
+      var cookieHeader = document.cookie;
+      var cookies = cookieHeader.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf('sa_aff=') === 0) {
+          existingCookie = c.substring('sa_aff='.length);
+          break;
+        }
+      }
+
+      var existingData = {};
+      if (existingCookie) {
+        try {
+          existingData = JSON.parse(decodeURIComponent(existingCookie));
+        } catch(e) {
+          // Cookie corrupt, start fresh
+        }
+      }
+
+      // Add coupon code to existing data
+      existingData.couponCode = code;
+      existingData.timestamp = Date.now();
+
+      var encoded = encodeURIComponent(JSON.stringify(existingData));
+      var expires = new Date();
+      expires.setDate(expires.getDate() + this.config.cookieExpiry);
+
+      var cookieString = 'sa_aff=' + encoded +
+        ';expires=' + expires.toUTCString() +
+        ';path=/' +
+        ';SameSite=Lax';
+
+      if (window.location.protocol === 'https:') {
+        cookieString += ';Secure';
+      }
+
+      document.cookie = cookieString;
     },
   };
 

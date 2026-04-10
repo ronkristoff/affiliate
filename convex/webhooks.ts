@@ -42,6 +42,7 @@ export interface BillingEvent {
   attribution?: {
     affiliateCode?: string;
     clickId?: string;
+    couponCode?: string;
   };
   payment: {
     id: string;
@@ -98,6 +99,7 @@ export function normalizeToBillingEvent(payload: any): BillingEvent | null {
     const attribution = {
       affiliateCode: metadata._affilio_ref || metadata._salig_aff_ref,
       clickId: metadata._affilio_click_id || metadata._salig_aff_click_id,
+      couponCode: metadata._salig_aff_coupon_code || undefined,
     };
 
     // Extract payment data
@@ -489,6 +491,72 @@ export const getUserByAuthIdInternal = internalQuery({
 });
 
 // ============================================
+// Internal: Validate coupon code (inlined to avoid circular ref with couponCodes.ts)
+// ============================================
+
+async function validateCouponCodeInWebhook(
+  ctx: any,
+  tenantId: Id<"tenants">,
+  couponCode: string,
+): Promise<{
+  affiliateId: Id<"affiliates">;
+  affiliateName: string;
+  campaignId: Id<"campaigns">;
+  referralLinkId?: Id<"referralLinks">;
+} | null> {
+  const affiliate = await ctx.db
+    .query("affiliates")
+    .withIndex("by_tenant_coupon_code", (q: any) =>
+      q.eq("tenantId", tenantId).eq("couponCode", couponCode)
+    )
+    .first();
+
+  if (!affiliate || affiliate.status !== "active" || affiliate.couponAttributionEnabled === false) {
+    return null;
+  }
+
+  // Resolve campaign (ADR-8)
+  let campaignId: Id<"campaigns"> | null = null;
+
+  if (affiliate.defaultCouponCampaignId) {
+    const campaign = await ctx.db.get(affiliate.defaultCouponCampaignId);
+    if (campaign && campaign.status === "active") {
+      campaignId = affiliate.defaultCouponCampaignId;
+    }
+  }
+
+  if (!campaignId) {
+    const enrollments = await ctx.db
+      .query("affiliateCampaigns")
+      .withIndex("by_affiliate_and_status", (q: any) =>
+        q.eq("affiliateId", affiliate._id).eq("status", "active")
+      )
+      .order("desc")
+      .take(1);
+
+    if (enrollments.length > 0) {
+      campaignId = enrollments[0].campaignId;
+    }
+  }
+
+  if (!campaignId) {
+    return null;
+  }
+
+  const referralLink = await ctx.db
+    .query("referralLinks")
+    .withIndex("by_affiliate", (q: any) => q.eq("affiliateId", affiliate._id))
+    .first();
+
+  return {
+    affiliateId: affiliate._id,
+    affiliateName: affiliate.name,
+    campaignId,
+    referralLinkId: referralLink?._id,
+  };
+}
+
+// ============================================
 // Internal: Process webhook to conversion
 // ============================================
 
@@ -507,6 +575,7 @@ export const processWebhookToConversion = internalMutation({
       attribution: v.optional(v.object({
         affiliateCode: v.optional(v.string()),
         clickId: v.optional(v.string()),
+        couponCode: v.optional(v.string()),
       })),
       payment: v.object({
         id: v.string(),
@@ -542,7 +611,41 @@ export const processWebhookToConversion = internalMutation({
       return null;
     }
 
-    // Check if we have attribution data
+    // Attribution Resilience: Try coupon code + lead matching before giving up
+    let pwcAttributionSource: "webhook" | "coupon" | "lead_email" = "webhook";
+    if (!event.attribution?.affiliateCode) {
+      // Check for coupon code in metadata first
+      const couponCode = event.attribution?.couponCode;
+      if (couponCode && event.tenantId) {
+        const couponValidation = await validateCouponCodeInWebhook(ctx, event.tenantId as Id<"tenants">, couponCode);
+        if (couponValidation) {
+          event.attribution = {
+            affiliateCode: couponValidation.affiliateName,
+            couponCode,
+          };
+          pwcAttributionSource = "coupon";
+          console.log(`Webhook ${event.eventId}: Attribution resolved via coupon code ${couponCode}`);
+        }
+      }
+
+      // Try email-based lead matching
+      if (!event.attribution?.affiliateCode && event.payment.customerEmail && event.tenantId) {
+        const leadAttribution: any = await ctx.runQuery(internal.referralLeads.resolveLeadAttribution, {
+          tenantId: event.tenantId as Id<"tenants">,
+          email: event.payment.customerEmail,
+        });
+        if (leadAttribution) {
+          event.attribution = {
+            affiliateCode: leadAttribution.affiliateCode,
+            clickId: leadAttribution.clickId ?? undefined,
+          };
+          pwcAttributionSource = "lead_email";
+          console.log(`Webhook ${event.eventId}: Attribution resolved via lead matching for ${event.payment.customerEmail}`);
+        }
+      }
+    }
+
+    // Check if we have attribution data after coupon + lead matching
     if (!event.attribution?.affiliateCode) {
       // No attribution - log event but don't create conversion (AC #3)
       console.error(`Webhook ${event.eventId}: No attribution data, skipping conversion creation`);
@@ -566,6 +669,40 @@ export const processWebhookToConversion = internalMutation({
     }
 
     const tenantId = event.tenantId as Id<"tenants">;
+
+    // For coupon-attributed conversions, use coupon validation directly
+    if (pwcAttributionSource === "coupon" && event.attribution?.couponCode) {
+      const couponResult = await validateCouponCodeInWebhook(ctx, tenantId, event.attribution.couponCode);
+
+      if (couponResult) {
+        const rawPayload = JSON.parse(event.rawPayload);
+        const products = rawPayload.data?.object?.metadata?._salig_aff_products || undefined;
+
+        const conversionId: any = await ctx.runMutation(internal.conversions.createConversionWithAttribution, {
+          tenantId,
+          affiliateId: couponResult.affiliateId,
+          referralLinkId: couponResult.referralLinkId,
+          clickId: undefined,
+          campaignId: couponResult.campaignId,
+          customerEmail: event.payment.customerEmail,
+          amount: event.payment.amount / CENTS_PER_CURRENCY_UNIT,
+          status: event.payment.status === "paid" ? "completed" : "pending",
+          attributionSource: "coupon",
+          couponCode: event.attribution.couponCode,
+          metadata: {
+            orderId: event.payment.id,
+            products,
+          },
+        });
+
+        await ctx.db.patch(args.webhookId, {
+          status: "processed",
+          processedAt: Date.now(),
+        });
+
+        return conversionId;
+      }
+    }
 
     // Find affiliate by code - now includes status check for "active"
     const affiliate: {
@@ -641,7 +778,7 @@ export const processWebhookToConversion = internalMutation({
     const rawPayload = JSON.parse(event.rawPayload);
     const products = rawPayload.data?.object?.metadata?._salig_aff_products || undefined;
 
-    // Create conversion with webhook attribution
+    // Create conversion with correct attribution source
     const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createConversionWithAttribution, {
       tenantId,
       affiliateId: affiliate._id,
@@ -651,7 +788,7 @@ export const processWebhookToConversion = internalMutation({
       customerEmail: event.payment.customerEmail,
       amount: event.payment.amount / CENTS_PER_CURRENCY_UNIT, // Convert from cents using constant
       status: "completed", // Only paid payments reach here
-      attributionSource: "webhook",
+      attributionSource: pwcAttributionSource,
       metadata: {
         orderId: event.payment.id,
         products,

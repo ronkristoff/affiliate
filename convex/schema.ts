@@ -200,7 +200,8 @@ export default defineSchema({
     .index("by_affiliate", ["affiliateId"])
     .index("by_campaign", ["campaignId"])
     .index("by_affiliate_and_campaign", ["affiliateId", "campaignId"])
-    .index("by_tenant_and_campaign", ["tenantId", "campaignId"]),
+    .index("by_tenant_and_campaign", ["tenantId", "campaignId"])
+    .index("by_affiliate_and_status", ["affiliateId", "status"]), // Coupon-only campaign resolution
 
   affiliates: defineTable({
     tenantId: v.id("tenants"),
@@ -243,11 +244,16 @@ export default defineSchema({
         v.literal("paused"),
       )),
     }))),
+    // Coupon code fields (Attribution Resilience — Phase 2)
+    couponCode: v.optional(v.string()),                  // Vanity coupon code for attribution
+    couponAttributionEnabled: v.optional(v.boolean()),   // Toggle coupon attribution per affiliate (default: true)
+    defaultCouponCampaignId: v.optional(v.id("campaigns")), // Campaign for coupon-only conversions
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
     .index("by_email", ["email"])
     .index("by_tenant_and_code", ["tenantId", "uniqueCode"])
-    .index("by_tenant_and_status", ["tenantId", "status"]),
+    .index("by_tenant_and_status", ["tenantId", "status"])
+    .index("by_tenant_coupon_code", ["tenantId", "couponCode"]), // Coupon code lookup index
 
   // Affiliate sessions table for server-side session management
   affiliateSessions: defineTable({
@@ -322,7 +328,7 @@ export default defineSchema({
     email: v.string(),                    // Customer email (primary lookup key)
     uid: v.optional(v.string()),          // Optional stable customer ID (e.g., Stripe customer ID)
     affiliateId: v.id("affiliates"),      // Which affiliate referred this customer
-    referralLinkId: v.id("referralLinks"), // Which referral link was clicked
+    referralLinkId: v.optional(v.id("referralLinks")), // Which referral link was clicked (optional: coupon-only leads have no click)
     campaignId: v.optional(v.id("campaigns")), // Which campaign (if any)
     clickId: v.optional(v.id("clicks")),  // Which click record (if tracked)
     status: v.union(                      // Lead lifecycle
@@ -357,8 +363,11 @@ export default defineSchema({
       v.literal("cookie"),
       v.literal("webhook"),
       v.literal("organic"),
-      v.literal("body")
+      v.literal("body"),
+      v.literal("coupon"),       // Coupon code-based attribution
+      v.literal("lead_email")    // Email-based lead matching from webhook
     )),
+    couponCode: v.optional(v.string()), // First-class coupon code field for queryable reporting
     isSelfReferral: v.optional(v.boolean()),
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),

@@ -118,6 +118,7 @@ export const getCurrentAffiliate = query({
       email: v.string(),
       name: v.string(),
       uniqueCode: v.string(),
+      couponCode: v.optional(v.string()),
       status: v.string(),
       payoutMethod: v.optional(v.object({
         type: v.string(),
@@ -171,6 +172,7 @@ export const getCurrentAffiliate = query({
       email: affiliate.email,
       name: affiliate.name,
       uniqueCode: affiliate.uniqueCode,
+      couponCode: affiliate.couponCode,
       status: affiliate.status,
       payoutMethod: affiliate.payoutMethod,
       payoutMethodLastDigits: affiliate.payoutMethodLastDigits,

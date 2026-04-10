@@ -1151,6 +1151,14 @@ export const inviteAffiliate = mutation({
 
     await updateAffiliateCount(ctx, tenantId, undefined, "active");
 
+    // Attribution Resilience: Generate coupon code on activation (invited affiliates start as active)
+    ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
+      tenantId,
+      affiliateId,
+    }).catch((err) => {
+      console.error("[CouponCode] Failed to generate coupon code on invite:", err);
+    });
+
     await ctx.db.insert("auditLogs", {
       tenantId,
       action: "affiliate_invited",
@@ -1227,6 +1235,16 @@ export const updateAffiliateStatus = mutation({
     await ctx.db.patch(args.affiliateId, { status: args.status });
 
     await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
+
+    // Attribution Resilience: Generate coupon code on activation
+    if (args.status === "active" && previousStatus !== "active") {
+      ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
+        tenantId,
+        affiliateId: args.affiliateId,
+      }).catch((err) => {
+        console.error("[CouponCode] Failed to generate coupon code on status update:", err);
+      });
+    }
 
     // Auto-generate a referral link when an affiliate is approved (if they don't have one)
     if (args.status === "active" && previousStatus !== "active") {
@@ -1735,6 +1753,14 @@ export const reactivateAffiliate = mutation({
 
     await updateAffiliateCount(ctx, tenantId, "suspended", "active");
 
+    // Attribution Resilience: Generate coupon code on reactivation (preserves existing if present)
+    ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
+      tenantId,
+      affiliateId: args.affiliateId,
+    }).catch((err) => {
+      console.error("[CouponCode] Failed to generate coupon code on reactivation:", err);
+    });
+
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
@@ -1867,6 +1893,14 @@ export const approveAffiliate = mutation({
     await ctx.db.patch(args.affiliateId, { status: "active" });
 
     await updateAffiliateCount(ctx, tenantId, "pending", "active");
+
+    // Attribution Resilience: Generate coupon code on activation
+    ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
+      tenantId,
+      affiliateId: args.affiliateId,
+    }).catch((err) => {
+      console.error("[CouponCode] Failed to generate coupon code on approval:", err);
+    });
 
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
@@ -2090,6 +2124,14 @@ export const bulkApproveAffiliates = mutation({
         await ctx.db.patch(affiliateId, { status: "active" });
 
         await updateAffiliateCount(ctx, tenantId, "pending", "active");
+
+        // Attribution Resilience: Generate coupon code on activation
+        ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
+          tenantId,
+          affiliateId: affiliateId,
+        }).catch((err) => {
+          console.error(`[CouponCode] Failed to generate coupon code for ${affiliateId}:`, err);
+        });
 
         // Create audit log entry
         await ctx.db.insert("auditLogs", {

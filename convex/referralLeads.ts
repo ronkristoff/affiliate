@@ -4,6 +4,7 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { onLeadCreated, onLeadConverted } from "./tenantStats";
+import { normalizeEmail } from "./emailNormalization";
 
 /**
  * Referral Leads Management
@@ -27,7 +28,7 @@ export const createOrUpdateLead = internalMutation({
     email: v.string(),
     uid: v.optional(v.string()),
     affiliateId: v.id("affiliates"),
-    referralLinkId: v.id("referralLinks"),
+    referralLinkId: v.optional(v.id("referralLinks")),  // Optional: coupon-only leads have no referral link
     campaignId: v.optional(v.id("campaigns")),
     clickId: v.optional(v.id("clicks")),
   },
@@ -36,11 +37,14 @@ export const createOrUpdateLead = internalMutation({
     isNew: v.boolean(),
   }),
   handler: async (ctx, args) => {
+    // Normalize email before lookup
+    const normalizedEmail = normalizeEmail(args.email);
+    
     // Check for existing active lead by tenantId + email
     const existingLead = await ctx.db
       .query("referralLeads")
       .withIndex("by_tenant_email", (q) =>
-        q.eq("tenantId", args.tenantId).eq("email", args.email)
+        q.eq("tenantId", args.tenantId).eq("email", normalizedEmail)
       )
       .first();
 
@@ -57,7 +61,7 @@ export const createOrUpdateLead = internalMutation({
     // Insert new lead with active status
     const leadId = await ctx.db.insert("referralLeads", {
       tenantId: args.tenantId,
-      email: args.email,
+      email: normalizedEmail,
       uid: args.uid,
       affiliateId: args.affiliateId,
       referralLinkId: args.referralLinkId,
@@ -89,7 +93,7 @@ export const findLeadByEmail = internalQuery({
       email: v.string(),
       uid: v.optional(v.string()),
       affiliateId: v.id("affiliates"),
-      referralLinkId: v.id("referralLinks"),
+      referralLinkId: v.optional(v.id("referralLinks")),
       campaignId: v.optional(v.id("campaigns")),
       clickId: v.optional(v.id("clicks")),
       status: v.union(
@@ -100,10 +104,11 @@ export const findLeadByEmail = internalQuery({
     })
   ),
   handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
     const lead = await ctx.db
       .query("referralLeads")
       .withIndex("by_tenant_email", (q) =>
-        q.eq("tenantId", args.tenantId).eq("email", args.email)
+        q.eq("tenantId", args.tenantId).eq("email", normalizedEmail)
       )
       .first();
 
@@ -137,7 +142,7 @@ export const findLeadByUid = internalQuery({
       email: v.string(),
       uid: v.optional(v.string()),
       affiliateId: v.id("affiliates"),
-      referralLinkId: v.id("referralLinks"),
+      referralLinkId: v.optional(v.id("referralLinks")),
       campaignId: v.optional(v.id("campaigns")),
       clickId: v.optional(v.id("clicks")),
       status: v.union(
@@ -335,16 +340,17 @@ export const resolveLeadAttribution = internalQuery({
     v.object({
       affiliateCode: v.string(),
       clickId: v.optional(v.id("clicks")),
-      referralLinkId: v.id("referralLinks"),
+      referralLinkId: v.optional(v.id("referralLinks")),
       campaignId: v.optional(v.id("campaigns")),
       affiliateId: v.id("affiliates"),
     })
   ),
   handler: async (ctx, args) => {
+    const normalizedEmail = normalizeEmail(args.email);
     const lead = await ctx.db
       .query("referralLeads")
       .withIndex("by_tenant_email", (q) =>
-        q.eq("tenantId", args.tenantId).eq("email", args.email)
+        q.eq("tenantId", args.tenantId).eq("email", normalizedEmail)
       )
       .first();
 
@@ -359,15 +365,27 @@ export const resolveLeadAttribution = internalQuery({
     }
 
     // Get the referral link to extract the affiliate code
-    const referralLink = await ctx.db.get(lead.referralLinkId);
-    if (!referralLink) {
-      return null;
+    // Coupon-only leads have no referral link — use affiliate's uniqueCode instead
+    if (lead.referralLinkId) {
+      const referralLink = await ctx.db.get(lead.referralLinkId);
+      if (!referralLink) {
+        return null;
+      }
+
+      return {
+        affiliateCode: referralLink.code,
+        clickId: lead.clickId ?? undefined,
+        referralLinkId: lead.referralLinkId,
+        campaignId: lead.campaignId ?? undefined,
+        affiliateId: lead.affiliateId,
+      };
     }
 
+    // Coupon-only lead: no referral link, use affiliate's uniqueCode as the code
     return {
-      affiliateCode: referralLink.code,
+      affiliateCode: affiliate.uniqueCode,
       clickId: lead.clickId ?? undefined,
-      referralLinkId: lead.referralLinkId,
+      referralLinkId: undefined,
       campaignId: lead.campaignId ?? undefined,
       affiliateId: lead.affiliateId,
     };

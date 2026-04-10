@@ -407,7 +407,7 @@ describe("Webhook Processing to Conversion", () => {
     expect(conversionId).not.toBeNull();
 
     // Verify conversion was created
-    const conversion = await t.run(async (ctx) => {
+    const conversion: any = await t.run(async (ctx) => {
       return await ctx.db.get(conversionId!);
     });
 
@@ -472,14 +472,13 @@ describe("Webhook Processing to Conversion", () => {
     expect(conversionId).not.toBeNull();
 
     // Verify organic conversion was created
-    const conversion = await t.run(async (ctx) => {
+    const conversion: any = await t.run(async (ctx) => {
       return await ctx.db.get(conversionId!);
     });
 
     expect(conversion).not.toBeNull();
     expect(conversion!.attributionSource).toBe("organic");
   });
-
   it("should NOT create conversion for pending payment status", async () => {
     const t = convexTest(schema, testModules);
 
@@ -795,7 +794,7 @@ describe("Webhook Processing to Conversion", () => {
     expect(conversionId).not.toBeNull();
 
     // Verify organic conversion was created
-    const conversion = await t.run(async (ctx) => {
+    const conversion: any = await t.run(async (ctx) => {
       return await ctx.db.get(conversionId!);
     });
 
@@ -905,7 +904,7 @@ describe("Webhook Status Management", () => {
       status: "processed",
     });
 
-    const webhook = await t.run(async (ctx) => {
+    const webhook: any = await t.run(async (ctx) => {
       return await ctx.db.get(webhookId);
     });
 
@@ -942,7 +941,7 @@ describe("Webhook Status Management", () => {
       errorMessage: "Processing error occurred",
     });
 
-    const webhook = await t.run(async (ctx) => {
+    const webhook: any = await t.run(async (ctx) => {
       return await ctx.db.get(webhookId);
     });
 

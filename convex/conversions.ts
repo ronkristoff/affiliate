@@ -4,6 +4,7 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { onOrganicConversionCreated, incrementTotalConversions } from "./tenantStats";
+import { normalizeEmail } from "./emailNormalization";
 
 /**
  * Internal: Get tenant by tracking public key
@@ -235,8 +236,11 @@ export const createConversionWithAttribution = internalMutation({
       v.literal("cookie"),
       v.literal("webhook"),
       v.literal("organic"),
-      v.literal("body")
+      v.literal("body"),
+      v.literal("coupon"),
+      v.literal("lead_email")
     ),
+    couponCode: v.optional(v.string()), // First-class coupon code field for reporting
     metadata: v.optional(v.object({
       orderId: v.optional(v.string()),
       products: v.optional(v.array(v.string())),
@@ -249,12 +253,17 @@ export const createConversionWithAttribution = internalMutation({
   },
   returns: v.id("conversions"),
   handler: async (ctx, args) => {
+    // Normalize customer email for consistent storage and lead matching
+    const normalizedCustomerEmail = args.customerEmail
+      ? normalizeEmail(args.customerEmail)
+      : undefined;
+
     // Check for self-referral if customer data provided
     let isSelfReferral = false;
-    if (args.customerEmail || args.ipAddress || args.paymentMethodLastDigits || args.deviceFingerprint) {
+    if (normalizedCustomerEmail || args.ipAddress || args.paymentMethodLastDigits || args.deviceFingerprint) {
       const selfReferralCheck = await ctx.runQuery(internal.conversions.detectSelfReferralInternal, {
         affiliateId: args.affiliateId,
-        customerEmail: args.customerEmail,
+        customerEmail: normalizedCustomerEmail,
         ipAddress: args.ipAddress,
         paymentMethodLastDigits: args.paymentMethodLastDigits,
         deviceFingerprint: args.deviceFingerprint,
@@ -282,7 +291,7 @@ export const createConversionWithAttribution = internalMutation({
       referralLinkId: args.referralLinkId,
       clickId: args.clickId,
       campaignId: args.campaignId,
-      customerEmail: args.customerEmail?.toLowerCase(),
+      customerEmail: normalizedCustomerEmail,
       amount: args.amount,
       status: args.status || "pending",
       ipAddress: args.ipAddress,
@@ -290,9 +299,31 @@ export const createConversionWithAttribution = internalMutation({
       paymentMethodLastDigits: args.paymentMethodLastDigits,
       paymentMethodProcessorId: args.paymentMethodProcessorId,
       attributionSource: args.attributionSource,
+      couponCode: args.couponCode,
       isSelfReferral,
       metadata: args.metadata,
     });
+
+    // Auto-capture: Create/update referralLead when conversion has email + attribution
+    // This locks attribution in the database for future cross-device purchases
+    if (normalizedCustomerEmail) {
+      if (args.referralLinkId || args.attributionSource === "coupon") {
+        // Lead can be created with or without referralLinkId
+        // Coupon-only conversions have no referral link but still need a lead
+        ctx.runMutation(internal.referralLeads.createOrUpdateLead, {
+          tenantId: args.tenantId,
+          email: normalizedCustomerEmail,
+          affiliateId: args.affiliateId,
+          referralLinkId: args.referralLinkId ?? undefined,
+          campaignId: args.campaignId,
+          clickId: args.clickId,
+        }).catch((err) => {
+          console.error("[Auto-Capture] Failed to create/update lead:", err);
+        });
+      }
+    } else if (args.affiliateId) {
+      console.warn("[Auto-Capture] Attributed conversion missing customerEmail. Lead not captured. Email is required for future cross-device attribution.");
+    }
 
     // Log to audit trail
     await ctx.db.insert("auditLogs", {
@@ -350,7 +381,7 @@ export const createConversionWithAttribution = internalMutation({
           affiliateEmail: affiliate.email,
           conversionAmount: args.amount,
           commissionAmount,
-          customerEmail: args.customerEmail,
+          customerEmail: normalizedCustomerEmail,
           campaignName: campaign?.name,
           portalName,
           brandLogoUrl: tenant.branding?.logoUrl,

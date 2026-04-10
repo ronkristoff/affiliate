@@ -278,7 +278,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
       });
 
       // Find our commission
-      const ourCommission = affiliateCommissions.find(c => c._id === commissionId);
+      const ourCommission = affiliateCommissions.find((c: any) => c._id === commissionId);
       expect(ourCommission).toBeDefined();
       
       // The reversalReason (decline reason) should not be in affiliate-facing response
@@ -787,7 +787,7 @@ describe("Story 7.7: Manual Commission Approval", () => {
 
       // Should return only pending commissions
       expect(result.page.length).toBe(2);
-      expect(result.page.every(c => c.status === "pending")).toBe(true);
+      expect(result.page.every((c: any) => c.status === "pending")).toBe(true);
 
       // Should include affiliate info
       expect(result.page[0].affiliateName).toBe("Test Affiliate");

@@ -2,7 +2,7 @@ import "./polyfills";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { betterAuthComponent, createAuth } from "./auth";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { normalizeToBillingEvent, normalizeStripeToBillingEvent } from "./webhooks";
@@ -85,7 +85,7 @@ http.route({
         );
       }
 
-      const { amount, orderId, customerEmail, products, metadata, affiliateCode: bodyAffiliateCode, clickId: bodyClickId } = body;
+      const { amount, orderId, customerEmail, products, metadata, affiliateCode: bodyAffiliateCode, clickId: bodyClickId, couponCode: bodyCouponCode } = body;
 
       // Validate required fields
       if (amount === undefined || typeof amount !== "number") {
@@ -109,10 +109,32 @@ http.route({
         : realIp || undefined;
 
       // AC1.2: Parse attribution from POST body (new track.js) or cookie (legacy)
-      // Body attribution takes precedence over cookie
+      // Coupon code takes precedence over cookie/body attribution (ADR-4)
       let effectiveAffiliateCode: string | null = bodyAffiliateCode || null;
       let effectiveClickId: string | null = bodyClickId || null;
-      let attributionSource: "body" | "cookie" | null = bodyAffiliateCode ? "body" : null;
+      let attributionSource: "body" | "cookie" | "coupon" | null = bodyAffiliateCode ? "body" : null;
+      let couponValidationResult: any = null;
+
+      // Coupon code validation (highest priority attribution source)
+      if (bodyCouponCode) {
+        try {
+          couponValidationResult = await ctx.runQuery(api.couponCodes.validateCouponCode, {
+            tenantId: tenant._id,
+            couponCode: bodyCouponCode,
+          });
+
+          if (couponValidationResult) {
+            // Coupon wins over cookie/body attribution (ADR-4)
+            effectiveAffiliateCode = null; // Will use coupon's affiliate directly
+            attributionSource = "coupon";
+          } else {
+            console.warn(`[Track] Invalid coupon code: ${bodyCouponCode}, falling back to cookie/body attribution`);
+          }
+        } catch (err) {
+          console.error("[Track] Coupon validation error:", err);
+          // Fall back to cookie/body attribution
+        }
+      }
       let cookieTimestamp: number | undefined;
 
       // If no body attribution, fall back to cookie (backwards compatibility)
@@ -142,7 +164,7 @@ http.route({
       }
 
       // AC1.5: If no attribution, create organic conversion (AC #2)
-      if (!effectiveAffiliateCode) {
+      if (!effectiveAffiliateCode && attributionSource !== "coupon") {
         // Create organic conversion without affiliate attribution
         const conversionId = await ctx.runMutation(internal.conversions.createOrganicConversion, {
           tenantId: tenant._id,
@@ -175,10 +197,54 @@ http.route({
         );
       }
 
+      // Attribution Resilience: Coupon code path (bypasses cookie/body affiliate validation)
+      if (attributionSource === "coupon" && couponValidationResult) {
+        const conversionId = await ctx.runMutation(internal.conversions.createConversionWithAttribution, {
+          tenantId: tenant._id,
+          affiliateId: couponValidationResult.affiliateId,
+          referralLinkId: couponValidationResult.referralLinkId,
+          clickId: undefined, // Coupon-only: no click
+          campaignId: couponValidationResult.campaignId,
+          customerEmail,
+          amount,
+          status: "pending",
+          ipAddress: clientIp,
+          attributionSource: "coupon",
+          couponCode: bodyCouponCode,
+          metadata: {
+            orderId,
+            products,
+            ...metadata,
+          },
+        });
+
+        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
+          tenantId: tenant._id,
+          count: 1,
+        }).catch(() => {});
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            conversionId,
+            attributed: true,
+            organic: false,
+            couponAttributed: true,
+          }),
+          {
+            status: 200,
+            headers: { 
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
       // AC1.6: Validate affiliate is still active
       const affiliateValidation = await ctx.runQuery(internal.clicks.validateAffiliateCodeInternal, {
         tenantId: tenant._id,
-        code: effectiveAffiliateCode,
+        code: effectiveAffiliateCode!,
       });
 
       if (!affiliateValidation.valid) {
@@ -224,7 +290,7 @@ http.route({
       if (attributionSource === "cookie" && cookieTimestamp) {
         windowValidation = await ctx.runQuery(internal.conversions.validateCookieAttributionWindow, {
           tenantId: tenant._id,
-          affiliateCode: effectiveAffiliateCode,
+          affiliateCode: effectiveAffiliateCode!,
           campaignId: undefined, // Will be resolved from referral link
           cookieTimestamp: cookieTimestamp,
         });
@@ -316,7 +382,7 @@ http.route({
       // AC1.7: Get referral link for attribution chain
       const referralLink = await ctx.runQuery(internal.conversions.getReferralLinkByCodeInternal, {
         tenantId: tenant._id,
-        code: effectiveAffiliateCode,
+        code: effectiveAffiliateCode!,
       });
 
       if (!referralLink) {
@@ -611,6 +677,90 @@ http.route({
         }
       );
     }
+  }),
+});
+
+// Coupon Code Validation Endpoint
+// Attribution Resilience: Public endpoint for track.js coupon validation
+http.route({
+  path: "/track/validate-coupon",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      const url = new URL(req.url);
+      const code = url.searchParams.get("code");
+      const tenantId = url.searchParams.get("t");
+
+      if (!code || !tenantId) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Missing code or tenant ID" }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      const result = await ctx.runQuery(api.couponCodes.validateCouponCode, {
+        tenantId: tenantId as any,
+        couponCode: code,
+      });
+
+      if (!result) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Invalid coupon code" }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          affiliateName: result.affiliateName,
+          campaignId: result.campaignId,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Coupon validation error:", error);
+      return new Response(
+        JSON.stringify({ valid: false, error: "Internal error" }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+  }),
+});
+
+// Options handler for coupon validation CORS preflight
+http.route({
+  path: "/track/validate-coupon",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }),
 });
 

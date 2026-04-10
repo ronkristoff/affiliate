@@ -124,7 +124,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
       // Verify conversion was created
       expect(conversionId).not.toBeNull();
 
-      const conversion = await t.run(async (ctx) => {
+      const conversion: any = await t.run(async (ctx) => {
         return await ctx.db.get(conversionId!);
       });
 
@@ -184,7 +184,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
       // Should create organic conversion
       expect(conversionId).not.toBeNull();
 
-      const conversion = await t.run(async (ctx) => {
+      const conversion: any = await t.run(async (ctx) => {
         return await ctx.db.get(conversionId!);
       });
 
@@ -192,7 +192,6 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
       expect(conversion!.attributionSource).toBe("organic");
     });
   });
-
   describe("AC #5: Affiliate Status Validation", () => {
     it("should create organic conversion for invalid affiliate", async () => {
       const t = convexTest(schema, testModules);
@@ -258,7 +257,7 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
       // Should create organic conversion
       expect(conversionId).not.toBeNull();
 
-      const conversion = await t.run(async (ctx) => {
+      const conversion: any = await t.run(async (ctx) => {
         return await ctx.db.get(conversionId!);
       });
 
@@ -266,7 +265,6 @@ describe("Story 7.1: Payment Updated Event Processing - Integration Tests", () =
       expect(conversion!.attributionSource).toBe("organic");
     });
   });
-
   describe("AC #6: Idempotency", () => {
     it("should reject duplicate webhook events", async () => {
       const t = convexTest(schema, testModules);
@@ -559,7 +557,7 @@ describe("Story 7.2: Subscription Lifecycle Event Processing - Integration Tests
       expect(result.commissionId).not.toBeNull();
 
       // Verify conversion has subscription metadata
-      const conversion = await t.run(async (ctx) => {
+      const conversion: any = await t.run(async (ctx) => {
         return await ctx.db.get(result.conversionId!);
       });
 
@@ -1081,7 +1079,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
       expect(result.commissionId).toBeNull();
 
       // Verify webhook status updated with rejection reason
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook!.status).toBe("processed");
@@ -1198,7 +1196,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
       expect(result.commissionId).toBeNull();
 
       // Verify webhook status updated with rejection reason
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook!.status).toBe("processed");
@@ -1318,7 +1316,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
       expect(result.commissionId).not.toBeNull();
 
       // Verify conversion has completed status
-      const conversion = await t.run(async (ctx) => {
+      const conversion: any = await t.run(async (ctx) => {
         return await ctx.db.get(result.conversionId!);
       });
       expect(conversion!.status).toBe("completed");
@@ -1425,7 +1423,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
       expect(result.commissionId).toBeNull();
 
       // Verify webhook status with rejection reason
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook!.status).toBe("processed");
@@ -1531,7 +1529,7 @@ describe("Story 7.3: Failed/Pending Payment Rejection - Tests", () => {
       expect(result.commissionId).toBeNull();
 
       // Verify webhook status with rejection reason
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook!.status).toBe("processed");
@@ -1805,7 +1803,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
       expect(commission?.reversalReason).toBe("refund");
 
       // Verify webhook status is processed
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook?.status).toBe("processed");
@@ -1900,7 +1898,7 @@ describe("Story 7.4: Commission Reversal - Integration Tests", () => {
       expect(result.processed).toBe(true);
 
       // Verify webhook status is processed
-      const webhook = await t.run(async (ctx) => {
+      const webhook: any = await t.run(async (ctx) => {
         return await ctx.db.get(webhookId);
       });
       expect(webhook?.status).toBe("processed");
@@ -2553,8 +2551,8 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
       ]);
 
       // Only one should succeed (isDuplicate: false)
-      const successCount = results.filter(r => !r.isDuplicate).length;
-      const duplicateCount = results.filter(r => r.isDuplicate).length;
+      const successCount = results.filter((r: any) => !r.isDuplicate).length;
+      const duplicateCount = results.filter((r: any) => r.isDuplicate).length;
 
       expect(successCount).toBe(1);
       expect(duplicateCount).toBe(2);

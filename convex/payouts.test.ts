@@ -1338,7 +1338,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(result2.remainingPending).toBe(0);
 
         // Verify batch was updated
-        const batch = await t.run(async (ctx) => {
+        const batch: any = await t.run(async (ctx) => {
           return await ctx.db.get(batchId);
         });
         expect(batch?.status).toBe("completed");
@@ -1437,7 +1437,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
 
         await t.mutation(api.payouts.markBatchAsPaid, { batchId });
 
-        const batch = await t.run(async (ctx) => {
+        const batch: any = await t.run(async (ctx) => {
           return await ctx.db.get(batchId);
         });
         expect(batch?.status).toBe("completed");
@@ -1525,7 +1525,7 @@ describe("Story 13.1: Payout Batch Generation", () => {
         expect(result.payoutsMarked).toBe(1);
 
         // Verify batch is completed
-        const batch = await t.run(async (ctx) => {
+        const batch: any = await t.run(async (ctx) => {
           return await ctx.db.get(batchId);
         });
         expect(batch?.status).toBe("completed");
@@ -1874,7 +1874,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       const { jamiePayoutId, batchId } = await setupBatchWithBranding(t);
 
       // Verify batch has generatedAt
-      const batch = await t.run(async (ctx) => {
+      const batch: any = await t.run(async (ctx) => {
         return await ctx.db.get(batchId);
       });
       expect(batch?.generatedAt).toBeDefined();
@@ -2003,7 +2003,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       const { batchId } = await setupBatchWithBranding(t);
 
       // Verify batch has generatedAt before marking
-      const batch = await t.run(async (ctx) => {
+      const batch: any = await t.run(async (ctx) => {
         return await ctx.db.get(batchId);
       });
       expect(batch?.generatedAt).toBeDefined();
@@ -2058,7 +2058,7 @@ describe("Story 13.4: Payout Notification Email", () => {
       expect(result.payoutsMarked).toBe(2);
 
       // Verify all payouts were marked as paid
-      const batch = await t.run(async (ctx) => {
+      const batch: any = await t.run(async (ctx) => {
         return await ctx.db.get(batchId);
       });
       expect(batch?.status).toBe("completed");
