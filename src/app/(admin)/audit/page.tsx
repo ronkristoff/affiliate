@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -11,10 +12,11 @@ import {
 } from "nuqs";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { DataTablePagination, DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { FilterPill, FilterPillBar } from "@/components/ui/FilterPill";
-import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter } from "lucide-react";
+import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter, AlertTriangle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DateCell } from "@/components/ui/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -219,6 +221,121 @@ function FilterBar({
 }
 
 // ---------------------------------------------------------------------------
+// Fraud Radar Section
+// ---------------------------------------------------------------------------
+
+function FraudRadarSection() {
+  const platformStats = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
+  const fraudResult = useQuery(api.admin.audit.getPlatformFraudSummary, {
+    paginationOpts: { numItems: 10, cursor: null },
+  });
+
+  const totalFlagged = platformStats?.totalFraudSignals ?? 0;
+  const fraudTenants = fraudResult?.page ?? [];
+  const isLoadingFraud = fraudResult === undefined;
+  const isFraudEmpty = !isLoadingFraud && fraudTenants.length === 0;
+
+  // Don't render the section if no fraud signals at all and data is loaded
+  if (!isLoadingFraud && totalFlagged === 0 && isFraudEmpty) return null;
+
+  return (
+    <FadeIn delay={30}>
+      <div className="bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-[var(--border-light)] bg-gradient-to-r from-red-50/50 to-transparent">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--text-heading)]">Fraud Radar</h2>
+                <p className="text-[12px] text-[var(--text-muted)]">Tenants with flagged commissions</p>
+              </div>
+            </div>
+            <MetricCard
+              label="Flagged"
+              numericValue={totalFlagged}
+              subtext="platform-wide"
+              isLoading={platformStats === undefined}
+              variant="red"
+              icon={<AlertTriangle className="w-4 h-4" />}
+            />
+          </div>
+        </div>
+
+        {/* Top gradient */}
+        <div className="h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
+
+        {/* Fraud table */}
+        {isLoadingFraud ? (
+          <div className="divide-y divide-[var(--border-light)]">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="px-5 py-3 flex items-center gap-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <ArrowRight className="w-3.5 h-3.5 ml-auto text-[var(--text-muted)]" />
+              </div>
+            ))}
+          </div>
+        ) : isFraudEmpty ? (
+          <div className="px-5 py-8 text-center text-[var(--text-muted)] text-sm">
+            <Shield className="w-6 h-6 mx-auto mb-2 text-green-400" />
+            No fraud signals detected across the platform
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--border-light)]">
+            {fraudTenants.map((tenant) => (
+              <Link
+                key={tenant.tenantId}
+                href={`/tenants/${tenant.tenantId}?tab=overview`}
+                className="flex items-center gap-4 px-5 py-3 hover:bg-[var(--brand-light)]/20 transition-colors group"
+              >
+                {/* Tenant name */}
+                <span className="text-sm font-medium text-[var(--text-heading)] min-w-0 truncate">
+                  {tenant.tenantName}
+                </span>
+
+                {/* Flagged count */}
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
+                  {tenant.commissionsFlagged} flagged
+                </Badge>
+
+                {/* Confirmed */}
+                <span className="text-[12px] text-[var(--text-muted)] shrink-0">
+                  {tenant.commissionsConfirmedThisMonth} confirmed
+                </span>
+
+                {/* Pending */}
+                <span className="text-[12px] text-[var(--text-muted)] shrink-0">
+                  {tenant.commissionsPendingCount} pending
+                </span>
+
+                {/* Fraud rate */}
+                <Badge
+                  variant={tenant.fraudRate > 0.1 ? "destructive" : tenant.fraudRate > 0.05 ? "warning" : "outline"}
+                  className="text-[10px] px-1.5 py-0 shrink-0 ml-auto"
+                >
+                  {(tenant.fraudRate * 100).toFixed(1)}% rate
+                </Badge>
+
+                {/* Arrow */}
+                <ArrowRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Bottom gradient */}
+        <div className="h-px bg-gradient-to-r from-transparent via-red-200/20 to-transparent" />
+      </div>
+    </FadeIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Audit Log Row
 // ---------------------------------------------------------------------------
 
@@ -401,6 +518,11 @@ function AuditLogContent() {
               )}
             </div>
           </FadeIn>
+
+          {/* Fraud Radar Section */}
+          <FraudRadarSection />
+
+          {/* Visual separator */}
 
           {/* Filters */}
           <FadeIn delay={60}>

@@ -8,8 +8,9 @@
  * used by listAffiliatesFiltered, listCommissionsFiltered, etc.
  */
 
-import { query } from "../_generated/server";
+import { query, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { requireAdmin } from "./_helpers";
 
 // Maximum number of audit log entries we'll scan in a single query.
@@ -287,5 +288,72 @@ export const getAuditActors = query({
 
     return (actors.filter((a): a is NonNullable<typeof a> => a !== null))
       .sort((a, b) => a.actorName.localeCompare(b.actorName));
+  },
+});
+
+// =============================================================================
+// Fraud Radar (Platform Admin)
+// =============================================================================
+
+/**
+ * Get platform-wide fraud summary.
+ * Queries tenantStats where commissionsFlagged > 0, joins with tenants for name.
+ * Used by the Fraud Radar section on the /audit admin page.
+ */
+export const getPlatformFraudSummary = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      tenantId: v.id("tenants"),
+      tenantName: v.string(),
+      commissionsFlagged: v.number(),
+      commissionsConfirmedThisMonth: v.number(),
+      commissionsPendingCount: v.number(),
+      fraudRate: v.number(),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const results = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant")
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    const fraudTenants = [];
+    for (const stats of results.page) {
+      if ((stats.commissionsFlagged ?? 0) <= 0) continue;
+
+      const tenant = await ctx.db.get(stats.tenantId);
+      if (!tenant) continue;
+
+      const confirmed = (stats.commissionsConfirmedThisMonth ?? 0) +
+        (stats.commissionsConfirmedLastMonth ?? 0);
+      const total = confirmed + (stats.commissionsPendingCount ?? 0);
+      const fraudRate = total > 0 ? stats.commissionsFlagged / total : 0;
+
+      fraudTenants.push({
+        tenantId: stats.tenantId,
+        tenantName: tenant.name,
+        commissionsFlagged: stats.commissionsFlagged,
+        commissionsConfirmedThisMonth: confirmed,
+        commissionsPendingCount: stats.commissionsPendingCount ?? 0,
+        fraudRate: Math.round(fraudRate * 10000) / 10000, // 4 decimal places
+      });
+    }
+
+    // Sort by fraud rate descending
+    fraudTenants.sort((a, b) => b.fraudRate - a.fraudRate);
+
+    return {
+      page: fraudTenants,
+      isDone: results.isDone,
+      continueCursor: results.continueCursor,
+    };
   },
 });

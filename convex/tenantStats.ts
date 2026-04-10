@@ -1,4 +1,4 @@
-import { query, action, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { query, action, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -50,6 +50,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       organicConversionsThisMonth: 0,
       leadsCreatedThisMonth: 0,
       leadsConvertedThisMonth: 0,
+      lastSyncedAt: Date.now(),
     });
     return (await ctx.db.get(id))!;
   }
@@ -74,6 +75,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       apiCallsThisMonth: 0,
       leadsCreatedThisMonth: 0,
       leadsConvertedThisMonth: 0,
+      lastSyncedAt: Date.now(),
     });
     // Re-fetch after reset to avoid returning stale in-memory values
     return (await ctx.db.get(stats._id))!;
@@ -751,5 +753,104 @@ export const backfillAll = action({
   handler: async (ctx) => {
     await ctx.runMutation(internal.tenantStats.backfillAllTenants, {});
     return "Backfill complete.";
+  },
+});
+
+// =============================================================================
+// Internal Action: Discover & Backfill New Tenants (Cron-driven)
+// =============================================================================
+
+/**
+ * Internal implementation: discover tenants missing tenantStats and batch-backfill them.
+ * Called by cron every 4 hours.
+ * Processes up to 10 tenants per invocation.
+ * Uses ctx.scheduler.runAfter to chain batches when more remain.
+ *
+ * NOTE: This is an internalAction (not public action) to avoid circular type
+ * references since it schedules itself recursively via internal.
+ */
+export const _discoverAndBackfillImpl = internalAction({
+  args: {
+    cursor: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const startTime = Date.now();
+    const BATCH_SIZE = 10;
+    const TIMEOUT_MS = 20000; // 20 second guard
+
+    // Fetch tenants (paginated, max 200 per batch to avoid unbounded scan)
+    const tenants = await ctx.runQuery(
+      internal.tenantStats._listTenantsForBackfill,
+      { cursor: args.cursor ?? null },
+    );
+
+    const missingTenants: Array<{ tenantId: string; cursor: string | null }> = [];
+
+    for (const tenant of tenants.page) {
+      if (missingTenants.length >= BATCH_SIZE) break;
+      if (Date.now() - startTime > TIMEOUT_MS) break;
+
+      const hasStats = await ctx.runQuery(
+        internal.tenantStats._checkTenantHasStats,
+        { tenantId: tenant._id },
+      );
+
+      if (!hasStats) {
+        missingTenants.push({ tenantId: tenant._id, cursor: null });
+      }
+    }
+
+    // Backfill each missing tenant
+    for (const { tenantId } of missingTenants) {
+      if (Date.now() - startTime > TIMEOUT_MS) break;
+      await ctx.runMutation(internal.tenantStats.backfillStats, {
+        tenantId: tenantId as any,
+      });
+    }
+
+    // If there may be more tenants, schedule next batch
+    if (!tenants.isDone || missingTenants.length >= BATCH_SIZE) {
+      const nextCursor = tenants.isDone ? null : tenants.continueCursor;
+      if (nextCursor) {
+        await ctx.scheduler.runAfter(0, internal.tenantStats._discoverAndBackfillImpl, {
+          cursor: nextCursor,
+        });
+      }
+    }
+
+    return null;
+  },
+});
+
+// Internal helpers for discoverAndBackfillNewTenants
+
+export const _listTenantsForBackfill = internalQuery({
+  args: { cursor: v.union(v.string(), v.null()) },
+  returns: v.object({
+    page: v.array(v.object({ _id: v.id("tenants") })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("tenants")
+      .withIndex("by_status")
+      .paginate({
+        numItems: 200,
+        cursor: (args.cursor ?? undefined) as string,
+      });
+  },
+});
+
+export const _checkTenantHasStats = internalQuery({
+  args: { tenantId: v.id("tenants") },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const stats = await ctx.db
+      .query("tenantStats")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .first();
+    return !!stats;
   },
 });

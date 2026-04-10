@@ -84,4 +84,22 @@ crons.interval(
   {}
 );
 
+// Hourly platformStats recalculation from all tenantStats
+// V1: cron-only (no incremental hooks). Recalculates aggregate KPIs.
+crons.interval(
+  "recalculate-platform-stats",
+  { hours: 1 },
+  internal.admin.platformStats.recalculatePlatformStats,
+  {}
+);
+
+// New tenant backfill — runs every 4 hours
+// Discovers tenants missing tenantStats and batch-creates them
+crons.interval(
+  "backfill-new-tenant-stats",
+  { hours: 4 },
+  internal.tenantStats._discoverAndBackfillImpl,
+  {}
+);
+
 export default crons;

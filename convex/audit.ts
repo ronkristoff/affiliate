@@ -547,3 +547,35 @@ export const listPayoutAuditLogs = query({
     };
   },
 });
+
+// =============================================================================
+// Admin Query Builder Export Record (internal helper)
+// =============================================================================
+
+/**
+ * Create an admin query export record in adminQueryExports table.
+ * Called from admin/queryBuilderExport action (Node.js runtime).
+ */
+export const _createAdminExportRecord = internalMutation({
+  args: {
+    createdBy: v.id("users"),
+    storageFileId: v.id("_storage"),
+    fileName: v.string(),
+    totalRows: v.number(),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  },
+  returns: v.id("adminQueryExports"),
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("adminQueryExports", {
+      createdBy: args.createdBy,
+      storageFileId: args.storageFileId,
+      fileName: args.fileName,
+      totalRows: args.totalRows,
+      status: args.status,
+      createdAt: args.createdAt,
+      expiresAt: args.expiresAt,
+    });
+  },
+});

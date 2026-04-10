@@ -19,14 +19,26 @@ function RevenueContent() {
     api.admin.subscriptions.getRecentSubscriptionActivity,
     {}
   );
+  const platformStats = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
 
   const isLoading = metrics === undefined;
+
+  // Derive affiliate metrics from platformStats (only if loaded)
+  const affiliateMetrics = platformStats
+    ? {
+        totalCommissions: platformStats.totalCommissions,
+        totalPaidOut: platformStats.totalPaidOut,
+        pendingCommissions: platformStats.totalPendingCommissions,
+        totalConversions: platformStats.totalConversions,
+      }
+    : null;
 
   return (
     <RevenueDashboard
       metrics={metrics}
       isLoading={isLoading}
       recentActivity={recentActivity}
+      affiliateMetrics={affiliateMetrics}
     />
   );
 }

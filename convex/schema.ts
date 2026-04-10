@@ -691,6 +691,8 @@ export default defineSchema({
     // Referral lead counters (universal billing provider integration)
     leadsCreatedThisMonth: v.optional(v.number()),
     leadsConvertedThisMonth: v.optional(v.number()),
+    // Staleness detection for admin dashboard (admin-reports-query-builder)
+    lastSyncedAt: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
 
   // Saved queries for Query Builder (custom reports)
@@ -749,4 +751,47 @@ export default defineSchema({
   }).index("by_user_created", ["userId"])
     .index("by_user_unread", ["userId", "isRead"])
     .index("by_tenant", ["tenantId"]),
+
+  // Pre-aggregated platform-wide KPIs (singleton document keyed by "platform")
+  // Recalculated hourly by cron from all tenantStats rows
+  // Admin-only access via requireAdmin(ctx)
+  platformStats: defineTable({
+    key: v.string(),
+    totalMRR: v.number(),
+    totalActiveAffiliates: v.number(),
+    totalCommissions: v.number(),
+    totalClicks: v.number(),
+    totalConversions: v.number(),
+    totalFraudSignals: v.number(),
+    activeTenantCount: v.number(),
+    totalPendingCommissions: v.number(),
+    totalApprovedCommissions: v.number(),
+    totalPaidOut: v.number(),
+    lastUpdatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // Admin-only saved queries for Admin Query Builder
+  // No tenantId — queries span all tenants
+  adminSavedQueries: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    queryConfig: v.string(), // JSON-serialized query configuration
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_created_by", ["createdBy"])
+    .index("by_name_and_creator", ["name", "createdBy"]),
+
+  // Admin Query Builder export tracking
+  // Unlike tenant queryExports, this table is actually written to by export actions
+  adminQueryExports: defineTable({
+    createdBy: v.id("users"),
+    storageFileId: v.id("_storage"),
+    fileName: v.string(),
+    totalRows: v.number(),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_created_by", ["createdBy"])
+    .index("by_expires_at", ["expiresAt"]),
 });

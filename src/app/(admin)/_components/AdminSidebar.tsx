@@ -33,6 +33,16 @@ const adminNavItems: AdminNavItem[] = [
     ),
   },
   {
+    href: "/query-builder",
+    label: "Query Builder",
+    icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16M4 12h16M4 17h10" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 17l4-4m0 0l-4 4m4 0V3" />
+      </svg>
+    ),
+  },
+  {
     href: "/tiers",
     label: "Tier Config",
     icon: (
@@ -131,7 +141,7 @@ export function AdminSidebar() {
             Administration
           </div>
           {adminNavItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
             return (
               <Link

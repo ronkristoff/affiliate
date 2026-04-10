@@ -13,13 +13,15 @@ import { EmptyState } from "./_components/EmptyState";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { FilterChips } from "@/components/ui/FilterChips";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import type { ColumnFilter, TableColumn } from "@/components/ui/DataTable";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users, DollarSign, CreditCard, Target, AlertTriangle, Shield } from "lucide-react";
 import { dateToStartTimestamp, dateToTimestamp, timestampToDateInput } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
-// Tenant type (matches Convex return shape)
+// Types
 // ---------------------------------------------------------------------------
 
 interface Tenant {
@@ -37,11 +39,236 @@ interface Tenant {
   isFlagged: boolean;
 }
 
+type ViewMode = "tenants" | "analytics";
+
 // ---------------------------------------------------------------------------
-// Content component (hooks live here, wrapped by Suspense)
+// View Toggle
 // ---------------------------------------------------------------------------
 
-function AdminTenantsContent() {
+function ViewToggle({ activeView, onViewChange }: { activeView: ViewMode; onViewChange: (v: ViewMode) => void }) {
+  return (
+    <div className="flex items-center gap-1 rounded-lg bg-[var(--bg-surface)] p-1 border border-[var(--border-light)]">
+      {([
+        { key: "tenants" as const, label: "Tenant List" },
+        { key: "analytics" as const, label: "Platform Analytics" },
+      ]).map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => onViewChange(key)}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors",
+            activeView === key
+              ? "bg-white text-[var(--text-heading)] shadow-sm"
+              : "text-[var(--text-muted)] hover:text-[var(--text-body)]"
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Platform Analytics Content (lazy-loaded via conditional rendering)
+// ---------------------------------------------------------------------------
+
+function PlatformAnalyticsContent() {
+  const kpis = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
+  const leaderboardResult = useQuery(api.admin.platformStats.getTenantLeaderboard, {
+    paginationOpts: { numItems: 20, cursor: null },
+    sortBy: "mrr",
+  });
+
+  const isLoading = kpis === undefined || leaderboardResult === undefined;
+
+  // Staleness warning: > 2 hours
+  const isStale = kpis ? (Date.now() - kpis.lastUpdatedAt > 2 * 60 * 60 * 1000) : false;
+
+  return (
+    <div className="space-y-6">
+      {/* Staleness warning */}
+      {isStale && (
+        <FadeIn delay={0}>
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span className="text-sm text-amber-800">
+              Platform stats were last updated {kpis ? new Date(kpis.lastUpdatedAt).toLocaleString() : "unknown"}. Data may be up to 1 hour stale.
+            </span>
+          </div>
+        </FadeIn>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <MetricCard
+          label="Active Tenants"
+          numericValue={kpis?.activeTenantCount ?? 0}
+          subtext="Non-deleted accounts"
+          isLoading={isLoading}
+          variant="blue"
+          icon={<Shield className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Active Affiliates"
+          numericValue={kpis?.totalActiveAffiliates ?? 0}
+          subtext="Across all tenants"
+          isLoading={isLoading}
+          variant="green"
+          icon={<Users className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Total Commissions"
+          numericValue={kpis?.totalCommissions ?? 0}
+          subtext="All-time across platform"
+          isLoading={isLoading}
+          variant="blue"
+          icon={<CreditCard className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Total Conversions"
+          numericValue={kpis?.totalConversions ?? 0}
+          subtext="Platform-wide"
+          isLoading={isLoading}
+          variant="green"
+          icon={<Target className="w-4 h-4" />}
+        />
+        <MetricCard
+          label="Fraud Signals"
+          numericValue={kpis?.totalFraudSignals ?? 0}
+          subtext={kpis && kpis.totalFraudSignals > 0 ? "Requires investigation" : "No signals detected"}
+          isLoading={isLoading}
+          variant={kpis && kpis.totalFraudSignals > 0 ? "red" : "green"}
+          icon={<AlertTriangle className="w-4 h-4" />}
+        />
+      </div>
+
+      {/* Tenant Leaderboard */}
+      <FadeIn delay={120}>
+        <div className="bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm">
+          <div className="px-5 py-4 border-b border-[var(--border-light)]">
+            <h2 className="text-sm font-semibold text-[var(--text-heading)]">Tenant Leaderboard</h2>
+            <p className="text-[12px] text-[var(--text-muted)]">Ranked by commissions confirmed this month</p>
+          </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/20 to-transparent" />
+
+          {isLoading ? (
+            <div className="divide-y divide-[var(--border-light)]">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="px-5 py-3 flex items-center gap-4">
+                  <div className="h-4 w-8 bg-[var(--border-light)] rounded" />
+                  <div className="h-4 w-32 bg-[var(--border-light)] rounded" />
+                  <div className="h-4 w-16 bg-[var(--border-light)] rounded" />
+                  <div className="h-4 w-16 bg-[var(--border-light)] rounded" />
+                  <div className="h-4 w-16 bg-[var(--border-light)] rounded" />
+                </div>
+              ))}
+            </div>
+          ) : leaderboardResult && leaderboardResult.page.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-[12px] text-[var(--text-muted)] border-b border-[var(--border-light)]">
+                    <th className="text-left px-5 py-2.5 font-medium">#</th>
+                    <th className="text-left px-2 py-2.5 font-medium">Tenant</th>
+                    <th className="text-right px-2 py-2.5 font-medium">Plan</th>
+                    <th className="text-right px-2 py-2.5 font-medium">Affiliates</th>
+                    <th className="text-right px-2 py-2.5 font-medium">Confirmed</th>
+                    <th className="text-right px-2 py-2.5 font-medium">Clicks</th>
+                    <th className="text-right px-2 py-2.5 font-medium">Conversions</th>
+                    <th className="text-right px-5 py-2.5 font-medium">Flagged</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-light)]">
+                  {leaderboardResult.page.map((tenant, index) => (
+                    <tr key={tenant.tenantId} className="hover:bg-[var(--brand-light)]/20 transition-colors">
+                      <td className="px-5 py-2.5 text-[12px] text-[var(--text-muted)]">
+                        {index + 1}
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span className="text-sm font-medium text-[var(--text-heading)]">
+                          {tenant.tenantName}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-[12px] text-[var(--text-muted)] capitalize">
+                        {tenant.plan}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-sm font-medium text-[var(--text-heading)]">
+                        {tenant.affiliatesActive}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-sm font-medium text-[var(--text-heading)]">
+                        {tenant.commissionsConfirmedThisMonth}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-[12px] text-[var(--text-muted)]">
+                        {tenant.totalClicksThisMonth}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-[12px] text-[var(--text-muted)]">
+                        {tenant.totalConversionsThisMonth}
+                      </td>
+                      <td className={cn(
+                        "px-5 py-2.5 text-right text-sm font-medium",
+                        tenant.commissionsFlagged > 0 ? "text-red-600" : "text-[var(--text-muted)]"
+                      )}>
+                        {tenant.commissionsFlagged}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="px-5 py-12 text-center text-[var(--text-muted)]">
+              <Users className="w-6 h-6 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No tenant data available yet</p>
+              <p className="text-[12px] mt-1">Platform stats will populate as tenants generate activity</p>
+            </div>
+          )}
+
+          <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/10 to-transparent" />
+        </div>
+      </FadeIn>
+    </div>
+  );
+}
+
+function PlatformAnalyticsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-[var(--border-light)] bg-[var(--bg-surface)] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-3 w-24 bg-[var(--border-light)] rounded" />
+              <div className="h-4 w-4 bg-[var(--border-light)] rounded" />
+            </div>
+            <div className="h-7 w-20 bg-[var(--border-light)] rounded" />
+            <div className="h-3 w-36 bg-[var(--border-light)] rounded mt-2" />
+          </div>
+        ))}
+      </div>
+      <div className="bg-white rounded-xl border border-[var(--border-light)] p-5">
+        <div className="h-4 w-40 bg-[var(--border-light)] rounded mb-1" />
+        <div className="h-3 w-60 bg-[var(--border-light)] rounded mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="h-4 w-6 bg-[var(--border-light)] rounded" />
+              <div className="h-4 w-32 bg-[var(--border-light)] rounded" />
+              <div className="h-4 w-16 bg-[var(--border-light)] rounded" />
+              <div className="h-4 w-16 bg-[var(--border-light)] rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tenant List Content (extracted from original AdminTenantsContent)
+// ---------------------------------------------------------------------------
+
+function TenantListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -486,6 +713,102 @@ function AdminTenantsContent() {
   }, [filteredTenants, sortField, sortOrder]);
 
   return (
+    <>
+      {/* Stats Row */}
+      <FadeIn delay={0}>
+        <StatsRow stats={stats} isLoading={stats === undefined} />
+      </FadeIn>
+
+      {/* Search + Filter Controls */}
+      <FadeIn delay={80}>
+        <div className="space-y-4">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by name, email, or domain..."
+          />
+          <FilterPills
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            counts={stats}
+            isLoading={stats === undefined}
+          />
+        </div>
+      </FadeIn>
+
+      {/* Filter Chips (column-level filters) */}
+      {activeFilters.length > 0 && (
+        <FadeIn delay={120}>
+          <FilterChips<Tenant>
+            filters={activeFilters}
+            columns={columns}
+            onRemove={handleRemoveFilter}
+            onClearAll={handleClearAllFilters}
+          />
+        </FadeIn>
+      )}
+
+      {/* Results */}
+      {!isLoading && sortedTenants.length === 0 ? (
+        <FadeIn delay={160}>
+          <EmptyState
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearAllFilters}
+            searchQuery={searchQuery}
+            activeFilter={activeFilter}
+          />
+        </FadeIn>
+      ) : (
+        <FadeIn delay={160}>
+          <TenantTable
+            tenants={sortedTenants}
+            isLoading={isLoading}
+            total={totalResults}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
+            onViewTenant={handleViewTenant}
+            activeFilters={activeFilters}
+            onFilterChange={handleColumnFilterChange}
+            pagination={{ page, pageSize }}
+            totalItems={filteredTenants.length}
+            onPaginationChange={handlePaginationChange}
+          />
+        </FadeIn>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Content (manages view toggle, wraps in Suspense)
+// ---------------------------------------------------------------------------
+
+function AdminTenantsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ── View mode from URL ───────────────────────────────────────────────────
+  const [activeView, setActiveView] = useState<ViewMode>(
+    (searchParams.get("view") as ViewMode) || "tenants"
+  );
+
+  // Sync view to URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (activeView === "analytics") {
+      params.set("view", "analytics");
+    } else {
+      params.delete("view");
+    }
+    const queryString = params.toString();
+    router.replace(
+      `/tenants${queryString ? `?${queryString}` : ""}`,
+      { scroll: false }
+    );
+  }, [activeView, router, searchParams]);
+
+  return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       {/* Top Bar */}
       <PageTopbar description="Manage and monitor all tenant accounts">
@@ -496,68 +819,18 @@ function AdminTenantsContent() {
 
       {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
+        {/* View Toggle */}
+        <div className="mb-6">
+          <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+        </div>
+
         <div className="space-y-6">
-          {/* Stats Row */}
-          <FadeIn delay={0}>
-            <StatsRow stats={stats} isLoading={stats === undefined} />
-          </FadeIn>
-
-          {/* Search + Filter Controls */}
-          <FadeIn delay={80}>
-            <div className="space-y-4">
-              <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Search by name, email, or domain..."
-              />
-              <FilterPills
-                activeFilter={activeFilter}
-                onFilterChange={setActiveFilter}
-                counts={stats}
-                isLoading={stats === undefined}
-              />
-            </div>
-          </FadeIn>
-
-          {/* Filter Chips (column-level filters) */}
-          {activeFilters.length > 0 && (
-            <FadeIn delay={120}>
-              <FilterChips<Tenant>
-                filters={activeFilters}
-                columns={columns}
-                onRemove={handleRemoveFilter}
-                onClearAll={handleClearAllFilters}
-              />
-            </FadeIn>
-          )}
-
-          {/* Results */}
-          {!isLoading && sortedTenants.length === 0 ? (
-            <FadeIn delay={160}>
-              <EmptyState
-                hasActiveFilters={hasActiveFilters}
-                onClearFilters={handleClearAllFilters}
-                searchQuery={searchQuery}
-                activeFilter={activeFilter}
-              />
-            </FadeIn>
+          {activeView === "tenants" ? (
+            <TenantListContent />
           ) : (
-            <FadeIn delay={160}>
-              <TenantTable
-                tenants={sortedTenants}
-                isLoading={isLoading}
-                total={totalResults}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSortChange={handleSortChange}
-                onViewTenant={handleViewTenant}
-                activeFilters={activeFilters}
-                onFilterChange={handleColumnFilterChange}
-                pagination={{ page, pageSize }}
-                totalItems={filteredTenants.length}
-                onPaginationChange={handlePaginationChange}
-              />
-            </FadeIn>
+            <Suspense fallback={<PlatformAnalyticsSkeleton />}>
+              <PlatformAnalyticsContent />
+            </Suspense>
           )}
         </div>
       </div>

@@ -11,6 +11,9 @@
 import type * as admin__helpers from "../admin/_helpers.js";
 import type * as admin_audit from "../admin/audit.js";
 import type * as admin_impersonation from "../admin/impersonation.js";
+import type * as admin_platformStats from "../admin/platformStats.js";
+import type * as admin_queryBuilder from "../admin/queryBuilder.js";
+import type * as admin_queryBuilderExport from "../admin/queryBuilderExport.js";
 import type * as admin_subscriptions from "../admin/subscriptions.js";
 import type * as admin_tenants from "../admin/tenants.js";
 import type * as admin_tier_configs from "../admin/tier_configs.js";
@@ -82,6 +85,7 @@ import type * as payouts from "../payouts.js";
 import type * as performance from "../performance.js";
 import type * as permissions from "../permissions.js";
 import type * as queryBuilder from "../queryBuilder.js";
+import type * as queryBuilder__utils from "../queryBuilder/_utils.js";
 import type * as queryBuilderExport from "../queryBuilderExport.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as referralLeads from "../referralLeads.js";
@@ -124,6 +128,9 @@ declare const fullApi: ApiFromModules<{
   "admin/_helpers": typeof admin__helpers;
   "admin/audit": typeof admin_audit;
   "admin/impersonation": typeof admin_impersonation;
+  "admin/platformStats": typeof admin_platformStats;
+  "admin/queryBuilder": typeof admin_queryBuilder;
+  "admin/queryBuilderExport": typeof admin_queryBuilderExport;
   "admin/subscriptions": typeof admin_subscriptions;
   "admin/tenants": typeof admin_tenants;
   "admin/tier_configs": typeof admin_tier_configs;
@@ -195,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   performance: typeof performance;
   permissions: typeof permissions;
   queryBuilder: typeof queryBuilder;
+  "queryBuilder/_utils": typeof queryBuilder__utils;
   queryBuilderExport: typeof queryBuilderExport;
   rateLimit: typeof rateLimit;
   referralLeads: typeof referralLeads;

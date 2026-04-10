@@ -11,3 +11,11 @@ export interface SuggestedJoin {
   rightField: string;
   label: string;
 }
+
+/** Extended template type for admin query builder with PII warning support. */
+export interface AdminTemplate {
+  name: string;
+  description: string;
+  config: string; // JSON-serialized QueryConfig
+  piiWarning?: boolean; // Show PII warning when template is selected
+}

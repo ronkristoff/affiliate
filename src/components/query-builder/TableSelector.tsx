@@ -24,6 +24,10 @@ interface TableMetadata {
 interface TableSelectorProps {
   selectedTables: string[];
   onSelectionChange: (tables: string[]) => void;
+  /** Admin mode: shows "Platform Admin" badge */
+  isAdminMode?: boolean;
+  /** Override available tables (for admin QB with expanded whitelist) */
+  availableTables?: string[];
 }
 
 /**
@@ -90,8 +94,16 @@ function TableSelectorSkeleton() {
   );
 }
 
-export function TableSelector({ selectedTables, onSelectionChange }: TableSelectorProps) {
+export function TableSelector({ selectedTables, onSelectionChange, isAdminMode, availableTables }: TableSelectorProps) {
   const metadata = useQuery(api.queryBuilder.getTableMetadata);
+
+  const filteredTables = useMemo(() => {
+    if (!metadata) return [];
+    if (availableTables) {
+      return metadata.tables.filter((t) => availableTables.includes(t.name));
+    }
+    return metadata.tables;
+  }, [metadata, availableTables]);
 
   if (!metadata) {
     return <TableSelectorSkeleton />;
@@ -105,7 +117,11 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
     ? ([] as SuggestedJoin[])
     : ((metadata.suggestedJoins ?? []) as unknown as SuggestedJoin[]);
 
-  if (tables.length === 0) {
+  const displayTables = availableTables
+    ? tables.filter((t) => availableTables.includes(t.name))
+    : tables;
+
+  if (displayTables.length === 0) {
     return (
       <div className="text-center py-8 text-[var(--text-muted)] text-sm">
         No tables available.
@@ -113,19 +129,20 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
     );
   }
 
-  const sortedTables = useMemo(
-    () => [...tables].sort((a, b) => a.label.localeCompare(b.label)),
-    [tables]
-  );
-
-  // Memoized reachability map — computed once per render cycle
-  const reachabilityMap = useMemo(() => {
-    const map = new Map<string, "direct" | "transitive" | "none">();
-    for (const table of tables) {
-      map.set(table.name, getJoinReachability(selectedTables, table.name, suggestedJoins));
+  const sortedAndAnnotated = useMemo(() => {
+    const reachabilityMap = new Map<string, string>();
+    for (const table of displayTables) {
+      reachabilityMap.set(table.name, getJoinReachability(selectedTables, table.name, suggestedJoins));
     }
-    return map;
-  }, [tables, selectedTables, suggestedJoins]);
+
+    return displayTables
+      .slice()
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map((table) => ({
+        ...table,
+        connectivity: (reachabilityMap.get(table.name) ?? "direct") as "selected" | "direct" | "transitive" | "none",
+      }));
+  }, [displayTables, selectedTables, suggestedJoins]);
 
   const handleToggle = useCallback((tableName: string) => {
     if (selectedTables.includes(tableName)) {
@@ -137,9 +154,9 @@ export function TableSelector({ selectedTables, onSelectionChange }: TableSelect
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {sortedTables.map((table) => {
+      {sortedAndAnnotated.map((table) => {
         const isSelected = selectedTables.includes(table.name);
-        const reachability = reachabilityMap.get(table.name) ?? "direct";
+        const reachability = table.connectivity;
         const isDisabled = reachability === "none";
         const isTransitive = reachability === "transitive";
 

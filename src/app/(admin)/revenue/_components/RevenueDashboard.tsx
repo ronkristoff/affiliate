@@ -18,6 +18,10 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  CreditCard,
+  Repeat,
+  Target,
+  CheckCircle,
 } from "lucide-react";
 import { SubscriptionStatusBadge } from "@/app/(admin)/tenants/_components/SubscriptionStatusBadge";
 
@@ -56,10 +60,18 @@ interface RecentActivity {
   actorName?: string;
 }
 
+interface AffiliateMetrics {
+  totalCommissions: number;
+  totalPaidOut: number;
+  pendingCommissions: number;
+  totalConversions: number;
+}
+
 interface RevenueDashboardProps {
   metrics: RevenueMetrics | undefined;
   isLoading: boolean;
   recentActivity: RecentActivity[] | undefined;
+  affiliateMetrics?: AffiliateMetrics | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +136,7 @@ export function RevenueDashboard({
   metrics,
   isLoading,
   recentActivity,
+  affiliateMetrics,
 }: RevenueDashboardProps) {
   if (isLoading || !metrics) {
     return <RevenueDashboardSkeleton />;
@@ -167,6 +180,47 @@ export function RevenueDashboard({
           icon={<AlertTriangle className="w-4 h-4" />}
         />
       </div>
+
+      {/* Affiliate Platform Metrics (from platformStats) */}
+      {affiliateMetrics && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            label="Total Commissions"
+            numericValue={affiliateMetrics.totalCommissions}
+            formatValue={formatCurrency}
+            subtext="Across all tenants"
+            isLoading={false}
+            variant="green"
+            icon={<CreditCard className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Total Paid Out"
+            numericValue={affiliateMetrics.totalPaidOut}
+            formatValue={formatCurrency}
+            subtext="Disbursed to affiliates"
+            isLoading={false}
+            variant="blue"
+            icon={<CheckCircle className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Pending Commissions"
+            numericValue={affiliateMetrics.pendingCommissions}
+            formatValue={formatCurrency}
+            subtext="Awaiting approval"
+            isLoading={false}
+            variant={affiliateMetrics.pendingCommissions > 0 ? "yellow" : "green"}
+            icon={<Repeat className="w-4 h-4" />}
+          />
+          <MetricCard
+            label="Total Conversions"
+            numericValue={affiliateMetrics.totalConversions}
+            subtext="Platform-wide"
+            isLoading={false}
+            variant="blue"
+            icon={<Target className="w-4 h-4" />}
+          />
+        </div>
+      )}
 
       {/* Two-column: Subscription Breakdown + Plan Distribution */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

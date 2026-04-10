@@ -53,6 +53,17 @@ export interface QueryConfig {
   rowLimit: number;
 }
 
+export interface UseQueryBuilderOptions {
+  /** Enable admin mode: defaults maxRowLimit to 500, disables URL sync */
+  isAdminMode?: boolean;
+  /** Optional tenantId for filtering (admin mode) */
+  targetTenantId?: string;
+  /** Fixed filters that persist across table changes */
+  fixedFilters?: QueryConfig["filters"];
+  /** Override the default row limit */
+  maxRowLimit?: number;
+}
+
 export interface UseQueryBuilderReturn {
   config: QueryConfig;
   setConfig: (config: QueryConfig) => void;
@@ -125,19 +136,27 @@ function configFromBase64(encoded: string): QueryConfig | null {
   }
 }
 
-export function useQueryBuilder(): UseQueryBuilderReturn {
+export function useQueryBuilder(options?: UseQueryBuilderOptions): UseQueryBuilderReturn {
+  const isAdminMode = options?.isAdminMode ?? false;
+  const fixedFilters = options?.fixedFilters ?? [];
+  const maxRowLimit = options?.maxRowLimit ?? (isAdminMode ? 500 : 100);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const isInitialized = useRef(false);
 
   const [config, setConfigState] = useState<QueryConfig>(() => {
+    if (isAdminMode) {
+      // Admin mode: no URL sync, use defaults
+      return { ...EMPTY_CONFIG, rowLimit: maxRowLimit, filters: [...fixedFilters] };
+    }
     const q = searchParams.get("q");
     if (q) {
       const parsed = configFromBase64(q);
-      if (parsed) return parsed;
+      if (parsed) return { ...parsed, rowLimit: maxRowLimit };
     }
-    return { ...EMPTY_CONFIG };
+    return { ...EMPTY_CONFIG, rowLimit: maxRowLimit };
   });
 
   // History state for undo/redo
@@ -163,6 +182,7 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
 
   const syncToUrl = useCallback(
     (newConfig: QueryConfig) => {
+      if (isAdminMode) return; // Admin queries are ephemeral — no URL sync
       const encoded = configToBase64(newConfig);
       const params = new URLSearchParams(searchParams.toString());
       if (encoded) {
@@ -172,7 +192,7 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
       }
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [searchParams, router, pathname]
+    [searchParams, router, pathname, isAdminMode]
   );
 
   const setConfig = useCallback(
@@ -191,16 +211,23 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
 
   const setTables = useCallback(
     (tables: string[]) => {
+      const filteredColumns = config.columns.filter((c) => tables.includes(c.table));
+      const filteredFilters = [
+        ...fixedFilters, // Preserve admin fixed filters
+        ...config.filters.filter((f) => tables.includes(f.table) && !fixedFilters.some(ff => ff.id === f.id)),
+      ];
+      const filteredAggregations = config.aggregations.filter((a) => tables.includes(a.table));
+      const filteredGroupBy = config.groupBy.filter((g) => tables.includes(g.table));
       setConfig({
         ...config,
         tables,
-        columns: config.columns.filter((c) => tables.includes(c.table)),
-        filters: config.filters.filter((f) => tables.includes(f.table)),
-        aggregations: config.aggregations.filter((a) => tables.includes(a.table)),
-        groupBy: config.groupBy.filter((g) => tables.includes(g.table)),
+        columns: filteredColumns,
+        filters: filteredFilters,
+        aggregations: filteredAggregations,
+        groupBy: filteredGroupBy,
       });
     },
-    [config, setConfig]
+    [config, setConfig, fixedFilters]
   );
 
   const addColumn = useCallback(
@@ -327,9 +354,10 @@ export function useQueryBuilder(): UseQueryBuilderReturn {
   );
 
   const resetConfig = useCallback(() => {
-    initialConfigRef.current = { ...EMPTY_CONFIG };
-    setConfig({ ...EMPTY_CONFIG });
-  }, [setConfig]);
+    const reset = { ...EMPTY_CONFIG, rowLimit: maxRowLimit, filters: [...fixedFilters] };
+    initialConfigRef.current = reset;
+    setConfig(reset);
+  }, [setConfig, fixedFilters, maxRowLimit]);
 
   const loadConfig = useCallback(
     (newConfig: QueryConfig) => {
