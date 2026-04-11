@@ -23,6 +23,7 @@ import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { api } from "@/convex/_generated/api";
 import { Logo } from "@/components/shared/Logo";
 import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
+import { useDefaultTrialDays } from "@/hooks/useDefaultTrialDays";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -114,6 +115,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export default function SignUp() {
   const router = useRouter();
+  const trialDays = useDefaultTrialDays();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -181,10 +183,10 @@ export default function SignUp() {
       annual: formatPrice(annualPrice),
       monthlyNote: monthlyPrice === 0
         ? "Free forever"
-        : `Free for 14 days, then ${formatPrice(monthlyPrice)}/mo`,
+        : `Free for ${trialDays} days, then ${formatPrice(monthlyPrice)}/mo`,
       annualNote: monthlyPrice === 0
         ? "Free forever"
-        : `Free for 14 days, then ${formatPrice(annualPrice)}/mo (billed ${formatPrice(annualPrice * 12)}/yr)`,
+        : `Free for ${trialDays} days, then ${formatPrice(annualPrice)}/mo (billed ${formatPrice(annualPrice * 12)}/yr)`,
       features: baseFeatures,
       limit: tier.maxAffiliates === -1
         ? "Unlimited affiliates & campaigns"
@@ -311,7 +313,7 @@ export default function SignUp() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            14-day free trial — no credit card required
+            {trialDays}-day free trial — no credit card required
           </div>
           <h1 className="font-[family-name:var(--font-passion)] text-[42px] font-bold text-white leading-[1.1] tracking-tight mb-5">
             Launch your<br />affiliate<br /><span className="text-[#1fb5a5]">empire.</span>

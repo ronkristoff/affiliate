@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDefaultTrialDays } from "@/hooks/useDefaultTrialDays";
 
 export function FinalCTASection() {
+  const trialDays = useDefaultTrialDays();
   const [isVisible, setIsVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -82,7 +84,7 @@ export function FinalCTASection() {
             transition: 'opacity 0.6s ease-out 0.35s, transform 0.6s ease-out 0.35s',
           }}
         >
-          14-day free trial. Full Scale tier access. No credit card required.
+          {trialDays}-day free trial. Full Scale tier access. No credit card required.
         </p>
         
         <div 
@@ -118,7 +120,7 @@ export function FinalCTASection() {
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
-            14 days free
+            {trialDays} days free
           </span>
           <span className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />

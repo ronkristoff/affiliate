@@ -7,6 +7,10 @@ import { internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
 import { sendEmail, getFromAddress } from "./emailService";
+import { readDefaultTrialDays } from "./platformSettings";
+
+/** Milliseconds in one day. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
  * User document type for type safety.
@@ -158,7 +162,9 @@ export const completeSignUp = mutation({
     const plan = args.plan || "starter";
 
     // Create tenant for this user (they are the owner)
-    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days from now
+    // Read trial duration from platform settings (admin-configurable)
+    const defaultTrialDays: number = await readDefaultTrialDays(ctx);
+    const trialEndsAt: number = Date.now() + defaultTrialDays * MS_PER_DAY;
 
     const tenantId: Id<"tenants"> = await ctx.db.insert("tenants", {
       name: companyName,
@@ -279,7 +285,9 @@ export const syncUserCreation = internalMutation({
     const slug = await generateUniqueSlug(ctx, companyName);
 
     // Create tenant for this user (they are the owner)
-    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days from now
+    // Read trial duration from platform settings (admin-configurable)
+    const defaultTrialDays: number = await readDefaultTrialDays(ctx);
+    const trialEndsAt: number = Date.now() + defaultTrialDays * MS_PER_DAY;
 
     const tenantId: Id<"tenants"> = await ctx.db.insert("tenants", {
       name: companyName,

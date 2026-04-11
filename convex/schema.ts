@@ -753,6 +753,14 @@ export default defineSchema({
     .index("by_user_unread", ["userId", "isRead"])
     .index("by_tenant", ["tenantId"]),
 
+  // Platform-wide settings (singleton document keyed by "platform")
+  // Configurable by Platform Admin — no code deploy needed to change defaults
+  platformSettings: defineTable({
+    key: v.string(),                  // Singleton key: "platform"
+    defaultTrialDays: v.number(),     // Free trial duration in days (default: 14)
+    // Future settings can be added here (e.g., defaultGracePeriodDays, maxTrialExtensionDays)
+  }).index("by_key", ["key"]),
+
   // Pre-aggregated platform-wide KPIs (singleton document keyed by "platform")
   // Recalculated hourly by cron from all tenantStats rows
   // Admin-only access via requireAdmin(ctx)

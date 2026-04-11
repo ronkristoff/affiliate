@@ -85,6 +85,7 @@ import type * as notifications from "../notifications.js";
 import type * as payouts from "../payouts.js";
 import type * as performance from "../performance.js";
 import type * as permissions from "../permissions.js";
+import type * as platformSettings from "../platformSettings.js";
 import type * as queryBuilder from "../queryBuilder.js";
 import type * as queryBuilder__utils from "../queryBuilder/_utils.js";
 import type * as queryBuilderExport from "../queryBuilderExport.js";
@@ -203,6 +204,7 @@ declare const fullApi: ApiFromModules<{
   payouts: typeof payouts;
   performance: typeof performance;
   permissions: typeof permissions;
+  platformSettings: typeof platformSettings;
   queryBuilder: typeof queryBuilder;
   "queryBuilder/_utils": typeof queryBuilder__utils;
   queryBuilderExport: typeof queryBuilderExport;

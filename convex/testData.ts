@@ -17,6 +17,7 @@ import { internalMutation, internalAction, internalQuery } from "./_generated/se
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { readDefaultTrialDays } from "./platformSettings";
 
 /** Create a timestamp from year/month/day (1-indexed month). */
 function date(year: number, month: number, day: number): number {
@@ -725,8 +726,9 @@ export const createTestTenantWithUsers = internalMutation({
       throw new Error(`Tenant with slug "${args.slug}" already exists`);
     }
 
-    // Create tenant
-    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
+    // Create tenant — use platform settings for trial duration
+    const defaultTrialDays = await readDefaultTrialDays(ctx);
+    const trialEndsAt = Date.now() + defaultTrialDays * 24 * 60 * 60 * 1000;
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,
       slug: args.slug,

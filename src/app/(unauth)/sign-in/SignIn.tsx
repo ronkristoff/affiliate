@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { ConvexHttpClient } from "convex/browser";
 import { Logo } from "@/components/shared/Logo";
 import { SidebarNetwork } from "@/components/shared/SidebarNetwork";
+import { useDefaultTrialDays } from "@/hooks/useDefaultTrialDays";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -51,6 +52,7 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function SignIn() {
   const router = useRouter();
+  const trialDays = useDefaultTrialDays();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
   const [showPassword, setShowPassword] = useState(false);
@@ -366,7 +368,7 @@ export default function SignIn() {
             <p className="text-sm text-[#6b7280] leading-relaxed">
               Sign in to your Affilio account. New here?{" "}
               <Link href="/sign-up" className="text-[#1c2260] font-semibold no-underline hover:underline">
-                Start your free 14-day trial →
+                Start your free {trialDays}-day trial →
               </Link>
             </p>
           </div>

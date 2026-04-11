@@ -8,6 +8,7 @@ import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { obfuscate, deobfuscate } from "./encryption";
 import { seedStats } from "./tenantStats";
+import { readDefaultTrialDays } from "./platformSettings";
 import DeletionReminderEmail from "./emails/DeletionReminderEmail";
 import DomainChangeNotificationEmail from "./emails/DomainChangeNotificationEmail";
 import { render } from "@react-email/components";
@@ -16,6 +17,9 @@ import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceM
 import { sendEmail, getFromAddress } from "./emailService";
 // Workaround: RegisteredMutation type doesn't expose callable signature to tsc.
 const sendEmailFromMutation = _sendEmailFromMutation as any;
+
+/** Milliseconds in one day. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 
 /**
@@ -68,7 +72,9 @@ export const createTenant = internalMutation({
     }
 
     // Create tenant with default settings
-    const trialEndsAt = Date.now() + 14 * 24 * 60 * 60 * 1000; // 14 days from now
+    // Read trial duration from platform settings (admin-configurable)
+    const defaultTrialDays: number = await readDefaultTrialDays(ctx);
+    const trialEndsAt: number = Date.now() + defaultTrialDays * MS_PER_DAY;
 
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,

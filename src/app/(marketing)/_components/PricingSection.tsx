@@ -8,8 +8,10 @@ import { Check, ArrowRight, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useDefaultTrialDays } from "@/hooks/useDefaultTrialDays";
 
 export function PricingSection() {
+  const trialDays = useDefaultTrialDays();
   const [isAnnual, setIsAnnual] = useState(false);
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
 
@@ -46,7 +48,7 @@ export function PricingSection() {
     if (tier.features.prioritySupport) {
       features.push("Priority support");
     }
-    features.push("14-day free trial");
+    features.push(`${trialDays}-day free trial`);
     return features;
   };
 
@@ -284,7 +286,7 @@ export function PricingSection() {
             for enterprise pricing.
           </p>
           <p className="text-sm text-[#6b7280]/70 mt-2">
-            All plans include 14-day free trial with full Scale tier access.
+            All plans include {trialDays}-day free trial with full Scale tier access.
           </p>
         </div>
       </div>
