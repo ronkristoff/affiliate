@@ -58,7 +58,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
     effectiveSubStatus = "past_due";
   }
 
-  const joinDate = new Date(tenant.createdAt * 1000).toLocaleDateString();
+  const joinDate = new Date(tenant.createdAt).toLocaleDateString();
 
   return (
     <div className="rounded-xl border border-[#e5e7eb] bg-white p-5">
