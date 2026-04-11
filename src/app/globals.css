@@ -448,6 +448,31 @@
   .info-panel-header {
     @apply text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] mb-3;
   }
+
+  /* ── Campaign Card ── */
+  .campaign-card-commission {
+    background: linear-gradient(135deg, var(--brand-light) 0%, #f8fafc 60%, white 100%);
+    border: 1px solid rgba(28, 34, 96, 0.06);
+  }
+
+  .campaign-card--paused {
+    opacity: 0.78;
+  }
+
+  .campaign-card--paused .campaign-card-commission {
+    background: linear-gradient(135deg, #fffbeb 0%, #fffef5 60%, white 100%);
+    border-color: rgba(245, 158, 11, 0.08);
+  }
+
+  .campaign-card--archived {
+    opacity: 0.55;
+    filter: saturate(0.3);
+  }
+
+  .campaign-card--archived .campaign-card-commission {
+    background: linear-gradient(135deg, var(--bg-page) 0%, #f9fafb 60%, white 100%);
+    border-color: rgba(0, 0, 0, 0.04);
+  }
 }
 
 @layer utilities {
