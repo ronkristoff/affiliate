@@ -1185,7 +1185,7 @@ function QueryBuilderContent() {
           <FadeIn>
             <div className="max-w-4xl mx-auto py-4">
               {/* Quick-start cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:overflow-x-auto md:flex md:gap-4 md:snap-x md:snap-mandatory md:[scrollbar-width:none]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {visibleCards.map((card) => (
                   <button
                     key={card.id}
@@ -1195,8 +1195,8 @@ function QueryBuilderContent() {
                       setErrorCardId(null);
                       handleSelectTemplate(card);
                     }}
-                    className="group relative text-left rounded-xl border border-[var(--border)] bg-white p-5 hover:border-[#1c2260]/30 hover:shadow-md transition-all duration-200 snap-start md:min-w-[260px] focus:outline-none focus:ring-2 focus:ring-[#1c2260]/30"
-                    >
+                    className="group relative text-left rounded-xl bg-[var(--bg-surface)] p-5 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1c2260]/30"
+                  >
                     {/* Loading overlay */}
                     {loadingCardId === card.id && (
                       <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center z-10">
