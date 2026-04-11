@@ -318,7 +318,7 @@ export default function SignUp() {
           </h1>
           <p className="text-[15px] text-white/65 leading-relaxed max-w-[340px]">
             Full access to commission tracking, payout management, and a branded affiliate portal —
-            integrated natively with SaligPay.
+            integrated natively with your payment gateway.
           </p>
         </div>
 
@@ -341,7 +341,7 @@ export default function SignUp() {
             </div>
             <div>
               <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">Commissions tracked</div>
-              <div className="text-sm text-white font-semibold mt-px">Zero-latency SaligPay integration</div>
+              <div className="text-sm text-white font-semibold mt-px">Zero-latency payment gateway integration</div>
             </div>
           </div>
           <div className="flex items-center gap-3.5 bg-white/7 border border-white/10 rounded-xl p-3.5">
@@ -383,7 +383,7 @@ export default function SignUp() {
             </div>
             <div>
               <div className="text-[11px] text-white/50 font-medium uppercase tracking-wider">White-labeled portal</div>
-              <div className="text-sm text-white font-semibold mt-px">Your brand. Your affiliates. Zero salig marks.</div>
+              <div className="text-sm text-white font-semibold mt-px">Your brand. Your affiliates. No third-party marks.</div>
             </div>
           </div>
         </div>
@@ -848,7 +848,7 @@ export default function SignUp() {
           <div className="hidden lg:block mt-8 pt-6 border-t border-[#e5e7eb]">
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
               {[
-                "Native SaligPay integration",
+                "Native payment gateway integration",
                 "White-labeled portal",
                 "Live in under 15 minutes",
                 "WCAG 2.1 AA",
