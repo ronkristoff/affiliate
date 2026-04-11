@@ -14,6 +14,11 @@ import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import {
+  sendPastDueEmail,
+  sendGracePeriodWarningEmail,
+  sendTrialExpiredEmail,
+} from "./email";
 
 const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_TENANTS_PER_RUN = 100;
@@ -159,6 +164,9 @@ export const enforceBillingLifecycle = internalMutation({
           actionLabel: "Upgrade Plan",
         });
 
+        // Send trial expired email
+        await sendBillingLifecycleEmail(ctx, freshTenant._id, freshTenant.name, "trial_expired");
+
         transitions++;
         processed++;
         continue; // Move to next tenant — don't double-process
@@ -206,6 +214,9 @@ export const enforceBillingLifecycle = internalMutation({
           actionUrl: "/settings/billing",
           actionLabel: "Update Payment",
         });
+
+        // Send past due email
+        await sendBillingLifecycleEmail(ctx, freshTenant._id, freshTenant.name, "past_due");
 
         transitions++;
         processed++;
@@ -261,6 +272,9 @@ export const enforceBillingLifecycle = internalMutation({
           actionLabel: "Reactivate",
         });
 
+        // Send grace period expired / cancelled email
+        await sendBillingLifecycleEmail(ctx, freshTenant._id, freshTenant.name, "grace_expired");
+
         transitions++;
         processed++;
         continue;
@@ -286,6 +300,9 @@ export const enforceBillingLifecycle = internalMutation({
             actionLabel: "Update Payment",
             shouldAggregate: true,
           });
+
+          // Send grace period warning email
+          await sendBillingLifecycleEmail(ctx, freshTenant._id, freshTenant.name, "grace_warning");
         }
       }
 
@@ -334,6 +351,77 @@ async function notifyTenantOwner(
   } catch (error) {
     console.error(
       `[billingLifecycle] Failed to notify owner for tenant="${tenantId}":`,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
+// =============================================================================
+// Helper: Send billing lifecycle email
+// =============================================================================
+
+type LifecycleEmailType = "past_due" | "grace_warning" | "trial_expired" | "grace_expired";
+
+/**
+ * Send the appropriate billing lifecycle email to the tenant owner.
+ * Non-fatal — email send failure should not block the lifecycle transition.
+ */
+async function sendBillingLifecycleEmail(
+  ctx: any,
+  tenantId: Id<"tenants">,
+  tenantName: string,
+  emailType: LifecycleEmailType,
+): Promise<void> {
+  try {
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+      .filter((q: any) => q.eq(q.field("role") as any, "owner"))
+      .take(5);
+
+    for (const owner of ownerUsers) {
+      if (!owner.email) continue;
+
+      const brandName = tenantName || "Salig Affiliate";
+
+      switch (emailType) {
+        case "past_due":
+          await sendPastDueEmail(ctx, {
+            to: owner.email,
+            tenantName,
+            brandName,
+            tenantId,
+          });
+          break;
+        case "grace_warning":
+          await sendGracePeriodWarningEmail(ctx, {
+            to: owner.email,
+            tenantName,
+            brandName,
+            tenantId,
+          });
+          break;
+        case "trial_expired":
+          await sendTrialExpiredEmail(ctx, {
+            to: owner.email,
+            tenantName,
+            brandName,
+            tenantId,
+          });
+          break;
+        case "grace_expired":
+          await sendGracePeriodWarningEmail(ctx, {
+            to: owner.email,
+            tenantName,
+            brandName,
+            tenantId,
+          });
+          break;
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[billingLifecycle] Failed to send ${emailType} email for tenant="${tenantId}":`,
       error instanceof Error ? error.message : String(error)
     );
   }

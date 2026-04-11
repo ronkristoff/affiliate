@@ -15,6 +15,10 @@ import { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireAdmin } from "./_helpers";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
+import {
+  sendWelcomeBackEmail,
+  sendAccountReactivatedEmail,
+} from "../email";
 
 // =============================================================================
 // Queries
@@ -754,6 +758,9 @@ export const adminReactivateSubscription = mutation({
       severity: "success",
     });
 
+    // Send account reactivated email
+    await sendReactivationEmailToOwner(ctx, args.tenantId, tenant.name, "reactivated");
+
     // Notify platform admin
     try {
       await ctx.runMutation(internal.notifications.createNotification, {
@@ -859,6 +866,11 @@ export const adminExtendBilling = mutation({
       severity: "success",
     });
 
+    // Send welcome back email if recovering from past_due
+    if (tenant.subscriptionStatus === "past_due") {
+      await sendReactivationEmailToOwner(ctx, args.tenantId, tenant.name, "welcome_back");
+    }
+
     return { success: true, newBillingEndDate: newEnd };
   },
 });
@@ -948,6 +960,9 @@ export const adminResetToTrial = mutation({
       severity: "info",
     });
 
+    // Send account reactivated email
+    await sendReactivationEmailToOwner(ctx, args.tenantId, tenant.name, "reactivated");
+
     return { success: true, newTrialEndsAt };
   },
 });
@@ -1026,6 +1041,9 @@ export const adminMarkAsPaid = mutation({
       message: "Payment received. Your account is fully active again.",
       severity: "success",
     });
+
+    // Send welcome back email
+    await sendReactivationEmailToOwner(ctx, args.tenantId, tenant.name, "welcome_back");
 
     return { success: true };
   },
@@ -1147,6 +1165,58 @@ async function notifyTenantOwner(
   } catch (error) {
     console.error(
       `[admin.subscriptions] Failed to notify owner for tenant="${tenantId}":`,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
+// =============================================================================
+// Helper: Send reactivation email to tenant owner
+// =============================================================================
+
+type ReactivationEmailType = "reactivated" | "welcome_back";
+
+/**
+ * Send the appropriate reactivation email to the tenant owner.
+ * Non-fatal — email send failure should not block the admin action.
+ */
+async function sendReactivationEmailToOwner(
+  ctx: any,
+  tenantId: Id<"tenants">,
+  tenantName: string,
+  emailType: ReactivationEmailType,
+): Promise<void> {
+  try {
+    const ownerUsers = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+      .filter((q: any) => q.eq(q.field("role") as any, "owner"))
+      .take(5);
+
+    const brandName = tenantName || "Salig Affiliate";
+
+    for (const owner of ownerUsers) {
+      if (!owner.email) continue;
+
+      if (emailType === "reactivated") {
+        await sendAccountReactivatedEmail(ctx, {
+          to: owner.email,
+          tenantName,
+          brandName,
+          tenantId,
+        });
+      } else {
+        await sendWelcomeBackEmail(ctx, {
+          to: owner.email,
+          tenantName,
+          brandName,
+          tenantId,
+        });
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[admin.subscriptions] Failed to send ${emailType} email for tenant="${tenantId}":`,
       error instanceof Error ? error.message : String(error)
     );
   }

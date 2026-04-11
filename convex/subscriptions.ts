@@ -11,7 +11,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthenticatedUser } from "./tenantContext";
-import { sendUpgradeConfirmation, sendDowngradeConfirmation, sendCancellationConfirmation } from "./email";
+import { sendUpgradeConfirmation, sendDowngradeConfirmation, sendCancellationConfirmation, sendPaymentSuccessEmail } from "./email";
 import { internal } from "./_generated/api";
 
 /**
@@ -526,6 +526,21 @@ export const convertTrialToPaid = mutation({
       });
     } catch {}
 
+    // Send payment success confirmation email
+    const ownerUser = await ctx.db.get(authUser.userId);
+    if (ownerUser?.email) {
+      await sendPaymentSuccessEmail(ctx, {
+        to: ownerUser.email,
+        tenantName: tenant.name,
+        plan: args.plan,
+        amount: tierConfig.price,
+        billingStartDate,
+        billingEndDate,
+        transactionId,
+        tenantId: authUser.tenantId,
+      });
+    }
+
     return { success: true, transactionId };
   },
 });
@@ -703,6 +718,18 @@ export const upgradeTier = mutation({
         proratedAmount,
         effectiveDate: newBillingStart,
         newBillingAmount: newPrice,
+        tenantId: authUser.tenantId,
+      });
+
+      // Send payment success confirmation email
+      await sendPaymentSuccessEmail(ctx, {
+        to: user.email,
+        tenantName: tenant.name,
+        plan: args.targetPlan,
+        amount: proratedAmount,
+        billingStartDate: newBillingStart,
+        billingEndDate: newBillingEnd,
+        transactionId,
         tenantId: authUser.tenantId,
       });
     }

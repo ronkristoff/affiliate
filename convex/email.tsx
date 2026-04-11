@@ -11,6 +11,7 @@ import GracePeriodWarningEmail from "./emails/GracePeriodWarningEmail";
 import TrialExpiredEmail from "./emails/TrialExpiredEmail";
 import WelcomeBackEmail from "./emails/WelcomeBackEmail";
 import AccountReactivatedEmail from "./emails/AccountReactivatedEmail";
+import PaymentSuccessEmail from "./emails/PaymentSuccessEmail";
 import AffiliateWelcomeEmail from "./emails/AffiliateWelcomeEmail";
 import NewAffiliateNotificationEmail from "./emails/NewAffiliateNotificationEmail";
 import AffiliateApprovalEmail from "./emails/AffiliateApprovalEmail";
@@ -32,6 +33,30 @@ import { sendEmail, getFromAddress } from "./emailService";
 // but Convex runtime supports calling internal mutations directly with (ctx, args).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sendEmailFromMutation = _sendEmailFromMutation as any;
+
+// ── Dual-provider send helper ─────────────────────────────────────────────────
+// Sends via the internalAction sendEmail which supports both Resend and Postmark.
+// Use this from mutation contexts where Postmark SDK (Node.js) is unavailable.
+// Falls back to sendEmailFromMutation (Resend-only) if ctx.scheduler is missing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendViaAction(ctx: any, args: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  tracking?: {
+    tenantId: Id<"tenants">;
+    type: string;
+    affiliateId?: Id<"affiliates">;
+    broadcastId?: Id<"broadcastEmails">;
+  };
+}): Promise<void> {
+  if (ctx.scheduler) {
+    await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, args);
+  } else {
+    await sendEmailFromMutation(ctx, args);
+  }
+}
 
 // Re-export getFromAddress for callers that need from-address construction
 export { getFromAddress };
@@ -153,7 +178,7 @@ export const sendUpgradeConfirmation = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your subscription has been upgraded!",
@@ -191,7 +216,7 @@ export const sendDowngradeConfirmation = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your subscription plan has been changed",
@@ -225,7 +250,7 @@ export const sendCancellationConfirmation = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Your Subscription Has Been Cancelled",
@@ -233,7 +258,7 @@ export const sendCancellationConfirmation = async (
       <CancellationConfirmationEmail
         previousPlan={previousPlan}
         accessEndDate={accessEndDate}
-        deletionDate={0} // Placeholder — template updated in Task 31
+        deletionDate={0}
       />
     ),
     tracking: {
@@ -261,7 +286,7 @@ export const sendSubscriptionDeletionReminder = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Urgent: Your account will be deleted soon",
@@ -300,7 +325,7 @@ export const sendPastDueEmail = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Payment overdue — action required",
@@ -331,7 +356,7 @@ export const sendGracePeriodWarningEmail = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Final warning — 3 days until cancellation",
@@ -362,7 +387,7 @@ export const sendTrialExpiredEmail = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Trial ended — upgrade to keep your data",
@@ -393,7 +418,7 @@ export const sendWelcomeBackEmail = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Welcome back!",
@@ -424,7 +449,7 @@ export const sendAccountReactivatedEmail = async (
     tenantId: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("billing"),
     to,
     subject: "Account reactivated",
@@ -434,6 +459,56 @@ export const sendAccountReactivatedEmail = async (
     tracking: {
       tenantId,
       type: "billing_reactivated",
+    },
+  });
+};
+
+/**
+ * Send payment success confirmation email (receipt-style).
+ * Wired into upgrade, trial conversion, and payment recovery flows.
+ */
+export const sendPaymentSuccessEmail = async (
+  ctx: MutationCtx,
+  {
+    to,
+    tenantName,
+    plan,
+    amount,
+    currency,
+    billingStartDate,
+    billingEndDate,
+    transactionId,
+    tenantId,
+  }: {
+    to: string;
+    tenantName: string;
+    plan: string;
+    amount: number;
+    currency?: string;
+    billingStartDate: number;
+    billingEndDate: number;
+    transactionId?: string;
+    tenantId: Id<"tenants">;
+  },
+) => {
+  await sendViaAction(ctx, {
+    from: getFromAddress("billing"),
+    to,
+    subject: "Payment confirmed",
+    html: await render(
+      <PaymentSuccessEmail
+        tenantName={tenantName}
+        plan={plan}
+        amount={amount}
+        currency={currency}
+        billingStartDate={billingStartDate}
+        billingEndDate={billingEndDate}
+        transactionId={transactionId}
+      />
+    ),
+    tracking: {
+      tenantId,
+      type: "billing_payment_success",
     },
   });
 };
@@ -480,8 +555,8 @@ export const sendAffiliateWelcomeEmail = async (
 
   for (let attempt = 0; attempt <= maxAttempts; attempt++) {
     try {
-      // Send via unified email service (Resend-only from mutation context)
-      await sendEmailFromMutation(ctx, {
+      // Send via unified email service (dual-provider via scheduler)
+      await sendViaAction(ctx, {
         from: getFromAddress("onboarding"),
         to,
         subject,
@@ -638,7 +713,7 @@ export const sendNewAffiliateNotificationEmail = async (
     tenantId?: Id<"tenants">;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("notifications"),
     to,
     subject: `New Affiliate Application from ${affiliateName}`,

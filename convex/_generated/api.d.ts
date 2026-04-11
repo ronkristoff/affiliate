@@ -60,6 +60,7 @@ import type * as emails_GracePeriodWarningEmail from "../emails/GracePeriodWarni
 import type * as emails_NewAffiliateNotificationEmail from "../emails/NewAffiliateNotificationEmail.js";
 import type * as emails_NewReferralAlertEmail from "../emails/NewReferralAlertEmail.js";
 import type * as emails_PastDueEmail from "../emails/PastDueEmail.js";
+import type * as emails_PaymentSuccessEmail from "../emails/PaymentSuccessEmail.js";
 import type * as emails_PayoutSentEmail from "../emails/PayoutSentEmail.js";
 import type * as emails_TeamAcceptedNotification from "../emails/TeamAcceptedNotification.js";
 import type * as emails_TeamInvitation from "../emails/TeamInvitation.js";
@@ -179,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   "emails/NewAffiliateNotificationEmail": typeof emails_NewAffiliateNotificationEmail;
   "emails/NewReferralAlertEmail": typeof emails_NewReferralAlertEmail;
   "emails/PastDueEmail": typeof emails_PastDueEmail;
+  "emails/PaymentSuccessEmail": typeof emails_PaymentSuccessEmail;
   "emails/PayoutSentEmail": typeof emails_PayoutSentEmail;
   "emails/TeamAcceptedNotification": typeof emails_TeamAcceptedNotification;
   "emails/TeamInvitation": typeof emails_TeamInvitation;
