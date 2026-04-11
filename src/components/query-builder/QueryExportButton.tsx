@@ -14,7 +14,10 @@ interface QueryExportButtonProps {
   columns: Array<{ table: string; column: string; alias?: string }>;
   rows: Array<Record<string, unknown>>;
   totalRows: number;
-  tenantId: string;
+  /** Tenant ID for server-side export of large datasets. Omit for admin mode (client-side only). */
+  tenantId?: string;
+  /** File name prefix for the downloaded CSV (default: "query-export") */
+  filenamePrefix?: string;
 }
 
 export function QueryExportButton({
@@ -23,6 +26,7 @@ export function QueryExportButton({
   rows,
   totalRows,
   tenantId,
+  filenamePrefix = "query-export",
 }: QueryExportButtonProps) {
   const exportAction = useAction(api.queryBuilderExport.exportQueryBuilderCSV);
   const [isExporting, setIsExporting] = useState(false);
@@ -35,7 +39,8 @@ export function QueryExportButton({
 
     setIsExporting(true);
     try {
-      if (totalRows <= 5000) {
+      // Client-side export for small datasets or when no tenantId (admin mode)
+      if (totalRows <= 5000 || !tenantId) {
         const headers = columns.map((col) => col.alias || `${col.table}.${col.column}`);
         const csvRows = rows.map((row) =>
           columns.map((col) => {
@@ -54,9 +59,10 @@ export function QueryExportButton({
           csvRows.map((row) => row.join(",")).join("\n");
 
         const date = new Date().toISOString().split("T")[0];
-        downloadCsvFromString(csvContent, `query-export-${date}`);
+        downloadCsvFromString(csvContent, `${filenamePrefix}-${date}`);
         toast.success(`Exported ${rows.length} rows`);
       } else {
+        // Server-side export for large tenant-scoped datasets
         const result = await exportAction({
           tenantId: tenantId as Id<"tenants">,
           columns,
@@ -66,7 +72,7 @@ export function QueryExportButton({
         if (result.csvBase64) {
           const csvContent = atob(result.csvBase64);
           const date = new Date().toISOString().split("T")[0];
-          downloadCsvFromString(csvContent, `query-export-${date}`);
+          downloadCsvFromString(csvContent, `${filenamePrefix}-${date}`);
           toast.success(`Exported ${result.totalRows} rows`);
         } else if (result.storageFileId) {
           toast.success(`Export ready (${result.totalRows} rows). Download will start shortly.`);

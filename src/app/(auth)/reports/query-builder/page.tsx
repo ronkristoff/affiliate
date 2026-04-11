@@ -650,6 +650,18 @@ function QueryBuilderContent() {
 
   const [hasRunQuery, setHasRunQuery] = useState(false);
 
+  // When config changes from user interaction (clicking tables/columns/filters etc),
+  // mark results as stale so the user must explicitly re-run.
+  // Skip reset when the change originates from an explicit run / template / saved-query load.
+  const isExplicitRunRef = useRef(false);
+  useEffect(() => {
+    if (isExplicitRunRef.current) {
+      isExplicitRunRef.current = false;
+      return;
+    }
+    setHasRunQuery(false);
+  }, [configJson]);
+
   const results = useQuery(
     api.queryBuilder.executeQuery,
     hasRunQuery && hasValidConfig
@@ -688,12 +700,14 @@ function QueryBuilderContent() {
         return;
       }
     }
+    isExplicitRunRef.current = true;
     setHasRunQuery(true);
   }, [hasValidConfig, config]);
 
   // ─── Card Click / Auto-Execute ─────────────────────────────────
   const handleSelectTemplate = useCallback((card: QuickStartCard) => {
     confirmIfDirty(() => {
+      isExplicitRunRef.current = true;
       // Resolve affiliate placeholders at click time
       let resolvedConfig = card.config;
       if (card.role === "affiliate" && affiliate) {
@@ -725,6 +739,7 @@ function QueryBuilderContent() {
   // ─── Load Saved Query ──────────────────────────────────────────
   const handleLoadQuery = useCallback((loadedConfig: QueryConfig) => {
     confirmIfDirty(() => {
+      isExplicitRunRef.current = true;
       loadConfig(loadedConfig);
       clearHistory();
       // Set a default "Last 30 days" date range since saved queries don't persist dateRange
@@ -1269,6 +1284,13 @@ function QueryBuilderContent() {
                     <Settings2 className="w-3.5 h-3.5" />
                     Customize this query
                   </Button>
+                  <QueryExportButton
+                    hasResults={!!results && results.rows.length > 0}
+                    columns={config.columns}
+                    rows={results?.rows ?? []}
+                    totalRows={results?.totalRows ?? 0}
+                    tenantId={tenantId ?? ""}
+                  />
                 </div>
                 <Button
                   variant="ghost"

@@ -37,9 +37,9 @@ import { AggregationBuilder } from "@/components/query-builder/AggregationBuilde
 import { ResultsTable } from "@/components/query-builder/ResultsTable";
 import { AdminSavedQueriesList } from "@/components/query-builder/AdminSavedQueriesList";
 import { SaveQueryDialog } from "@/components/query-builder/SaveQueryDialog";
+import { QueryExportButton } from "@/components/query-builder/QueryExportButton";
 import { QueryPreviewSentence } from "@/components/query-builder/QueryPreviewSentence";
 import { DATE_PRESETS } from "@/lib/date-presets";
-import { escapeCsvField, downloadCsvFromString } from "@/lib/csv-utils";
 import {
   Play,
   Save,
@@ -71,7 +71,6 @@ import {
   DollarSign,
   Users,
   Shield,
-  Download,
   Loader2,
   Construction,
   Building2,
@@ -599,6 +598,7 @@ function AdminQueryBuilderContent() {
     setRowLimit,
     resetConfig,
     loadConfig,
+    configJson,
     isDirty,
     undo,
     redo,
@@ -621,7 +621,6 @@ function AdminQueryBuilderContent() {
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const [dirtyCheckDialogOpen, setDirtyCheckDialogOpen] = useState(false);
   const [pendingDirtyAction, setPendingDirtyAction] = useState<(() => void) | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
 
   const lastDatePresetRef = useRef<string>("");
 
@@ -677,6 +676,18 @@ function AdminQueryBuilderContent() {
 
   const [hasRunQuery, setHasRunQuery] = useState(false);
 
+  // When config changes from user interaction (clicking tables/columns/filters etc),
+  // mark results as stale so the user must explicitly re-run.
+  // Skip reset when the change originates from an explicit run / template / saved-query load.
+  const isExplicitRunRef = useRef(false);
+  useEffect(() => {
+    if (isExplicitRunRef.current) {
+      isExplicitRunRef.current = false;
+      return;
+    }
+    setHasRunQuery(false);
+  }, [configJson]);
+
   const results = useQuery(
     api.admin.queryBuilder.executeQuery,
     hasRunQuery && hasValidConfig
@@ -715,12 +726,14 @@ function AdminQueryBuilderContent() {
         return;
       }
     }
+    isExplicitRunRef.current = true;
     setHasRunQuery(true);
   }, [hasValidConfig, config]);
 
   // ─── Card Click / Auto-Execute ─────────────────────────────────
   const handleSelectTemplate = useCallback((card: QuickStartCard) => {
     confirmIfDirty(() => {
+      isExplicitRunRef.current = true;
       loadConfig(card.config);
       clearHistory();
 
@@ -737,6 +750,7 @@ function AdminQueryBuilderContent() {
   // ─── Load Saved Query ──────────────────────────────────────────
   const handleLoadQuery = useCallback((loadedConfig: QueryConfig) => {
     confirmIfDirty(() => {
+      isExplicitRunRef.current = true;
       loadConfig(loadedConfig);
       clearHistory();
       const preset = DATE_PRESETS.find((p) => p.label === "Last 30 days");
@@ -781,39 +795,6 @@ function AdminQueryBuilderContent() {
     setDateRange(null);
     toast.success("Query reset");
   }, [hasValidConfig, resetConfig, clearHistory]);
-
-  // ─── Handle Export ─────────────────────────────────────────────
-  const handleExport = useCallback(async () => {
-    if (!results || results.rows.length === 0) return;
-
-    setIsExporting(true);
-    try {
-      const headers = config.columns.map((col) => col.alias || `${col.table}.${col.column}`);
-      const csvRows = results.rows.map((row) =>
-        config.columns.map((col) => {
-          const key = col.alias || `${col.table}.${col.column}`;
-          const value = row[key];
-          if (value === null || value === undefined) return "";
-          if (typeof value === "number") return value.toFixed(2);
-          return escapeCsvField(String(value));
-        })
-      );
-
-      const csvContent =
-        "\uFEFF" +
-        headers.join(",") +
-        "\n" +
-        csvRows.map((row) => row.join(",")).join("\n");
-
-      const date = new Date().toISOString().split("T")[0];
-      downloadCsvFromString(csvContent, `admin-query-export-${date}`);
-      toast.success(`Exported ${results.rows.length} rows`);
-    } catch {
-      toast.error("Failed to export query results");
-    } finally {
-      setIsExporting(false);
-    }
-  }, [results, config.columns]);
 
   // ─── Keyboard Shortcuts ────────────────────────────────────────
   useEffect(() => {
@@ -1038,20 +1019,13 @@ function AdminQueryBuilderContent() {
               </Button>
 
               {/* Export */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={isExporting || !results || results.rows.length === 0}
-                className="gap-1.5"
-              >
-                {isExporting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Download className="w-3 h-3" />
-                )}
-                Export CSV
-              </Button>
+              <QueryExportButton
+                hasResults={!!results && results.rows.length > 0}
+                columns={config.columns}
+                rows={results?.rows ?? []}
+                totalRows={results?.totalRows ?? 0}
+                filenamePrefix="admin-query-export"
+              />
 
               <HealthIndicator health={health} />
 
@@ -1325,6 +1299,13 @@ function AdminQueryBuilderContent() {
                     <Settings2 className="w-3.5 h-3.5" />
                     Customize this query
                   </Button>
+                  <QueryExportButton
+                    hasResults={!!results && results.rows.length > 0}
+                    columns={config.columns}
+                    rows={results?.rows ?? []}
+                    totalRows={results?.totalRows ?? 0}
+                    filenamePrefix="admin-query-export"
+                  />
                 </div>
                 <Button
                   variant="ghost"
