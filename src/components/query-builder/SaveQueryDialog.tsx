@@ -26,6 +26,8 @@ interface SaveQueryDialogProps {
   onOpenChange: (open: boolean) => void;
   config: QueryConfig;
   queryId?: string;
+  /** When true, uses admin mutations (adminSavedQueries) instead of tenant ones */
+  isAdminMode?: boolean;
 }
 
 const SHARE_ROLES = [
@@ -39,9 +41,14 @@ export function SaveQueryDialog({
   onOpenChange,
   config,
   queryId,
+  isAdminMode = false,
 }: SaveQueryDialogProps) {
-  const saveMutation = useMutation(api.queryBuilder.saveQuery);
-  const updateMutation = useMutation(api.queryBuilder.updateSavedQuery);
+  const saveMutation = useMutation(
+    isAdminMode ? api.admin.queryBuilder.saveQuery : api.queryBuilder.saveQuery
+  );
+  const updateMutation = useMutation(
+    isAdminMode ? api.admin.queryBuilder.updateSavedQuery : api.queryBuilder.updateSavedQuery
+  );
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -63,18 +70,16 @@ export function SaveQueryDialog({
           name: name.trim(),
           description: description.trim() || undefined,
           queryConfig: JSON.stringify(config),
-          isShared,
-          sharedWithRoles: isShared ? selectedRoles : undefined,
-        });
+          ...(isAdminMode ? {} : { isShared, sharedWithRoles: isShared ? selectedRoles : undefined }),
+        } as any);
         toast.success("Query updated");
       } else {
         await saveMutation({
           name: name.trim(),
           description: description.trim() || undefined,
           queryConfig: JSON.stringify(config),
-          isShared,
-          sharedWithRoles: isShared ? selectedRoles : undefined,
-        });
+          ...(isAdminMode ? {} : { isShared, sharedWithRoles: isShared ? selectedRoles : undefined }),
+        } as any);
         toast.success("Query saved");
       }
       setName("");
@@ -129,6 +134,7 @@ export function SaveQueryDialog({
             />
           </div>
 
+          {!isAdminMode && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -168,6 +174,7 @@ export function SaveQueryDialog({
               </div>
             )}
           </div>
+          )}
         </div>
 
         <DialogFooter>
