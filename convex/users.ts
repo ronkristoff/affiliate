@@ -526,6 +526,7 @@ export const getUsersByTenant = query({
       name: v.optional(v.string()),
       role: v.string(),
       authId: v.optional(v.string()),
+      notificationUnreadCount: v.optional(v.number()),
       permissionOverrides: v.optional(v.object({
         canManageAffiliates: v.boolean(),
         canManageCampaigns: v.boolean(),

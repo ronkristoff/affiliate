@@ -229,21 +229,24 @@ export const getNotifications = query({
       .query("notifications")
       .withIndex("by_user_created", (q) => q.eq("userId", args.userId));
 
-    // Apply filters
-    const filtered = args.typeFilter || args.unreadOnly
-      ? queryBuilder.filter((q) => {
-          const conditions = [q.gte(q.field("expiresAt") as any, now)];
-          if (args.typeFilter) {
-            conditions.push(q.eq(q.field("type") as any, args.typeFilter));
-          }
-          if (args.unreadOnly) {
-            conditions.push(q.eq(q.field("isRead") as any, false));
-          }
-          return q.and(...conditions);
-        })
-      : queryBuilder.filter((q) => q.gte(q.field("expiresAt") as any, now));
-
-    return filtered.order("desc").paginate(args.paginationOpts);
+    // Always use a single filter shape so pagination cursors remain valid
+    // across filter changes. Conditionals inside the filter don't change
+    // the query shape — only the structure of chained .filter() calls does.
+    return ctx.db
+      .query("notifications")
+      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+      .filter((q) => {
+        const conditions = [q.gte(q.field("expiresAt") as any, now)];
+        if (args.typeFilter) {
+          conditions.push(q.eq(q.field("type") as any, args.typeFilter));
+        }
+        if (args.unreadOnly) {
+          conditions.push(q.eq(q.field("isRead") as any, false));
+        }
+        return q.and(...conditions);
+      })
+      .order("desc")
+      .paginate(args.paginationOpts);
   },
 });
 

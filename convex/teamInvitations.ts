@@ -283,6 +283,7 @@ export const getPendingInvitations = query({
       email: v.string(),
       role: v.string(),
       expiresAt: v.number(),
+      token: v.optional(v.string()),
       acceptedAt: v.optional(v.number()),
     })
   ),
