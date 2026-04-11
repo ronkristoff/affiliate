@@ -1,0 +1,290 @@
+<section class="module" id="module-1">
+
+  <!-- Screen 1: Hero / What is Affilio? -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">01</span>
+      <h2 class="module-title">What Is a Tenant?</h2>
+      <p class="module-subtitle">The starting point of every affiliate empire</p>
+    </div>
+
+    <p class="animate-in">
+      Imagine you run a SaaS product called <strong>TaskFlow</strong>. You want bloggers and influencers to promote your product and earn a cut of every sale they bring in. That's an <span class="glossary" data-tip="An affiliate program is a marketing arrangement where third-party promoters (affiliates) earn commissions for driving sales to a business.">affiliate program</span> — and <strong>Affilio</strong> is the software that runs it.
+    </p>
+
+    <p class="animate-in">
+      When you sign up for Affilio, the system creates a <strong>tenant</strong> for you. A tenant is your private workspace — your company's entire affiliate operation lives inside it. Think of it as a <strong>self-contained franchise building</strong> inside a larger shopping mall.
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🏢</div>
+        <h4 class="pattern-title">Tenant</h4>
+        <p class="pattern-desc">Your private workspace. Contains your affiliates, campaigns, commissions, payouts, branding — everything.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent-muted)">
+        <div class="pattern-icon" style="background: var(--color-accent-muted)">👥</div>
+        <h4 class="pattern-title">Users</h4>
+        <p class="pattern-desc">The people on your team. Owners have full control, managers have partial access. Each user belongs to exactly one tenant.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">📢</div>
+        <h4 class="pattern-title">Campaigns</h4>
+        <p class="pattern-desc">The deals you offer affiliates. "10% commission on every sale" is a campaign. You can run many simultaneously.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🤝</div>
+        <h4 class="pattern-title">Affiliates</h4>
+        <p class="pattern-desc">Your promoters. Each gets a unique referral link and earns commissions when their referrals buy from you.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Tenant Record -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">What lives inside a tenant?</h3>
+
+    <p class="animate-in">
+      When Alex from TaskFlow signs up, the system creates a single record in the <code>tenants</code> <span class="glossary" data-tip="A database table is like a spreadsheet — rows are individual records (one per tenant), columns are fields (name, slug, plan, etc.).">database table</span>. That record holds everything needed to run their affiliate program:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/schema.ts</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">tenants</span>: <span class="code-function">defineTable</span>({</span>
+<span class="code-line">  <span class="code-property">name</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">slug</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">domain</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">plan</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">status</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">trialEndsAt</span>: <span class="code-function">v.optional</span>(<span class="code-function">v.number</span>()),</span>
+<span class="code-line">  <span class="code-property">branding</span>: <span class="code-function">v.optional</span>(<span class="code-function">v.object</span>({ ... })),</span>
+<span class="code-line">  <span class="code-property">billingProvider</span>: <span class="code-function">v.optional</span>(...),</span>
+<span class="code-line">})</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Define a database table called "tenants"...</p>
+          <p class="tl">Every tenant has a display name (e.g. "TaskFlow")...</p>
+          <p class="tl">A URL-safe slug for routing (e.g. "taskflow")...</p>
+          <p class="tl">Their actual website domain (e.g. "taskflow.io")...</p>
+          <p class="tl">Their subscription plan — starter, growth, or scale...</p>
+          <p class="tl">Whether they're active, suspended, or cancelled...</p>
+          <p class="tl">When their 14-day free trial expires...</p>
+          <p class="tl">Optional: their portal's logo, colors, and name...</p>
+          <p class="tl">Optional: which payment processor they connected (Stripe or SaligPay)...</p>
+          <p class="tl">Close the table definition.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why "tenant" and not just "user"?</strong>
+        <p>Affilio is a <span class="glossary" data-tip="Multi-tenant means one application serves many independent customers, each with their own private data. Like Gmail — one app, millions of independent accounts.">multi-tenant</span> system. One Affilio app serves hundreds of SaaS companies. The "tenant" is the boundary that keeps Alex's data separate from Jamie's. Every query in the system filters by tenant ID first — it's impossible to see another company's data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: The Tenant Family -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The tenant owns everything</h3>
+
+    <p class="animate-in">
+      A tenant is the parent of nearly every other record in the system. Every <span class="glossary" data-tip="A database index is like a book's index — it lets the database find records instantly by a specific field, instead of scanning every row.">index</span> in the schema starts with <code>tenantId</code>, which means every lookup is scoped to one company.
+    </p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">🏢</div>
+        <p><strong>Tenant</strong><br><small>TaskFlow's workspace</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">👤</div>
+        <p><strong>Users</strong><br><small>Alex + team members</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">📢</div>
+        <p><strong>Campaigns</strong><br><small>Commission rules</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">🤝</div>
+        <p><strong>Affiliates</strong><br><small>Promoters & links</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">💰</div>
+        <p><strong>Commissions</strong><br><small>Earned payouts</small></p>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      Here's what that looks like in the actual schema — every child table has a <code>tenantId</code> field and an index starting with it:
+    </p>
+
+    <div class="badge-list animate-in">
+      <div class="badge-item">
+        <code class="badge-code">users → by_tenant</code>
+        <span class="badge-desc">Alex's team members only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">campaigns → by_tenant</code>
+        <span class="badge-desc">TaskFlow's commission rules only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">affiliates → by_tenant</code>
+        <span class="badge-desc">TaskFlow's promoters only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">commissions → by_tenant</code>
+        <span class="badge-desc">TaskFlow's earnings only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">payouts → by_tenant</code>
+        <span class="badge-desc">TaskFlow's payment history only</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: The Three Plans -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Plans and limits</h3>
+
+    <p class="animate-in">
+      Every tenant starts on a 14-day free trial with a chosen plan. The plan determines how many affiliates, campaigns, and payouts they can have. These limits are stored in a separate <code>tierConfigs</code> table — not hardcoded.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts (registration)</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">const</span> trialEndsAt = <span class="code-function">Date.now</span>() + <span class="code-number">14</span> * <span class="code-number">24</span> * <span class="code-number">60</span> * <span class="code-number">60</span> * <span class="code-number">1000</span>;</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">const</span> tenantId = <span class="code-keyword">await</span> ctx.db.<span class="code-function">insert</span>(<span class="code-string">"tenants"</span>, {</span>
+<span class="code-line">  <span class="code-property">name</span>: companyName,</span>
+<span class="code-line">  <span class="code-property">slug</span>,</span>
+<span class="code-line">  <span class="code-property">domain</span>: cleanedDomain,</span>
+<span class="code-line">  <span class="code-property">plan</span>, <span class="code-comment">// "starter", "growth", or "scale"</span></span>
+<span class="code-line">  <span class="code-property">trialEndsAt</span>,</span>
+<span class="code-line">  <span class="code-property">status</span>: <span class="code-string">"active"</span>,</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Calculate the trial end: 14 days from right now (in milliseconds)...</p>
+          <p class="tl"></p>
+          <p class="tl">Create a new tenant record in the database...</p>
+          <p class="tl">Set the company name...</p>
+          <p class="tl">Set the URL-friendly slug...</p>
+          <p class="tl">Set their website domain...</p>
+          <p class="tl">Set the plan they chose during signup...</p>
+          <p class="tl">Set when the trial expires...</p>
+          <p class="tl">Mark them as "active" immediately...</p>
+          <p class="tl">Save the record and get back its unique ID.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Trial is just a timestamp</strong>
+        <p>The system doesn't have a separate "trial mode." It's just a date. If <code>trialEndsAt</code> is in the future, the tenant is on trial. If it's in the past and there's no active subscription, a <span class="glossary" data-tip="A cron job is a scheduled task that runs automatically at set intervals — like an alarm clock for your server.">cron job</span> will cancel their account.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module1">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Every database query starts with tenantId, so data never leaks between companies."
+           data-explanation-wrong="Not quite — think about what would happen if two companies could see each other's affiliates and commissions.">
+        <h3 class="quiz-question">Alex runs TaskFlow and Jamie runs DesignPro. Both use Affilio. When Alex views their dashboard, why can't they see Jamie's affiliates?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Alex's password is different from Jamie's</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because every database query filters by tenantId first</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because affiliates can only belong to one campaign</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the database has separate tables for each company</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Right on! A tenant is a single row in a shared table — the same table stores hundreds of companies. The tenantId field keeps them separate."
+           data-explanation-wrong="Close — but tenants share the same table, not get separate ones.">
+        <h3 class="quiz-question">A new SaaS owner signs up. What actually gets created in the database?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new database table specifically for their company</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A separate Convex project instance</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A single row in the shared "tenants" table</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new user record only — tenants are implicit</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Exactly — it's just a number stored in the tenant record. Simple, no extra state to manage."
+           data-explanation-wrong="Think simpler — there's no separate trial system.">
+        <h3 class="quiz-question">You're reviewing the code and see <code>trialEndsAt: Date.now() + 14 * 24 * 60 * 60 * 1000</code>. What does this tell you about how trials work?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A trial is just a future timestamp — no special trial mode exists</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system switches between "trial" and "paid" database tables</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A background job creates the trial and starts a countdown timer</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+  </div>
+
+</section>

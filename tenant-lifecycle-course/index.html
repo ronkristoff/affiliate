@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Tenant Lifecycle — From Sign-Up to Payout</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only the three accent variables below.
+    Options:
+      vermillion  #D94F30 / #C4432A / #FDEEE9 / #E8836C  (default)
+      coral       #E06B56 / #C85A47 / #FDECEA / #E89585
+      teal        #2A7B9B / #1F6280 / #E4F2F7 / #5A9DB8
+      amber       #D4A843 / #BF9530 / #FDF5E0 / #E0C070
+      forest      #2D8B55 / #226B41 / #E8F5EE / #5AAD7A
+  -->
+  <style>
+    :root {
+      --color-accent:       #1c2260;
+      --color-accent-hover: #141a48;
+      --color-accent-light: #eef0f9;
+      --color-accent-muted: #8891b8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">The Tenant Lifecycle</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="What Is a Tenant?" role="tab" aria-label="Module 1: What Is a Tenant?"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="Registration & Setup" role="tab" aria-label="Module 2: Registration & Setup"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="Tracking & Attribution" role="tab" aria-label="Module 3: Tracking & Attribution"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="Conversions & Commissions" role="tab" aria-label="Module 4: Conversions & Commissions"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="Payouts" role="tab" aria-label="Module 5: Payouts"></button>
+        <button class="nav-dot" data-target="module-6" data-tooltip="The Full Picture" role="tab" aria-label="Module 6: The Full Picture"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<section class="module" id="module-1">
+
+  <!-- Screen 1: Hero / What is Affilio? -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">01</span>
+      <h2 class="module-title">What Is a Tenant?</h2>
+      <p class="module-subtitle">The starting point of every affiliate empire</p>
+    </div>
+
+    <p class="animate-in">
+      Imagine you run a SaaS product called <strong>TaskFlow</strong>. You want bloggers and influencers to promote your product and earn a cut of every sale they bring in. That's an <span class="glossary" data-tip="An affiliate program is a marketing arrangement where third-party promoters (affiliates) earn commissions for driving sales to a business.">affiliate program</span> — and <strong>Affilio</strong> is the software that runs it.
+    </p>
+
+    <p class="animate-in">
+      When you sign up for Affilio, the system creates a <strong>tenant</strong> for you. A tenant is your private workspace — your company's entire affiliate operation lives inside it. Think of it as a <strong>self-contained franchise building</strong> inside a larger shopping mall.
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🏢</div>
+        <h4 class="pattern-title">Tenant</h4>
+        <p class="pattern-desc">Your private workspace. Contains your affiliates, campaigns, commissions, payouts, branding — everything.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent-muted)">
+        <div class="pattern-icon" style="background: var(--color-accent-muted)">👥</div>
+        <h4 class="pattern-title">Users</h4>
+        <p class="pattern-desc">The people on your team. Owners have full control, managers have partial access. Each user belongs to exactly one tenant.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">📢</div>
+        <h4 class="pattern-title">Campaigns</h4>
+        <p class="pattern-desc">The deals you offer affiliates. "10% commission on every sale" is a campaign. You can run many simultaneously.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🤝</div>
+        <h4 class="pattern-title">Affiliates</h4>
+        <p class="pattern-desc">Your promoters. Each gets a unique referral link and earns commissions when their referrals buy from you.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Tenant Record -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">What lives inside a tenant?</h3>
+
+    <p class="animate-in">
+      When Alex from TaskFlow signs up, the system creates a single record in the <code>tenants</code> <span class="glossary" data-tip="A database table is like a spreadsheet — rows are individual records (one per tenant), columns are fields (name, slug, plan, etc.).">database table</span>. That record holds everything needed to run their affiliate program:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/schema.ts</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">tenants</span>: <span class="code-function">defineTable</span>({</span>
+<span class="code-line">  <span class="code-property">name</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">slug</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">domain</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">plan</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">status</span>: <span class="code-function">v.string</span>(),</span>
+<span class="code-line">  <span class="code-property">trialEndsAt</span>: <span class="code-function">v.optional</span>(<span class="code-function">v.number</span>()),</span>
+<span class="code-line">  <span class="code-property">branding</span>: <span class="code-function">v.optional</span>(<span class="code-function">v.object</span>({ ... })),</span>
+<span class="code-line">  <span class="code-property">billingProvider</span>: <span class="code-function">v.optional</span>(...),</span>
+<span class="code-line">})</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Define a database table called "tenants"...</p>
+          <p class="tl">Every tenant has a display name (e.g. "TaskFlow")...</p>
+          <p class="tl">A URL-safe slug for routing (e.g. "taskflow")...</p>
+          <p class="tl">Their actual website domain (e.g. "taskflow.io")...</p>
+          <p class="tl">Their subscription plan — starter, growth, or scale...</p>
+          <p class="tl">Whether they're active, suspended, or cancelled...</p>
+          <p class="tl">When their 14-day free trial expires...</p>
+          <p class="tl">Optional: their portal's logo, colors, and name...</p>
+          <p class="tl">Optional: which payment processor they connected (Stripe or SaligPay)...</p>
+          <p class="tl">Close the table definition.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why "tenant" and not just "user"?</strong>
+        <p>Affilio is a <span class="glossary" data-tip="Multi-tenant means one application serves many independent customers, each with their own private data. Like Gmail — one app, millions of independent accounts.">multi-tenant</span> system. One Affilio app serves hundreds of SaaS companies. The "tenant" is the boundary that keeps Alex's data separate from Jamie's. Every query in the system filters by tenant ID first — it's impossible to see another company's data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: The Tenant Family -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The tenant owns everything</h3>
+
+    <p class="animate-in">
+      A tenant is the parent of nearly every other record in the system. Every <span class="glossary" data-tip="A database index is like a book's index — it lets the database find records instantly by a specific field, instead of scanning every row.">index</span> in the schema starts with <code>tenantId</code>, which means every lookup is scoped to one company.
+    </p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">🏢</div>
+        <p><strong>Tenant</strong><br><small>TaskFlow's workspace</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">👤</div>
+        <p><strong>Users</strong><br><small>Alex + team members</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">📢</div>
+        <p><strong>Campaigns</strong><br><small>Commission rules</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">🤝</div>
+        <p><strong>Affiliates</strong><br><small>Promoters & links</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">💰</div>
+        <p><strong>Commissions</strong><br><small>Earned payouts</small></p>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      Here's what that looks like in the actual schema — every child table has a <code>tenantId</code> field and an index starting with it:
+    </p>
+
+    <div class="badge-list animate-in">
+      <div class="badge-item">
+        <code class="badge-code">users → by_tenant</code>
+        <span class="badge-desc">Alex's team members only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">campaigns → by_tenant</code>
+        <span class="badge-desc">TaskFlow's commission rules only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">affiliates → by_tenant</code>
+        <span class="badge-desc">TaskFlow's promoters only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">commissions → by_tenant</code>
+        <span class="badge-desc">TaskFlow's earnings only</span>
+      </div>
+      <div class="badge-item">
+        <code class="badge-code">payouts → by_tenant</code>
+        <span class="badge-desc">TaskFlow's payment history only</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: The Three Plans -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Plans and limits</h3>
+
+    <p class="animate-in">
+      Every tenant starts on a 14-day free trial with a chosen plan. The plan determines how many affiliates, campaigns, and payouts they can have. These limits are stored in a separate <code>tierConfigs</code> table — not hardcoded.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts (registration)</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">const</span> trialEndsAt = <span class="code-function">Date.now</span>() + <span class="code-number">14</span> * <span class="code-number">24</span> * <span class="code-number">60</span> * <span class="code-number">60</span> * <span class="code-number">1000</span>;</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">const</span> tenantId = <span class="code-keyword">await</span> ctx.db.<span class="code-function">insert</span>(<span class="code-string">"tenants"</span>, {</span>
+<span class="code-line">  <span class="code-property">name</span>: companyName,</span>
+<span class="code-line">  <span class="code-property">slug</span>,</span>
+<span class="code-line">  <span class="code-property">domain</span>: cleanedDomain,</span>
+<span class="code-line">  <span class="code-property">plan</span>, <span class="code-comment">// "starter", "growth", or "scale"</span></span>
+<span class="code-line">  <span class="code-property">trialEndsAt</span>,</span>
+<span class="code-line">  <span class="code-property">status</span>: <span class="code-string">"active"</span>,</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Calculate the trial end: 14 days from right now (in milliseconds)...</p>
+          <p class="tl"></p>
+          <p class="tl">Create a new tenant record in the database...</p>
+          <p class="tl">Set the company name...</p>
+          <p class="tl">Set the URL-friendly slug...</p>
+          <p class="tl">Set their website domain...</p>
+          <p class="tl">Set the plan they chose during signup...</p>
+          <p class="tl">Set when the trial expires...</p>
+          <p class="tl">Mark them as "active" immediately...</p>
+          <p class="tl">Save the record and get back its unique ID.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Trial is just a timestamp</strong>
+        <p>The system doesn't have a separate "trial mode." It's just a date. If <code>trialEndsAt</code> is in the future, the tenant is on trial. If it's in the past and there's no active subscription, a <span class="glossary" data-tip="A cron job is a scheduled task that runs automatically at set intervals — like an alarm clock for your server.">cron job</span> will cancel their account.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module1">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Every database query starts with tenantId, so data never leaks between companies."
+           data-explanation-wrong="Not quite — think about what would happen if two companies could see each other's affiliates and commissions.">
+        <h3 class="quiz-question">Alex runs TaskFlow and Jamie runs DesignPro. Both use Affilio. When Alex views their dashboard, why can't they see Jamie's affiliates?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Alex's password is different from Jamie's</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because every database query filters by tenantId first</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because affiliates can only belong to one campaign</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the database has separate tables for each company</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Right on! A tenant is a single row in a shared table — the same table stores hundreds of companies. The tenantId field keeps them separate."
+           data-explanation-wrong="Close — but tenants share the same table, not get separate ones.">
+        <h3 class="quiz-question">A new SaaS owner signs up. What actually gets created in the database?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new database table specifically for their company</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A separate Convex project instance</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A single row in the shared "tenants" table</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new user record only — tenants are implicit</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Exactly — it's just a number stored in the tenant record. Simple, no extra state to manage."
+           data-explanation-wrong="Think simpler — there's no separate trial system.">
+        <h3 class="quiz-question">You're reviewing the code and see <code>trialEndsAt: Date.now() + 14 * 24 * 60 * 60 * 1000</code>. What does this tell you about how trials work?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A trial is just a future timestamp — no special trial mode exists</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system switches between "trial" and "paid" database tables</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A background job creates the trial and starts a countdown timer</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+  </div>
+
+</section>
+<section class="module" id="module-2">
+
+  <!-- Screen 1: The Registration Journey -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">02</span>
+      <h2 class="module-title">Registration & Setup</h2>
+      <p class="module-subtitle">From sign-up form to a fully operational affiliate workspace</p>
+    </div>
+
+    <p class="animate-in">
+      When Alex fills out the sign-up form, a carefully orchestrated <span class="glossary" data-tip="A sequence of steps that must all succeed together. If any step fails, the whole operation is rolled back — like a group booking where everyone gets tickets or nobody does.">two-step dance</span> happens between the browser and the server. Let's trace it.
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Alex fills in name, email, password, company name, domain, and picks a plan"},
+      {"highlight":"flow-actor-1","label":"Browser validates the form (is the domain real? is the password strong enough?)","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Better Auth creates the auth user record (email + password hash in component tables)","packet":true,"from":"actor-2","to":"actor-3"},
+      {"highlight":"flow-actor-3","label":"completeSignUp mutation: creates tenant row + user row + seeds stats + audit log"},
+      {"highlight":"flow-actor-3","label":"Success! Redirect Alex to /onboarding to set up their tracking snippet"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">🌐</div>
+          <span>Browser</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #1fb5a5">🔐</div>
+          <span>Better Auth</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">🗄️</div>
+          <span>Convex DB</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Two-Step Registration Code -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Step 1: Auth, Step 2: App data</h3>
+
+    <p class="animate-in">
+      Registration is split into two steps because of an architectural boundary. <span class="glossary" data-tip="Better Auth is a TypeScript authentication library that handles login, signup, sessions, and password hashing. It stores user credentials in its own component-scoped tables.">Better Auth</span> manages credentials (email, password) in its own tables. The app needs additional data (company name, domain) that Better Auth doesn't know about. So the frontend calls them sequentially.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — SignUp.tsx (frontend)</span>
+        <pre><code>
+<span class="code-line"><span class="code-comment">// Step 1: Create auth user via Better Auth</span></span>
+<span class="code-line"><span class="code-keyword">const</span> { data, error } = <span class="code-keyword">await</span> authClient</span>
+<span class="code-line">  .<span class="code-function">signUp.email</span>({</span>
+<span class="code-line">    <span class="code-property">email</span>: cleanEmail,</span>
+<span class="code-line">    <span class="code-property">password</span>: values.password,</span>
+<span class="code-line">    <span class="code-property">name</span>: cleanName,</span>
+<span class="code-line">  });</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Step 2: Create tenant + user in app tables</span></span>
+<span class="code-line"><span class="code-keyword">await</span> <span class="code-function">completeSignUpMutation</span>({</span>
+<span class="code-line">  <span class="code-property">email</span>: cleanEmail,</span>
+<span class="code-line">  <span class="code-property">name</span>: cleanName,</span>
+<span class="code-line">  <span class="code-property">companyName</span>: values.companyName,</span>
+<span class="code-line">  <span class="code-property">domain</span>: cleanedDomain,</span>
+<span class="code-line">  <span class="code-property">plan</span>: selectedPlan,</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">First, send the email and password to Better Auth...</p>
+          <p class="tl">Better Auth hashes the password and stores it safely...</p>
+          <p class="tl">If this fails (email taken, weak password), stop here...</p>
+          <p class="tl">Only if auth succeeds, create the app-level records...</p>
+          <p class="tl">Send the company name, domain, and plan to Convex...</p>
+          <p class="tl">Convex creates the tenant, the user, and initializes counters...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why not do it in one call?</strong>
+        <p>Better Auth's Convex component has its own database tables with a fixed schema. It only accepts <code>email</code>, <code>password</code>, and <code>name</code>. Fields like <code>companyName</code> and <code>domain</code> would cause a validation error if sent to Better Auth. That's why the second step exists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Domain Validation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The domain gatekeeper</h3>
+
+    <p class="animate-in">
+      The domain field is critical — it's where the tenant's customers actually buy their product. Referral links point there. The tracking snippet runs there. So the system validates it aggressively, both on the frontend and backend.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts</span>
+        <pre><code>
+<span class="code-keyword">function</span> <span class="code-function">cleanAndValidateDomain</span>(domain: <span class="code-type">string</span>) {</span>
+<span class="code-line">  <span class="code-keyword">let</span> cleaned = domain.<span class="code-function">toLowerCase</span>().<span class="code-function">trim</span>();</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">replace</span>(<span class="code-string">/^https?:\/\//</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">replace</span>(<span class="code-string">/^www\./</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">split</span>(<span class="code-string">"/"</span>)[<span class="code-number">0</span>];</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">split</span>(<span class="code-string">":"</span>)[<span class="code-number">0</span>];</span>
+<span class="code-line">  <span class="code-keyword">if</span> (cleaned === <span class="code-string">"localhost"</span>)</span>
+<span class="code-line">    <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(<span class="code-string">"localhost is not allowed"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> ipRegex = <span class="code-string">/^(\d{1,3}\.){3}\d{1,3}$/</span>;</span>
+<span class="code-line">  <span class="code-keyword">if</span> (ipRegex.<span class="code-function">test</span>(cleaned))</span>
+<span class="code-line">    <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(<span class="code-string">"IP addresses not allowed"</span>);</span>
+<span class="code-line">  <span class="code-keyword">return</span> cleaned;</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Normalize: lowercase, strip spaces...</p>
+          <p class="tl">Remove "https://" if someone pasted a full URL...</p>
+          <p class="tl">Remove "www." prefix...</p>
+          <p class="tl">Remove any path after the domain (e.g. "/about")...</p>
+          <p class="tl">Remove port numbers (e.g. ":3000")...</p>
+          <p class="tl">Reject localhost — this needs to be a real website...</p>
+          <p class="tl">Reject IP addresses — they don't have tracking snippets...</p>
+          <p class="tl">Return the clean domain.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      After cleaning, the backend checks two things: <strong>is this domain already taken by another tenant?</strong> and <strong>is the format valid?</strong> Both checks use database indexes for instant lookups.
+    </p>
+  </div>
+
+  <!-- Screen 4: Slug Generation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Every tenant gets a slug</h3>
+
+    <p class="animate-in">
+      The slug is a URL-safe version of the company name. If "TaskFlow Pro" signs up, their slug becomes <code>taskflow-pro</code>. If that's taken, it tries <code>taskflow-pro-1</code>, then <code>taskflow-pro-2</code>, and so on — like getting a username on a social platform.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts</span>
+        <pre><code>
+<span class="code-keyword">async function</span> <span class="code-function">generateUniqueSlug</span>(ctx, name) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> base = name.<span class="code-function">toLowerCase</span>()</span>
+<span class="code-line">    .<span class="code-function">replace</span>(<span class="code-string">/[^a-z0-9]+/g</span>, <span class="code-string">"-"</span>)</span>
+<span class="code-line">    .<span class="code-function">replace</span>(<span class="code-string">/^-+|-+$/g</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  <span class="code-keyword">let</span> slug = base, counter = <span class="code-number">1</span>;</span>
+<span class="code-line">  <span class="code-keyword">while</span> (<span class="code-keyword">true</span>) {</span>
+<span class="code-line">    <span class="code-keyword">const</span> existing = <span class="code-keyword">await</span> ctx.db</span>
+<span class="code-line">      .<span class="code-function">query</span>(<span class="code-string">"tenants"</span>)</span>
+<span class="code-line">      .<span class="code-function">withIndex</span>(<span class="code-string">"by_slug"</span>, q => q.<span class="code-function">eq</span>(<span class="code-string">"slug"</span>, slug))</span>
+<span class="code-line">      .<span class="code-function">first</span>();</span>
+<span class="code-line">    <span class="code-keyword">if</span> (!existing) <span class="code-keyword">return</span> slug;</span>
+<span class="code-line">    slug = <span class="code-string">`${base}-${counter++}`</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Convert "TaskFlow Pro" to lowercase and replace spaces/special chars with hyphens...</p>
+          <p class="tl">Strip any leading or trailing hyphens...</p>
+          <p class="tl">Start a counter at 1 for de-duplication...</p>
+          <p class="tl">Loop: check if this slug is already taken...</p>
+          <p class="tl">Use the "by_slug" database index for instant lookup...</p>
+          <p class="tl">If nobody has it, we're done — return it...</p>
+          <p class="tl">Otherwise, append "-1", "-2", etc. and try again...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Indexes make this fast</strong>
+        <p>Without the <code>by_slug</code> index, the database would have to scan every single tenant to check if "taskflow-pro" is taken. With the index, it's an instant lookup — like checking the back of a book instead of reading every page. This matters when you have thousands of tenants.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: What Gets Created -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">One signup, four records</h3>
+
+    <p class="animate-in">
+      When Alex completes registration, the system creates four things in a single mutation:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Tenant Record</h4>
+          <p>The workspace itself — name, slug, domain, plan, trial date, status "active".</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Audit Log Entry</h4>
+          <p>"tenant_created" — records who created what, when. Required for compliance and debugging.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Tenant Stats Seed</h4>
+          <p>A denormalized counter row initialized to zero. Tracks affiliate counts, commission totals, etc. without expensive queries.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>User Record</h4>
+          <p>Alex as an "owner" tied to this tenant. Links their email to the tenantId so they can log in and see their own data.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      After all four records are created, Alex is redirected to <code>/onboarding</code> — the next step in their journey where they'll set up tracking and create their first campaign.
+    </p>
+  </div>
+
+  <!-- Screen 6: Chat - Components Talk -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Registration behind the scenes</h3>
+
+    <p class="animate-in">
+      Here's what the different parts of the system say to each other during registration:
+    </p>
+
+    <div class="chat-window" id="chat-module2" style="--color-actor-1: var(--color-accent); --color-actor-2: #1fb5a5; --color-actor-3: #D94F30">
+      <div class="chat-messages">
+        <div class="chat-message" data-msg="0" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Hey Better Auth! Alex just filled out the signup form. Here's their email, password, and name. Can you create an auth account?</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="1" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🔐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Better Auth</span>
+            <p>Sure! I've hashed the password and stored it in my component tables. Alex's auth account is ready. ✅</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="2" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Great! Now calling the completeSignUp mutation with Alex's company name "TaskFlow", domain "taskflow.io", and plan "growth".</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="3" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Convex</span>
+            <p>Got it. Let me validate: domain is clean ✅, not taken ✅, slug "taskflow" is available ✅. Creating tenant record...</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="4" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Convex</span>
+            <p>Tenant created! Seeding stats counters to zero... Creating user record with role "owner"... Writing audit log... All done! 🎉</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="5" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Redirecting Alex to /onboarding. Their affiliate empire begins! 🚀</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-typing" id="chat-typing" style="display:none">
+        <div class="chat-avatar" id="typing-avatar">?</div>
+        <div class="chat-typing-dots">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <div class="chat-controls">
+        <button class="btn chat-next-btn">Next Message</button>
+        <button class="btn chat-all-btn">Play All</button>
+        <button class="btn chat-reset-btn">Replay</button>
+        <span class="chat-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module2">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Spot on! Better Auth has a fixed schema that only accepts email, password, and name. Company-specific fields must go through a separate Convex mutation."
+           data-explanation-wrong="Think about what would happen if you tried to send 'companyName' to Better Auth's component tables...">
+        <h3 class="quiz-question">Why is registration split into two steps (Better Auth + completeSignUp) instead of one?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>For security — so the password is never sent to Convex</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Convex mutations can't be called from the browser</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Better Auth's component tables have a fixed schema that doesn't include companyName or domain</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>So the user can edit their profile before the tenant is created</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Exactly — the domain is the foundation for referral links, tracking snippets, and webhook attribution. Getting it wrong would break the entire affiliate chain."
+           data-explanation-wrong="Consider what would happen if two tenants had the same domain — whose referrals count?">
+        <h3 class="quiz-question">A developer suggests removing domain validation to speed up sign-up. What's the strongest argument against this?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The domain is used for referral link targeting, tracking snippet verification, and webhook attribution — duplicates would break everything</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Domain validation is required by the Better Auth component</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Without validation, the slug generator would produce incorrect results</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Correct! The audit log records every important action (who did what, when) for compliance and debugging. Stats are denormalized counters for fast dashboard loads."
+           data-explanation-wrong="Think about what else gets created besides the obvious tenant and user records...">
+        <h3 class="quiz-question">During registration, which of these is NOT created?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A tenant stats row (counters initialized to zero)</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A campaign record</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>An audit log entry recording the tenant creation</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+  </div>
+
+</section>
+<section class="module" id="module-3">
+
+  <!-- Screen 1: The Tracking Setup -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">03</span>
+      <h2 class="module-title">Tracking & Attribution</h2>
+      <p class="module-subtitle">How the system knows who referred whom</p>
+    </div>
+
+    <p class="animate-in">
+      After registration, Alex's first real task is <strong>tracking setup</strong>. They need to install a small piece of code — the <span class="glossary" data-tip="A tracking snippet is a few lines of JavaScript that the SaaS owner adds to their website. It watches for affiliate referrals and sends data back to Affilio.">tracking snippet</span> — on their website. Think of it as installing a security camera: it watches every visitor who arrives through an affiliate link.
+    </p>
+
+    <p class="animate-in">
+      The system generates a unique <strong>public key</strong> (<code>sk_</code> + random hex) that identifies Alex's tenant. This key is embedded in the tracking snippet — it's how the system knows incoming tracking data belongs to TaskFlow, not DesignPro.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/tracking.ts</span>
+        <pre><code>
+<span class="code-keyword">function</span> <span class="code-function">generatePublicKey</span>(): <span class="code-type">string</span> {</span>
+<span class="code-line">  <span class="code-keyword">const</span> array = <span class="code-keyword">new</span> <span class="code-type">Uint8Array</span>(<span class="code-number">16</span>);</span>
+<span class="code-line">  crypto.<span class="code-function">getRandomValues</span>(array);</span>
+<span class="code-line">  <span class="code-keyword">const</span> hex = <span class="code-type">Array</span>.<span class="code-function">from</span>(array)</span>
+<span class="code-line">    .<span class="code-function">map</span>(b => b.<span class="code-function">toString</span>(<span class="code-number">16</span>).<span class="code-function">padStart</span>(<span class="code-number">2</span>, <span class="code-string">'0'</span>))</span>
+<span class="code-line">    .<span class="code-function">join</span>(<span class="code-string">''</span>);</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-string">"sk_"</span> + hex;</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Create a 16-byte random buffer...</p>
+          <p class="tl">Fill it with cryptographically secure random numbers (not predictable)...</p>
+          <p class="tl">Convert each byte to a 2-character hex string...</p>
+          <p class="tl">Join them all together into one string...</p>
+          <p class="tl">Prepend "sk_" (for "secret key") and return it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Attribution Chain -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The full attribution chain</h3>
+
+    <p class="animate-in">
+      Attribution is the art of connecting a sale back to the affiliate who referred it. Here's the complete chain, from a blogger posting a link to a commission being created:
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Jamie (affiliate) shares referral link: taskflow.io/?ref=jamie"},
+      {"highlight":"flow-actor-1","label":"A visitor clicks the link — browser sends a tracking request","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Convex records the click: who, when, which link, IP address, referrer"},
+      {"highlight":"flow-actor-2","label":"Browser sets a cookie on taskflow.io with jamie&#39;s affiliate code"},
+      {"highlight":"flow-actor-3","label":"Days later, the visitor buys a TaskFlow subscription on taskflow.io"},
+      {"highlight":"flow-actor-3","label":"Stripe/SaligPay sends a webhook to Affilio with the payment data","packet":true,"from":"actor-3","to":"actor-4"},
+      {"highlight":"flow-actor-4","label":"Commission engine reads the cookie, finds Jamie&#39;s click record, creates conversion + commission"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: #1fb5a5">🤝</div>
+          <span>Jamie</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">🗄️</div>
+          <span>Affilio</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">💳</div>
+          <span>Stripe</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-4">
+          <div class="flow-actor-icon" style="background: #2D8B55">⚙️</div>
+          <span>Engine</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Click Recording -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Clicks: the breadcrumb trail</h3>
+
+    <p class="animate-in">
+      Every time someone clicks Jamie's referral link, the system creates a <code>clicks</code> record. This is the breadcrumb trail that connects a future purchase back to Jamie. The record stores:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔗</div>
+        <h4 class="pattern-title">referralLinkId</h4>
+        <p class="pattern-desc">Which specific link was clicked (Jamie could have multiple links for different campaigns)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">🤝</div>
+        <h4 class="pattern-title">affiliateId</h4>
+        <p class="pattern-desc">Who gets credit — Jamie's affiliate record ID</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🌐</div>
+        <h4 class="pattern-title">ipAddress</h4>
+        <p class="pattern-desc">The visitor's IP — used for deduplication (don't count the same person clicking twice)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">🔑</div>
+        <h4 class="pattern-title">dedupeKey</h4>
+        <p class="pattern-desc">A hash of IP + link — prevents click fraud (same person refreshing the page 100 times)</p>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">The 30-day cookie window</strong>
+        <p>Clicks expire. If someone clicks Jamie's link today but doesn't buy for 31 days, Jamie doesn't get credit. Each campaign can configure its own cookie duration. The system checks <code>_creationTime</code> on the click record against the current time to enforce this window.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Three Attribution Methods -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Three ways to attribute a sale</h3>
+
+    <p class="animate-in">
+      When a payment comes in via webhook, the commission engine tries three methods to figure out which affiliate gets credit — in order of priority:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Cookie-based (webhook body)</h4>
+          <p>The tracking snippet embedded a cookie when the visitor clicked Jamie's link. The webhook body includes the affiliate code from that cookie. Fastest, most common path.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Coupon code</h4>
+          <p>Jamie shared a discount code "JAMIE15". The customer entered it at checkout. The webhook metadata includes the coupon code. Works even without cookies (social media, email).</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Email lead matching</h4>
+          <p>Jamie's referral link included <code>Affilio.referral({email})</code> on the signup form. The customer's email was stored as a "lead." When the webhook arrives with that email, the system matches it back to Jamie.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Coupon beats cookie</strong>
+        <p>If both cookie data AND a coupon code are present, the coupon code wins (ADR-4). This prevents attribution disputes — the explicit coupon choice is considered stronger evidence than a passive cookie.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: What If Nobody Gets Credit? -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Organic conversions</h3>
+
+    <p class="animate-in">
+      If all three attribution methods fail — no cookie, no coupon, no matching lead — the system still records the sale as an <strong>"organic conversion."</strong> This is important: the SaaS owner still sees their revenue tracked, even if no affiliate gets credit. It helps them understand what percentage of sales come from affiliates vs. natural traffic.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/commissionEngine.ts</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (!event.attribution?.affiliateCode) {</span>
+<span class="code-line">  <span class="code-function">console.log</span>(<span class="code-string">"No attribution, logging as organic"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> conversionId = <span class="code-keyword">await</span> ctx.<span class="code-function">runMutation</span>(</span>
+<span class="code-line">    internal.conversions.<span class="code-function">createOrganicConversion</span>,</span>
+<span class="code-line">    { <span class="code-property">tenantId</span>, <span class="code-property">amount</span>, <span class="code-property">customerEmail</span> }</span>
+<span class="code-line">  );</span>
+<span class="code-line">  <span class="code-keyword">return</span> { <span class="code-property">conversionId</span>, <span class="code-property">commissionId</span>: <span class="code-keyword">null</span>, <span class="code-property">organic</span>: <span class="code-keyword">true</span> };</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">If we couldn't find any affiliate to credit...</p>
+          <p class="tl">Log it for debugging...</p>
+          <p class="tl">Still create a conversion record (so the dashboard shows the revenue)...</p>
+          <p class="tl">But don't create a commission — no affiliate to pay...</p>
+          <p class="tl">Return with organic: true so the system knows this wasn't affiliate-driven.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module3">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Correct! The dedupe key prevents click fraud by ensuring the same person clicking the same link multiple times only counts once."
+           data-explanation-wrong="Think about what would happen if someone clicked a link 100 times — you'd want to count that as one click, not 100.">
+        <h3 class="quiz-question">Why does the clicks table store a dedupeKey (IP + link hash) instead of just counting every click?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because database indexes require composite keys</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>To prevent click fraud — the same person refreshing the page shouldn't generate multiple clicks</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because cookies have a 30-day expiration and dedupe keys don't</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Exactly! Coupon codes work across channels (social, email, offline) where cookies can't be set. The code explicitly says coupon beats cookie."
+           data-explanation-wrong="Think about a scenario where someone sees a discount code on Instagram but never clicks a tracking link...">
+        <h3 class="quiz-question">A customer sees Jamie's discount code "JAMIE15" on Instagram and types it at checkout — they never clicked Jamie's tracking link. Does Jamie get credit?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>No — without a cookie, attribution is impossible</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Yes — but only if the customer also has an existing lead record</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Yes — coupon code attribution works independently of cookies and even overrides cookie data if both exist</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Right! Organic conversions track revenue that came through natural channels, helping the SaaS owner see what percentage of sales affiliates actually drive."
+           data-explanation-wrong="Consider what the owner would want to know about their traffic sources...">
+        <h3 class="quiz-question">Why does the system create an "organic conversion" when no affiliate is found, instead of just ignoring the sale entirely?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>So the dashboard can show the owner what percentage of revenue comes from affiliates vs. natural traffic</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the database schema requires a conversion record for every webhook</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>To automatically create a pending commission that the owner can assign to an affiliate later</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+  </div>
+
+</section>
+<section class="module" id="module-4">
+
+  <!-- Screen 1: When a Payment Arrives -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">04</span>
+      <h2 class="module-title">Conversions & Commissions</h2>
+      <p class="module-subtitle">Turning payments into affiliate earnings</p>
+    </div>
+
+    <p class="animate-in">
+      This is where the money happens. When a customer buys something on TaskFlow's website, <span class="glossary" data-tip="Stripe or SaligPay sends a webhook — an automatic HTTP notification — to Affilio saying &quot;a payment just happened!&quot; Think of it like a cash register that automatically texts the accounting department after every sale.">Stripe (or SaligPay)</span> sends a <span class="glossary" data-tip="A webhook is an automatic HTTP request sent by one system to another when an event occurs. Like a push notification between servers.">webhook</span> to Affilio. The commission engine processes it and, if attribution works, creates a commission for the referring affiliate.
+    </p>
+
+    <p class="animate-in">
+      The system handles six types of webhook events — each with different logic:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">💳</div>
+        <h4 class="pattern-title">payment.updated</h4>
+        <p class="pattern-desc">One-time payment confirmed → create conversion + commission</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">🔄</div>
+        <h4 class="pattern-title">subscription.created</h4>
+        <p class="pattern-desc">First subscription payment → conversion + initial commission</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔁</div>
+        <h4 class="pattern-title">subscription.updated</h4>
+        <p class="pattern-desc">Renewal, upgrade, or downgrade → new conversion + recurring commission (if enabled)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">❌</div>
+        <h4 class="pattern-title">subscription.cancelled</h4>
+        <p class="pattern-desc">Customer cancels → no new commissions, preserve existing pending ones</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D4A843">
+        <div class="pattern-icon" style="background: #D4A843">💰</div>
+        <h4 class="pattern-title">refund.created</h4>
+        <p class="pattern-desc">Money returned → reverse the commission (set status to "reversed")</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Commission Calculation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">How commissions are calculated</h3>
+
+    <p class="animate-in">
+      When a conversion is attributed to Jamie, the system calculates their commission based on the campaign's rules. Campaigns support two commission types:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/commissions.ts</span>
+        <pre><code>
+<span class="code-comment">// Get the effective rate (check for affiliate override)</span>
+<span class="code-keyword">const</span> effectiveRate = <span class="code-keyword">await</span> <span class="code-function">getEffectiveCommissionRate</span>(</span>
+<span class="code-line">  ctx, affiliateId, campaignId</span>
+<span class="code-line">);</span>
+<span class="code-line"></span>
+<span class="code-comment">// Calculate commission amount</span>
+<span class="code-keyword">let</span> commissionAmount: <span class="code-type">number</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (campaign.commissionType === <span class="code-string">"percentage"</span>) {</span>
+<span class="code-line">  commissionAmount = saleAmount * (effectiveRate / <span class="code-number">100</span>);</span>
+<span class="code-line">} <span class="code-keyword">else</span> {</span>
+<span class="code-line">  commissionAmount = effectiveRate; <span class="code-comment">// flatFee</span></span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Check if Jamie has a special commission rate for this campaign (otherwise use the campaign default)...</p>
+          <p class="tl"></p>
+          <p class="tl">If the campaign is "percentage" type, multiply the sale amount by the rate...</p>
+          <p class="tl">Example: ₱10,000 sale × 10% = ₱1,000 commission...</p>
+          <p class="tl">If the campaign is "flat fee" type, the rate IS the commission...</p>
+          <p class="tl">Example: ₱500 flat fee regardless of sale amount.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Per-affiliate overrides</strong>
+        <p>Alex can give Jamie a special 15% rate even though the campaign default is 10%. The system checks <code>commissionOverrides</code> on the affiliate record first, then falls back to the campaign default. This lets Alex incentivize top performers without changing the campaign for everyone.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: The Commission Status Flow -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Commission lifecycle: Pending → Approved → Paid</h3>
+
+    <p class="animate-in">
+      Commissions follow a strict linear flow. Not every commission makes it to "paid" — some get declined or reversed. Here's the complete state machine:
+    </p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">⏳</div>
+        <p><strong>Pending</strong><br><small>Affiliate earned it, waiting for review</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">✅</div>
+        <p><strong>Approved</strong><br><small>Owner confirmed, ready for payout</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">💰</div>
+        <p><strong>Paid</strong><br><small>Money sent to affiliate</small></p>
+      </div>
+    </div>
+
+    <p class="animate-in" style="margin-top: var(--space-8);">But commissions can also take two terminal detours:</p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">⏳</div>
+        <p><strong>Pending</strong></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">🚫</div>
+        <p><strong>Declined</strong><br><small>Owner rejected — no payout</small></p>
+      </div>
+    </div>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">✅</div>
+        <p><strong>Approved</strong></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">↩️</div>
+        <p><strong>Reversed</strong><br><small>Customer refunded — commission clawed back</small></p>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Auto-approval thresholds</strong>
+        <p>Campaigns can auto-approve small commissions. If <code>autoApproveCommissions</code> is true and the amount is below the <code>approvalThreshold</code>, the commission skips "pending" entirely and goes straight to "approved." Large commissions always require manual review — a fraud safeguard.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Self-Referral Detection & Fraud -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Fraud detection: self-referrals</h3>
+
+    <p class="animate-in">
+      One of the oldest affiliate tricks: the SaaS owner signs up as their own affiliate to get a commission on their own purchases. The system catches this by comparing the customer's data against the affiliate's stored data.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/conversions.ts</span>
+        <pre><code>
+<span class="code-keyword">export const</span> <span class="code-function">detectSelfReferralInternal</span> = <span class="code-function">internalQuery</span>({</span>
+<span class="code-line">  <span class="code-property">args</span>: { <span class="code-property">affiliateId</span>, <span class="code-property">customerEmail</span>, <span class="code-property">ipAddress</span>, ... },</span>
+<span class="code-line">  <span class="code-property">handler</span>: <span class="code-keyword">async</span> (ctx, args) => {</span>
+<span class="code-line">    <span class="code-keyword">const</span> affiliate = <span class="code-keyword">await</span> ctx.db.<span class="code-function">get</span>(args.affiliateId);</span>
+<span class="code-line">    <span class="code-keyword">const</span> reasons: <span class="code-type">string</span>[] = [];</span>
+<span class="code-line">    <span class="code-keyword">if</span> (args.customerEmail === affiliate.email)</span>
+<span class="code-line">      reasons.<span class="code-function">push</span>(<span class="code-string">"email_match"</span>);</span>
+<span class="code-line">    <span class="code-keyword">if</span> (args.ipAddress === affiliate.lastLoginIp)</span>
+<span class="code-line">      reasons.<span class="code-function">push</span>(<span class="code-string">"ip_match"</span>);</span>
+<span class="code-line">    <span class="code-keyword">return</span> { <span class="code-property">isSelfReferral</span>: reasons.length > <span class="code-number">0</span>, reasons };</span>
+<span class="code-line">  },</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Define a query that checks if a purchase looks like self-referral...</p>
+          <p class="tl">Takes the affiliate's ID and the customer's details...</p>
+          <p class="tl">Fetch the affiliate's record from the database...</p>
+          <p class="tl">Start with an empty list of suspicious signals...</p>
+          <p class="tl">If the customer's email matches the affiliate's email — red flag!</p>
+          <p class="tl">If the customer's IP matches the affiliate's last login IP — red flag!</p>
+          <p class="tl">Return whether it's self-referral and why.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Denormalized Counters -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The stats engine: instant dashboards</h3>
+
+    <p class="animate-in">
+      Every time a commission is created, approved, reversed, or paid, a corresponding <span class="glossary" data-tip="Denormalized counters are summary numbers stored separately from the detail records. Like a scoreboard that updates when points are scored, instead of recounting all games every time you check.">denormalized counter</span> in the <code>tenantStats</code> table is updated in the same transaction. This means the dashboard loads instantly — no expensive COUNT queries.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/tenantStats.ts (hooks)</span>
+        <pre><code>
+<span class="code-keyword">export async function</span> <span class="code-function">onCommissionCreated</span>(</span>
+<span class="code-line">  ctx, tenantId, amount, status</span>
+<span class="code-line">) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> stats = <span class="code-keyword">await</span> <span class="code-function">getOrCreateStats</span>(ctx, tenantId);</span>
+<span class="code-line">  <span class="code-keyword">const</span> updates: <span class="code-type">Record</span>&lt;<span class="code-type">string</span>, <span class="code-type">number</span>&gt; = {};</span>
+<span class="code-line">  <span class="code-keyword">if</span> (status === <span class="code-string">"pending"</span>) {</span>
+<span class="code-line">    updates.commissionsPendingCount = stats.commissionsPendingCount + <span class="code-number">1</span>;</span>
+<span class="code-line">    updates.commissionsPendingValue = stats.commissionsPendingValue + amount;</span>
+<span class="code-line">  } <span class="code-keyword">else if</span> (status === <span class="code-string">"approved"</span>) {</span>
+<span class="code-line">    updates.commissionsConfirmedThisMonth += <span class="code-number">1</span>;</span>
+<span class="code-line">    updates.commissionsConfirmedValueThisMonth += amount;</span>
+<span class="code-line">  }</span>
+<span class="code-line">  <span class="code-keyword">await</span> ctx.db.<span class="code-function">patch</span>(stats._id, updates);</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">When a commission is created, update the stats counters...</p>
+          <p class="tl">Find (or create) the stats row for this tenant...</p>
+          <p class="tl">Prepare an object with only the fields that changed...</p>
+          <p class="tl">If it's a pending commission, increment the pending count and value...</p>
+          <p class="tl">If it's auto-approved, increment the confirmed-this-month counters...</p>
+          <p class="tl">Save all updates in one database operation (same transaction).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why not just COUNT(*)?</strong>
+        <p>With 50,000 commissions, a <code>COUNT(*)</code> query takes real time. A denormalized counter is a single row lookup — instant. The tradeoff is complexity: every mutation that changes commission status must also update the counter. The AGENTS.md calls this "mandatory mutation hooks" — forgetting one causes dashboard numbers to drift.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Chat - Webhook Processing -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Inside the commission engine</h3>
+
+    <p class="animate-in">
+      Here's the conversation between the webhook handler and the commission engine when a payment arrives:
+    </p>
+
+    <div class="chat-window" id="chat-module4" style="--color-actor-1: #D94F30; --color-actor-2: var(--color-accent); --color-actor-3: #2D8B55">
+      <div class="chat-messages">
+        <div class="chat-message" data-msg="0" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">💳</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Stripe</span>
+            <p>Hey Affilio! A $99 payment just came in for tenant taskflow. Here's the event payload — it includes metadata with affiliate code "jamie" and click ID.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="1" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Webhook Handler</span>
+            <p>Got it! Let me verify the signature, deduplicate by event ID, normalize the payload, and store it in rawWebhooks for auditing...</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="2" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Webhook Handler</span>
+            <p>Payment status is "paid" — that's confirmed. Passing to the commission engine with attribution data.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="3" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">⚙️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Commission Engine</span>
+            <p>Looking up affiliate "jamie"... Found! Status is "active" ✅. Checking for self-referral... Email and IP don't match ✅. Finding the campaign... "Summer Sale" — 10% percentage, auto-approve under $500.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="4" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">⚙️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Commission Engine</span>
+            <p>Creating conversion record... Commission: $99 × 10% = $9.90. Under $500 threshold → auto-approved! Updated tenant stats counters. Done! 🎉</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-typing" id="chat-typing" style="display:none">
+        <div class="chat-avatar" id="typing-avatar">?</div>
+        <div class="chat-typing-dots">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <div class="chat-controls">
+        <button class="btn chat-next-btn">Next Message</button>
+        <button class="btn chat-all-btn">Play All</button>
+        <button class="btn chat-reset-btn">Replay</button>
+        <span class="chat-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module4">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Correct! The approval threshold is a safety mechanism — large commissions (potentially fraudulent) always need human review, while small ones can be auto-approved."
+           data-explanation-wrong="Think about what kind of commission you'd want to personally review...">
+        <h3 class="quiz-question">A campaign has autoApproveCommissions=true and approvalThreshold=500. A commission of $400 comes in. What status does it get?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"pending" — all commissions require manual review</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"approved" — autoApprove means everything is auto-approved</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"approved" — $400 is below the $500 threshold, so it's auto-approved</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"declined" — the system can't verify payments under $500</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Denormalized counters are updated in the same transaction as the commission creation, so they're always accurate without expensive COUNT queries."
+           data-explanation-wrong="Think about what happens when you have 50,000 commissions and need to show a total on the dashboard...">
+        <h3 class="quiz-question">Why does the system update tenantStats counters every time a commission is created, instead of counting commissions on demand?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Convex doesn't support COUNT queries</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because a single-row lookup is instant, while counting 50,000+ rows every dashboard load would be slow</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the stats table is the primary source of truth for commissions</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+  </div>
+
+</section>
+<section class="module" id="module-5">
+
+  <!-- Screen 1: The Payout Journey -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">05</span>
+      <h2 class="module-title">Payouts</h2>
+      <p class="module-subtitle">Getting money from the system into affiliates' hands</p>
+    </div>
+
+    <p class="animate-in">
+      Jamie has earned $9.90 from one referral and $15.00 from another. That money is sitting in "approved" commissions. But Jamie doesn't have $24.90 yet — they need Alex to <strong>generate a payout batch</strong>. This is like a payroll run: Alex reviews all approved commissions, bundles them up, and sends the money.
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Alex clicks &quot;Generate Payouts&quot; on the dashboard"},
+      {"highlight":"flow-actor-1","label":"System queries all approved commissions without a batchId","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Groups commissions by affiliate, sums amounts, checks tier limits"},
+      {"highlight":"flow-actor-2","label":"Creates a payoutBatch record + individual payout records for each affiliate","packet":true,"from":"actor-2","to":"actor-3"},
+      {"highlight":"flow-actor-3","label":"Updates all commissions to status=&quot;paid&quot; with the batchId, updates totalPaidOut counter"},
+      {"highlight":"flow-actor-3","label":"Alex reviews the batch and marks individual payouts as paid (manual or SaligPay)"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">👤</div>
+          <span>Alex (Owner)</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #D94F30">⚙️</div>
+          <span>Payout Engine</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #2D8B55">🗄️</div>
+          <span>Database</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Batch Generation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">How payout batching works</h3>
+
+    <p class="animate-in">
+      When Alex clicks "Generate Payouts," the system does several things in a single <span class="glossary" data-tip="In Convex, a mutation is an atomic operation — either everything succeeds or everything rolls back. Like a bank transfer: the debit and credit either both happen, or neither does.">atomic mutation</span> (all-or-nothing):
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/payouts.ts (simplified)</span>
+        <pre><code>
+<span class="code-comment">// 1. Find all approved, unbatched commissions</span>
+<span class="code-keyword">const</span> allCommissions = <span class="code-keyword">await</span> ctx.db
+  .<span class="code-function">query</span>(<span class="code-string">"commissions"</span>)
+  .<span class="code-function">withIndex</span>(<span class="code-string">"by_tenant_and_status"</span>,
+    q => q.<span class="code-function">eq</span>(<span class="code-string">"tenantId"</span>, tenantId)
+         .<span class="code-function">eq</span>(<span class="code-string">"status"</span>, <span class="code-string">"approved"</span>))
+  .<span class="code-function">collect</span>();
+
+<span class="code-comment">// 2. Filter out already-batched ones</span>
+<span class="code-keyword">const</span> commissions = allCommissions
+  .<span class="code-function">filter</span>(c => !c.batchId);
+
+<span class="code-comment">// 3. Group by affiliate, sum amounts</span>
+<span class="code-keyword">const</span> affiliateTotals = <span class="code-keyword">new</span> <span class="code-type">Map</span>();
+<span class="code-keyword">for</span> (<span class="code-keyword">const</span> c <span class="code-keyword">of</span> commissions) {
+  <span class="code-comment">// ... accumulate per affiliate</span>
+}
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Find every commission for this tenant that has status "approved"...</p>
+          <p class="tl">Using the by_tenant_and_status index for instant lookup...</p>
+          <p class="tl">Get all matching records...</p>
+          <p class="tl"></p>
+          <p class="tl">Remove any commissions that already belong to a previous batch...</p>
+          <p class="tl">(This prevents double-paying if Alex clicks "Generate" twice)...</p>
+          <p class="tl"></p>
+          <p class="tl">Create a map to group commissions by affiliate...</p>
+          <p class="tl">For each commission, add its amount to that affiliate's running total...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: What Gets Created -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">One batch, many payouts</h3>
+
+    <p class="animate-in">
+      A batch generation creates three levels of records:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>PayoutBatch</h4>
+          <p>One record summarizing the entire run: total amount, affiliate count, timestamp. Status starts as "pending." This is the "payroll run" header.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Payouts (one per affiliate)</h4>
+          <p>Individual records for each affiliate showing their total. Jamie gets one payout for $24.90. Each links to the batch via <code>batchId</code>.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Commission updates</h4>
+          <p>Every commission in the batch gets <code>status: "paid"</code> and <code>batchId</code> set. The <code>totalPaidOut</code> counter in tenantStats is incremented atomically.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">The batchId links everything together</strong>
+        <p>The <code>batchId</code> field on commissions and payouts is the thread that ties a specific payroll run together. If Jamie asks "which batch was my $24.90 in?" — the answer is in that field. It's also how the system prevents double-batching: commissions with a batchId are filtered out of future runs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Tier Limits -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Plan limits enforce fairness</h3>
+
+    <p class="animate-in">
+      The starter plan might only allow 5 payouts per month. The payout engine checks this <strong>before</strong> creating the batch:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/payouts.ts</span>
+        <pre><code>
+<span class="code-comment">// Check tier limit: maxPayoutsPerMonth</span>
+<span class="code-keyword">const</span> tierConfig = <span class="code-keyword">await</span> ctx.db
+  .<span class="code-function">query</span>(<span class="code-string">"tierConfigs"</span>)
+  .<span class="code-function">withIndex</span>(<span class="code-string">"by_tier"</span>, q => q.<span class="code-function">eq</span>(<span class="code-string">"tier"</span>, plan))
+  .<span class="code-function">unique</span>();
+
+<span class="code-keyword">if</span> (thisMonthCount + newPayoutCount > maxPayouts) {
+  <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(
+    <span class="code-string">"Payout limit reached for this month. Upgrade your plan."</span>
+  );
+}
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Look up the tier configuration for this tenant's plan...</p>
+          <p class="tl">Get the maxPayoutsPerMonth limit (e.g., 5 for starter)...</p>
+          <p class="tl">Count how many payouts were already created this month...</p>
+          <p class="tl">If adding the new batch would exceed the limit, throw an error...</p>
+          <p class="tl">The frontend shows this error and suggests upgrading.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Limits are enforced, not suggested</strong>
+        <p>The payout engine doesn't silently skip excess affiliates — it throws an error that stops the entire batch. This prevents partial payouts where some affiliates get paid and others don't. It's all or nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module5">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Commissions keep their batchId permanently — it's the audit trail showing which payroll run included which commission."
+           data-explanation-wrong="Think about how you'd trace a specific commission back to a specific payroll run...">
+        <h3 class="quiz-question">After a payout batch is generated, what happens to the commissions in it?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They're deleted and replaced by payout records</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They get status "paid" and a batchId field linking them to the payout run</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They're moved to a separate "paid_commissions" table</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Spot on! The batchId filter prevents the same commissions from being included in multiple payout runs. It's the deduplication mechanism."
+           data-explanation-wrong="Think about what would happen if Alex accidentally clicked 'Generate Payouts' twice...">
+        <h3 class="quiz-question">Alex accidentally clicks "Generate Payouts" twice in one minute. What prevents affiliates from being paid twice?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The second run filters out commissions that already have a batchId from the first run</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system locks the batch after creation and prevents new ones for 24 hours</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The frontend disables the button after the first click</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Correct! The mutation is atomic — if the tier limit check fails, no records are created. This prevents partial payouts."
+           data-explanation-wrong="Consider what would happen if some affiliates got paid but the limit ran out before reaching others...">
+        <h3 class="quiz-question">The starter plan allows 5 payouts per month and there are 8 affiliates with approved commissions. What happens when Alex tries to generate a batch?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system pays the first 5 and queues the rest for next month</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system pays all 8 and charges Alex an overage fee</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The entire batch fails with an error — no payouts are created for anyone</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+  </div>
+
+</section>
+<section class="module" id="module-6">
+
+  <!-- Screen 1: The Complete Architecture -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">06</span>
+      <h2 class="module-title">The Full Picture</h2>
+      <p class="module-subtitle">Every piece connected — the complete tenant lifecycle</p>
+    </div>
+
+    <p class="animate-in">
+      Let's zoom out and see the entire system. Here's every major component and how they connect. Click any component to learn what it does.
+    </p>
+
+    <div class="arch-diagram animate-in">
+      <div class="arch-zone arch-zone-browser">
+        <h4 class="arch-zone-label">User's Browser</h4>
+        <div class="arch-component" data-desc="Sign-up form with plan selection, domain validation, and password strength checker. Sends data to Better Auth first, then to Convex." onclick="showArchDesc(this)">
+          <div class="arch-icon">📝</div>
+          <span>SignUp Form</span>
+        </div>
+        <div class="arch-component" data-desc="Jamie's portal where they see their earnings, referral links, and commission history. White-labeled with Alex's branding." onclick="showArchDesc(this)">
+          <div class="arch-icon">🤝</div>
+          <span>Affiliate Portal</span>
+        </div>
+        <div class="arch-component" data-desc="Alex's command center: dashboard stats, affiliate management, campaign creation, commission approval, and payout generation." onclick="showArchDesc(this)">
+          <div class="arch-icon">📊</div>
+          <span>Owner Dashboard</span>
+        </div>
+      </div>
+
+      <div class="arch-zone" style="border-color: var(--color-accent-muted);">
+        <h4 class="arch-zone-label">Affilio Backend (Convex)</h4>
+        <div class="arch-component" data-desc="Handles user sign-up/sign-in, password hashing, session management. Stores credentials in its own component-scoped tables separate from app tables." onclick="showArchDesc(this)">
+          <div class="arch-icon">🔐</div>
+          <span>Better Auth</span>
+        </div>
+        <div class="arch-component" data-desc="The workspace container. Holds company name, domain, plan, billing provider, branding, and custom domain config. Every query filters by tenantId." onclick="showArchDesc(this)">
+          <div class="arch-icon">🏢</div>
+          <span>Tenants</span>
+        </div>
+        <div class="arch-component" data-desc="Team members with roles (owner, manager, member). Each user belongs to one tenant. Role-based permissions control who can do what." onclick="showArchDesc(this)">
+          <div class="arch-icon">👤</div>
+          <span>Users</span>
+        </div>
+        <div class="arch-component" data-desc="Commission rules: percentage or flat fee, cookie duration, auto-approval threshold, recurring settings. One tenant can have multiple campaigns." onclick="showArchDesc(this)">
+          <div class="arch-icon">📢</div>
+          <span>Campaigns</span>
+        </div>
+        <div class="arch-component" data-desc="The promoters. Each gets a unique referral code and link. Status can be pending, active, suspended, or rejected. Fraud detection runs on sign-up." onclick="showArchDesc(this)">
+          <div class="arch-icon">🤝</div>
+          <span>Affiliates</span>
+        </div>
+        <div class="arch-component" data-desc="Breadcrumb trail: records every referral link click with IP, user agent, dedupe key, and timestamp. Expires after cookie window (default 30 days)." onclick="showArchDesc(this)">
+          <div class="arch-icon">🖱️</div>
+          <span>Clicks</span>
+        </div>
+        <div class="arch-component" data-desc="Records every sale attributed to an affiliate. Has an attributionSource field (cookie, coupon, lead_email, organic). Links to commissions via conversionId." onclick="showArchDesc(this)">
+          <div class="arch-icon">🔄</div>
+          <span>Conversions</span>
+        </div>
+        <div class="arch-component" data-desc="The money owed. Status flows: pending → approved → paid (or declined/reversed). Supports per-affiliate rate overrides and auto-approval thresholds." onclick="showArchDesc(this)">
+          <div class="arch-icon">💰</div>
+          <span>Commissions</span>
+        </div>
+        <div class="arch-component" data-desc="Payroll runs. Each batch groups approved commissions by affiliate. Individual payout records track payment status. Tier limits enforced before creation." onclick="showArchDesc(this)">
+          <div class="arch-icon">🏦</div>
+          <span>Payouts</span>
+        </div>
+      </div>
+
+      <div class="arch-zone arch-zone-external">
+        <h4 class="arch-zone-label">External Services</h4>
+        <div class="arch-component" data-desc="Sends webhooks for payment events (payment.updated, subscription.created/updated/cancelled, refund.created). Attribution data travels in metadata." onclick="showArchDesc(this)">
+          <div class="arch-icon">💳</div>
+          <span>Stripe / SaligPay</span>
+        </div>
+        <div class="arch-component" data-desc="Sends transactional emails: welcome, commission confirmation, payout notification, domain change alerts, team removal notices." onclick="showArchDesc(this)">
+          <div class="arch-icon">📧</div>
+          <span>Resend / Postmark</span>
+        </div>
+      </div>
+
+      <div class="arch-description" id="arch-desc">Click any component to learn what it does</div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Complete Lifecycle Flow -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">End-to-end: from sign-up to payout</h3>
+
+    <p class="animate-in">
+      Here's the complete lifecycle of a tenant, traced from Alex's first visit to Jamie's first payment:
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Day 1: Alex signs up — tenant created, trial starts, stats seeded"},
+      {"highlight":"flow-actor-2","label":"Day 1: Alex sets up tracking snippet on taskflow.io — gets public key sk_..."},
+      {"highlight":"flow-actor-3","label":"Day 2: Alex creates &quot;Summer Sale&quot; campaign — 10% commission, auto-approve under $500"},
+      {"highlight":"flow-actor-4","label":"Day 3: Jamie signs up as affiliate, gets referral link taskflow.io/?ref=jamie"},
+      {"highlight":"flow-actor-5","label":"Day 5: A visitor clicks Jamie&#39;s link — click recorded with cookie set","packet":true,"from":"actor-5","to":"actor-6"},
+      {"highlight":"flow-actor-6","label":"Day 7: Visitor buys a $99 subscription — Stripe webhook fires","packet":true,"from":"actor-6","to":"actor-7"},
+      {"highlight":"flow-actor-7","label":"Commission engine: attributes to Jamie (cookie match), creates conversion + $9.90 commission (auto-approved)"},
+      {"highlight":"flow-actor-2","label":"Day 30: Alex generates payout batch — Jamie&#39;s $9.90 + other affiliates bundled"},
+      {"highlight":"flow-actor-2","label":"Jamie sees &quot;$9.90 paid&quot; in their affiliate portal — done! 🎉"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">📝</div>
+          <span>Sign Up</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #1fb5a5">⚙️</div>
+          <span>Setup</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">📢</div>
+          <span>Campaign</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-4">
+          <div class="flow-actor-icon" style="background: #2D8B55">🤝</div>
+          <span>Affiliate</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-5">
+          <div class="flow-actor-icon" style="background: #D4A843">🖱️</div>
+          <span>Click</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-6">
+          <div class="flow-actor-icon" style="background: #D94F30">💳</div>
+          <span>Payment</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-7">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">💰</div>
+          <span>Commission</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Key Design Decisions -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The engineering behind the curtain</h3>
+
+    <p class="animate-in">
+      This system makes several deliberate architectural choices that are worth understanding — they come up in almost every production SaaS:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔒</div>
+        <h4 class="pattern-title">Tenant Isolation</h4>
+        <p class="pattern-desc">Every query starts with <code>tenantId</code>. It's impossible for one company to see another's data — not through a bug, not through a hack. This is called multi-tenancy and it's the foundation of every SaaS.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">⚡</div>
+        <h4 class="pattern-title">Denormalized Counters</h4>
+        <p class="pattern-desc">Stats are pre-computed, not calculated on demand. This trades write complexity (every mutation must update counters) for read speed (dashboards load instantly). The counters are updated in the same transaction as the data change, so they never drift.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🔗</div>
+        <h4 class="pattern-title">Atomic Mutations</h4>
+        <p class="pattern-desc">Payout batching either succeeds completely or fails completely. No partial payouts. This uses Convex's transaction guarantee — the database either commits all changes or rolls back to the state before the mutation started.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">📝</div>
+        <h4 class="pattern-title">Audit Everything</h4>
+        <p class="pattern-desc">Every significant action creates an audit log: tenant created, user removed, commission approved, payout generated, domain changed. This is non-negotiable for a financial system — regulators require it, and it's invaluable for debugging.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D4A843">
+        <div class="pattern-icon" style="background: #D4A843">🛡️</div>
+        <h4 class="pattern-title">Layered Fraud Detection</h4>
+        <p class="pattern-desc">Self-referral checks (email + IP match), click deduplication (same person clicking 100 times), payment status validation (reject "pending" and "failed" payments), and auto-approval thresholds (manual review for large commissions).</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent-muted)">
+        <div class="pattern-icon" style="background: var(--color-accent-muted)">🎯</div>
+        <h4 class="pattern-title">Triple Attribution</h4>
+        <p class="pattern-desc">Cookie → Coupon → Email lead matching. If the first method fails, try the next. Coupon beats cookie (explicit > implicit). If all fail, record as organic — never lose a sale's data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: What Can Go Wrong -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">When things break — and how to find out why</h3>
+
+    <p class="animate-in">
+      Here are the most common failure points in the tenant lifecycle — and where to look:
+    </p>
+
+    <div class="scenario-block animate-in">
+      <div class="scenario-context">
+        <span class="scenario-label">Scenario</span>
+        <p>"Alex says an affiliate referred a customer who bought a $500 subscription, but no commission appeared. Where do you investigate?"</p>
+      </div>
+    </div>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <p><strong>rawWebhooks table</strong><br><small>Did the webhook arrive? Check for the event ID. Status: "processed" or "error"?</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <p><strong>Attribution</strong><br><small>Was there a cookie? Coupon code? Lead match? Check the "No attribution" log message.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <p><strong>Affiliate status</strong><br><small>Is the affiliate still "active"? Suspended affiliates don't earn commissions.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">4</div>
+        <p><strong>Payment status</strong><br><small>Was the webhook payment status "paid" or "completed"? "pending" payments are rejected.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">5</div>
+        <p><strong>Campaign status</strong><br><small>Is the campaign "active"? Paused or archived campaigns block commissions.</small></p>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">The audit log is your best friend</strong>
+        <p>Almost every failure leaves a trail in the audit logs. The commission engine logs rejection reasons, the webhook handler logs processing errors, and the attribution system logs resolution paths. Start there.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Final Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Final challenge</h3>
+
+    <div class="quiz-container" id="quiz-module6">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Exactly! The tracking snippet (identified by public key) is the bridge between the merchant's website and Affilio's attribution system. Without it, no clicks are recorded, no cookies are set, and no conversions can be attributed."
+           data-explanation-wrong="Think about what connects the merchant's website to the affiliate tracking system...">
+        <h3 class="quiz-question">Alex creates a campaign and recruits Jamie as an affiliate, but forgets to install the tracking snippet on their website. A customer visits directly (not through Jamie's link) and buys. What happens?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A commission is created for Jamie because the campaign is active</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>An organic conversion is recorded because the tracking snippet is missing</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — without the tracking snippet, no click is recorded, no cookie is set, and the webhook has no attribution data. The sale is invisible to the system.</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Correct! Atomic mutations are all-or-nothing. If any step fails (including the tier limit check), the entire batch rolls back. This is Convex's transaction guarantee."
+           data-explanation-wrong="Think about what 'atomic' means in databases...">
+        <h3 class="quiz-question">A payout batch is being generated. The first 3 affiliates' commissions are updated successfully, but the 4th exceeds the tier's monthly payout limit. What happens to the first 3?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — the entire mutation rolls back. All 4 affiliates remain unpaid.</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The first 3 get paid, the 4th is skipped</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The batch is created with 3 affiliates and a note about the limit</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Right! The webhook handler normalizes payloads from different payment providers into a single BillingEvent format. This means adding a new provider (like PayPal) only requires a new normalizer — the entire commission engine stays the same."
+           data-explanation-wrong="Think about how the commission engine receives data — does it know or care which payment provider sent it?">
+        <h3 class="quiz-question">Alex wants to switch from Stripe to SaligPay as their payment processor. What needs to change in the commission engine?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The entire commission engine needs to be rewritten for SaligPay's API format</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — the webhook handler normalizes both formats into the same BillingEvent before the engine sees it</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new commissionEngine file needs to be created specifically for SaligPay</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+
+    <div class="callout callout-accent animate-in" style="margin-top: var(--space-12);">
+      <div class="callout-icon">🎓</div>
+      <div class="callout-content">
+        <strong class="callout-title">You now understand the full tenant lifecycle</strong>
+        <p>From registration (two-step auth + app data) through tracking setup (public keys + cookies), conversion processing (triple attribution + fraud detection), commission calculation (rates, overrides, auto-approval), to payouts (batching, tier limits, atomicity). Every piece serves a purpose, every boundary has a guard rail. This is how production-grade affiliate software works.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
+  </main>
+
+</body>
+</html>

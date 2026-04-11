@@ -1,0 +1,286 @@
+<section class="module" id="module-3">
+
+  <!-- Screen 1: The Tracking Setup -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">03</span>
+      <h2 class="module-title">Tracking & Attribution</h2>
+      <p class="module-subtitle">How the system knows who referred whom</p>
+    </div>
+
+    <p class="animate-in">
+      After registration, Alex's first real task is <strong>tracking setup</strong>. They need to install a small piece of code — the <span class="glossary" data-tip="A tracking snippet is a few lines of JavaScript that the SaaS owner adds to their website. It watches for affiliate referrals and sends data back to Affilio.">tracking snippet</span> — on their website. Think of it as installing a security camera: it watches every visitor who arrives through an affiliate link.
+    </p>
+
+    <p class="animate-in">
+      The system generates a unique <strong>public key</strong> (<code>sk_</code> + random hex) that identifies Alex's tenant. This key is embedded in the tracking snippet — it's how the system knows incoming tracking data belongs to TaskFlow, not DesignPro.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/tracking.ts</span>
+        <pre><code>
+<span class="code-keyword">function</span> <span class="code-function">generatePublicKey</span>(): <span class="code-type">string</span> {</span>
+<span class="code-line">  <span class="code-keyword">const</span> array = <span class="code-keyword">new</span> <span class="code-type">Uint8Array</span>(<span class="code-number">16</span>);</span>
+<span class="code-line">  crypto.<span class="code-function">getRandomValues</span>(array);</span>
+<span class="code-line">  <span class="code-keyword">const</span> hex = <span class="code-type">Array</span>.<span class="code-function">from</span>(array)</span>
+<span class="code-line">    .<span class="code-function">map</span>(b => b.<span class="code-function">toString</span>(<span class="code-number">16</span>).<span class="code-function">padStart</span>(<span class="code-number">2</span>, <span class="code-string">'0'</span>))</span>
+<span class="code-line">    .<span class="code-function">join</span>(<span class="code-string">''</span>);</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-string">"sk_"</span> + hex;</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Create a 16-byte random buffer...</p>
+          <p class="tl">Fill it with cryptographically secure random numbers (not predictable)...</p>
+          <p class="tl">Convert each byte to a 2-character hex string...</p>
+          <p class="tl">Join them all together into one string...</p>
+          <p class="tl">Prepend "sk_" (for "secret key") and return it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Attribution Chain -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The full attribution chain</h3>
+
+    <p class="animate-in">
+      Attribution is the art of connecting a sale back to the affiliate who referred it. Here's the complete chain, from a blogger posting a link to a commission being created:
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Jamie (affiliate) shares referral link: taskflow.io/?ref=jamie"},
+      {"highlight":"flow-actor-1","label":"A visitor clicks the link — browser sends a tracking request","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Convex records the click: who, when, which link, IP address, referrer"},
+      {"highlight":"flow-actor-2","label":"Browser sets a cookie on taskflow.io with jamie&#39;s affiliate code"},
+      {"highlight":"flow-actor-3","label":"Days later, the visitor buys a TaskFlow subscription on taskflow.io"},
+      {"highlight":"flow-actor-3","label":"Stripe/SaligPay sends a webhook to Affilio with the payment data","packet":true,"from":"actor-3","to":"actor-4"},
+      {"highlight":"flow-actor-4","label":"Commission engine reads the cookie, finds Jamie&#39;s click record, creates conversion + commission"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: #1fb5a5">🤝</div>
+          <span>Jamie</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">🗄️</div>
+          <span>Affilio</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">💳</div>
+          <span>Stripe</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-4">
+          <div class="flow-actor-icon" style="background: #2D8B55">⚙️</div>
+          <span>Engine</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Click Recording -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Clicks: the breadcrumb trail</h3>
+
+    <p class="animate-in">
+      Every time someone clicks Jamie's referral link, the system creates a <code>clicks</code> record. This is the breadcrumb trail that connects a future purchase back to Jamie. The record stores:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔗</div>
+        <h4 class="pattern-title">referralLinkId</h4>
+        <p class="pattern-desc">Which specific link was clicked (Jamie could have multiple links for different campaigns)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">🤝</div>
+        <h4 class="pattern-title">affiliateId</h4>
+        <p class="pattern-desc">Who gets credit — Jamie's affiliate record ID</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🌐</div>
+        <h4 class="pattern-title">ipAddress</h4>
+        <p class="pattern-desc">The visitor's IP — used for deduplication (don't count the same person clicking twice)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">🔑</div>
+        <h4 class="pattern-title">dedupeKey</h4>
+        <p class="pattern-desc">A hash of IP + link — prevents click fraud (same person refreshing the page 100 times)</p>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">The 30-day cookie window</strong>
+        <p>Clicks expire. If someone clicks Jamie's link today but doesn't buy for 31 days, Jamie doesn't get credit. Each campaign can configure its own cookie duration. The system checks <code>_creationTime</code> on the click record against the current time to enforce this window.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Three Attribution Methods -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Three ways to attribute a sale</h3>
+
+    <p class="animate-in">
+      When a payment comes in via webhook, the commission engine tries three methods to figure out which affiliate gets credit — in order of priority:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Cookie-based (webhook body)</h4>
+          <p>The tracking snippet embedded a cookie when the visitor clicked Jamie's link. The webhook body includes the affiliate code from that cookie. Fastest, most common path.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Coupon code</h4>
+          <p>Jamie shared a discount code "JAMIE15". The customer entered it at checkout. The webhook metadata includes the coupon code. Works even without cookies (social media, email).</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Email lead matching</h4>
+          <p>Jamie's referral link included <code>Affilio.referral({email})</code> on the signup form. The customer's email was stored as a "lead." When the webhook arrives with that email, the system matches it back to Jamie.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Coupon beats cookie</strong>
+        <p>If both cookie data AND a coupon code are present, the coupon code wins (ADR-4). This prevents attribution disputes — the explicit coupon choice is considered stronger evidence than a passive cookie.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: What If Nobody Gets Credit? -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Organic conversions</h3>
+
+    <p class="animate-in">
+      If all three attribution methods fail — no cookie, no coupon, no matching lead — the system still records the sale as an <strong>"organic conversion."</strong> This is important: the SaaS owner still sees their revenue tracked, even if no affiliate gets credit. It helps them understand what percentage of sales come from affiliates vs. natural traffic.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/commissionEngine.ts</span>
+        <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (!event.attribution?.affiliateCode) {</span>
+<span class="code-line">  <span class="code-function">console.log</span>(<span class="code-string">"No attribution, logging as organic"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> conversionId = <span class="code-keyword">await</span> ctx.<span class="code-function">runMutation</span>(</span>
+<span class="code-line">    internal.conversions.<span class="code-function">createOrganicConversion</span>,</span>
+<span class="code-line">    { <span class="code-property">tenantId</span>, <span class="code-property">amount</span>, <span class="code-property">customerEmail</span> }</span>
+<span class="code-line">  );</span>
+<span class="code-line">  <span class="code-keyword">return</span> { <span class="code-property">conversionId</span>, <span class="code-property">commissionId</span>: <span class="code-keyword">null</span>, <span class="code-property">organic</span>: <span class="code-keyword">true</span> };</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">If we couldn't find any affiliate to credit...</p>
+          <p class="tl">Log it for debugging...</p>
+          <p class="tl">Still create a conversion record (so the dashboard shows the revenue)...</p>
+          <p class="tl">But don't create a commission — no affiliate to pay...</p>
+          <p class="tl">Return with organic: true so the system knows this wasn't affiliate-driven.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module3">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Correct! The dedupe key prevents click fraud by ensuring the same person clicking the same link multiple times only counts once."
+           data-explanation-wrong="Think about what would happen if someone clicked a link 100 times — you'd want to count that as one click, not 100.">
+        <h3 class="quiz-question">Why does the clicks table store a dedupeKey (IP + link hash) instead of just counting every click?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because database indexes require composite keys</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>To prevent click fraud — the same person refreshing the page shouldn't generate multiple clicks</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because cookies have a 30-day expiration and dedupe keys don't</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Exactly! Coupon codes work across channels (social, email, offline) where cookies can't be set. The code explicitly says coupon beats cookie."
+           data-explanation-wrong="Think about a scenario where someone sees a discount code on Instagram but never clicks a tracking link...">
+        <h3 class="quiz-question">A customer sees Jamie's discount code "JAMIE15" on Instagram and types it at checkout — they never clicked Jamie's tracking link. Does Jamie get credit?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>No — without a cookie, attribution is impossible</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Yes — but only if the customer also has an existing lead record</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Yes — coupon code attribution works independently of cookies and even overrides cookie data if both exist</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Right! Organic conversions track revenue that came through natural channels, helping the SaaS owner see what percentage of sales affiliates actually drive."
+           data-explanation-wrong="Consider what the owner would want to know about their traffic sources...">
+        <h3 class="quiz-question">Why does the system create an "organic conversion" when no affiliate is found, instead of just ignoring the sale entirely?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>So the dashboard can show the owner what percentage of revenue comes from affiliates vs. natural traffic</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the database schema requires a conversion record for every webhook</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>To automatically create a pending commission that the owner can assign to an affiliate later</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+  </div>
+
+</section>

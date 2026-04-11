@@ -1,0 +1,370 @@
+<section class="module" id="module-4">
+
+  <!-- Screen 1: When a Payment Arrives -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">04</span>
+      <h2 class="module-title">Conversions & Commissions</h2>
+      <p class="module-subtitle">Turning payments into affiliate earnings</p>
+    </div>
+
+    <p class="animate-in">
+      This is where the money happens. When a customer buys something on TaskFlow's website, <span class="glossary" data-tip="Stripe or SaligPay sends a webhook — an automatic HTTP notification — to Affilio saying &quot;a payment just happened!&quot; Think of it like a cash register that automatically texts the accounting department after every sale.">Stripe (or SaligPay)</span> sends a <span class="glossary" data-tip="A webhook is an automatic HTTP request sent by one system to another when an event occurs. Like a push notification between servers.">webhook</span> to Affilio. The commission engine processes it and, if attribution works, creates a commission for the referring affiliate.
+    </p>
+
+    <p class="animate-in">
+      The system handles six types of webhook events — each with different logic:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">💳</div>
+        <h4 class="pattern-title">payment.updated</h4>
+        <p class="pattern-desc">One-time payment confirmed → create conversion + commission</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">🔄</div>
+        <h4 class="pattern-title">subscription.created</h4>
+        <p class="pattern-desc">First subscription payment → conversion + initial commission</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔁</div>
+        <h4 class="pattern-title">subscription.updated</h4>
+        <p class="pattern-desc">Renewal, upgrade, or downgrade → new conversion + recurring commission (if enabled)</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">❌</div>
+        <h4 class="pattern-title">subscription.cancelled</h4>
+        <p class="pattern-desc">Customer cancels → no new commissions, preserve existing pending ones</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D4A843">
+        <div class="pattern-icon" style="background: #D4A843">💰</div>
+        <h4 class="pattern-title">refund.created</h4>
+        <p class="pattern-desc">Money returned → reverse the commission (set status to "reversed")</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Commission Calculation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">How commissions are calculated</h3>
+
+    <p class="animate-in">
+      When a conversion is attributed to Jamie, the system calculates their commission based on the campaign's rules. Campaigns support two commission types:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/commissions.ts</span>
+        <pre><code>
+<span class="code-comment">// Get the effective rate (check for affiliate override)</span>
+<span class="code-keyword">const</span> effectiveRate = <span class="code-keyword">await</span> <span class="code-function">getEffectiveCommissionRate</span>(</span>
+<span class="code-line">  ctx, affiliateId, campaignId</span>
+<span class="code-line">);</span>
+<span class="code-line"></span>
+<span class="code-comment">// Calculate commission amount</span>
+<span class="code-keyword">let</span> commissionAmount: <span class="code-type">number</span>;</span>
+<span class="code-line"><span class="code-keyword">if</span> (campaign.commissionType === <span class="code-string">"percentage"</span>) {</span>
+<span class="code-line">  commissionAmount = saleAmount * (effectiveRate / <span class="code-number">100</span>);</span>
+<span class="code-line">} <span class="code-keyword">else</span> {</span>
+<span class="code-line">  commissionAmount = effectiveRate; <span class="code-comment">// flatFee</span></span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Check if Jamie has a special commission rate for this campaign (otherwise use the campaign default)...</p>
+          <p class="tl"></p>
+          <p class="tl">If the campaign is "percentage" type, multiply the sale amount by the rate...</p>
+          <p class="tl">Example: ₱10,000 sale × 10% = ₱1,000 commission...</p>
+          <p class="tl">If the campaign is "flat fee" type, the rate IS the commission...</p>
+          <p class="tl">Example: ₱500 flat fee regardless of sale amount.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Per-affiliate overrides</strong>
+        <p>Alex can give Jamie a special 15% rate even though the campaign default is 10%. The system checks <code>commissionOverrides</code> on the affiliate record first, then falls back to the campaign default. This lets Alex incentivize top performers without changing the campaign for everyone.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: The Commission Status Flow -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Commission lifecycle: Pending → Approved → Paid</h3>
+
+    <p class="animate-in">
+      Commissions follow a strict linear flow. Not every commission makes it to "paid" — some get declined or reversed. Here's the complete state machine:
+    </p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">⏳</div>
+        <p><strong>Pending</strong><br><small>Affiliate earned it, waiting for review</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">✅</div>
+        <p><strong>Approved</strong><br><small>Owner confirmed, ready for payout</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">💰</div>
+        <p><strong>Paid</strong><br><small>Money sent to affiliate</small></p>
+      </div>
+    </div>
+
+    <p class="animate-in" style="margin-top: var(--space-8);">But commissions can also take two terminal detours:</p>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">⏳</div>
+        <p><strong>Pending</strong></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">🚫</div>
+        <p><strong>Declined</strong><br><small>Owner rejected — no payout</small></p>
+      </div>
+    </div>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">✅</div>
+        <p><strong>Approved</strong></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">↩️</div>
+        <p><strong>Reversed</strong><br><small>Customer refunded — commission clawed back</small></p>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Auto-approval thresholds</strong>
+        <p>Campaigns can auto-approve small commissions. If <code>autoApproveCommissions</code> is true and the amount is below the <code>approvalThreshold</code>, the commission skips "pending" entirely and goes straight to "approved." Large commissions always require manual review — a fraud safeguard.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Self-Referral Detection & Fraud -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Fraud detection: self-referrals</h3>
+
+    <p class="animate-in">
+      One of the oldest affiliate tricks: the SaaS owner signs up as their own affiliate to get a commission on their own purchases. The system catches this by comparing the customer's data against the affiliate's stored data.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/conversions.ts</span>
+        <pre><code>
+<span class="code-keyword">export const</span> <span class="code-function">detectSelfReferralInternal</span> = <span class="code-function">internalQuery</span>({</span>
+<span class="code-line">  <span class="code-property">args</span>: { <span class="code-property">affiliateId</span>, <span class="code-property">customerEmail</span>, <span class="code-property">ipAddress</span>, ... },</span>
+<span class="code-line">  <span class="code-property">handler</span>: <span class="code-keyword">async</span> (ctx, args) => {</span>
+<span class="code-line">    <span class="code-keyword">const</span> affiliate = <span class="code-keyword">await</span> ctx.db.<span class="code-function">get</span>(args.affiliateId);</span>
+<span class="code-line">    <span class="code-keyword">const</span> reasons: <span class="code-type">string</span>[] = [];</span>
+<span class="code-line">    <span class="code-keyword">if</span> (args.customerEmail === affiliate.email)</span>
+<span class="code-line">      reasons.<span class="code-function">push</span>(<span class="code-string">"email_match"</span>);</span>
+<span class="code-line">    <span class="code-keyword">if</span> (args.ipAddress === affiliate.lastLoginIp)</span>
+<span class="code-line">      reasons.<span class="code-function">push</span>(<span class="code-string">"ip_match"</span>);</span>
+<span class="code-line">    <span class="code-keyword">return</span> { <span class="code-property">isSelfReferral</span>: reasons.length > <span class="code-number">0</span>, reasons };</span>
+<span class="code-line">  },</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Define a query that checks if a purchase looks like self-referral...</p>
+          <p class="tl">Takes the affiliate's ID and the customer's details...</p>
+          <p class="tl">Fetch the affiliate's record from the database...</p>
+          <p class="tl">Start with an empty list of suspicious signals...</p>
+          <p class="tl">If the customer's email matches the affiliate's email — red flag!</p>
+          <p class="tl">If the customer's IP matches the affiliate's last login IP — red flag!</p>
+          <p class="tl">Return whether it's self-referral and why.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Denormalized Counters -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The stats engine: instant dashboards</h3>
+
+    <p class="animate-in">
+      Every time a commission is created, approved, reversed, or paid, a corresponding <span class="glossary" data-tip="Denormalized counters are summary numbers stored separately from the detail records. Like a scoreboard that updates when points are scored, instead of recounting all games every time you check.">denormalized counter</span> in the <code>tenantStats</code> table is updated in the same transaction. This means the dashboard loads instantly — no expensive COUNT queries.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/tenantStats.ts (hooks)</span>
+        <pre><code>
+<span class="code-keyword">export async function</span> <span class="code-function">onCommissionCreated</span>(</span>
+<span class="code-line">  ctx, tenantId, amount, status</span>
+<span class="code-line">) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> stats = <span class="code-keyword">await</span> <span class="code-function">getOrCreateStats</span>(ctx, tenantId);</span>
+<span class="code-line">  <span class="code-keyword">const</span> updates: <span class="code-type">Record</span>&lt;<span class="code-type">string</span>, <span class="code-type">number</span>&gt; = {};</span>
+<span class="code-line">  <span class="code-keyword">if</span> (status === <span class="code-string">"pending"</span>) {</span>
+<span class="code-line">    updates.commissionsPendingCount = stats.commissionsPendingCount + <span class="code-number">1</span>;</span>
+<span class="code-line">    updates.commissionsPendingValue = stats.commissionsPendingValue + amount;</span>
+<span class="code-line">  } <span class="code-keyword">else if</span> (status === <span class="code-string">"approved"</span>) {</span>
+<span class="code-line">    updates.commissionsConfirmedThisMonth += <span class="code-number">1</span>;</span>
+<span class="code-line">    updates.commissionsConfirmedValueThisMonth += amount;</span>
+<span class="code-line">  }</span>
+<span class="code-line">  <span class="code-keyword">await</span> ctx.db.<span class="code-function">patch</span>(stats._id, updates);</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">When a commission is created, update the stats counters...</p>
+          <p class="tl">Find (or create) the stats row for this tenant...</p>
+          <p class="tl">Prepare an object with only the fields that changed...</p>
+          <p class="tl">If it's a pending commission, increment the pending count and value...</p>
+          <p class="tl">If it's auto-approved, increment the confirmed-this-month counters...</p>
+          <p class="tl">Save all updates in one database operation (same transaction).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why not just COUNT(*)?</strong>
+        <p>With 50,000 commissions, a <code>COUNT(*)</code> query takes real time. A denormalized counter is a single row lookup — instant. The tradeoff is complexity: every mutation that changes commission status must also update the counter. The AGENTS.md calls this "mandatory mutation hooks" — forgetting one causes dashboard numbers to drift.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Chat - Webhook Processing -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Inside the commission engine</h3>
+
+    <p class="animate-in">
+      Here's the conversation between the webhook handler and the commission engine when a payment arrives:
+    </p>
+
+    <div class="chat-window" id="chat-module4" style="--color-actor-1: #D94F30; --color-actor-2: var(--color-accent); --color-actor-3: #2D8B55">
+      <div class="chat-messages">
+        <div class="chat-message" data-msg="0" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">💳</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Stripe</span>
+            <p>Hey Affilio! A $99 payment just came in for tenant taskflow. Here's the event payload — it includes metadata with affiliate code "jamie" and click ID.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="1" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Webhook Handler</span>
+            <p>Got it! Let me verify the signature, deduplicate by event ID, normalize the payload, and store it in rawWebhooks for auditing...</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="2" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Webhook Handler</span>
+            <p>Payment status is "paid" — that's confirmed. Passing to the commission engine with attribution data.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="3" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">⚙️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Commission Engine</span>
+            <p>Looking up affiliate "jamie"... Found! Status is "active" ✅. Checking for self-referral... Email and IP don't match ✅. Finding the campaign... "Summer Sale" — 10% percentage, auto-approve under $500.</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="4" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">⚙️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Commission Engine</span>
+            <p>Creating conversion record... Commission: $99 × 10% = $9.90. Under $500 threshold → auto-approved! Updated tenant stats counters. Done! 🎉</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-typing" id="chat-typing" style="display:none">
+        <div class="chat-avatar" id="typing-avatar">?</div>
+        <div class="chat-typing-dots">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <div class="chat-controls">
+        <button class="btn chat-next-btn">Next Message</button>
+        <button class="btn chat-all-btn">Play All</button>
+        <button class="btn chat-reset-btn">Replay</button>
+        <span class="chat-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module4">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Correct! The approval threshold is a safety mechanism — large commissions (potentially fraudulent) always need human review, while small ones can be auto-approved."
+           data-explanation-wrong="Think about what kind of commission you'd want to personally review...">
+        <h3 class="quiz-question">A campaign has autoApproveCommissions=true and approvalThreshold=500. A commission of $400 comes in. What status does it get?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"pending" — all commissions require manual review</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"approved" — autoApprove means everything is auto-approved</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"approved" — $400 is below the $500 threshold, so it's auto-approved</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>"declined" — the system can't verify payments under $500</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Denormalized counters are updated in the same transaction as the commission creation, so they're always accurate without expensive COUNT queries."
+           data-explanation-wrong="Think about what happens when you have 50,000 commissions and need to show a total on the dashboard...">
+        <h3 class="quiz-question">Why does the system update tenantStats counters every time a commission is created, instead of counting commissions on demand?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Convex doesn't support COUNT queries</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because a single-row lookup is instant, while counting 50,000+ rows every dashboard load would be slow</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because the stats table is the primary source of truth for commissions</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+  </div>
+
+</section>

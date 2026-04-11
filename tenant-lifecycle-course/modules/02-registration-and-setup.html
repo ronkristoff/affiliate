@@ -1,0 +1,395 @@
+<section class="module" id="module-2">
+
+  <!-- Screen 1: The Registration Journey -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">02</span>
+      <h2 class="module-title">Registration & Setup</h2>
+      <p class="module-subtitle">From sign-up form to a fully operational affiliate workspace</p>
+    </div>
+
+    <p class="animate-in">
+      When Alex fills out the sign-up form, a carefully orchestrated <span class="glossary" data-tip="A sequence of steps that must all succeed together. If any step fails, the whole operation is rolled back — like a group booking where everyone gets tickets or nobody does.">two-step dance</span> happens between the browser and the server. Let's trace it.
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Alex fills in name, email, password, company name, domain, and picks a plan"},
+      {"highlight":"flow-actor-1","label":"Browser validates the form (is the domain real? is the password strong enough?)","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Better Auth creates the auth user record (email + password hash in component tables)","packet":true,"from":"actor-2","to":"actor-3"},
+      {"highlight":"flow-actor-3","label":"completeSignUp mutation: creates tenant row + user row + seeds stats + audit log"},
+      {"highlight":"flow-actor-3","label":"Success! Redirect Alex to /onboarding to set up their tracking snippet"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">🌐</div>
+          <span>Browser</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #1fb5a5">🔐</div>
+          <span>Better Auth</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">🗄️</div>
+          <span>Convex DB</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Two-Step Registration Code -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Step 1: Auth, Step 2: App data</h3>
+
+    <p class="animate-in">
+      Registration is split into two steps because of an architectural boundary. <span class="glossary" data-tip="Better Auth is a TypeScript authentication library that handles login, signup, sessions, and password hashing. It stores user credentials in its own component-scoped tables.">Better Auth</span> manages credentials (email, password) in its own tables. The app needs additional data (company name, domain) that Better Auth doesn't know about. So the frontend calls them sequentially.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — SignUp.tsx (frontend)</span>
+        <pre><code>
+<span class="code-line"><span class="code-comment">// Step 1: Create auth user via Better Auth</span></span>
+<span class="code-line"><span class="code-keyword">const</span> { data, error } = <span class="code-keyword">await</span> authClient</span>
+<span class="code-line">  .<span class="code-function">signUp.email</span>({</span>
+<span class="code-line">    <span class="code-property">email</span>: cleanEmail,</span>
+<span class="code-line">    <span class="code-property">password</span>: values.password,</span>
+<span class="code-line">    <span class="code-property">name</span>: cleanName,</span>
+<span class="code-line">  });</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-comment">// Step 2: Create tenant + user in app tables</span></span>
+<span class="code-line"><span class="code-keyword">await</span> <span class="code-function">completeSignUpMutation</span>({</span>
+<span class="code-line">  <span class="code-property">email</span>: cleanEmail,</span>
+<span class="code-line">  <span class="code-property">name</span>: cleanName,</span>
+<span class="code-line">  <span class="code-property">companyName</span>: values.companyName,</span>
+<span class="code-line">  <span class="code-property">domain</span>: cleanedDomain,</span>
+<span class="code-line">  <span class="code-property">plan</span>: selectedPlan,</span>
+<span class="code-line">});</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">First, send the email and password to Better Auth...</p>
+          <p class="tl">Better Auth hashes the password and stores it safely...</p>
+          <p class="tl">If this fails (email taken, weak password), stop here...</p>
+          <p class="tl">Only if auth succeeds, create the app-level records...</p>
+          <p class="tl">Send the company name, domain, and plan to Convex...</p>
+          <p class="tl">Convex creates the tenant, the user, and initializes counters...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Why not do it in one call?</strong>
+        <p>Better Auth's Convex component has its own database tables with a fixed schema. It only accepts <code>email</code>, <code>password</code>, and <code>name</code>. Fields like <code>companyName</code> and <code>domain</code> would cause a validation error if sent to Better Auth. That's why the second step exists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Domain Validation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The domain gatekeeper</h3>
+
+    <p class="animate-in">
+      The domain field is critical — it's where the tenant's customers actually buy their product. Referral links point there. The tracking snippet runs there. So the system validates it aggressively, both on the frontend and backend.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts</span>
+        <pre><code>
+<span class="code-keyword">function</span> <span class="code-function">cleanAndValidateDomain</span>(domain: <span class="code-type">string</span>) {</span>
+<span class="code-line">  <span class="code-keyword">let</span> cleaned = domain.<span class="code-function">toLowerCase</span>().<span class="code-function">trim</span>();</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">replace</span>(<span class="code-string">/^https?:\/\//</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">replace</span>(<span class="code-string">/^www\./</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">split</span>(<span class="code-string">"/"</span>)[<span class="code-number">0</span>];</span>
+<span class="code-line">  cleaned = cleaned.<span class="code-function">split</span>(<span class="code-string">":"</span>)[<span class="code-number">0</span>];</span>
+<span class="code-line">  <span class="code-keyword">if</span> (cleaned === <span class="code-string">"localhost"</span>)</span>
+<span class="code-line">    <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(<span class="code-string">"localhost is not allowed"</span>);</span>
+<span class="code-line">  <span class="code-keyword">const</span> ipRegex = <span class="code-string">/^(\d{1,3}\.){3}\d{1,3}$/</span>;</span>
+<span class="code-line">  <span class="code-keyword">if</span> (ipRegex.<span class="code-function">test</span>(cleaned))</span>
+<span class="code-line">    <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(<span class="code-string">"IP addresses not allowed"</span>);</span>
+<span class="code-line">  <span class="code-keyword">return</span> cleaned;</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Normalize: lowercase, strip spaces...</p>
+          <p class="tl">Remove "https://" if someone pasted a full URL...</p>
+          <p class="tl">Remove "www." prefix...</p>
+          <p class="tl">Remove any path after the domain (e.g. "/about")...</p>
+          <p class="tl">Remove port numbers (e.g. ":3000")...</p>
+          <p class="tl">Reject localhost — this needs to be a real website...</p>
+          <p class="tl">Reject IP addresses — they don't have tracking snippets...</p>
+          <p class="tl">Return the clean domain.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      After cleaning, the backend checks two things: <strong>is this domain already taken by another tenant?</strong> and <strong>is the format valid?</strong> Both checks use database indexes for instant lookups.
+    </p>
+  </div>
+
+  <!-- Screen 4: Slug Generation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Every tenant gets a slug</h3>
+
+    <p class="animate-in">
+      The slug is a URL-safe version of the company name. If "TaskFlow Pro" signs up, their slug becomes <code>taskflow-pro</code>. If that's taken, it tries <code>taskflow-pro-1</code>, then <code>taskflow-pro-2</code>, and so on — like getting a username on a social platform.
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/users.ts</span>
+        <pre><code>
+<span class="code-keyword">async function</span> <span class="code-function">generateUniqueSlug</span>(ctx, name) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> base = name.<span class="code-function">toLowerCase</span>()</span>
+<span class="code-line">    .<span class="code-function">replace</span>(<span class="code-string">/[^a-z0-9]+/g</span>, <span class="code-string">"-"</span>)</span>
+<span class="code-line">    .<span class="code-function">replace</span>(<span class="code-string">/^-+|-+$/g</span>, <span class="code-string">""</span>);</span>
+<span class="code-line">  <span class="code-keyword">let</span> slug = base, counter = <span class="code-number">1</span>;</span>
+<span class="code-line">  <span class="code-keyword">while</span> (<span class="code-keyword">true</span>) {</span>
+<span class="code-line">    <span class="code-keyword">const</span> existing = <span class="code-keyword">await</span> ctx.db</span>
+<span class="code-line">      .<span class="code-function">query</span>(<span class="code-string">"tenants"</span>)</span>
+<span class="code-line">      .<span class="code-function">withIndex</span>(<span class="code-string">"by_slug"</span>, q => q.<span class="code-function">eq</span>(<span class="code-string">"slug"</span>, slug))</span>
+<span class="code-line">      .<span class="code-function">first</span>();</span>
+<span class="code-line">    <span class="code-keyword">if</span> (!existing) <span class="code-keyword">return</span> slug;</span>
+<span class="code-line">    slug = <span class="code-string">`${base}-${counter++}`</span>;</span>
+<span class="code-line">  }</span>
+<span class="code-line">}</span>
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Convert "TaskFlow Pro" to lowercase and replace spaces/special chars with hyphens...</p>
+          <p class="tl">Strip any leading or trailing hyphens...</p>
+          <p class="tl">Start a counter at 1 for de-duplication...</p>
+          <p class="tl">Loop: check if this slug is already taken...</p>
+          <p class="tl">Use the "by_slug" database index for instant lookup...</p>
+          <p class="tl">If nobody has it, we're done — return it...</p>
+          <p class="tl">Otherwise, append "-1", "-2", etc. and try again...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">Indexes make this fast</strong>
+        <p>Without the <code>by_slug</code> index, the database would have to scan every single tenant to check if "taskflow-pro" is taken. With the index, it's an instant lookup — like checking the back of a book instead of reading every page. This matters when you have thousands of tenants.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: What Gets Created -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">One signup, four records</h3>
+
+    <p class="animate-in">
+      When Alex completes registration, the system creates four things in a single mutation:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Tenant Record</h4>
+          <p>The workspace itself — name, slug, domain, plan, trial date, status "active".</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Audit Log Entry</h4>
+          <p>"tenant_created" — records who created what, when. Required for compliance and debugging.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Tenant Stats Seed</h4>
+          <p>A denormalized counter row initialized to zero. Tracks affiliate counts, commission totals, etc. without expensive queries.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>User Record</h4>
+          <p>Alex as an "owner" tied to this tenant. Links their email to the tenantId so they can log in and see their own data.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="animate-in">
+      After all four records are created, Alex is redirected to <code>/onboarding</code> — the next step in their journey where they'll set up tracking and create their first campaign.
+    </p>
+  </div>
+
+  <!-- Screen 6: Chat - Components Talk -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Registration behind the scenes</h3>
+
+    <p class="animate-in">
+      Here's what the different parts of the system say to each other during registration:
+    </p>
+
+    <div class="chat-window" id="chat-module2" style="--color-actor-1: var(--color-accent); --color-actor-2: #1fb5a5; --color-actor-3: #D94F30">
+      <div class="chat-messages">
+        <div class="chat-message" data-msg="0" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Hey Better Auth! Alex just filled out the signup form. Here's their email, password, and name. Can you create an auth account?</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="1" data-sender="actor-2" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-2)">🔐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-2)">Better Auth</span>
+            <p>Sure! I've hashed the password and stored it in my component tables. Alex's auth account is ready. ✅</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="2" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Great! Now calling the completeSignUp mutation with Alex's company name "TaskFlow", domain "taskflow.io", and plan "growth".</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="3" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Convex</span>
+            <p>Got it. Let me validate: domain is clean ✅, not taken ✅, slug "taskflow" is available ✅. Creating tenant record...</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="4" data-sender="actor-3" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-3)">🗄️</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-3)">Convex</span>
+            <p>Tenant created! Seeding stats counters to zero... Creating user record with role "owner"... Writing audit log... All done! 🎉</p>
+          </div>
+        </div>
+        <div class="chat-message" data-msg="5" data-sender="actor-1" style="display:none">
+          <div class="chat-avatar" style="background: var(--color-actor-1)">🌐</div>
+          <div class="chat-bubble">
+            <span class="chat-sender" style="color: var(--color-actor-1)">Browser</span>
+            <p>Redirecting Alex to /onboarding. Their affiliate empire begins! 🚀</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-typing" id="chat-typing" style="display:none">
+        <div class="chat-avatar" id="typing-avatar">?</div>
+        <div class="chat-typing-dots">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+
+      <div class="chat-controls">
+        <button class="btn chat-next-btn">Next Message</button>
+        <button class="btn chat-all-btn">Play All</button>
+        <button class="btn chat-reset-btn">Replay</button>
+        <span class="chat-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module2">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Spot on! Better Auth has a fixed schema that only accepts email, password, and name. Company-specific fields must go through a separate Convex mutation."
+           data-explanation-wrong="Think about what would happen if you tried to send 'companyName' to Better Auth's component tables...">
+        <h3 class="quiz-question">Why is registration split into two steps (Better Auth + completeSignUp) instead of one?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>For security — so the password is never sent to Convex</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Because Convex mutations can't be called from the browser</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Better Auth's component tables have a fixed schema that doesn't include companyName or domain</span>
+          </button>
+          <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>So the user can edit their profile before the tenant is created</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Exactly — the domain is the foundation for referral links, tracking snippets, and webhook attribution. Getting it wrong would break the entire affiliate chain."
+           data-explanation-wrong="Consider what would happen if two tenants had the same domain — whose referrals count?">
+        <h3 class="quiz-question">A developer suggests removing domain validation to speed up sign-up. What's the strongest argument against this?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The domain is used for referral link targeting, tracking snippet verification, and webhook attribution — duplicates would break everything</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Domain validation is required by the Better Auth component</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Without validation, the slug generator would produce incorrect results</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Correct! The audit log records every important action (who did what, when) for compliance and debugging. Stats are denormalized counters for fast dashboard loads."
+           data-explanation-wrong="Think about what else gets created besides the obvious tenant and user records...">
+        <h3 class="quiz-question">During registration, which of these is NOT created?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A tenant stats row (counters initialized to zero)</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A campaign record</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>An audit log entry recording the tenant creation</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+  </div>
+
+</section>

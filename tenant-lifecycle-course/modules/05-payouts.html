@@ -1,0 +1,261 @@
+<section class="module" id="module-5">
+
+  <!-- Screen 1: The Payout Journey -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">05</span>
+      <h2 class="module-title">Payouts</h2>
+      <p class="module-subtitle">Getting money from the system into affiliates' hands</p>
+    </div>
+
+    <p class="animate-in">
+      Jamie has earned $9.90 from one referral and $15.00 from another. That money is sitting in "approved" commissions. But Jamie doesn't have $24.90 yet — they need Alex to <strong>generate a payout batch</strong>. This is like a payroll run: Alex reviews all approved commissions, bundles them up, and sends the money.
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Alex clicks &quot;Generate Payouts&quot; on the dashboard"},
+      {"highlight":"flow-actor-1","label":"System queries all approved commissions without a batchId","packet":true,"from":"actor-1","to":"actor-2"},
+      {"highlight":"flow-actor-2","label":"Groups commissions by affiliate, sums amounts, checks tier limits"},
+      {"highlight":"flow-actor-2","label":"Creates a payoutBatch record + individual payout records for each affiliate","packet":true,"from":"actor-2","to":"actor-3"},
+      {"highlight":"flow-actor-3","label":"Updates all commissions to status=&quot;paid&quot; with the batchId, updates totalPaidOut counter"},
+      {"highlight":"flow-actor-3","label":"Alex reviews the batch and marks individual payouts as paid (manual or SaligPay)"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">👤</div>
+          <span>Alex (Owner)</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #D94F30">⚙️</div>
+          <span>Payout Engine</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #2D8B55">🗄️</div>
+          <span>Database</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Batch Generation -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">How payout batching works</h3>
+
+    <p class="animate-in">
+      When Alex clicks "Generate Payouts," the system does several things in a single <span class="glossary" data-tip="In Convex, a mutation is an atomic operation — either everything succeeds or everything rolls back. Like a bank transfer: the debit and credit either both happen, or neither does.">atomic mutation</span> (all-or-nothing):
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/payouts.ts (simplified)</span>
+        <pre><code>
+<span class="code-comment">// 1. Find all approved, unbatched commissions</span>
+<span class="code-keyword">const</span> allCommissions = <span class="code-keyword">await</span> ctx.db
+  .<span class="code-function">query</span>(<span class="code-string">"commissions"</span>)
+  .<span class="code-function">withIndex</span>(<span class="code-string">"by_tenant_and_status"</span>,
+    q => q.<span class="code-function">eq</span>(<span class="code-string">"tenantId"</span>, tenantId)
+         .<span class="code-function">eq</span>(<span class="code-string">"status"</span>, <span class="code-string">"approved"</span>))
+  .<span class="code-function">collect</span>();
+
+<span class="code-comment">// 2. Filter out already-batched ones</span>
+<span class="code-keyword">const</span> commissions = allCommissions
+  .<span class="code-function">filter</span>(c => !c.batchId);
+
+<span class="code-comment">// 3. Group by affiliate, sum amounts</span>
+<span class="code-keyword">const</span> affiliateTotals = <span class="code-keyword">new</span> <span class="code-type">Map</span>();
+<span class="code-keyword">for</span> (<span class="code-keyword">const</span> c <span class="code-keyword">of</span> commissions) {
+  <span class="code-comment">// ... accumulate per affiliate</span>
+}
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Find every commission for this tenant that has status "approved"...</p>
+          <p class="tl">Using the by_tenant_and_status index for instant lookup...</p>
+          <p class="tl">Get all matching records...</p>
+          <p class="tl"></p>
+          <p class="tl">Remove any commissions that already belong to a previous batch...</p>
+          <p class="tl">(This prevents double-paying if Alex clicks "Generate" twice)...</p>
+          <p class="tl"></p>
+          <p class="tl">Create a map to group commissions by affiliate...</p>
+          <p class="tl">For each commission, add its amount to that affiliate's running total...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: What Gets Created -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">One batch, many payouts</h3>
+
+    <p class="animate-in">
+      A batch generation creates three levels of records:
+    </p>
+
+    <div class="numbered-step-cards animate-in">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>PayoutBatch</h4>
+          <p>One record summarizing the entire run: total amount, affiliate count, timestamp. Status starts as "pending." This is the "payroll run" header.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Payouts (one per affiliate)</h4>
+          <p>Individual records for each affiliate showing their total. Jamie gets one payout for $24.90. Each links to the batch via <code>batchId</code>.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Commission updates</h4>
+          <p>Every commission in the batch gets <code>status: "paid"</code> and <code>batchId</code> set. The <code>totalPaidOut</code> counter in tenantStats is incremented atomically.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-accent animate-in">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong class="callout-title">The batchId links everything together</strong>
+        <p>The <code>batchId</code> field on commissions and payouts is the thread that ties a specific payroll run together. If Jamie asks "which batch was my $24.90 in?" — the answer is in that field. It's also how the system prevents double-batching: commissions with a batchId are filtered out of future runs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Tier Limits -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Plan limits enforce fairness</h3>
+
+    <p class="animate-in">
+      The starter plan might only allow 5 payouts per month. The payout engine checks this <strong>before</strong> creating the batch:
+    </p>
+
+    <div class="translation-block animate-in">
+      <div class="translation-code">
+        <span class="translation-label">CODE — convex/payouts.ts</span>
+        <pre><code>
+<span class="code-comment">// Check tier limit: maxPayoutsPerMonth</span>
+<span class="code-keyword">const</span> tierConfig = <span class="code-keyword">await</span> ctx.db
+  .<span class="code-function">query</span>(<span class="code-string">"tierConfigs"</span>)
+  .<span class="code-function">withIndex</span>(<span class="code-string">"by_tier"</span>, q => q.<span class="code-function">eq</span>(<span class="code-string">"tier"</span>, plan))
+  .<span class="code-function">unique</span>();
+
+<span class="code-keyword">if</span> (thisMonthCount + newPayoutCount > maxPayouts) {
+  <span class="code-keyword">throw new</span> <span class="code-type">Error</span>(
+    <span class="code-string">"Payout limit reached for this month. Upgrade your plan."</span>
+  );
+}
+        </code></pre>
+      </div>
+      <div class="translation-english">
+        <span class="translation-label">PLAIN ENGLISH</span>
+        <div class="translation-lines">
+          <p class="tl">Look up the tier configuration for this tenant's plan...</p>
+          <p class="tl">Get the maxPayoutsPerMonth limit (e.g., 5 for starter)...</p>
+          <p class="tl">Count how many payouts were already created this month...</p>
+          <p class="tl">If adding the new batch would exceed the limit, throw an error...</p>
+          <p class="tl">The frontend shows this error and suggests upgrading.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning animate-in">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong class="callout-title">Limits are enforced, not suggested</strong>
+        <p>The payout engine doesn't silently skip excess affiliates — it throws an error that stops the entire batch. This prevents partial payouts where some affiliates get paid and others don't. It's all or nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Check your understanding</h3>
+
+    <div class="quiz-container" id="quiz-module5">
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Exactly! Commissions keep their batchId permanently — it's the audit trail showing which payroll run included which commission."
+           data-explanation-wrong="Think about how you'd trace a specific commission back to a specific payroll run...">
+        <h3 class="quiz-question">After a payout batch is generated, what happens to the commissions in it?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They're deleted and replaced by payout records</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They get status "paid" and a batchId field linking them to the payout run</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>They're moved to a separate "paid_commissions" table</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Spot on! The batchId filter prevents the same commissions from being included in multiple payout runs. It's the deduplication mechanism."
+           data-explanation-wrong="Think about what would happen if Alex accidentally clicked 'Generate Payouts' twice...">
+        <h3 class="quiz-question">Alex accidentally clicks "Generate Payouts" twice in one minute. What prevents affiliates from being paid twice?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The second run filters out commissions that already have a batchId from the first run</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system locks the batch after creation and prevents new ones for 24 hours</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The frontend disables the button after the first click</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Correct! The mutation is atomic — if the tier limit check fails, no records are created. This prevents partial payouts."
+           data-explanation-wrong="Consider what would happen if some affiliates got paid but the limit ran out before reaching others...">
+        <h3 class="quiz-question">The starter plan allows 5 payouts per month and there are 8 affiliates with approved commissions. What happens when Alex tries to generate a batch?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system pays the first 5 and queues the rest for next month</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The system pays all 8 and charges Alex an overage fee</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The entire batch fails with an error — no payouts are created for anyone</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+  </div>
+
+</section>

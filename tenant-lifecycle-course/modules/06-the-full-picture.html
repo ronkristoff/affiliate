@@ -1,0 +1,327 @@
+<section class="module" id="module-6">
+
+  <!-- Screen 1: The Complete Architecture -->
+  <div class="screen">
+    <div class="module-header">
+      <span class="module-number">06</span>
+      <h2 class="module-title">The Full Picture</h2>
+      <p class="module-subtitle">Every piece connected — the complete tenant lifecycle</p>
+    </div>
+
+    <p class="animate-in">
+      Let's zoom out and see the entire system. Here's every major component and how they connect. Click any component to learn what it does.
+    </p>
+
+    <div class="arch-diagram animate-in">
+      <div class="arch-zone arch-zone-browser">
+        <h4 class="arch-zone-label">User's Browser</h4>
+        <div class="arch-component" data-desc="Sign-up form with plan selection, domain validation, and password strength checker. Sends data to Better Auth first, then to Convex." onclick="showArchDesc(this)">
+          <div class="arch-icon">📝</div>
+          <span>SignUp Form</span>
+        </div>
+        <div class="arch-component" data-desc="Jamie's portal where they see their earnings, referral links, and commission history. White-labeled with Alex's branding." onclick="showArchDesc(this)">
+          <div class="arch-icon">🤝</div>
+          <span>Affiliate Portal</span>
+        </div>
+        <div class="arch-component" data-desc="Alex's command center: dashboard stats, affiliate management, campaign creation, commission approval, and payout generation." onclick="showArchDesc(this)">
+          <div class="arch-icon">📊</div>
+          <span>Owner Dashboard</span>
+        </div>
+      </div>
+
+      <div class="arch-zone" style="border-color: var(--color-accent-muted);">
+        <h4 class="arch-zone-label">Affilio Backend (Convex)</h4>
+        <div class="arch-component" data-desc="Handles user sign-up/sign-in, password hashing, session management. Stores credentials in its own component-scoped tables separate from app tables." onclick="showArchDesc(this)">
+          <div class="arch-icon">🔐</div>
+          <span>Better Auth</span>
+        </div>
+        <div class="arch-component" data-desc="The workspace container. Holds company name, domain, plan, billing provider, branding, and custom domain config. Every query filters by tenantId." onclick="showArchDesc(this)">
+          <div class="arch-icon">🏢</div>
+          <span>Tenants</span>
+        </div>
+        <div class="arch-component" data-desc="Team members with roles (owner, manager, member). Each user belongs to one tenant. Role-based permissions control who can do what." onclick="showArchDesc(this)">
+          <div class="arch-icon">👤</div>
+          <span>Users</span>
+        </div>
+        <div class="arch-component" data-desc="Commission rules: percentage or flat fee, cookie duration, auto-approval threshold, recurring settings. One tenant can have multiple campaigns." onclick="showArchDesc(this)">
+          <div class="arch-icon">📢</div>
+          <span>Campaigns</span>
+        </div>
+        <div class="arch-component" data-desc="The promoters. Each gets a unique referral code and link. Status can be pending, active, suspended, or rejected. Fraud detection runs on sign-up." onclick="showArchDesc(this)">
+          <div class="arch-icon">🤝</div>
+          <span>Affiliates</span>
+        </div>
+        <div class="arch-component" data-desc="Breadcrumb trail: records every referral link click with IP, user agent, dedupe key, and timestamp. Expires after cookie window (default 30 days)." onclick="showArchDesc(this)">
+          <div class="arch-icon">🖱️</div>
+          <span>Clicks</span>
+        </div>
+        <div class="arch-component" data-desc="Records every sale attributed to an affiliate. Has an attributionSource field (cookie, coupon, lead_email, organic). Links to commissions via conversionId." onclick="showArchDesc(this)">
+          <div class="arch-icon">🔄</div>
+          <span>Conversions</span>
+        </div>
+        <div class="arch-component" data-desc="The money owed. Status flows: pending → approved → paid (or declined/reversed). Supports per-affiliate rate overrides and auto-approval thresholds." onclick="showArchDesc(this)">
+          <div class="arch-icon">💰</div>
+          <span>Commissions</span>
+        </div>
+        <div class="arch-component" data-desc="Payroll runs. Each batch groups approved commissions by affiliate. Individual payout records track payment status. Tier limits enforced before creation." onclick="showArchDesc(this)">
+          <div class="arch-icon">🏦</div>
+          <span>Payouts</span>
+        </div>
+      </div>
+
+      <div class="arch-zone arch-zone-external">
+        <h4 class="arch-zone-label">External Services</h4>
+        <div class="arch-component" data-desc="Sends webhooks for payment events (payment.updated, subscription.created/updated/cancelled, refund.created). Attribution data travels in metadata." onclick="showArchDesc(this)">
+          <div class="arch-icon">💳</div>
+          <span>Stripe / SaligPay</span>
+        </div>
+        <div class="arch-component" data-desc="Sends transactional emails: welcome, commission confirmation, payout notification, domain change alerts, team removal notices." onclick="showArchDesc(this)">
+          <div class="arch-icon">📧</div>
+          <span>Resend / Postmark</span>
+        </div>
+      </div>
+
+      <div class="arch-description" id="arch-desc">Click any component to learn what it does</div>
+    </div>
+  </div>
+
+  <!-- Screen 2: The Complete Lifecycle Flow -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">End-to-end: from sign-up to payout</h3>
+
+    <p class="animate-in">
+      Here's the complete lifecycle of a tenant, traced from Alex's first visit to Jamie's first payment:
+    </p>
+
+    <div class="flow-animation" data-steps='[
+      {"highlight":"flow-actor-1","label":"Day 1: Alex signs up — tenant created, trial starts, stats seeded"},
+      {"highlight":"flow-actor-2","label":"Day 1: Alex sets up tracking snippet on taskflow.io — gets public key sk_..."},
+      {"highlight":"flow-actor-3","label":"Day 2: Alex creates &quot;Summer Sale&quot; campaign — 10% commission, auto-approve under $500"},
+      {"highlight":"flow-actor-4","label":"Day 3: Jamie signs up as affiliate, gets referral link taskflow.io/?ref=jamie"},
+      {"highlight":"flow-actor-5","label":"Day 5: A visitor clicks Jamie&#39;s link — click recorded with cookie set","packet":true,"from":"actor-5","to":"actor-6"},
+      {"highlight":"flow-actor-6","label":"Day 7: Visitor buys a $99 subscription — Stripe webhook fires","packet":true,"from":"actor-6","to":"actor-7"},
+      {"highlight":"flow-actor-7","label":"Commission engine: attributes to Jamie (cookie match), creates conversion + $9.90 commission (auto-approved)"},
+      {"highlight":"flow-actor-2","label":"Day 30: Alex generates payout batch — Jamie&#39;s $9.90 + other affiliates bundled"},
+      {"highlight":"flow-actor-2","label":"Jamie sees &quot;$9.90 paid&quot; in their affiliate portal — done! 🎉"}
+    ]'>
+      <div class="flow-actors">
+        <div class="flow-actor" id="flow-actor-1">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">📝</div>
+          <span>Sign Up</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-2">
+          <div class="flow-actor-icon" style="background: #1fb5a5">⚙️</div>
+          <span>Setup</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-3">
+          <div class="flow-actor-icon" style="background: #D94F30">📢</div>
+          <span>Campaign</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-4">
+          <div class="flow-actor-icon" style="background: #2D8B55">🤝</div>
+          <span>Affiliate</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-5">
+          <div class="flow-actor-icon" style="background: #D4A843">🖱️</div>
+          <span>Click</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-6">
+          <div class="flow-actor-icon" style="background: #D94F30">💳</div>
+          <span>Payment</span>
+        </div>
+        <div class="flow-actor" id="flow-actor-7">
+          <div class="flow-actor-icon" style="background: var(--color-accent)">💰</div>
+          <span>Commission</span>
+        </div>
+      </div>
+
+      <div class="flow-packet" id="flow-packet"></div>
+
+      <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+      <div class="flow-controls">
+        <button class="btn flow-next-btn">Next Step</button>
+        <button class="btn flow-reset-btn">Restart</button>
+        <span class="flow-progress"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Key Design Decisions -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">The engineering behind the curtain</h3>
+
+    <p class="animate-in">
+      This system makes several deliberate architectural choices that are worth understanding — they come up in almost every production SaaS:
+    </p>
+
+    <div class="pattern-cards animate-in">
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent)">
+        <div class="pattern-icon" style="background: var(--color-accent)">🔒</div>
+        <h4 class="pattern-title">Tenant Isolation</h4>
+        <p class="pattern-desc">Every query starts with <code>tenantId</code>. It's impossible for one company to see another's data — not through a bug, not through a hack. This is called multi-tenancy and it's the foundation of every SaaS.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #1fb5a5">
+        <div class="pattern-icon" style="background: #1fb5a5">⚡</div>
+        <h4 class="pattern-title">Denormalized Counters</h4>
+        <p class="pattern-desc">Stats are pre-computed, not calculated on demand. This trades write complexity (every mutation must update counters) for read speed (dashboards load instantly). The counters are updated in the same transaction as the data change, so they never drift.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D94F30">
+        <div class="pattern-icon" style="background: #D94F30">🔗</div>
+        <h4 class="pattern-title">Atomic Mutations</h4>
+        <p class="pattern-desc">Payout batching either succeeds completely or fails completely. No partial payouts. This uses Convex's transaction guarantee — the database either commits all changes or rolls back to the state before the mutation started.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+        <div class="pattern-icon" style="background: #2D8B55">📝</div>
+        <h4 class="pattern-title">Audit Everything</h4>
+        <p class="pattern-desc">Every significant action creates an audit log: tenant created, user removed, commission approved, payout generated, domain changed. This is non-negotiable for a financial system — regulators require it, and it's invaluable for debugging.</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid #D4A843">
+        <div class="pattern-icon" style="background: #D4A843">🛡️</div>
+        <h4 class="pattern-title">Layered Fraud Detection</h4>
+        <p class="pattern-desc">Self-referral checks (email + IP match), click deduplication (same person clicking 100 times), payment status validation (reject "pending" and "failed" payments), and auto-approval thresholds (manual review for large commissions).</p>
+      </div>
+      <div class="pattern-card" style="border-top: 3px solid var(--color-accent-muted)">
+        <div class="pattern-icon" style="background: var(--color-accent-muted)">🎯</div>
+        <h4 class="pattern-title">Triple Attribution</h4>
+        <p class="pattern-desc">Cookie → Coupon → Email lead matching. If the first method fails, try the next. Coupon beats cookie (explicit > implicit). If all fail, record as organic — never lose a sale's data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: What Can Go Wrong -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">When things break — and how to find out why</h3>
+
+    <p class="animate-in">
+      Here are the most common failure points in the tenant lifecycle — and where to look:
+    </p>
+
+    <div class="scenario-block animate-in">
+      <div class="scenario-context">
+        <span class="scenario-label">Scenario</span>
+        <p>"Alex says an affiliate referred a customer who bought a $500 subscription, but no commission appeared. Where do you investigate?"</p>
+      </div>
+    </div>
+
+    <div class="flow-steps animate-in">
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <p><strong>rawWebhooks table</strong><br><small>Did the webhook arrive? Check for the event ID. Status: "processed" or "error"?</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <p><strong>Attribution</strong><br><small>Was there a cookie? Coupon code? Lead match? Check the "No attribution" log message.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <p><strong>Affiliate status</strong><br><small>Is the affiliate still "active"? Suspended affiliates don't earn commissions.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">4</div>
+        <p><strong>Payment status</strong><br><small>Was the webhook payment status "paid" or "completed"? "pending" payments are rejected.</small></p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">5</div>
+        <p><strong>Campaign status</strong><br><small>Is the campaign "active"? Paused or archived campaigns block commissions.</small></p>
+      </div>
+    </div>
+
+    <div class="callout callout-info animate-in">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <strong class="callout-title">The audit log is your best friend</strong>
+        <p>Almost every failure leaves a trail in the audit logs. The commission engine logs rejection reasons, the webhook handler logs processing errors, and the attribution system logs resolution paths. Start there.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Final Quiz -->
+  <div class="screen">
+    <h3 class="screen-title animate-in">Final challenge</h3>
+
+    <div class="quiz-container" id="quiz-module6">
+      <div class="quiz-question-block"
+           data-correct="option-c"
+           data-explanation-right="Exactly! The tracking snippet (identified by public key) is the bridge between the merchant's website and Affilio's attribution system. Without it, no clicks are recorded, no cookies are set, and no conversions can be attributed."
+           data-explanation-wrong="Think about what connects the merchant's website to the affiliate tracking system...">
+        <h3 class="quiz-question">Alex creates a campaign and recruits Jamie as an affiliate, but forgets to install the tracking snippet on their website. A customer visits directly (not through Jamie's link) and buys. What happens?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A commission is created for Jamie because the campaign is active</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>An organic conversion is recorded because the tracking snippet is missing</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — without the tracking snippet, no click is recorded, no cookie is set, and the webhook has no attribution data. The sale is invisible to the system.</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-a"
+           data-explanation-right="Correct! Atomic mutations are all-or-nothing. If any step fails (including the tier limit check), the entire batch rolls back. This is Convex's transaction guarantee."
+           data-explanation-wrong="Think about what 'atomic' means in databases...">
+        <h3 class="quiz-question">A payout batch is being generated. The first 3 affiliates' commissions are updated successfully, but the 4th exceeds the tier's monthly payout limit. What happens to the first 3?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — the entire mutation rolls back. All 4 affiliates remain unpaid.</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The first 3 get paid, the 4th is skipped</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The batch is created with 3 affiliates and a note about the limit</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+
+      <div class="quiz-question-block"
+           data-correct="option-b"
+           data-explanation-right="Right! The webhook handler normalizes payloads from different payment providers into a single BillingEvent format. This means adding a new provider (like PayPal) only requires a new normalizer — the entire commission engine stays the same."
+           data-explanation-wrong="Think about how the commission engine receives data — does it know or care which payment provider sent it?">
+        <h3 class="quiz-question">Alex wants to switch from Stripe to SaligPay as their payment processor. What needs to change in the commission engine?</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>The entire commission engine needs to be rewritten for SaligPay's API format</span>
+          </button>
+          <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>Nothing — the webhook handler normalizes both formats into the same BillingEvent before the engine sees it</span>
+          </button>
+          <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+            <div class="quiz-option-radio"></div>
+            <span>A new commissionEngine file needs to be created specifically for SaligPay</span>
+          </button>
+        </div>
+        <div class="quiz-feedback"></div>
+      </div>
+    </div>
+
+    <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+    <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+
+    <div class="callout callout-accent animate-in" style="margin-top: var(--space-12);">
+      <div class="callout-icon">🎓</div>
+      <div class="callout-content">
+        <strong class="callout-title">You now understand the full tenant lifecycle</strong>
+        <p>From registration (two-step auth + app data) through tracking setup (public keys + cookies), conversion processing (triple attribution + fraud detection), commission calculation (rates, overrides, auto-approval), to payouts (batching, tier limits, atomicity). Every piece serves a purpose, every boundary has a guard rail. This is how production-grade affiliate software works.</p>
+      </div>
+    </div>
+  </div>
+
+</section>
