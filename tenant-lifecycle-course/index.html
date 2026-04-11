@@ -1407,11 +1407,11 @@
     </p>
 
     <div class="flow-animation" data-steps='[
-      {"highlight":"flow-actor-1","label":"Alex clicks &quot;Generate Payouts&quot; on the dashboard"},
+      {"highlight":"flow-actor-1","label":"Alex clicks \"Generate Payouts\" on the dashboard"},
       {"highlight":"flow-actor-1","label":"System queries all approved commissions without a batchId","packet":true,"from":"actor-1","to":"actor-2"},
       {"highlight":"flow-actor-2","label":"Groups commissions by affiliate, sums amounts, checks tier limits"},
       {"highlight":"flow-actor-2","label":"Creates a payoutBatch record + individual payout records for each affiliate","packet":true,"from":"actor-2","to":"actor-3"},
-      {"highlight":"flow-actor-3","label":"Updates all commissions to status=&quot;paid&quot; with the batchId, updates totalPaidOut counter"},
+      {"highlight":"flow-actor-3","label":"Updates all commissions to status=\"paid\" with the batchId, updates totalPaidOut counter"},
       {"highlight":"flow-actor-3","label":"Alex reviews the batch and marks individual payouts as paid (manual or SaligPay)"}
     ]'>
       <div class="flow-actors">
@@ -1751,13 +1751,13 @@
     <div class="flow-animation" data-steps='[
       {"highlight":"flow-actor-1","label":"Day 1: Alex signs up — tenant created, trial starts, stats seeded"},
       {"highlight":"flow-actor-2","label":"Day 1: Alex sets up tracking snippet on taskflow.io — gets public key sk_..."},
-      {"highlight":"flow-actor-3","label":"Day 2: Alex creates &quot;Summer Sale&quot; campaign — 10% commission, auto-approve under $500"},
+      {"highlight":"flow-actor-3","label":"Day 2: Alex creates \"Summer Sale\" campaign — 10% commission, auto-approve under $500"},
       {"highlight":"flow-actor-4","label":"Day 3: Jamie signs up as affiliate, gets referral link taskflow.io/?ref=jamie"},
       {"highlight":"flow-actor-5","label":"Day 5: A visitor clicks Jamie&#39;s link — click recorded with cookie set","packet":true,"from":"actor-5","to":"actor-6"},
       {"highlight":"flow-actor-6","label":"Day 7: Visitor buys a $99 subscription — Stripe webhook fires","packet":true,"from":"actor-6","to":"actor-7"},
       {"highlight":"flow-actor-7","label":"Commission engine: attributes to Jamie (cookie match), creates conversion + $9.90 commission (auto-approved)"},
       {"highlight":"flow-actor-2","label":"Day 30: Alex generates payout batch — Jamie&#39;s $9.90 + other affiliates bundled"},
-      {"highlight":"flow-actor-2","label":"Jamie sees &quot;$9.90 paid&quot; in their affiliate portal — done! 🎉"}
+      {"highlight":"flow-actor-2","label":"Jamie sees \"$9.90 paid\" in their affiliate portal — done! 🎉"}
     ]'>
       <div class="flow-actors">
         <div class="flow-actor" id="flow-actor-1">

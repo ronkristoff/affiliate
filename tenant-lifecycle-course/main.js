@@ -400,8 +400,8 @@
 
     function animatePacket(fromId, toId) {
       if (!packet) return;
-      const fromEl = $('#' + fromId);
-      const toEl   = $('#' + toId);
+      const fromEl = $('#' + fromId, containerEl);
+      const toEl   = $('#' + toId, containerEl);
       if (!fromEl || !toEl) return;
       const fromR = fromEl.getBoundingClientRect();
       const toR   = toEl.getBoundingClientRect();

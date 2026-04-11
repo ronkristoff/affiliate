@@ -13,11 +13,11 @@
     </p>
 
     <div class="flow-animation" data-steps='[
-      {"highlight":"flow-actor-1","label":"Alex clicks &quot;Generate Payouts&quot; on the dashboard"},
+      {"highlight":"flow-actor-1","label":"Alex clicks \"Generate Payouts\" on the dashboard"},
       {"highlight":"flow-actor-1","label":"System queries all approved commissions without a batchId","packet":true,"from":"actor-1","to":"actor-2"},
       {"highlight":"flow-actor-2","label":"Groups commissions by affiliate, sums amounts, checks tier limits"},
       {"highlight":"flow-actor-2","label":"Creates a payoutBatch record + individual payout records for each affiliate","packet":true,"from":"actor-2","to":"actor-3"},
-      {"highlight":"flow-actor-3","label":"Updates all commissions to status=&quot;paid&quot; with the batchId, updates totalPaidOut counter"},
+      {"highlight":"flow-actor-3","label":"Updates all commissions to status=\"paid\" with the batchId, updates totalPaidOut counter"},
       {"highlight":"flow-actor-3","label":"Alex reviews the batch and marks individual payouts as paid (manual or SaligPay)"}
     ]'>
       <div class="flow-actors">
