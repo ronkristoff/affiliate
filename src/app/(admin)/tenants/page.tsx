@@ -793,9 +793,9 @@ function AdminTenantsContent() {
     (searchParams.get("view") as ViewMode) || "tenants"
   );
 
-  // Sync view to URL
+  // Sync view to URL (only when activeView changes — avoid searchParams in deps)
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     if (activeView === "analytics") {
       params.set("view", "analytics");
     } else {
@@ -806,7 +806,8 @@ function AdminTenantsContent() {
       `/tenants${queryString ? `?${queryString}` : ""}`,
       { scroll: false }
     );
-  }, [activeView, router, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView]);
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">

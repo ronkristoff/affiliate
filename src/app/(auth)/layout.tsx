@@ -62,7 +62,7 @@ function AuthLayoutContent({
 
   const pathname = usePathname();
   const isAdmin = user && user.role === "admin";
-  const isOnAdminRoute = pathname.startsWith("/tenants") || pathname.startsWith("/tiers") || pathname.startsWith("/revenue") || pathname.startsWith("/audit") || pathname.startsWith("/health") || pathname.startsWith("/admin-settings");
+  const isOnAdminRoute = pathname.startsWith("/tenants") || pathname.startsWith("/tiers") || pathname.startsWith("/revenue") || pathname.startsWith("/audit") || pathname.startsWith("/admin-settings");
 
   // Redirect platform admins to the admin panel (skip if already there)
   const handleAdminRedirect = useCallback(() => {
