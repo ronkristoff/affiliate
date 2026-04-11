@@ -63,6 +63,19 @@ export function formatDateTime(timestamp: number): string {
 }
 
 /**
+ * Format a number as a compact string without currency symbol.
+ * E.g., 1200 → "1.2K", 3500000 → "3.5M", 500 → "500"
+ * @param n - The number to format
+ * @returns Compact number string
+ */
+export function formatNumberCompact(n: number): string {
+  return new Intl.NumberFormat("en", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(n);
+}
+
+/**
  * Get initials from a name (first letter of first two words).
  * @param name - The full name
  * @returns Uppercase initials (max 2 characters)

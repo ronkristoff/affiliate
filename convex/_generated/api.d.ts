@@ -19,6 +19,7 @@ import type * as admin_tenants from "../admin/tenants.js";
 import type * as admin_tier_configs from "../admin/tier_configs.js";
 import type * as admin_tier_overrides from "../admin/tier_overrides.js";
 import type * as affiliateAuth from "../affiliateAuth.js";
+import type * as affiliatePortalReports from "../affiliatePortalReports.js";
 import type * as affiliates from "../affiliates.js";
 import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "admin/tier_configs": typeof admin_tier_configs;
   "admin/tier_overrides": typeof admin_tier_overrides;
   affiliateAuth: typeof affiliateAuth;
+  affiliatePortalReports: typeof affiliatePortalReports;
   affiliates: typeof affiliates;
   audit: typeof audit;
   auth: typeof auth;

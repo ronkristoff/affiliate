@@ -7,12 +7,20 @@ import { authClient } from "@/lib/auth-client";
 interface PortalHeaderProps {
   logoUrl?: string;
   portalName: string;
-  primaryColor: string;
+  primaryColor?: string;
   pageTitle: string;
   pageDescription?: string;
 }
 
-export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle, pageDescription }: PortalHeaderProps) {
+export function PortalHeader({
+  logoUrl,
+  portalName,
+  primaryColor,
+  pageTitle,
+  pageDescription,
+}: PortalHeaderProps) {
+  // Read primary color from CSS custom property if not explicitly provided
+  const color = primaryColor || "var(--portal-primary)";
 
   const handleLogout = async () => {
     try {
@@ -37,11 +45,11 @@ export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle, pag
   };
 
   return (
-    <header 
-      className="bg-white border-b border-gray-200 px-4 md:px-6 h-14 flex items-center justify-between"
-      style={{ 
-        borderBottomColor: primaryColor,
-        borderBottomWidth: '2px'
+    <header
+      className="bg-white border-b px-4 md:px-6 h-14 flex items-center justify-between"
+      style={{
+        borderBottomColor: color,
+        borderBottomWidth: "2px",
       }}
     >
       <div className="flex items-center gap-2.5">
@@ -50,41 +58,39 @@ export function PortalHeader({ logoUrl, portalName, primaryColor, pageTitle, pag
             src={logoUrl}
             alt={`${portalName} logo`}
             className="w-8 h-8 object-contain rounded"
-            style={{ backgroundColor: primaryColor }}
+            style={{ backgroundColor: color }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              target.parentElement?.querySelector('.logo-fallback')?.classList.remove('hidden');
+              target.style.display = "none";
+              target.parentElement
+                ?.querySelector(".logo-fallback")
+                ?.classList.remove("hidden");
             }}
           />
         ) : null}
         <div
-          className={`logo-fallback w-8 h-8 rounded flex items-center justify-center font-bold text-white text-sm ${logoUrl ? 'hidden' : ''}`}
-          style={{ backgroundColor: primaryColor }}
+          className={`logo-fallback w-8 h-8 rounded flex items-center justify-center font-bold text-white text-sm ${logoUrl ? "hidden" : ""}`}
+          style={{ backgroundColor: color }}
         >
           {portalName.charAt(0).toUpperCase()}
         </div>
         <div className="hidden sm:block">
-          <span className="text-sm font-bold text-gray-900">
-            {portalName}
-          </span>
+          <span className="text-sm font-bold text-gray-900">{portalName}</span>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <div className="hidden sm:block text-right">
-          <span className="text-sm text-gray-600 block">
-            {pageTitle}
-          </span>
+          <span className="text-sm text-gray-600 block">{pageTitle}</span>
           {pageDescription && (
             <span className="text-[11px] text-gray-400 block leading-tight">
               {pageDescription}
             </span>
           )}
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
           className="text-gray-600 hover:text-gray-900"
         >

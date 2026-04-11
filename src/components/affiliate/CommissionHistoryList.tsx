@@ -3,6 +3,7 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DollarSign, AlertTriangle, Info } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import { formatCurrency } from "@/lib/format";
 
 interface Commission {
   _id: Id<"commissions">;
@@ -32,13 +33,6 @@ export function CommissionHistoryList({ commissions, onViewFraudDetails }: Commi
       month: "short",
       day: "numeric",
     });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
   };
 
   // Format indicator for display

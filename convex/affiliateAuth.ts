@@ -1,6 +1,6 @@
 import { query, mutation, action, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { sendAffiliateWelcomeEmail, sendNewAffiliateNotificationEmail } from "./email";
 import { getAuthenticatedUser } from "./tenantContext";
@@ -154,7 +154,7 @@ export const getCurrentAffiliate = query({
     const cleanEmail = betterAuthUser.email.trim().toLowerCase();
     const affiliate = await ctx.db
       .query("affiliates")
-      .withIndex("by_email", (q) => q.eq("email", cleanEmail))
+    .withIndex("by_email", (q: any) => q.eq("email", cleanEmail))
       .first();
 
     if (!affiliate) {
@@ -185,6 +185,43 @@ export const getCurrentAffiliate = query({
     };
   },
 });
+
+/**
+ * Authenticate and authorize an affiliate portal request.
+ * Verifies the caller's Better Auth session matches the requested affiliate.
+ * Returns the authenticated affiliate document or throws.
+ */
+async function requireAffiliateAuth(
+  ctx: any,
+  requestedAffiliateId: string
+): Promise<Doc<"affiliates">> {
+  let betterAuthUser;
+  try {
+    betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+  } catch {
+    throw new Error("Not authenticated");
+  }
+
+  if (!betterAuthUser) {
+    throw new Error("Not authenticated");
+  }
+
+  const cleanEmail = betterAuthUser.email.trim().toLowerCase();
+  const affiliate = await ctx.db
+    .query("affiliates")
+    .withIndex("by_email", (q: any) => q.eq("email", cleanEmail))
+    .first();
+
+  if (!affiliate) {
+    throw new Error("Affiliate not found");
+  }
+
+  if (affiliate._id !== requestedAffiliateId) {
+    throw new Error("Unauthorized: affiliate ID mismatch");
+  }
+
+  return affiliate;
+}
 
 /**
  * Get tenant context for the affiliate portal by tenant slug.
@@ -1006,11 +1043,8 @@ export const getAffiliatePortalDashboardStats = query({
     earningsChangePercent: v.number(),
   }),
   handler: async (ctx, args) => {
-    // Validate affiliate belongs to session tenant
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate) {
-      throw new Error("Affiliate not found");
-    }
+    // Auth: verify caller owns this affiliate
+    await requireAffiliateAuth(ctx, args.affiliateId);
 
     // Calculate date ranges for this month and last month
     const now = new Date();
@@ -1020,19 +1054,21 @@ export const getAffiliatePortalDashboardStats = query({
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999).getTime();
 
-    // PERFORMANCE NOTE: These queries load all historical data for the affiliate.
-    // For affiliates with years of data, this could be inefficient.
-    // TODO: Consider adding a date-filtered index (by_affiliate_and_date) to the schema
-    // or implement incremental statistics updates via scheduled jobs.
-    
     // Query clicks using async iteration to reduce memory pressure
     let totalClicks = 0;
     let thisMonthClicks = 0;
     let lastMonthClicks = 0;
+
+    // Bound scan to 2 years to prevent unbounded reads at scale.
+    // For all-time total, we rely on the 2-year window as a practical cap;
+    // the long-term fix is denormalized counters in tenantStats.
+    const statsWindowStart = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000);
     
     const clicksQuery = ctx.db
       .query("clicks")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+      .withIndex("by_affiliate", (q) =>
+        q.eq("affiliateId", args.affiliateId).gte("_creationTime", statsWindowStart)
+      );
     
     for await (const click of clicksQuery) {
       totalClicks++;
@@ -1043,18 +1079,15 @@ export const getAffiliatePortalDashboardStats = query({
       }
     }
 
-    // Query conversions using async iteration
+    // Query conversions using async iteration — uses by_affiliate_created index
     let totalConversions = 0;
     let thisMonthConversions = 0;
     
-    const allConversions = await ctx.db
+    const conversionsQuery = ctx.db
       .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", affiliate.tenantId))
-      .collect();
-
-    const conversions = allConversions.filter(c => c.affiliateId === args.affiliateId);
+      .withIndex("by_affiliate_created", (q) => q.eq("affiliateId", args.affiliateId));
     
-    for await (const conversion of conversions) {
+    for await (const conversion of conversionsQuery) {
       totalConversions++;
       if (conversion._creationTime >= thisMonthStart && conversion._creationTime <= thisMonthEnd) {
         thisMonthConversions++;
@@ -1070,7 +1103,9 @@ export const getAffiliatePortalDashboardStats = query({
     
     const commissionsQuery = ctx.db
       .query("commissions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
+      .withIndex("by_affiliate", (q) =>
+        q.eq("affiliateId", args.affiliateId).gte("_creationTime", statsWindowStart)
+      );
     
     for await (const commission of commissionsQuery) {
       if (commission.status === "approved") {
@@ -1151,6 +1186,9 @@ export const getAffiliateRecentActivity = query({
     iconType: v.union(v.literal("green"), v.literal("amber"), v.literal("blue")),
   })),
   handler: async (ctx, args) => {
+    // Auth: verify caller owns this affiliate
+    await requireAffiliateAuth(ctx, args.affiliateId);
+
     const resultLimit = args.limit || 10;
     
     // Get recent commissions (limit 5)
@@ -1261,27 +1299,20 @@ export const getAffiliateEarningsSummary = query({
     commissionRate: v.number(),
   }),
   handler: async (ctx, args) => {
-    // Verify affiliate exists
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate) {
-      return {
-        totalEarnings: 0,
-        paidOut: 0,
-        pendingBalance: 0,
-        confirmedBalance: 0,
-        confirmedCount: 0,
-        pendingCount: 0,
-        paidOutCount: 0,
-        totalCount: 0,
-        commissionRate: 0,
-      };
-    }
+    // Auth: verify caller owns this affiliate
+    const affiliate = await requireAffiliateAuth(ctx, args.affiliateId);
 
-    // Query all commissions for this affiliate
-    const commissions = await ctx.db
+    // Bound scan to 2 years to prevent unbounded reads at scale
+    const twoYearsAgo = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000);
+    const commissionsQuery = ctx.db
       .query("commissions")
-      .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .withIndex("by_affiliate", (q) =>
+        q.eq("affiliateId", args.affiliateId).gte("_creationTime", twoYearsAgo)
+      );
+    const commissions = [];
+    for await (const c of commissionsQuery) {
+      commissions.push(c);
+    }
 
     // Calculate totals by status
     let totalEarnings = 0;
@@ -1317,9 +1348,9 @@ export const getAffiliateEarningsSummary = query({
     
     if (affiliate.commissionOverrides && affiliate.commissionOverrides.length > 0) {
       // Calculate average from commission overrides
-      const activeOverrides = affiliate.commissionOverrides.filter(o => o.status === "active");
+      const activeOverrides = affiliate.commissionOverrides.filter((o: { status?: string; rate: number }) => o.status === "active");
       if (activeOverrides.length > 0) {
-        const totalRate = activeOverrides.reduce((sum, o) => sum + o.rate, 0);
+        const totalRate = activeOverrides.reduce((sum: number, o: { rate: number }) => sum + o.rate, 0);
         commissionRate = Math.round((totalRate / activeOverrides.length) * 100) / 100;
       }
     } else {
@@ -1382,11 +1413,8 @@ export const getAffiliatePayoutHistory = query({
     })
   ),
   handler: async (ctx, args) => {
-    // Verify affiliate exists
-    const affiliate = await ctx.db.get(args.affiliateId);
-    if (!affiliate) {
-      return [];
-    }
+    // Auth: verify caller owns this affiliate
+    await requireAffiliateAuth(ctx, args.affiliateId);
 
     // Query payouts for this affiliate, ordered by paidAt descending
     const payouts = await ctx.db

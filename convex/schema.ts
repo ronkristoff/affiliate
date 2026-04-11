@@ -390,7 +390,8 @@ export default defineSchema({
     })),
   }).index("by_tenant", ["tenantId"])
     .index("by_click", ["clickId"])
-    .index("by_campaign", ["campaignId"]),
+    .index("by_campaign", ["campaignId"])
+    .index("by_affiliate_created", ["affiliateId"]),
 
   // Task 5: Commission & Payout Tables
   commissions: defineTable({
