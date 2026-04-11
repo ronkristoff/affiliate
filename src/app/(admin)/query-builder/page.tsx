@@ -1324,7 +1324,7 @@ function AdminQueryBuilderContent() {
               )}
 
               {/* Results */}
-              <div className="rounded-xl border border-[var(--border)] bg-white">
+              <div className="bg-white">
                 <ResultsTable
                   results={results?.rows ?? null}
                   columns={resultColumns}
@@ -1364,7 +1364,7 @@ function AdminQueryBuilderContent() {
                 )}
 
                 <div
-                  className="grid relative"
+                  className="grid gap-6 relative"
                   style={{
                     gridTemplateColumns: isBuilderCollapsed
                       ? "0px 1fr"
@@ -1374,7 +1374,7 @@ function AdminQueryBuilderContent() {
                 >
                   {/* Builder panels — left column */}
                   <div
-                    className="overflow-hidden"
+                    className="overflow-hidden min-w-0"
                     style={{
                       opacity: isBuilderCollapsed ? 0 : 1,
                       transition: "opacity 200ms ease",
@@ -1406,7 +1406,7 @@ function AdminQueryBuilderContent() {
 
                   {/* Results — right column */}
                   <div
-                    className="sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-auto rounded-xl border border-[var(--border)] bg-white p-4"
+                    className="sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-auto bg-white p-4"
                     aria-live="polite"
                     aria-atomic="false"
                   >
@@ -1460,7 +1460,7 @@ function AdminQueryBuilderContent() {
                   {hasConfigContent && (
                     <QueryPreviewSentence config={config} />
                   )}
-                  <div className="rounded-xl border border-[var(--border)] bg-white p-4" aria-live="polite">
+                  <div className="bg-white p-4" aria-live="polite">
                     {hasRunQuery ? (
                       <ResultsTable
                         results={results?.rows ?? null}

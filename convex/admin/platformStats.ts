@@ -150,24 +150,6 @@ export const recalculatePlatformStats = internalMutation({
       });
     }
 
-    // Also update lastSyncedAt on all processed tenantStats
-    // (done in a second pass to keep the main loop simple)
-    let syncCursor: string | null = null;
-    let syncDone = false;
-    while (!syncDone) {
-      const syncResults = await ctx.db
-        .query("tenantStats")
-        .withIndex("by_tenant")
-        .paginate({ numItems: 100, cursor: (syncCursor ?? undefined) as string });
-
-      for (const stats of syncResults.page) {
-        await ctx.db.patch(stats._id, { lastSyncedAt: now });
-      }
-
-      syncDone = syncResults.isDone;
-      syncCursor = syncResults.continueCursor;
-    }
-
     return null;
   },
 });

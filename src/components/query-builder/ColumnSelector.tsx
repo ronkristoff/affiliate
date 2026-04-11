@@ -90,7 +90,7 @@ function ColumnStatsTooltip({
   }
 
   return (
-    <div className="absolute left-0 top-full mt-1 z-50 pointer-events-none rounded-lg border border-[var(--border)] bg-white p-2.5 shadow-lg min-w-[220px]">
+    <div className="absolute left-0 top-full mt-1 z-50 pointer-events-none rounded-lg bg-white p-2.5 shadow-lg border border-[var(--border-light)] min-w-[220px]">
       <div className="space-y-0.5 text-[11px] text-[var(--text-body)]">
         <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
           {tableName}.{columnName}
@@ -265,8 +265,8 @@ export function ColumnSelector({
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-150",
                           checked
-                            ? "bg-[#eff6ff] border border-[#1c2260]/20"
-                            : "hover:bg-[var(--hover)] border border-transparent"
+                            ? "bg-[#eff6ff]"
+                            : "hover:bg-[var(--hover)]"
                         )}
                         onMouseEnter={() => handleMouseEnter(table.name, col.name)}
                         onMouseLeave={handleMouseLeave}

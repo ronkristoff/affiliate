@@ -266,7 +266,7 @@ export function ResultsTable({
       </div>
 
       {/* ─── Table ───────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+      <div className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

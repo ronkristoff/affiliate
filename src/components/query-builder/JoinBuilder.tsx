@@ -138,7 +138,7 @@ export function JoinBuilder({
             return (
               <div
                 key={join.id}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm"
               >
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-[#1fb5a5] border-[#1fb5a5]/30 bg-[#eff6ff] font-bold uppercase">
                   {jt}
@@ -168,7 +168,7 @@ export function JoinBuilder({
       )}
 
       {isAtLimit && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           Maximum of {MAX_JOINS} joins reached for performance.
         </div>
@@ -190,10 +190,10 @@ export function JoinBuilder({
                 <div
                   key={`${sj.leftTable}-${sj.rightTable}-${i}`}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all",
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all",
                     isApplied
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default"
-                      : "border-[#1fb5a5]/30 bg-[#eff6ff] text-[#1c2260] hover:bg-[#1fb5a5]/10 hover:border-[#1fb5a5]/50 cursor-pointer"
+                      ? "bg-emerald-50 text-emerald-700 cursor-default"
+                      : "bg-[#eff6ff] text-[#1c2260] hover:bg-[#1fb5a5]/10 cursor-pointer"
                   )}
                 >
                   {isApplied ? (
@@ -218,7 +218,7 @@ export function JoinBuilder({
       )}
 
       {!isAtLimit && relevantTables.length >= 2 && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+        <div className="flex flex-wrap items-end gap-2 rounded-xl p-3 bg-[var(--muted)]/30 shadow-sm">
           <div className="min-w-[100px]">
             <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
               Join Type

@@ -180,12 +180,12 @@ export function TableSelector({ selectedTables, onSelectionChange, isAdminMode, 
                 : undefined
             }
             className={cn(
-              "relative flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all duration-200",
+              "relative flex flex-col items-start gap-2 rounded-xl p-4 text-left transition-all duration-200 shadow-sm",
               isSelected
-                ? "border-[#1c2260] bg-[#eff6ff] shadow-sm ring-1 ring-[#1c2260]/20"
+                ? "bg-[#eff6ff] shadow-md ring-1 ring-[#1c2260]/20"
                 : isDisabled
-                  ? "border-[var(--border)] bg-[var(--muted)]/40 opacity-50 cursor-not-allowed"
-                  : "border-[var(--border)] bg-white hover:border-[#1fb5a5]/40 hover:bg-[#fafbfe] hover:shadow-sm"
+                  ? "bg-[var(--muted)]/40 opacity-50 cursor-not-allowed"
+                  : "bg-white hover:shadow-md hover:bg-[#fafbfe]"
             )}
           >
             <div className="flex items-start gap-3 w-full">

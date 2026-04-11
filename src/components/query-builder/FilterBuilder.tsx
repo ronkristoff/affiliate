@@ -250,7 +250,7 @@ export function FilterBuilder({
             return (
               <div
                 key={filter.id}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 group"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 group shadow-sm"
               >
                 {index > 0 && (
                   <span className="text-[10px] font-bold text-[#1fb5a5] uppercase shrink-0 w-6">
@@ -293,7 +293,7 @@ export function FilterBuilder({
 
       {/* Add New Filter Form */}
       {relevantTables.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+        <div className="space-y-3 rounded-xl p-3 bg-[var(--muted)]/30 shadow-sm">
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-[130px]">
               <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
@@ -558,7 +558,7 @@ function EditableFilterRow({
   return (
     <div
       key={filter.id}
-      className="rounded-lg border border-[#1fb5a5]/30 bg-[#eff6ff] px-3 py-2"
+      className="rounded-lg bg-[#eff6ff] px-3 py-2"
       onKeyDown={handleKeyDown}
     >
       <div className="flex items-center gap-2 mb-2">

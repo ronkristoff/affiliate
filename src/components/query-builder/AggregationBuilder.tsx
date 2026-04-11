@@ -111,7 +111,7 @@ export function AggregationBuilder({
     <div className="space-y-6">
       {/* Warning when aggregations exist without GROUP BY */}
       {showNoGroupByWarning && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-amber-800">
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-[13px] text-amber-800">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <span className="font-medium">No GROUP BY selected</span>{" "}
@@ -138,7 +138,7 @@ export function AggregationBuilder({
               return (
                 <div
                   key={agg.id}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2"
+                  className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm"
                 >
                   <Badge variant="brand" className="text-[10px] px-1.5 py-0">
                     {agg.function}
@@ -165,7 +165,7 @@ export function AggregationBuilder({
         )}
 
         {relevantTables.length > 0 && (
-          <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[var(--border)] p-3 bg-[var(--muted)]/30">
+          <div className="flex flex-wrap items-end gap-2 rounded-xl p-3 bg-[var(--muted)]/30 shadow-sm">
             <div className="min-w-[110px]">
               <label className="text-[11px] font-medium text-[var(--text-muted)] mb-1 block">
                 Function
@@ -273,7 +273,7 @@ export function AggregationBuilder({
                   key={`${col.table}.${col.column}`}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-1.5 cursor-pointer transition-all duration-150",
-                    checked ? "bg-[#eff6ff] border border-[#1c2260]/20" : "hover:bg-[var(--hover)] border border-transparent"
+                    checked ? "bg-[#eff6ff]" : "hover:bg-[var(--hover)]"
                   )}
                 >
                   <Checkbox checked={checked} onCheckedChange={() => handleToggleGroupBy(col.table, col.column)} />

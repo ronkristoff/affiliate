@@ -81,7 +81,7 @@ export function AccordionSection({
   );
 
   return (
-    <div className="border border-[var(--border)] rounded-xl overflow-hidden" id={sectionId.current}>
+    <div className="rounded-xl overflow-hidden bg-white" id={sectionId.current}>
       <button
         type="button"
         onClick={handleToggle}
