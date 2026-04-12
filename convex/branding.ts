@@ -71,7 +71,7 @@ export const uploadTenantLogo = action({
     });
 
     // Log the action
-    await ctx.runMutation(internal.tenants._logAuditEventInternal, {
+    await ctx.runMutation(internal.audit.logAuditEventInternal, {
       tenantId: user.tenantId,
       action: "logo_uploaded",
       entityType: "tenant",

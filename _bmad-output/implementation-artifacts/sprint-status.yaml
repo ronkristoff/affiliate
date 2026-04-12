@@ -248,3 +248,17 @@ development_status:
   14-7-automatic-token-refresh: backlog
   14-8-api-401-graceful-handling: backlog
   epic-14-retrospective: optional
+
+  # ========================================
+  # EPIC 15: Platform Admin Logging & User Activity Timeline
+  # 7 stories | FRs: N/A (internal tooling) | NFRs: Audit completeness, support efficiency
+  # ========================================
+  epic-15: done
+  15-1-audit-action-type-registry-fix: done
+  15-2-auth-event-bridge: done
+  15-3-campaign-mutation-audit-gaps: done
+  15-4-audit-log-query-infrastructure: done
+  15-5-platform-admin-user-timeline: done
+  15-6-login-email-chain-integration: done
+  15-7-audit-log-housekeeping: done
+  epic-15-retrospective: optional

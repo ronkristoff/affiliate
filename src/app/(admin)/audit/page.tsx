@@ -17,9 +17,10 @@ import { DataTablePagination, DEFAULT_PAGE_SIZE } from "@/components/ui/DataTabl
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { FilterPill, FilterPillBar } from "@/components/ui/FilterPill";
 import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter, AlertTriangle, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { DateCell } from "@/components/ui/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { getAuditActionLabel } from "@/lib/audit-constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,38 +55,7 @@ interface AuditActor {
 // ---------------------------------------------------------------------------
 
 function formatAction(action: string): string {
-  const map: Record<string, string> = {
-    COMMISSION_CREATED: "Commission Created",
-    COMMISSION_APPROVED: "Commission Approved",
-    COMMISSION_DECLINED: "Commission Declined",
-    COMMISSION_REVERSED: "Commission Reversed",
-    COMMISSION_STATUS_CHANGE: "Status Changed",
-    payout_batch_generated: "Payout Batch Generated",
-    payout_marked_paid: "Payout Paid",
-    batch_marked_paid: "Batch Paid",
-    impersonation_start: "Impersonation Started",
-    impersonation_end: "Impersonation Ended",
-    impersonated_mutation: "Impersonated Action",
-    tier_config_created: "Tier Created",
-    tier_config_updated: "Tier Updated",
-    tier_config_deleted: "Tier Deleted",
-    tier_override_created: "Override Created",
-    tier_override_removed: "Override Removed",
-    subscription_trial_start: "Trial Started",
-    subscription_converted: "Subscription Converted",
-    subscription_renewed: "Subscription Renewed",
-    subscription_cancelled: "Subscription Cancelled",
-    subscription_plan_changed: "Plan Changed",
-    ADMIN_PLAN_CHANGE: "Plan Changed (Admin)",
-  };
-
-  if (map[action]) return map[action];
-  if (action.startsWith("security_")) {
-    return action.replace("security_", "").replace(/_/g, " ");
-  }
-  return action
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return getAuditActionLabel(action);
 }
 
 function getEntityConfig(entityType: string): {

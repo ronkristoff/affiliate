@@ -1,6 +1,7 @@
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 /**
  * Self-Referral Detection Functions
@@ -228,6 +229,26 @@ export const addSelfReferralFraudSignal = internalMutation({
     await ctx.db.patch(args.affiliateId, { fraudSignals });
 
     console.log(`Added self-referral fraud signal to affiliate ${args.affiliateId} (signalId=${fraudSignal.signalId})`);
+
+    // Audit log — self-referral fraud signal added (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: args.tenantId,
+        action: "FRAUD_SIGNAL_ADDED",
+        entityType: "affiliate",
+        entityId: args.affiliateId,
+        actorType: "system",
+        metadata: {
+          signalType: "selfReferral",
+          severity: "high",
+          matchedIndicators: args.matchedIndicators,
+          commissionId: args.commissionId,
+          totalScore: args.totalScore,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log FRAUD_SIGNAL_ADDED (self-referral, non-fatal):", err);
+    }
 
     return null;
   },

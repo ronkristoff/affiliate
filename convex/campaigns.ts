@@ -184,6 +184,26 @@ export const createCampaign = mutation({
       status: "active",
     });
 
+    // Audit log — campaign created (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId,
+        action: "CAMPAIGN_CREATED",
+        entityType: "campaign",
+        entityId: campaignId,
+        actorId: user.userId,
+        actorType: "user",
+        newValue: {
+          name: args.name,
+          commissionType: args.commissionType,
+          commissionRate: args.commissionRate,
+          recurringCommissions: args.recurringCommissions ?? false,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log CAMPAIGN_CREATED (non-fatal):", err);
+    }
+
     return campaignId;
   },
 });
@@ -565,6 +585,29 @@ export const updateCampaign = mutation({
 
     await ctx.db.patch(args.campaignId, updates);
 
+    // Audit log — campaign updated with previous/new value diff (non-fatal)
+    try {
+      const previousValues: Record<string, unknown> = {};
+      if (args.name !== undefined) previousValues.name = campaign.name;
+      if (args.commissionType !== undefined) previousValues.commissionType = campaign.commissionType;
+      if (args.commissionRate !== undefined) previousValues.commissionRate = campaign.commissionValue;
+      if (args.recurringCommissions !== undefined) previousValues.recurringCommissions = campaign.recurringCommission;
+      if (args.status !== undefined) previousValues.status = campaign.status;
+
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: user.tenantId,
+        action: "CAMPAIGN_UPDATED",
+        entityType: "campaign",
+        entityId: args.campaignId,
+        actorId: user.userId,
+        actorType: "user",
+        previousValue: Object.keys(previousValues).length > 0 ? previousValues : undefined,
+        newValue: args,
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log CAMPAIGN_UPDATED (non-fatal):", err);
+    }
+
     return args.campaignId;
   },
 });
@@ -597,6 +640,22 @@ export const archiveCampaign = mutation({
     await ctx.db.patch(args.campaignId, {
       status: "archived",
     });
+
+    // Audit log — campaign archived (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: user.tenantId,
+        action: "CAMPAIGN_ARCHIVED",
+        entityType: "campaign",
+        entityId: args.campaignId,
+        actorId: user.userId,
+        actorType: "user",
+        previousValue: { status: campaign.status },
+        metadata: { campaignName: campaign.name },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log CAMPAIGN_ARCHIVED (non-fatal):", err);
+    }
 
     try {
       const ownerUser = await ctx.db
@@ -653,6 +712,21 @@ export const pauseCampaign = mutation({
       status: "paused",
     });
 
+    // Audit log — campaign paused (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: user.tenantId,
+        action: "CAMPAIGN_PAUSED",
+        entityType: "campaign",
+        entityId: args.campaignId,
+        actorId: user.userId,
+        actorType: "user",
+        metadata: { campaignName: campaign.name },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log CAMPAIGN_PAUSED (non-fatal):", err);
+    }
+
     try {
       const ownerUser = await ctx.db
         .query("users")
@@ -707,6 +781,21 @@ export const resumeCampaign = mutation({
     await ctx.db.patch(args.campaignId, {
       status: "active",
     });
+
+    // Audit log — campaign resumed (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: user.tenantId,
+        action: "CAMPAIGN_RESUMED",
+        entityType: "campaign",
+        entityId: args.campaignId,
+        actorId: user.userId,
+        actorType: "user",
+        metadata: { campaignName: campaign.name },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log CAMPAIGN_RESUMED (non-fatal):", err);
+    }
 
     try {
       const ownerUser = await ctx.db

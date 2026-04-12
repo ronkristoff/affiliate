@@ -15,7 +15,7 @@ import { Loader2, Copy, Check, ArrowLeft } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import QRCode from "react-qr-code";
 import { api } from "../../../../convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -41,6 +41,7 @@ type CodeFormData = z.infer<typeof codeSchema>;
 
 export default function EnableTwoFactor() {
   const user = useQuery(api.auth.getCurrentUser);
+  const logClientAuthEvent = useMutation(api.audit.logClientAuthEvent);
   const [step, setStep] = useState<SetupStep>("loading");
   const [loading, setLoading] = useState(false);
   const [totpUri, setTotpUri] = useState<string>();
@@ -85,6 +86,11 @@ export default function EnableTwoFactor() {
           setBackupCodes(result.backupCodes);
         }
         setStep("qr-verify");
+        // Audit: 2FA enabled (TOTP secret generated)
+        logClientAuthEvent({
+          action: "AUTH_2FA_ENABLED",
+          metadata: { method: "totp" },
+        }).catch(() => { /* non-blocking */ });
       }
     } catch {
       passwordForm.setError("password", { message: "Failed to enable 2FA. Please check your password and try again." });
@@ -101,7 +107,13 @@ export default function EnableTwoFactor() {
       });
       console.log("data", result);
       console.log("error", error);
-      setStep("backup");
+      if (!error) {
+        setStep("backup");
+        // Audit: TOTP code verified successfully
+        logClientAuthEvent({
+          action: "AUTH_2FA_TOTP_VERIFIED",
+        }).catch(() => { /* non-blocking */ });
+      }
     } catch {
       codeForm.setError("code", { message: "Failed to verify code. Please try again." });
     } finally {

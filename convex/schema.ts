@@ -469,7 +469,13 @@ export default defineSchema({
     .index("by_actor", ["actorId"])
     // Index for security events by action type
     .index("by_action", ["action"])
-    .index("by_affiliate", ["affiliateId"]),
+    .index("by_affiliate", ["affiliateId"])
+    // Index for user timeline: chronological events per actor (Story 15.4)
+    // _creationTime is auto-appended by Convex to all indexes, so by_actor
+    // already provides chronological ordering within each actorId.
+    // Index for tenant+action filtering with time range (Story 15.4)
+    // _creationTime auto-appended, enabling chronological ordering within tenant+action.
+    .index("by_tenant_action_time", ["tenantId", "action"]),
 
   // Raw webhooks table for storing incoming webhook events
   // Story 7.5: Event Deduplication

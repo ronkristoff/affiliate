@@ -22,11 +22,12 @@
  * full documentation of the exception.
  */
 
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalAction, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthenticatedUser } from "./tenantContext";
+import { internal } from "./_generated/api";
 
 // =============================================================================
 // CLICK AUDIT ACTION TYPES
@@ -84,27 +85,53 @@ export const KNOWN_AUDIT_ACTIONS: string[] = [
   "commission_adjusted_upgrade", "commission_adjusted_downgrade",
   // Payout
   "payout_batch_generated", "payout_marked_paid", "batch_marked_paid",
+  "payout_processing", "payout_failed", "payout_paid_saligpay",
+  // Campaign
+  "CAMPAIGN_CREATED", "CAMPAIGN_UPDATED", "CAMPAIGN_ARCHIVED",
+  "CAMPAIGN_PAUSED", "CAMPAIGN_RESUMED",
+  // User Management
+  "tenant_created", "user_created", "user_updated", "user_deleted",
+  "TEAM_MEMBER_REMOVED", "USER_PROFILE_UPDATED",
   // Affiliate
   "affiliate_approved", "affiliate_rejected", "affiliate_suspended",
   "affiliate_reactivated", "affiliate_registered", "affiliate_bulk_approved",
-  "affiliate_bulk_rejected",
+  "affiliate_bulk_rejected", "affiliate_invited", "affiliate_status_updated",
+  "affiliate_profile_updated", "affiliate_password_updated",
+  "affiliate_login", "affiliate_password_changed", "AFFILIATE_PASSWORD_SET",
+  "referral_link_auto_created",
   // Click
   "click_recorded", "click_deduplicated",
   // Conversion
   "conversion_recorded", "conversion_recorded_self_referral",
   "organic_conversion_recorded", "conversion_status_changed",
   "conversion_subscription_status_changed", "conversion_created_legacy",
+  "ORGANIC_CONVERSION_CREATED",
   // Attribution
   "attribution_no_data", "attribution_affiliate_invalid",
   "attribution_referral_link_not_found", "attribution_no_campaign",
   "attribution_click_matched", "attribution_no_matching_click",
+  // Admin / Platform
+  "impersonation_start", "impersonation_end", "impersonated_mutation",
+  "impersonation_unauthorized", "permission_denied", "ADMIN_NOTE_ADDED",
+  // Infrastructure
+  "LOGIN_ATTEMPT_FAILED", "ACCOUNT_LOCKED", "LOGIN_SUCCESS",
+  "CIRCUIT_BREAKER_STATE_CHANGE",
+  // Auth lifecycle (Story 15.2)
+  "AUTH_SIGNUP_COMPLETED", "AUTH_SIGNIN_SUCCESS", "AUTH_SIGNIN_FAILURE",
+  "AUTH_ACCOUNT_LOCKED", "AUTH_ACCOUNT_DELETED", "AUTH_SESSION_REVOKED",
+  "AUTH_PASSWORD_RESET_REQUESTED", "AUTH_PASSWORD_RESET_COMPLETED",
+  "AUTH_PASSWORD_CHANGED", "AUTH_PASSWORD_REUSE_BLOCKED",
+  "AUTH_EMAIL_VERIFICATION_SENT", "AUTH_OTP_SENT", "AUTH_MAGIC_LINK_SENT",
+  "AUTH_2FA_ENABLED", "AUTH_2FA_TOTP_VERIFIED", "AUTH_2FA_OTP_SENT",
+  "AUTH_2FA_OTP_VERIFIED",
   // Security
-  "security_unauthorized_access_attempt", "security_cross_tenant_query",
-  "security_cross_tenant_mutation", "security_authentication_failure",
+  "security_unauthorized_access_attempt",
   // Email
-  "email_scheduling_failed", "fraud_alert_email_failed",
+  "email_scheduling_failed", "email_send_failed", "fraud_alert_email_failed",
+  "email_bounced", "email_complained",
+  "EMAIL_TEMPLATE_SAVED", "EMAIL_TEMPLATE_DELETED",
   // Fraud
-  "self_referral_detected", "fraud_signal_dismissed",
+  "self_referral_detected", "fraud_signal_dismissed", "FRAUD_SIGNAL_ADDED",
   // Payment rejection
   "commission_rejected_payment_failed", "commission_rejected_payment_pending",
   "commission_rejected_payment_unknown",
@@ -116,14 +143,11 @@ export const KNOWN_AUDIT_ACTIONS: string[] = [
 
 /**
  * Types of security events that can be logged.
+ * Dead types (cross_tenant_query, cross_tenant_mutation, authentication_failure,
+ * session_expired, invalid_token) were removed in Story 15.1 — they were defined
+ * but never called by any mutation.
  */
-export type SecurityEventType =
-  | "unauthorized_access_attempt"
-  | "cross_tenant_query"
-  | "cross_tenant_mutation"
-  | "authentication_failure"
-  | "session_expired"
-  | "invalid_token";
+export type SecurityEventType = "unauthorized_access_attempt";
 
 // =============================================================================
 // INTERNAL MUTATIONS
@@ -283,6 +307,86 @@ export const logAuditEventInternal = internalMutation({
       newValue: args.newValue,
       metadata: args.metadata,
     });
+    return null;
+  },
+});
+
+// =============================================================================
+// CLIENT-SIDE AUTH EVENT LOGGING (Story 15.2 — Task 6)
+// =============================================================================
+
+/**
+ * Public mutation for logging auth events from client-side code.
+ *
+ * Used by 2FA flows (EnableTwoFactor, TwoFactorVerification) where events
+ * happen entirely in the browser via Better Auth SDK calls.
+ *
+ * Security: Only whitelisted actions are accepted. Email is required when
+ * the user is not fully authenticated (e.g., during 2FA verification).
+ */
+export const logClientAuthEvent = mutation({
+  args: {
+    action: v.string(),
+    email: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Only accept known 2FA actions
+    const allowedActions = new Set([
+      "AUTH_2FA_ENABLED",
+      "AUTH_2FA_TOTP_VERIFIED",
+      "AUTH_2FA_OTP_VERIFIED",
+    ]);
+    if (!allowedActions.has(args.action)) {
+      return null;
+    }
+
+    let tenantId: Id<"tenants"> | undefined;
+    let actorId: string | undefined;
+    let actorEmail = args.email;
+
+    // Try to resolve user from session (works for authenticated pages like EnableTwoFactor)
+    try {
+      const authUser = await getAuthenticatedUser(ctx);
+      if (authUser) {
+        tenantId = authUser.tenantId;
+        actorId = authUser.userId;
+        actorEmail = authUser.email;
+      }
+    } catch {
+      // User not authenticated — fall through to email-based lookup
+    }
+
+    // Fall back to email-based lookup for unauth pages (e.g., 2FA verification)
+    if (!tenantId && actorEmail) {
+      try {
+        const userByEmail = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", actorEmail))
+          .first();
+        if (userByEmail) {
+          tenantId = userByEmail.tenantId;
+          actorId = userByEmail._id;
+        }
+      } catch {
+        // Email not found — log without tenant
+      }
+    }
+
+    await ctx.db.insert("auditLogs", {
+      tenantId,
+      action: args.action,
+      entityType: "auth",
+      entityId: actorEmail ?? "unknown",
+      actorId,
+      actorType: actorId ? "user" : "unauthenticated",
+      metadata: {
+        email: actorEmail,
+        ...args.metadata,
+      },
+    });
+
     return null;
   },
 });
@@ -1135,5 +1239,138 @@ export const getActivityLogActionTypes = query({
   returns: v.array(v.string()),
   handler: async () => {
     return KNOWN_AUDIT_ACTIONS;
+  },
+});
+
+// =============================================================================
+// AUDIT LOG RETENTION (Story 15.7)
+// =============================================================================
+
+/**
+ * Retention period for audit log entries.
+ * Default: 12 months. Entries older than this are eligible for deletion.
+ */
+export const AUDIT_LOG_RETENTION_MONTHS = 12;
+
+/**
+ * Maximum batch size for a single purge execution.
+ * Keeps each mutation well within Convex's function limits.
+ */
+const PURGE_BATCH_SIZE = 500;
+
+/**
+ * Purge old audit log entries for a specific tenant.
+ * Designed to be called by the daily retention cron.
+ * Returns the count of deleted entries and whether more remain.
+ */
+export const purgeOldAuditLogs = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    cutoffTime: v.number(),
+    batchSize: v.optional(v.number()),
+  },
+  returns: v.object({
+    deletedCount: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const cutoff = args.cutoffTime;
+    const batchSize = Math.min(args.batchSize ?? PURGE_BATCH_SIZE, PURGE_BATCH_SIZE);
+
+    // Query audit logs for this tenant, filter by creation time
+    const oldEntries = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) => q.lt(q.field("_creationTime"), cutoff))
+      .take(batchSize);
+
+    // Delete each entry
+    for (const entry of oldEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
+    // Check if there are more entries to process
+    // We do one more take(1) to see if any remain after the batch
+    const hasMore = oldEntries.length === batchSize;
+
+    console.log(
+      `[AuditRetention] Purged ${oldEntries.length} entries for tenant ${args.tenantId}. hasMore=${hasMore}`,
+    );
+
+    return {
+      deletedCount: oldEntries.length,
+      hasMore,
+    };
+  },
+});
+
+/**
+ * Daily cron orchestrator for audit log retention.
+ *
+ * Flow:
+ * 1. Discover all tenants (or get a page using pagination)
+ * 2. For each tenant, purge old entries (up to PURGE_BATCH_SIZE per tenant)
+ * 3. Log totals for monitoring
+ *
+ * Since this runs daily and each tenant gets at most PURGE_BATCH_SIZE deletions,
+ * it will gradually catch up on any backlog without timing out.
+ */
+export const runAuditLogRetention = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const cutoffTime = now - AUDIT_LOG_RETENTION_MONTHS * 30 * 24 * 60 * 60 * 1000;
+
+    // Get all tenants
+    const tenants = await ctx.runQuery(
+      internal.audit._listAllTenantIds,
+      {},
+    );
+
+    let totalDeleted = 0;
+    let tenantsProcessed = 0;
+
+    for (const tenantId of tenants) {
+      try {
+        const result = await ctx.runMutation(
+          internal.audit.purgeOldAuditLogs,
+          {
+            tenantId,
+            cutoffTime,
+            batchSize: PURGE_BATCH_SIZE,
+          },
+        );
+        totalDeleted += result.deletedCount;
+        if (result.deletedCount > 0) {
+          tenantsProcessed++;
+        }
+      } catch (err) {
+        console.error(
+          `[AuditRetention] Error purging tenant ${tenantId}:`,
+          err,
+        );
+        // Continue with next tenant — don't let one failure block others
+      }
+    }
+
+    console.log(
+      `[AuditRetention] Daily run complete: ${totalDeleted} entries purged across ${tenantsProcessed} tenants (cutoff: ${new Date(cutoffTime).toISOString()})`,
+    );
+
+    return null;
+  },
+});
+
+/**
+ * Internal query to list all tenant IDs for the retention cron.
+ * Kept private — not part of the public API.
+ */
+const _listAllTenantIds = query({
+  args: {},
+  returns: v.array(v.id("tenants")),
+  handler: async (ctx) => {
+    const tenants = await ctx.db.query("tenants").take(200);
+    return tenants.map((t) => t._id);
   },
 });

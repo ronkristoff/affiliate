@@ -457,9 +457,9 @@ export const createOrganicConversion = internalMutation({
 
     // Log to audit trail (non-fatal — organic conversion must succeed regardless)
     try {
-      await ctx.db.insert("auditLogs", {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
         tenantId: args.tenantId,
-        action: "organic_conversion_recorded",
+        action: "ORGANIC_CONVERSION_CREATED",
         entityType: "conversion",
         entityId: conversionId,
         actorType: "system",
@@ -469,10 +469,11 @@ export const createOrganicConversion = internalMutation({
         },
         metadata: {
           ipAddress: args.ipAddress,
+          customerEmail: args.customerEmail,
         },
       });
     } catch (err) {
-      console.error("[Audit] Failed to log organic_conversion_recorded (non-fatal):", err);
+      console.error("[Audit] Failed to log ORGANIC_CONVERSION_CREATED (non-fatal):", err);
     }
 
     return conversionId;

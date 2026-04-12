@@ -1480,6 +1480,20 @@ export const setAffiliatePassword = mutation({
 
     await ctx.db.patch(args.affiliateId, { passwordHash: args.newPasswordHash });
 
+    // Audit log — affiliate password set (non-fatal, no password value logged)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId,
+        action: "AFFILIATE_PASSWORD_SET",
+        entityType: "affiliate",
+        entityId: args.affiliateId,
+        actorType: "user",
+        metadata: { affiliateId: args.affiliateId },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log AFFILIATE_PASSWORD_SET (non-fatal):", err);
+    }
+
     return null;
   },
 });
@@ -3102,6 +3116,25 @@ export const addFraudSignalInternal = internalMutation({
     await ctx.db.patch(args.affiliateId, {
       fraudSignals: [...existingSignals, newSignal],
     });
+
+    // Audit log — fraud signal added (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: affiliate.tenantId,
+        action: "FRAUD_SIGNAL_ADDED",
+        entityType: "affiliate",
+        entityId: args.affiliateId,
+        actorType: "system",
+        metadata: {
+          signalType: args.type,
+          severity: args.severity,
+          commissionId: args.commissionId,
+          details: args.details,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log FRAUD_SIGNAL_ADDED (non-fatal):", err);
+    }
     
     return null;
   },

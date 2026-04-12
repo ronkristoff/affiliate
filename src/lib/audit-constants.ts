@@ -78,11 +78,129 @@ export const COMMISSION_ENGINE_ACTIONS = {
 } as const;
 
 // =============================================================================
+// CAMPAIGN AUDIT ACTIONS (Story 15.3)
+// =============================================================================
+
+export const CAMPAIGN_AUDIT_ACTIONS = {
+  CREATED: "CAMPAIGN_CREATED",
+  UPDATED: "CAMPAIGN_UPDATED",
+  ARCHIVED: "CAMPAIGN_ARCHIVED",
+  PAUSED: "CAMPAIGN_PAUSED",
+  RESUMED: "CAMPAIGN_RESUMED",
+} as const;
+
+// =============================================================================
+// USER MANAGEMENT AUDIT ACTIONS
+// =============================================================================
+
+export const USER_AUDIT_ACTIONS = {
+  TENANT_CREATED: "tenant_created",
+  USER_CREATED: "user_created",
+  USER_UPDATED: "user_updated",
+  USER_DELETED: "user_deleted",
+  TEAM_MEMBER_REMOVED: "TEAM_MEMBER_REMOVED",
+  USER_PROFILE_UPDATED: "USER_PROFILE_UPDATED",
+} as const;
+
+// =============================================================================
+// AFFILIATE MANAGEMENT AUDIT ACTIONS (Extended)
+// =============================================================================
+
+export const AFFILIATE_MANAGEMENT_ACTIONS = {
+  INVITED: "affiliate_invited",
+  STATUS_UPDATED: "affiliate_status_updated",
+  PROFILE_UPDATED: "affiliate_profile_updated",
+  PASSWORD_UPDATED: "affiliate_password_updated",
+  PASSWORD_SET: "AFFILIATE_PASSWORD_SET",
+  LOGIN: "affiliate_login",
+  PASSWORD_CHANGED: "affiliate_password_changed",
+  REFERRAL_LINK_AUTO_CREATED: "referral_link_auto_created",
+} as const;
+
+// =============================================================================
+// ADMIN AUDIT ACTIONS
+// =============================================================================
+
+export const ADMIN_AUDIT_ACTIONS = {
+  IMPERSONATION_START: "impersonation_start",
+  IMPERSONATION_END: "impersonation_end",
+  IMPERSONATED_MUTATION: "impersonated_mutation",
+  IMPERSONATION_UNAUTHORIZED: "impersonation_unauthorized",
+  PERMISSION_DENIED: "permission_denied",
+  NOTE_ADDED: "ADMIN_NOTE_ADDED",
+} as const;
+
+// =============================================================================
+// INFRASTRUCTURE AUDIT ACTIONS
+// =============================================================================
+
+export const INFRASTRUCTURE_ACTIONS = {
+  LOGIN_ATTEMPT_FAILED: "LOGIN_ATTEMPT_FAILED",
+  ACCOUNT_LOCKED: "ACCOUNT_LOCKED",
+  LOGIN_SUCCESS: "LOGIN_SUCCESS",
+  CIRCUIT_BREAKER_STATE_CHANGE: "CIRCUIT_BREAKER_STATE_CHANGE",
+} as const;
+
+// =============================================================================
+// AUTH AUDIT ACTIONS (Story 15.2)
+// =============================================================================
+
+export const AUTH_AUDIT_ACTIONS = {
+  SIGNUP_COMPLETED: "AUTH_SIGNUP_COMPLETED",
+  SIGNIN_SUCCESS: "AUTH_SIGNIN_SUCCESS",
+  SIGNIN_FAILURE: "AUTH_SIGNIN_FAILURE",
+  ACCOUNT_LOCKED: "AUTH_ACCOUNT_LOCKED",
+  ACCOUNT_DELETED: "AUTH_ACCOUNT_DELETED",
+  SESSION_REVOKED: "AUTH_SESSION_REVOKED",
+  PASSWORD_RESET_REQUESTED: "AUTH_PASSWORD_RESET_REQUESTED",
+  PASSWORD_RESET_COMPLETED: "AUTH_PASSWORD_RESET_COMPLETED",
+  PASSWORD_CHANGED: "AUTH_PASSWORD_CHANGED",
+  PASSWORD_REUSE_BLOCKED: "AUTH_PASSWORD_REUSE_BLOCKED",
+  EMAIL_VERIFICATION_SENT: "AUTH_EMAIL_VERIFICATION_SENT",
+  OTP_SENT: "AUTH_OTP_SENT",
+  MAGIC_LINK_SENT: "AUTH_MAGIC_LINK_SENT",
+  TWO_FACTOR_ENABLED: "AUTH_2FA_ENABLED",
+  TWO_FACTOR_TOTP_VERIFIED: "AUTH_2FA_TOTP_VERIFIED",
+  TWO_FACTOR_OTP_SENT: "AUTH_2FA_OTP_SENT",
+  TWO_FACTOR_OTP_VERIFIED: "AUTH_2FA_OTP_VERIFIED",
+} as const;
+
+// =============================================================================
+// EMAIL DELIVERY AUDIT ACTIONS
+// =============================================================================
+
+export const EMAIL_DELIVERY_ACTIONS = {
+  BOUNCED: "email_bounced",
+  COMPLAINED: "email_complained",
+  SEND_FAILED: "email_send_failed",
+  TEMPLATE_SAVED: "EMAIL_TEMPLATE_SAVED",
+  TEMPLATE_DELETED: "EMAIL_TEMPLATE_DELETED",
+} as const;
+
+// =============================================================================
+// FRAUD AUDIT ACTIONS (Extended)
+// =============================================================================
+
+export const FRAUD_AUDIT_ACTIONS = {
+  SIGNAL_ADDED: "FRAUD_SIGNAL_ADDED",
+  SELF_REFERRAL_DETECTED: "self_referral_detected",
+  SIGNAL_DISMISSED: "fraud_signal_dismissed",
+} as const;
+
+// =============================================================================
+// CONVERSION AUDIT ACTIONS (Extended)
+// =============================================================================
+
+export const CONVERSION_AUDIT_ACTIONS_EXTENDED = {
+  ORGANIC_CREATED: "ORGANIC_CONVERSION_CREATED",
+} as const;
+
+// =============================================================================
 // AUDIT ACTION LABELS — Human-readable labels for all known actions
 // =============================================================================
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
-  // Commission
+  // ── Commission ──────────────────────────────────────────────────────
   COMMISSION_CREATED: "Commission Created",
   COMMISSION_APPROVED: "Commission Approved",
   COMMISSION_DECLINED: "Commission Declined",
@@ -93,7 +211,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   commission_adjusted_upgrade: "Commission Adjusted (Upgrade)",
   commission_adjusted_downgrade: "Commission Adjusted (Downgrade)",
 
-  // Payout
+  // ── Payout ──────────────────────────────────────────────────────────
   payout_batch_generated: "Payout Batch Generated",
   payout_marked_paid: "Payout Marked Paid",
   batch_marked_paid: "Batch Marked Paid",
@@ -101,7 +219,22 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   payout_failed: "Payout Failed",
   payout_paid_saligpay: "Payout Paid via SaligPay",
 
-  // Affiliate
+  // ── Campaign ────────────────────────────────────────────────────────
+  CAMPAIGN_CREATED: "Campaign Created",
+  CAMPAIGN_UPDATED: "Campaign Updated",
+  CAMPAIGN_ARCHIVED: "Campaign Archived",
+  CAMPAIGN_PAUSED: "Campaign Paused",
+  CAMPAIGN_RESUMED: "Campaign Resumed",
+
+  // ── User Management ─────────────────────────────────────────────────
+  tenant_created: "Tenant Created",
+  user_created: "User Created",
+  user_updated: "User Updated",
+  user_deleted: "User Deleted",
+  TEAM_MEMBER_REMOVED: "Team Member Removed",
+  USER_PROFILE_UPDATED: "Profile Updated",
+
+  // ── Affiliate Management ────────────────────────────────────────────
   affiliate_approved: "Application Approved",
   affiliate_rejected: "Application Rejected",
   affiliate_suspended: "Affiliate Suspended",
@@ -109,20 +242,29 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   affiliate_registered: "New Affiliate Registered",
   affiliate_bulk_approved: "Bulk Approved",
   affiliate_bulk_rejected: "Bulk Rejected",
+  affiliate_invited: "Affiliate Invited",
+  affiliate_status_updated: "Affiliate Status Updated",
+  affiliate_profile_updated: "Affiliate Profile Updated",
+  affiliate_password_updated: "Affiliate Password Changed",
+  affiliate_login: "Affiliate Logged In",
+  affiliate_password_changed: "Affiliate Password Changed (Legacy)",
+  AFFILIATE_PASSWORD_SET: "Affiliate Password Set",
+  referral_link_auto_created: "Referral Link Auto-Created",
 
-  // Click
+  // ── Click ───────────────────────────────────────────────────────────
   click_recorded: "Click Recorded",
   click_deduplicated: "Click Deduplicated",
 
-  // Conversion
+  // ── Conversion ──────────────────────────────────────────────────────
   conversion_recorded: "Conversion Recorded",
   conversion_recorded_self_referral: "Conversion (Self-Referral)",
   organic_conversion_recorded: "Organic Conversion",
   conversion_status_changed: "Conversion Status Changed",
   conversion_subscription_status_changed: "Subscription Status Changed",
   conversion_created_legacy: "Conversion Created (Legacy)",
+  ORGANIC_CONVERSION_CREATED: "Organic Conversion Created",
 
-  // Attribution
+  // ── Attribution ─────────────────────────────────────────────────────
   attribution_no_data: "No Attribution Data",
   attribution_affiliate_invalid: "Affiliate Invalid/Inactive",
   attribution_referral_link_not_found: "Referral Link Not Found",
@@ -130,26 +272,187 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   attribution_click_matched: "Click Matched to Conversion",
   attribution_no_matching_click: "No Matching Click Found",
 
-  // Security
-  security_unauthorized_access_attempt: "Unauthorized Access Attempt",
-  security_cross_tenant_query: "Cross-Tenant Query Blocked",
-  security_cross_tenant_mutation: "Cross-Tenant Mutation Blocked",
-  security_authentication_failure: "Authentication Failure",
+  // ── Admin / Platform ───────────────────────────────────────────────
+  impersonation_start: "Impersonation Started",
+  impersonation_end: "Impersonation Ended",
+  impersonated_mutation: "Impersonated Action",
+  impersonation_unauthorized: "Impersonation Unauthorized",
+  permission_denied: "Permission Denied",
+  ADMIN_NOTE_ADDED: "Admin Note Added",
 
-  // Email
-  email_scheduling_failed: "Email Scheduling Failed",
+  // ── Auth ─────────────────────────────────────────────────────────
+  AUTH_SIGNUP_COMPLETED: "Sign-Up Completed",
+  AUTH_SIGNIN_SUCCESS: "Sign-In Successful",
+  AUTH_SIGNIN_FAILURE: "Sign-In Failed",
+  AUTH_ACCOUNT_LOCKED: "Account Locked",
+  AUTH_ACCOUNT_DELETED: "Account Deleted",
+  AUTH_SESSION_REVOKED: "Session Revoked",
+  AUTH_PASSWORD_RESET_REQUESTED: "Password Reset Requested",
+  AUTH_PASSWORD_RESET_COMPLETED: "Password Reset Completed",
+  AUTH_PASSWORD_CHANGED: "Password Changed",
+  AUTH_PASSWORD_REUSE_BLOCKED: "Password Reuse Blocked",
+  AUTH_EMAIL_VERIFICATION_SENT: "Verification Email Sent",
+  AUTH_OTP_SENT: "OTP Sent",
+  AUTH_MAGIC_LINK_SENT: "Magic Link Sent",
+  AUTH_2FA_ENABLED: "Two-Factor Auth Enabled",
+  AUTH_2FA_TOTP_VERIFIED: "2FA TOTP Verified",
+  AUTH_2FA_OTP_SENT: "2FA OTP Sent",
+  AUTH_2FA_OTP_VERIFIED: "2FA OTP Verified",
+
+  // ── Infrastructure ──────────────────────────────────────────────────
+  LOGIN_ATTEMPT_FAILED: "Login Attempt Failed",
+  ACCOUNT_LOCKED: "Account Locked",
+  LOGIN_SUCCESS: "Login Successful",
+  CIRCUIT_BREAKER_STATE_CHANGE: "Circuit Breaker State Changed",
+
+  // ── Email Delivery ──────────────────────────────────────────────────
+  email_bounced: "Email Bounced",
+  email_complained: "Email Complaint (Spam)",
   email_send_failed: "Email Delivery Failed",
+  email_scheduling_failed: "Email Scheduling Failed",
   fraud_alert_email_failed: "Fraud Alert Email Failed",
+  EMAIL_TEMPLATE_SAVED: "Email Template Saved",
+  EMAIL_TEMPLATE_DELETED: "Email Template Deleted",
 
-  // Fraud
+  // ── Fraud ───────────────────────────────────────────────────────────
   self_referral_detected: "Self-Referral Detected",
   fraud_signal_dismissed: "Fraud Signal Dismissed",
+  FRAUD_SIGNAL_ADDED: "Fraud Signal Added",
 
-  // Payment rejection
+  // ── Security ────────────────────────────────────────────────────────
+  security_unauthorized_access_attempt: "Unauthorized Access Attempt",
+
+  // ── Payment rejection ──────────────────────────────────────────────
   commission_rejected_payment_failed: "Payment Failed",
   commission_rejected_payment_pending: "Payment Pending",
   commission_rejected_payment_unknown: "Payment Status Unknown",
 };
+
+// =============================================================================
+// AUDIT ACTION CATEGORIES — Groups actions into filterable categories (Story 15.5)
+// =============================================================================
+
+export const AUDIT_ACTION_CATEGORIES: Record<string, string[]> = {
+  auth: [
+    "AUTH_SIGNUP_COMPLETED", "AUTH_SIGNIN_SUCCESS", "AUTH_SIGNIN_FAILURE",
+    "AUTH_ACCOUNT_LOCKED", "AUTH_PASSWORD_RESET_REQUESTED", "AUTH_PASSWORD_RESET_COMPLETED",
+    "AUTH_PASSWORD_CHANGED", "AUTH_PASSWORD_REUSE_BLOCKED", "AUTH_EMAIL_VERIFICATION_SENT",
+    "AUTH_OTP_SENT", "AUTH_MAGIC_LINK_SENT", "AUTH_2FA_ENABLED",
+    "AUTH_2FA_TOTP_VERIFIED", "AUTH_2FA_OTP_SENT", "AUTH_2FA_OTP_VERIFIED",
+    "AUTH_ACCOUNT_DELETED", "AUTH_SESSION_REVOKED",
+    "LOGIN_ATTEMPT_FAILED", "ACCOUNT_LOCKED", "LOGIN_SUCCESS",
+  ],
+  email: [
+    "email_bounced", "email_complained", "email_send_failed",
+    "email_scheduling_failed", "fraud_alert_email_failed",
+    "EMAIL_TEMPLATE_SAVED", "EMAIL_TEMPLATE_DELETED",
+  ],
+  money: [
+    "COMMISSION_CREATED", "COMMISSION_APPROVED", "COMMISSION_DECLINED",
+    "COMMISSION_REVERSED", "COMMISSION_STATUS_CHANGE",
+    "payout_batch_generated", "payout_marked_paid", "batch_marked_paid",
+    "payout_processing", "payout_failed", "payout_paid_saligpay",
+  ],
+  affiliates: [
+    "affiliate_approved", "affiliate_rejected", "affiliate_suspended",
+    "affiliate_reactivated", "affiliate_registered", "affiliate_bulk_approved",
+    "affiliate_bulk_rejected", "affiliate_invited", "affiliate_status_updated",
+    "affiliate_profile_updated", "affiliate_password_updated",
+    "AFFILIATE_PASSWORD_SET", "referral_link_auto_created",
+  ],
+  security: [
+    "security_unauthorized_access_attempt", "impersonation_start",
+    "impersonation_end", "impersonated_mutation", "impersonation_unauthorized",
+    "FRAUD_SIGNAL_ADDED", "self_referral_detected", "fraud_signal_dismissed",
+    "permission_denied", "CIRCUIT_BREAKER_STATE_CHANGE",
+  ],
+};
+
+/** Reverse lookup: action → category. Built lazily on first call. */
+let _actionToCategoryCache: Record<string, string> | null = null;
+
+export function getActionCategory(action: string): string | undefined {
+  if (!_actionToCategoryCache) {
+    _actionToCategoryCache = {};
+    for (const [category, actions] of Object.entries(AUDIT_ACTION_CATEGORIES)) {
+      for (const a of actions) {
+        _actionToCategoryCache[a] = category;
+      }
+    }
+  }
+  return _actionToCategoryCache[action];
+}
+
+// =============================================================================
+// AUDIT SEVERITY COLORS — Color-coded indicators for timeline events (Story 15.5)
+// =============================================================================
+
+export type AuditSeverity = "red" | "green" | "amber" | "blue" | "purple";
+
+export const AUDIT_SEVERITY_COLORS: Record<string, AuditSeverity> = {
+  // Red — failures, locks, rejections
+  AUTH_SIGNIN_FAILURE: "red",
+  AUTH_ACCOUNT_LOCKED: "red",
+  email_bounced: "red",
+  COMMISSION_DECLINED: "red",
+  payout_failed: "red",
+  security_unauthorized_access_attempt: "red",
+  AUTH_PASSWORD_REUSE_BLOCKED: "red",
+  permission_denied: "red",
+  impersonation_unauthorized: "red",
+  email_complained: "red",
+
+  // Green — successes, deliveries, approvals
+  AUTH_SIGNIN_SUCCESS: "green",
+  AUTH_PASSWORD_RESET_COMPLETED: "green",
+  COMMISSION_APPROVED: "green",
+  payout_marked_paid: "green",
+  batch_marked_paid: "green",
+  AUTH_2FA_ENABLED: "green",
+  AUTH_2FA_TOTP_VERIFIED: "green",
+  AUTH_2FA_OTP_VERIFIED: "green",
+  affiliate_approved: "green",
+  affiliate_reactivated: "green",
+  payout_paid_saligpay: "green",
+  LOGIN_SUCCESS: "green",
+
+  // Amber — warnings, pending, informational alerts
+  AUTH_OTP_SENT: "amber",
+  AUTH_2FA_OTP_SENT: "amber",
+  AUTH_EMAIL_VERIFICATION_SENT: "amber",
+  AUTH_MAGIC_LINK_SENT: "amber",
+  AUTH_PASSWORD_RESET_REQUESTED: "amber",
+  payout_processing: "amber",
+  email_scheduling_failed: "amber",
+  email_send_failed: "amber",
+  fraud_alert_email_failed: "amber",
+  FRAUD_SIGNAL_ADDED: "amber",
+
+  // Blue — informational, system events
+  CAMPAIGN_CREATED: "blue",
+  tenant_created: "blue",
+  user_created: "blue",
+  CAMPAIGN_UPDATED: "blue",
+  CAMPAIGN_ARCHIVED: "blue",
+  CAMPAIGN_PAUSED: "blue",
+  CAMPAIGN_RESUMED: "blue",
+  EMAIL_TEMPLATE_SAVED: "blue",
+  EMAIL_TEMPLATE_DELETED: "blue",
+  ADMIN_NOTE_ADDED: "blue",
+  commission_creation_skipped: "blue",
+  referral_link_auto_created: "blue",
+
+  // Purple — admin/security events
+  impersonation_start: "purple",
+  impersonation_end: "purple",
+  impersonated_mutation: "purple",
+  self_referral_detected: "purple",
+  CIRCUIT_BREAKER_STATE_CHANGE: "purple",
+};
+
+export function getActionSeverity(action: string): AuditSeverity {
+  return AUDIT_SEVERITY_COLORS[action] ?? "blue";
+}
 
 /**
  * Get a human-readable label for an audit action.

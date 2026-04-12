@@ -17,6 +17,35 @@ import {
 } from "./email"; // Relative path within convex/
 import authConfig from "./auth.config";
 
+// ── Auth audit logging helper (Story 15.2) ──
+// Non-blocking: never throws, never blocks auth operations.
+async function logAuthEvent(
+  ctx: any,
+  event: {
+    action: string;
+    email?: string;
+    userId?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  try {
+    if ("runMutation" in ctx) {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        action: event.action,
+        entityType: "auth",
+        entityId: event.userId ?? event.email ?? "unknown",
+        actorType: "user",
+        metadata: {
+          email: event.email,
+          ...event.metadata,
+        },
+      });
+    }
+  } catch (err) {
+    console.error(`[Auth Audit] Failed to log ${event.action} (non-fatal):`, err);
+  }
+}
+
 export const betterAuthComponent = createClient<DataModel>(
   components.betterAuth
 );
@@ -70,6 +99,13 @@ const createOptions = (ctx: GenericCtx) =>
             url,
           });
         }
+        // Audit: verification email sent
+        await logAuthEvent(ctx, {
+          action: "AUTH_EMAIL_VERIFICATION_SENT",
+          email: user.email,
+          userId: user.id,
+          metadata: { type: "verification" },
+        });
       },
     },
     emailAndPassword: {
@@ -88,6 +124,13 @@ const createOptions = (ctx: GenericCtx) =>
             url,
           });
         }
+        // Audit: password reset requested
+        await logAuthEvent(ctx, {
+          action: "AUTH_PASSWORD_RESET_REQUESTED",
+          email: user.email,
+          userId: user.id,
+          metadata: { trigger: "forgot_password" },
+        });
       },
     },
     socialProviders: {
@@ -141,6 +184,11 @@ const createOptions = (ctx: GenericCtx) =>
               url,
             });
           }
+          // Audit: magic link sent
+          await logAuthEvent(ctx, {
+            action: "AUTH_MAGIC_LINK_SENT",
+            email,
+          });
         },
       }),
       emailOTP({
@@ -164,6 +212,12 @@ const createOptions = (ctx: GenericCtx) =>
               purpose,
             });
           }
+          // Audit: OTP sent
+          await logAuthEvent(ctx, {
+            action: "AUTH_OTP_SENT",
+            email,
+            metadata: { purpose },
+          });
         },
       }),
       twoFactor({
@@ -186,6 +240,12 @@ const createOptions = (ctx: GenericCtx) =>
                 purpose: "2fa",
               });
             }
+            // Audit: 2FA OTP sent
+            await logAuthEvent(ctx, {
+              action: "AUTH_2FA_OTP_SENT",
+              email: user.email,
+              userId: user.id,
+            });
           },
           expiresIn: Number(process.env.TWO_FACTOR_OTP_EXPIRY_SECONDS) || 300,
         },
@@ -226,6 +286,13 @@ const createOptions = (ctx: GenericCtx) =>
               } catch (err) {
                 console.error("[Better Auth] syncUserCreation failed (non-fatal):", err);
               }
+              // Audit: sign-up completed
+              await logAuthEvent(ctx, {
+                action: "AUTH_SIGNUP_COMPLETED",
+                email,
+                userId: user.id,
+                metadata: { name: user.name, method: "email" },
+              });
             }
           },
         },
@@ -251,6 +318,12 @@ const createOptions = (ctx: GenericCtx) =>
               } catch (err) {
                 console.error("[Better Auth] syncUserDeletion failed (non-fatal):", err);
               }
+              // Audit: account deleted
+              await logAuthEvent(ctx, {
+                action: "AUTH_ACCOUNT_DELETED",
+                email,
+                userId: user.id,
+              });
             }
           },
         },
@@ -418,6 +491,16 @@ const createOptions = (ctx: GenericCtx) =>
           // Non-fatal — never block the auth response for a notification email
           console.error("[Auth] Failed to send password change notification (non-fatal):", err);
         }
+
+        // Audit: password changed or reset completed
+        // Determine which action based on the middleware path
+        const path = (afterCtx as any).path ?? "";
+        const isReset = path.includes("reset-password");
+        await logAuthEvent(ctx, {
+          action: isReset ? "AUTH_PASSWORD_RESET_COMPLETED" : "AUTH_PASSWORD_CHANGED",
+          email,
+          metadata: { path },
+        });
       }),
     },
   } satisfies BetterAuthOptions);

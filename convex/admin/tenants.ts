@@ -6,6 +6,7 @@ import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { betterAuthComponent } from "../auth";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
 import { requireAdmin, readTenantStats } from "./_helpers";
+import { internal } from "../_generated/api";
 
 // =============================================================================
 // Helpers
@@ -1329,6 +1330,24 @@ export const addTenantAdminNote = mutation({
       authorId: appUser._id,
       content: args.content,
     });
+
+    // Audit log — admin note added (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: args.tenantId,
+        action: "ADMIN_NOTE_ADDED",
+        entityType: "tenant",
+        entityId: args.tenantId,
+        actorId: appUser._id,
+        actorType: "admin",
+        metadata: {
+          noteContent: args.content.length > 100 ? args.content.slice(0, 100) + "..." : args.content,
+          authorEmail: betterAuthUser.email,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log ADMIN_NOTE_ADDED (non-fatal):", err);
+    }
 
     return noteId;
   },

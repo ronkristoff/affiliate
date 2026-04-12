@@ -1,6 +1,7 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser } from "./tenantContext";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Task 3: Template Variable System
@@ -595,6 +596,21 @@ export const upsertMyEmailTemplate = mutation({
       });
     }
 
+    // Audit log — email template saved (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: authUser.tenantId,
+        action: "EMAIL_TEMPLATE_SAVED",
+        entityType: "emailTemplate",
+        entityId: existing ? existing._id : args.templateType,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: { templateType: args.templateType },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log EMAIL_TEMPLATE_SAVED (non-fatal):", err);
+    }
+
     return { success: true as const };
   },
 });
@@ -622,6 +638,21 @@ export const resetMyEmailTemplate = mutation({
 
     if (existing) {
       await ctx.db.delete(existing._id);
+    }
+
+    // Audit log — email template reset/deleted (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: authUser.tenantId,
+        action: "EMAIL_TEMPLATE_DELETED",
+        entityType: "emailTemplate",
+        entityId: (existing as any)?._id ?? args.templateType,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: { templateType: args.templateType },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log EMAIL_TEMPLATE_DELETED (non-fatal):", err);
     }
 
     return null;

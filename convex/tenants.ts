@@ -1418,7 +1418,7 @@ export const sendTenantDeletionReminder = internalAction({
     });
 
     // Log to audit
-    await ctx.runMutation(internal.tenants._logAuditEventInternal, {
+    await ctx.runMutation(internal.audit.logAuditEventInternal, {
       tenantId: args.tenantId,
       action: "DELETION_REMINDER_SENT",
       entityType: "tenant",
@@ -1440,32 +1440,6 @@ export const sendDeletionReminder = sendTenantDeletionReminder;
  * Internal helper to log email sent to tenant's email history.
  * Called by actions that send emails.
  */
-/**
- * Internal helper to log audit events.
- * Called by actions that need audit logging.
- */
-export const _logAuditEventInternal = internalMutation({
-  args: {
-    tenantId: v.id("tenants"),
-    action: v.string(),
-    entityType: v.string(),
-    entityId: v.string(),
-    actorType: v.string(),
-    newValue: v.optional(v.any()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.insert("auditLogs", {
-      tenantId: args.tenantId,
-      action: args.action,
-      entityType: args.entityType,
-      entityId: args.entityId,
-      actorType: args.actorType,
-      newValue: args.newValue,
-    });
-    return null;
-  },
-});
 
 /**
  * Internal: Get a tenant by ID. Used by actions that cannot access ctx.db directly.

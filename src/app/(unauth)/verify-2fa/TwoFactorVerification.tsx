@@ -18,6 +18,8 @@ import {
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "../../../../convex/_generated/api";
+import { useMutation } from "convex/react";
 
 export default function TwoFactorVerification() {
   const [otp, setOtp] = useState("");
@@ -31,6 +33,7 @@ export default function TwoFactorVerification() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
   const hasSentInitial = useRef(false);
+  const logClientAuthEvent = useMutation(api.audit.logClientAuthEvent);
 
   // Auto-send OTP on mount
   useEffect(() => {
@@ -109,6 +112,10 @@ export default function TwoFactorVerification() {
       setError(result.error.message || "Invalid code. Please try again.");
       return;
     }
+    // Audit: 2FA OTP verified successfully (fire-and-forget)
+    logClientAuthEvent({
+      action: "AUTH_2FA_OTP_VERIFIED",
+    }).catch(() => { /* non-blocking */ });
     // Soft navigate — ConvexBetterAuthProvider is already mounted in root layout
     router.push(callbackUrl || "/dashboard");
   };

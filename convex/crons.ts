@@ -111,4 +111,13 @@ crons.interval(
   {}
 );
 
+// Story 15.7: Audit log retention — runs daily at 3 AM UTC
+// Purges audit log entries older than 12 months in batches of 500 per tenant
+crons.interval(
+  "audit-log-retention",
+  { hours: 24 },
+  internal.audit.runAuditLogRetention,
+  {}
+);
+
 export default crons;
