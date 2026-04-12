@@ -38,6 +38,7 @@
     "convex-saligpay": "^1.2.0",
     "convex.config": "link:@convex-dev/resend/convex.config",
     "date-fns": "^4.1.0",
+    "input-otp": "^1.4.2",
     "lucide-react": "^0.542.0",
     "motion": "^12.38.0",
     "next": "16.1.0",

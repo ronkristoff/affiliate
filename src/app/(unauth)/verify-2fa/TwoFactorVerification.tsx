@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod/v4";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,91 +9,117 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
+import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const codeSchema = z.object({
-  code: z.string().min(1, "Code is required"),
-});
-
-type CodeFormData = z.infer<typeof codeSchema>;
-
 export default function TwoFactorVerification() {
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
+  const hasSentInitial = useRef(false);
 
-  const form = useForm<CodeFormData>({
-    resolver: zodResolver(codeSchema),
-    defaultValues: {
-      code: "",
-    },
-  });
+  // Auto-send OTP on mount
+  useEffect(() => {
+    if (hasSentInitial.current) return;
+    hasSentInitial.current = true;
 
-  // Resend cooldown timer
-  const startCooldown = () => {
-    setResendCooldown(30);
-    const interval = setInterval(() => {
+    const sendInitialOtp = async () => {
+      setSendingEmail(true);
+      setError(null);
+      const result = await authClient.twoFactor.sendOtp();
+      if (result.error) {
+        setSendingEmail(false);
+        setError(result.error.message || "Failed to send verification code.");
+      } else {
+        setSuccess(true);
+        setSendingEmail(false);
+        startCooldown();
+        // Clear success message after 3s
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    };
+
+    sendInitialOtp();
+  }, []);
+
+  // Cooldown timer
+  const startCooldown = useCallback(() => {
+    setResendCooldown(60);
+  }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const timer = setInterval(() => {
       setResendCooldown((prev) => {
         if (prev <= 1) {
-          clearInterval(interval);
+          clearInterval(timer);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  };
 
-  const handleOtpSend = async () => {
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || loading) return;
     setLoading(true);
     setError(null);
     const result = await authClient.twoFactor.sendOtp();
     if (result.error) {
       setLoading(false);
-      setError(result.error.message || "Failed to send verification code.");
+      setError(result.error.message || "Failed to resend verification code.");
       return;
     }
-    setOtpSent(true);
+    setSuccess(true);
     startCooldown();
     setLoading(false);
+    // Clear success message after 3s
+    setTimeout(() => setSuccess(false), 3000);
+    // Clear current OTP so user enters fresh code
+    setOtp("");
   };
 
-  const handleOtpVerify = async (code: string) => {
-    setLoading(true);
+  const handleVerify = async () => {
+    if (otp.length !== 6 || !/^[0-9]+$/.test(otp)) {
+      setError("Enter a valid 6-digit code");
+      return;
+    }
+    setVerifying(true);
     setError(null);
-    const result = await authClient.twoFactor.verifyOtp({ code });
+    const result = await authClient.twoFactor.verifyOtp({ code: otp });
     if (result.error) {
-      setLoading(false);
+      setVerifying(false);
       setError(result.error.message || "Invalid code. Please try again.");
       return;
     }
-    // Soft navigate — ConvexBetterAuthProvider is already mounted in root layout,
-    // so it picks up the session update from verifyOtp without reinitializing.
+    // Soft navigate — ConvexBetterAuthProvider is already mounted in root layout
     router.push(callbackUrl || "/dashboard");
   };
 
-  // Submit handler: only called when OTP has been sent and user enters code
-  const onSubmit = (data: CodeFormData) => {
-    if (!data.code || data.code.length !== 6 || !/^[0-9]+$/.test(data.code)) {
-      form.setError("code", { message: "Enter a valid 6-digit code" });
-      return;
+  // Auto-submit when all 6 digits are entered
+  useEffect(() => {
+    if (otp.length === 6 && /^[0-9]+$/.test(otp)) {
+      handleVerify();
     }
-    handleOtpVerify(data.code);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp]);
 
   return (
     <Card className="max-w-md">
@@ -109,89 +132,105 @@ export default function TwoFactorVerification() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-            {error && (
-              <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
+        <div className="space-y-5">
+          {/* Status messages */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
 
-            {!otpSent && (
-              <div className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg">
-                <p>Click below to receive a verification code via email.</p>
-              </div>
-            )}
+          {success && (
+            <div className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Verification code sent to your email.
+              </p>
+            </div>
+          )}
 
-            {otpSent && (
-              <FormField
-                control={form.control}
-                name="code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Verification Code</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Enter 6-digit code"
-                        disabled={loading}
-                        inputMode="numeric"
-                        maxLength={6}
-                        autoFocus
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+          {sendingEmail && (
+            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+              <Loader2 size={18} className="animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Sending verification code to your email...
+              </p>
+            </div>
+          )}
 
-            {!otpSent ? (
-              <Button
-                type="button"
-                className="w-full"
-                disabled={loading}
-                onClick={handleOtpSend}
-              >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : "Send Verification Code"}
-              </Button>
-            ) : (
-              <>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : "Verify"}
-                </Button>
-
-                <div className="text-center">
-                  {resendCooldown > 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Resend available in {resendCooldown}s
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      className="text-xs text-[#1c2260] font-medium hover:underline disabled:opacity-50"
-                      disabled={loading}
-                      onClick={handleOtpSend}
-                    >
-                      Resend verification code
-                    </button>
-                  )}
+          {/* OTP Input */}
+          {!sendingEmail && (
+            <>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail size={16} />
+                  <span>Enter the 6-digit code from your email</span>
                 </div>
-              </>
-            )}
 
-            <Button
-              type="button"
-              className="w-full"
-              variant="outline"
-              disabled={loading}
-              onClick={() => router.push("/sign-in")}
-            >
-              Cancel
-            </Button>
-          </form>
-        </Form>
+                <InputOTP
+                  maxLength={6}
+                  value={otp}
+                  onChange={setOtp}
+                  disabled={verifying}
+                  autoFocus
+                  onComplete={handleVerify}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+
+                {verifying && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Verifying...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Resend */}
+              <div className="text-center">
+                {resendCooldown > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Resend available in {resendCooldown}s
+                  </p>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-[#1c2260] hover:text-[#1c2260]"
+                    disabled={loading || verifying}
+                    onClick={handleResend}
+                  >
+                    {loading ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
+                    Resend verification code
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Cancel */}
+          <Button
+            type="button"
+            className="w-full"
+            variant="outline"
+            disabled={sendingEmail || verifying}
+            onClick={() => router.push("/sign-in")}
+          >
+            <ArrowLeft size={16} />
+            Back to Sign In
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
