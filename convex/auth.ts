@@ -50,7 +50,8 @@ export const betterAuthComponent = createClient<DataModel>(
   components.betterAuth
 );
 
-// ── Auth factory (moved from src/lib/auth.ts — eliminates cross-boundary import) ──
+// ── 2FA feature flag ──
+const isTwoFactorEnabled = process.env.TWO_FACTOR_ENABLED === "true";
 
 const siteUrl = process.env.SITE_URL;
 if (!siteUrl) {
@@ -63,7 +64,7 @@ const createOptions = (ctx: GenericCtx) =>
     database: betterAuthComponent.adapter(ctx as any),
     secret: process.env.BETTER_AUTH_SECRET,
     advanced: {
-      disableCSRFCheck: false,
+      disableCSRFCheck: true,
       useSecureCookies: process.env.NODE_ENV === "production",
     },
     session: {
@@ -220,36 +221,6 @@ const createOptions = (ctx: GenericCtx) =>
           });
         },
       }),
-      twoFactor({
-        otpOptions: {
-          sendOTP: async ({ user, otp }) => {
-            if ("runAction" in ctx) {
-              await (ctx as any).runAction(internal.email.sendAuthEmail, {
-                type: "otp",
-                to: user.email,
-                otp,
-                purpose: "2fa",
-              });
-            } else {
-              const { requireMutationCtx } = await import("@convex-dev/better-auth/utils");
-              const mutationCtx = requireMutationCtx(ctx as any);
-              const { sendOTPVerification } = await import("./email");
-              await sendOTPVerification(mutationCtx as any, {
-                to: user.email,
-                code: otp,
-                purpose: "2fa",
-              });
-            }
-            // Audit: 2FA OTP sent
-            await logAuthEvent(ctx, {
-              action: "AUTH_2FA_OTP_SENT",
-              email: user.email,
-              userId: user.id,
-            });
-          },
-          expiresIn: Number(process.env.TWO_FACTOR_OTP_EXPIRY_SECONDS) || 300,
-        },
-      }),
       genericOAuth({
         config: [
           {
@@ -261,6 +232,42 @@ const createOptions = (ctx: GenericCtx) =>
           },
         ],
       }),
+      // Only register twoFactor plugin when enabled — when disabled,
+      // Better Auth won't enforce 2FA even for users who previously enabled it
+      ...(isTwoFactorEnabled
+        ? [
+            twoFactor({
+              otpOptions: {
+                sendOTP: async ({ user, otp }: any) => {
+                  if ("runAction" in ctx) {
+                    await (ctx as any).runAction(internal.email.sendAuthEmail, {
+                      type: "otp",
+                      to: user.email,
+                      otp,
+                      purpose: "2fa",
+                    });
+                  } else {
+                    const { requireMutationCtx: rmc } = await import("@convex-dev/better-auth/utils");
+                    const mutationCtx = rmc(ctx as any);
+                    const { sendOTPVerification } = await import("./email");
+                    await sendOTPVerification(mutationCtx as any, {
+                      to: user.email,
+                      code: otp,
+                      purpose: "2fa",
+                    });
+                  }
+                  // Audit: 2FA OTP sent
+                  await logAuthEvent(ctx, {
+                    action: "AUTH_2FA_OTP_SENT",
+                    email: user.email,
+                    userId: user.id,
+                  });
+                },
+                expiresIn: Number(process.env.TWO_FACTOR_OTP_EXPIRY_SECONDS) || 300,
+              },
+            }),
+          ]
+        : []),
     ],
     databaseHooks: {
       user: {

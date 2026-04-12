@@ -96,15 +96,18 @@ export const seedAuthUsers = action({
 
     for (const user of ALL_USERS) {
       try {
-        const res = await fetch(`${siteUrl}/api/auth/sign-up/email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: user.email,
-            password: TEST_PASSWORD,
-            name: user.name,
-          }),
-        });
+         const res = await fetch(`${siteUrl}/api/auth/sign-up/email`, {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             "Origin": siteUrl,
+           },
+           body: JSON.stringify({
+             email: user.email,
+             password: TEST_PASSWORD,
+             name: user.name,
+           }),
+         });
         const data = await res.json() as any;
         const ok = !!(data.user?.id || data.token);
         created.push({

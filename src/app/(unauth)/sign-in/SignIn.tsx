@@ -170,14 +170,13 @@ export default function SignIn() {
               return;
             }
 
-            if (ctx.data.twoFactorRedirect) {
-              router.push("/verify-2fa");
-            } else {
-              // If callbackUrl is present, use it (e.g. /tenants when admin accessed it directly)
-              if (callbackUrl) {
-                router.push(callbackUrl);
-                return;
-              }
+            // If 2FA is disabled, ignore twoFactorRedirect and proceed to dashboard
+            // (user may have 2FA enabled on their account from before it was disabled)
+            // If callbackUrl is present, use it (e.g. /tenants when admin accessed it directly)
+            if (callbackUrl) {
+              router.push(callbackUrl);
+              return;
+            }
               // Determine user type to route to the correct dashboard
               const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || window.location.origin;
               const convex = new ConvexHttpClient(convexUrl);
@@ -202,7 +201,6 @@ export default function SignIn() {
                 console.error("Failed to determine user type:", e);
               }
               router.push("/dashboard");
-            }
           },
           onError: async (ctx) => {
             setLoading(false);
