@@ -1511,6 +1511,49 @@ export const seedAllTestData = internalMutation({
           });
           stats.auditLogsCreated++;
 
+          // Affiliate status change audit logs
+          if (affiliate.status === "active") {
+            await ctx.db.insert("auditLogs", {
+              tenantId,
+              action: "affiliate_approved",
+              entityType: "affiliate",
+              entityId: affiliateId,
+              actorId: ownerUserId,
+              actorType: "user",
+              previousValue: { status: "pending" },
+              newValue: { status: "active" },
+              metadata: { newStatus: "active", oldStatus: "pending" },
+            });
+            stats.auditLogsCreated++;
+          } else if (affiliate.status === "suspended") {
+            // Approved first, then later suspended
+            await ctx.db.insert("auditLogs", {
+              tenantId,
+              action: "affiliate_approved",
+              entityType: "affiliate",
+              entityId: affiliateId,
+              actorId: ownerUserId,
+              actorType: "user",
+              previousValue: { status: "pending" },
+              newValue: { status: "active" },
+              metadata: { newStatus: "active", oldStatus: "pending" },
+            });
+            stats.auditLogsCreated++;
+
+            await ctx.db.insert("auditLogs", {
+              tenantId,
+              action: "affiliate_suspended",
+              entityType: "affiliate",
+              entityId: affiliateId,
+              actorId: ownerUserId,
+              actorType: "user",
+              previousValue: { status: "active" },
+              newValue: { status: "suspended" },
+              metadata: { newStatus: "suspended", oldStatus: "active", reason: "Policy violation" },
+            });
+            stats.auditLogsCreated++;
+          }
+
           credentials.affiliates.push({
             tenantSlug: slug,
             email: affiliate.email,
@@ -1538,6 +1581,7 @@ export const seedAllTestData = internalMutation({
             // Generate 10-50 clicks per affiliate
             const clickCount = 10 + Math.floor(Math.random() * 40);
             const clickTimestamps: number[] = [];
+            const clickIds: Id<"clicks">[] = [];
             
             for (let i = 0; i < clickCount; i++) {
               const timestamp = randomDate(new Date(threeMonthsAgo), new Date(now));
@@ -1553,6 +1597,38 @@ export const seedAllTestData = internalMutation({
               });
               stats.clicksCreated++;
               clickTimestamps.push(timestamp);
+              clickIds.push(clickId);
+            }
+
+            // Audit logs for clicks — record ~60% as click_recorded, ~20% as click_deduplicated, skip rest
+            for (let i = 0; i < clickIds.length; i++) {
+              const roll = Math.random();
+              if (roll < 0.6) {
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "click_recorded",
+                  entityType: "click",
+                  entityId: clickIds[i],
+                  actorType: "system",
+                  affiliateId,
+                  metadata: {
+                    ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                    referrer: "https://google.com",
+                  },
+                });
+                stats.auditLogsCreated++;
+              } else if (roll < 0.8) {
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "click_deduplicated",
+                  entityType: "click",
+                  entityId: clickIds[i],
+                  actorType: "system",
+                  affiliateId,
+                  metadata: { reason: "Duplicate dedupe key within cookie window" },
+                });
+                stats.auditLogsCreated++;
+              }
             }
 
             // Generate 1-5 conversions per affiliate (conversion rate ~10%)
@@ -1584,6 +1660,38 @@ export const seedAllTestData = internalMutation({
               conversionIds.push(conversionId);
               stats.conversionsCreated++;
 
+              // Audit log for conversion recorded
+              await ctx.db.insert("auditLogs", {
+                tenantId,
+                action: "conversion_recorded",
+                entityType: "conversion",
+                entityId: conversionId,
+                actorType: "system",
+                affiliateId,
+                metadata: {
+                  customerEmail: `customer${i + 1}@example.com`,
+                  amount,
+                  attributionSource: "cookie",
+                },
+              });
+              stats.auditLogsCreated++;
+
+              // Attribution audit log — click matched
+              await ctx.db.insert("auditLogs", {
+                tenantId,
+                action: "attribution_click_matched",
+                entityType: "attribution",
+                entityId: conversionId,
+                actorType: "system",
+                affiliateId,
+                metadata: {
+                  clickTimestamp: timestamp - 1000,
+                  conversionTimestamp: timestamp,
+                  cookieDuration: "30d",
+                },
+              });
+              stats.auditLogsCreated++;
+
               // Calculate commission
               const commissionValue = campaignData?.commissionType === "percentage"
                 ? (amount * campaignData.commissionValue) / 100
@@ -1608,15 +1716,63 @@ export const seedAllTestData = internalMutation({
               });
               stats.commissionsCreated++;
 
+              // Audit log for commission created
               await ctx.db.insert("auditLogs", {
                 tenantId,
-                action: "commission_created",
+                action: "COMMISSION_CREATED",
                 entityType: "commission",
                 entityId: commissionId,
                 actorType: "system",
+                affiliateId,
                 newValue: { affiliateId, amount: commissionValue, status },
+                metadata: { amount: commissionValue, status },
               });
               stats.auditLogsCreated++;
+
+              // Additional status-change audit logs for non-pending commissions
+              if (status === "approved") {
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "COMMISSION_APPROVED",
+                  entityType: "commission",
+                  entityId: commissionId,
+                  actorId: ownerUserId,
+                  actorType: "user",
+                  affiliateId,
+                  previousValue: { status: "pending" },
+                  newValue: { status: "approved" },
+                  metadata: { amount: commissionValue, newStatus: "approved", oldStatus: "pending" },
+                });
+                stats.auditLogsCreated++;
+              } else if (status === "paid") {
+                // Approved first, then paid
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "COMMISSION_APPROVED",
+                  entityType: "commission",
+                  entityId: commissionId,
+                  actorId: ownerUserId,
+                  actorType: "user",
+                  affiliateId,
+                  previousValue: { status: "pending" },
+                  newValue: { status: "approved" },
+                  metadata: { amount: commissionValue, newStatus: "approved", oldStatus: "pending" },
+                });
+                stats.auditLogsCreated++;
+
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "COMMISSION_STATUS_CHANGE",
+                  entityType: "commission",
+                  entityId: commissionId,
+                  actorType: "system",
+                  affiliateId,
+                  previousValue: { status: "approved" },
+                  newValue: { status: "paid" },
+                  metadata: { amount: commissionValue, newStatus: "paid", oldStatus: "approved", reason: "payout_batch" },
+                });
+                stats.auditLogsCreated++;
+              }
             }
 
             // Generate payout batches and payouts for some affiliates
@@ -1639,6 +1795,18 @@ export const seedAllTestData = internalMutation({
                 });
                 stats.payoutBatchesCreated++;
 
+                // Audit log for payout batch generated
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "payout_batch_generated",
+                  entityType: "payoutBatches",
+                  entityId: batchId,
+                  actorId: ownerUserId,
+                  actorType: "user",
+                  metadata: { totalAmount: batchTotal, affiliateCount: 1 },
+                });
+                stats.auditLogsCreated++;
+
                 // Create one payout per affiliate (aggregating all their commissions)
                 await ctx.db.insert("payouts", {
                   tenantId,
@@ -1650,6 +1818,31 @@ export const seedAllTestData = internalMutation({
                   paidAt: now - 14 * 24 * 60 * 60 * 1000,
                 });
                 stats.payoutsCreated++;
+
+                // Audit log for batch marked paid
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "batch_marked_paid",
+                  entityType: "payoutBatches",
+                  entityId: batchId,
+                  actorId: ownerUserId,
+                  actorType: "user",
+                  metadata: { totalAmount: batchTotal, payoutsMarked: 1 },
+                });
+                stats.auditLogsCreated++;
+
+                // Audit log for payout marked paid
+                await ctx.db.insert("auditLogs", {
+                  tenantId,
+                  action: "payout_marked_paid",
+                  entityType: "payoutBatches",
+                  entityId: batchId,
+                  actorId: ownerUserId,
+                  actorType: "user",
+                  affiliateId,
+                  metadata: { amount: batchTotal, paymentStatus: "completed" },
+                });
+                stats.auditLogsCreated++;
 
                 // Link all commissions to this batch
                 for (const commission of paidCommissions) {
