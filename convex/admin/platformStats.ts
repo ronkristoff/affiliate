@@ -16,6 +16,7 @@ export const getAggregatePlatformKPIs = query({
   args: {},
   returns: v.object({
     _id: v.optional(v.id("platformStats")),
+    _creationTime: v.number(),
     key: v.string(),
     totalMRR: v.number(),
     totalActiveAffiliates: v.number(),
@@ -41,6 +42,7 @@ export const getAggregatePlatformKPIs = query({
       // Return zeros with epoch timestamp so staleness detection triggers
       return {
         _id: undefined,
+        _creationTime: 0,
         key: "platform",
         totalMRR: 0,
         totalActiveAffiliates: 0,

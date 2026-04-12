@@ -89,6 +89,7 @@ export const findLeadByEmail = internalQuery({
   returns: v.nullable(
     v.object({
       _id: v.id("referralLeads"),
+      _creationTime: v.number(),
       tenantId: v.id("tenants"),
       email: v.string(),
       uid: v.optional(v.string()),
@@ -138,6 +139,7 @@ export const findLeadByUid = internalQuery({
   returns: v.nullable(
     v.object({
       _id: v.id("referralLeads"),
+      _creationTime: v.number(),
       tenantId: v.id("tenants"),
       email: v.string(),
       uid: v.optional(v.string()),

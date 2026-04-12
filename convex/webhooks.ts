@@ -364,6 +364,7 @@ export const getWebhookPayload = query({
   },
   returns: v.object({
     _id: v.id("rawWebhooks"),
+    _creationTime: v.number(),
     source: v.string(),
     eventId: v.string(),
     eventType: v.string(),
@@ -388,6 +389,7 @@ export const getWebhookPayload = query({
     if (!user) {
       return {
         _id: args.webhookId,
+        _creationTime: 0,
         source: "unknown",
         eventId: "unknown",
         eventType: "unknown",

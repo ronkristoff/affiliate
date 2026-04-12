@@ -25,6 +25,7 @@ export const getServiceState = internalQuery({
   returns: v.union(
     v.object({
       _id: v.string(),
+      _creationTime: v.number(),
       serviceId: v.string(),
       state: v.union(
         v.literal("closed"),

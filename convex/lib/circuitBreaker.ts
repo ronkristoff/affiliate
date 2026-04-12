@@ -41,6 +41,7 @@ type CircuitBreakerState = "closed" | "open" | "half-open" | "probing";
 
 interface CircuitBreakerDoc {
   _id: string;
+  _creationTime: number;
   serviceId: string;
   state: CircuitBreakerState;
   failureCount: number;

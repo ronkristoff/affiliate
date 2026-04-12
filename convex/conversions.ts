@@ -685,6 +685,7 @@ export const findAffiliateByCode = query({
   returns: v.union(
     v.object({
       _id: v.id("affiliates"),
+      _creationTime: v.number(),
       email: v.string(),
       name: v.string(),
       uniqueCode: v.string(),
@@ -715,6 +716,7 @@ export const findAffiliateByCodeInternal = internalQuery({
   returns: v.union(
     v.object({
       _id: v.id("affiliates"),
+      _creationTime: v.number(),
       email: v.string(),
       name: v.string(),
       uniqueCode: v.string(),
