@@ -464,6 +464,7 @@ export default defineSchema({
     // Reference to affiliate for commission-related audits
     affiliateId: v.optional(v.id("affiliates")),
   }).index("by_tenant", ["tenantId"])
+    .index("by_tenant_entity", ["tenantId", "entityType"])
     .index("by_entity", ["entityType", "entityId"])
     .index("by_actor", ["actorId"])
     // Index for security events by action type

@@ -185,6 +185,25 @@ export const createCommissionFromConversionInternal = internalMutation({
     // Block commission creation if campaign cannot earn
     if (!campaignStatus.canEarn) {
       console.log(`Commission blocked: ${campaignStatus.reason}`);
+      // Audit: log commission creation skipped (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAuditEventInternal, {
+          tenantId: args.tenantId,
+          action: "commission_creation_skipped",
+          entityType: "commission",
+          entityId: args.conversionId,
+          actorType: "system",
+          metadata: {
+            reason: "campaign_cannot_earn",
+            campaignId: args.campaignId,
+            affiliateId: args.affiliateId,
+            conversionId: args.conversionId,
+            detail: campaignStatus.reason,
+          },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log commission_creation_skipped (non-fatal):", err);
+      }
       return null; // Return null to indicate commission was not created
     }
 
@@ -192,6 +211,23 @@ export const createCommissionFromConversionInternal = internalMutation({
     const campaign = await ctx.db.get(args.campaignId);
     if (!campaign) {
       console.log("Commission blocked: Campaign not found");
+      try {
+        await ctx.runMutation(internal.audit.logAuditEventInternal, {
+          tenantId: args.tenantId,
+          action: "commission_creation_skipped",
+          entityType: "commission",
+          entityId: args.conversionId,
+          actorType: "system",
+          metadata: {
+            reason: "campaign_not_found",
+            campaignId: args.campaignId,
+            affiliateId: args.affiliateId,
+            conversionId: args.conversionId,
+          },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log commission_creation_skipped (non-fatal):", err);
+      }
       return null;
     }
 
@@ -199,6 +235,23 @@ export const createCommissionFromConversionInternal = internalMutation({
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate) {
       console.log("Commission blocked: Affiliate not found");
+      try {
+        await ctx.runMutation(internal.audit.logAuditEventInternal, {
+          tenantId: args.tenantId,
+          action: "commission_creation_skipped",
+          entityType: "commission",
+          entityId: args.conversionId,
+          actorType: "system",
+          metadata: {
+            reason: "affiliate_not_found",
+            campaignId: args.campaignId,
+            affiliateId: args.affiliateId,
+            conversionId: args.conversionId,
+          },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log commission_creation_skipped (non-fatal):", err);
+      }
       return null;
     }
 
@@ -290,24 +343,28 @@ export const createCommissionFromConversionInternal = internalMutation({
     await onCommissionCreated(ctx, args.tenantId, commissionAmount, commissionStatus, matchedIndicators.length > 0, isSelfReferral);
 
     // Story 7.8: Log COMMISSION_CREATED audit event
-    await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
-      tenantId: args.tenantId,
-      action: "COMMISSION_CREATED",
-      commissionId: commissionId,
-      affiliateId: args.affiliateId,
-      actorId: undefined, // System-generated
-      actorType: "system",
-      newValue: {
-        status: commissionStatus,
-        amount: commissionAmount,
-      },
-      metadata: {
-        amount: commissionAmount,
-        campaignId: args.campaignId,
-        transactionId: args.eventMetadata?.transactionId,
-        source: args.eventMetadata?.source,
-      },
-    });
+    try {
+      await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
+        tenantId: args.tenantId,
+        action: "COMMISSION_CREATED",
+        commissionId: commissionId,
+        affiliateId: args.affiliateId,
+        actorId: undefined, // System-generated
+        actorType: "system",
+        newValue: {
+          status: commissionStatus,
+          amount: commissionAmount,
+        },
+        metadata: {
+          amount: commissionAmount,
+          campaignId: args.campaignId,
+          transactionId: args.eventMetadata?.transactionId,
+          source: args.eventMetadata?.source,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log COMMISSION_CREATED (non-fatal):", err);
+    }
 
     // If self-referral detected, add fraud signal and audit log AFTER commission creation
     if (isSelfReferral) {

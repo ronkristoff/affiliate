@@ -4,6 +4,7 @@ import {
   Clock, UserCheck, UserX, ShieldAlert, Mail, UserPlus,
   PlusCircle, CheckCircle, XCircle, RotateCcw, RefreshCw,
   AlertTriangle, TrendingUp, TrendingDown, HelpCircle,
+  MousePointer, Copy,
 } from "lucide-react";
 
 interface ActivityItem {
@@ -45,6 +46,29 @@ const actionIcons: Record<string, React.ReactNode> = {
   fraud_alert_email_failed: <Mail className="h-4 w-4 text-[var(--danger)]" />,
   commission_rejected_payment_pending: <Clock className="h-4 w-4 text-[var(--warning)]" />,
   commission_rejected_payment_unknown: <HelpCircle className="h-4 w-4 text-[var(--warning)]" />,
+  // Click actions
+  click_recorded: <MousePointer className="h-4 w-4 text-[var(--info)]" />,
+  click_deduplicated: <Copy className="h-4 w-4 text-[var(--warning)]" />,
+  // Conversion actions
+  conversion_recorded: <PlusCircle className="h-4 w-4 text-[var(--success)]" />,
+  conversion_recorded_self_referral: <ShieldAlert className="h-4 w-4 text-[var(--danger)]" />,
+  organic_conversion_recorded: <PlusCircle className="h-4 w-4 text-[var(--text-muted)]" />,
+  conversion_status_changed: <RefreshCw className="h-4 w-4 text-[var(--info)]" />,
+  conversion_subscription_status_changed: <RefreshCw className="h-4 w-4 text-[var(--info)]" />,
+  conversion_created_legacy: <PlusCircle className="h-4 w-4 text-[var(--text-muted)]" />,
+  // Attribution actions
+  attribution_no_data: <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />,
+  attribution_affiliate_invalid: <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />,
+  attribution_referral_link_not_found: <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />,
+  attribution_no_campaign: <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />,
+  attribution_click_matched: <CheckCircle className="h-4 w-4 text-[var(--success)]" />,
+  attribution_no_matching_click: <XCircle className="h-4 w-4 text-[var(--danger)]" />,
+  // Payout actions
+  payout_batch_generated: <PlusCircle className="h-4 w-4 text-[var(--info)]" />,
+  payout_marked_paid: <CheckCircle className="h-4 w-4 text-[var(--success)]" />,
+  batch_marked_paid: <CheckCircle className="h-4 w-4 text-[var(--success)]" />,
+  // General engine actions
+  commission_creation_skipped: <XCircle className="h-4 w-4 text-[var(--danger)]" />,
 };
 
 const actionLabels: Record<string, string> = {
@@ -70,7 +94,36 @@ const actionLabels: Record<string, string> = {
   self_referral_detected: "Self-Referral Detected",
   fraud_alert_email_failed: "Fraud Alert Email Failed",
   commission_rejected_payment_pending: "Payment Pending",
-  commission_rejected_payment_unknown: "Payment Unknown",
+  commission_rejected_payment_unknown: "Payment Status Unknown",
+  // Click actions
+  click_recorded: "Click Recorded",
+  click_deduplicated: "Click Deduplicated",
+  // Conversion actions
+  conversion_recorded: "Conversion Recorded",
+  conversion_recorded_self_referral: "Conversion (Self-Referral)",
+  organic_conversion_recorded: "Organic Conversion",
+  conversion_status_changed: "Conversion Status Changed",
+  conversion_subscription_status_changed: "Subscription Status Changed",
+  conversion_created_legacy: "Conversion Created (Legacy)",
+  // Attribution actions
+  attribution_no_data: "No Attribution Data",
+  attribution_affiliate_invalid: "Affiliate Invalid/Inactive",
+  attribution_referral_link_not_found: "Referral Link Not Found",
+  attribution_no_campaign: "No Campaign Linked",
+  attribution_click_matched: "Click Matched",
+  attribution_no_matching_click: "No Matching Click",
+  // Payout actions
+  payout_batch_generated: "Payout Batch Generated",
+  payout_marked_paid: "Payout Marked Paid",
+  batch_marked_paid: "Batch Marked Paid",
+  // General engine actions
+  commission_creation_skipped: "Commission Skipped",
+  // Email / security
+  email_scheduling_failed: "Email Scheduling Failed",
+  security_unauthorized_access_attempt: "Unauthorized Access Attempt",
+  security_cross_tenant_query: "Cross-Tenant Query Blocked",
+  security_cross_tenant_mutation: "Cross-Tenant Mutation Blocked",
+  security_authentication_failure: "Authentication Failure",
 };
 
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {

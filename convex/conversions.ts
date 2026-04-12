@@ -325,24 +325,28 @@ export const createConversionWithAttribution = internalMutation({
       console.warn("[Auto-Capture] Attributed conversion missing customerEmail. Lead not captured. Email is required for future cross-device attribution.");
     }
 
-    // Log to audit trail
-    await ctx.db.insert("auditLogs", {
-      tenantId: args.tenantId,
-      action: isSelfReferral ? "conversion_recorded_self_referral" : "conversion_recorded",
-      entityType: "conversion",
-      entityId: conversionId,
-      actorType: "system",
-      newValue: {
-        affiliateId: args.affiliateId,
-        amount: args.amount,
-        attributionSource: args.attributionSource,
-        isSelfReferral,
-        reasons: isSelfReferral ? ["self_referral_detected"] : [],
-      },
-      metadata: {
-        ipAddress: args.ipAddress,
-      },
-    });
+    // Log to audit trail (non-fatal — conversion must succeed regardless)
+    try {
+      await ctx.db.insert("auditLogs", {
+        tenantId: args.tenantId,
+        action: isSelfReferral ? "conversion_recorded_self_referral" : "conversion_recorded",
+        entityType: "conversion",
+        entityId: conversionId,
+        actorType: "system",
+        newValue: {
+          affiliateId: args.affiliateId,
+          amount: args.amount,
+          attributionSource: args.attributionSource,
+          isSelfReferral,
+          reasons: isSelfReferral ? ["self_referral_detected"] : [],
+        },
+        metadata: {
+          ipAddress: args.ipAddress,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log conversion_recorded (non-fatal):", err);
+    }
 
     // Send new referral alert email to SaaS Owner (if not self-referral)
     if (!isSelfReferral) {
@@ -451,21 +455,25 @@ export const createOrganicConversion = internalMutation({
     // Increment organic + total conversion counters
     await onOrganicConversionCreated(ctx, args.tenantId);
 
-    // Log to audit trail
-    await ctx.db.insert("auditLogs", {
-      tenantId: args.tenantId,
-      action: "organic_conversion_recorded",
-      entityType: "conversion",
-      entityId: conversionId,
-      actorType: "system",
-      newValue: {
-        amount: args.amount,
-        attributionSource: "organic",
-      },
-      metadata: {
-        ipAddress: args.ipAddress,
-      },
-    });
+    // Log to audit trail (non-fatal — organic conversion must succeed regardless)
+    try {
+      await ctx.db.insert("auditLogs", {
+        tenantId: args.tenantId,
+        action: "organic_conversion_recorded",
+        entityType: "conversion",
+        entityId: conversionId,
+        actorType: "system",
+        newValue: {
+          amount: args.amount,
+          attributionSource: "organic",
+        },
+        metadata: {
+          ipAddress: args.ipAddress,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log organic_conversion_recorded (non-fatal):", err);
+    }
 
     return conversionId;
   },
@@ -669,6 +677,24 @@ export const createConversion = internalMutation({
     // Increment total conversion counter (fixes pre-existing bug)
     await incrementTotalConversions(ctx, args.tenantId);
 
+    // Log legacy conversion creation to audit trail (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: args.tenantId,
+        action: "conversion_created_legacy",
+        entityType: "conversion",
+        entityId: conversionId,
+        actorType: "system",
+        metadata: {
+          affiliateId: args.affiliateId,
+          amount: args.amount,
+          campaignId: args.campaignId,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log legacy conversion creation (non-fatal):", err);
+    }
+
     return conversionId;
   },
 });
@@ -764,6 +790,22 @@ export const updateConversionStatus = mutation({
 
     if (!user || user.tenantId !== conversion.tenantId) {
       throw new Error("Unauthorized");
+    }
+
+    // Log conversion status change to audit trail (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: conversion.tenantId,
+        action: "conversion_status_changed",
+        entityType: "conversion",
+        entityId: args.conversionId,
+        actorId: user._id,
+        actorType: "user",
+        previousValue: { status: conversion.status },
+        newValue: { status: args.status },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log conversion status change (non-fatal):", err);
     }
 
     await ctx.db.patch(args.conversionId, { status: args.status });
@@ -1223,6 +1265,8 @@ export const updateConversionSubscriptionStatusInternal = internalMutation({
   args: {
     conversionId: v.id("conversions"),
     subscriptionStatus: v.string(),
+    trigger: v.optional(v.string()),
+    planId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -1231,7 +1275,9 @@ export const updateConversionSubscriptionStatusInternal = internalMutation({
     if (!conversion) {
       return null;
     }
-    
+
+    const oldSubscriptionStatus = conversion.metadata?.subscriptionStatus ?? null;
+
     // Update the subscription status in metadata
     await ctx.db.patch(args.conversionId, {
       metadata: {
@@ -1239,6 +1285,26 @@ export const updateConversionSubscriptionStatusInternal = internalMutation({
         subscriptionStatus: args.subscriptionStatus,
       },
     });
+
+    // Log subscription status change to audit trail (non-fatal)
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: conversion.tenantId,
+        action: "conversion_subscription_status_changed",
+        entityType: "conversion",
+        entityId: args.conversionId,
+        actorType: "system",
+        previousValue: { subscriptionStatus: oldSubscriptionStatus },
+        newValue: { subscriptionStatus: args.subscriptionStatus },
+        metadata: {
+          conversionId: args.conversionId,
+          trigger: args.trigger ?? "unknown",
+          planId: args.planId ?? null,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log subscription status change (non-fatal):", err);
+    }
     
     return null;
   },

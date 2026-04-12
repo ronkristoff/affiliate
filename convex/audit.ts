@@ -29,6 +29,88 @@ import { paginationOptsValidator } from "convex/server";
 import { getAuthenticatedUser } from "./tenantContext";
 
 // =============================================================================
+// CLICK AUDIT ACTION TYPES
+// =============================================================================
+
+export const CLICK_AUDIT_ACTIONS = {
+  RECORDED: "click_recorded",
+  DEDUPLICATED: "click_deduplicated",
+} as const;
+
+// =============================================================================
+// CONVERSION AUDIT ACTION TYPES
+// =============================================================================
+
+export const CONVERSION_AUDIT_ACTIONS = {
+  RECORDED: "conversion_recorded",
+  RECORDED_SELF_REFERRAL: "conversion_recorded_self_referral",
+  ORGANIC: "organic_conversion_recorded",
+  STATUS_CHANGED: "conversion_status_changed",
+  SUBSCRIPTION_STATUS_CHANGED: "conversion_subscription_status_changed",
+  CREATED_LEGACY: "conversion_created_legacy",
+} as const;
+
+// =============================================================================
+// ATTRIBUTION AUDIT ACTION TYPES
+// =============================================================================
+
+export const ATTRIBUTION_AUDIT_ACTIONS = {
+  NO_DATA: "attribution_no_data",
+  AFFILIATE_INVALID: "attribution_affiliate_invalid",
+  REFERRAL_LINK_NOT_FOUND: "attribution_referral_link_not_found",
+  NO_CAMPAIGN: "attribution_no_campaign",
+  CLICK_MATCHED: "attribution_click_matched",
+  NO_MATCHING_CLICK: "attribution_no_matching_click",
+} as const;
+
+// =============================================================================
+// COMMISSION ENGINE ACTION TYPES
+// =============================================================================
+
+export const COMMISSION_ENGINE_ACTIONS = {
+  CREATION_SKIPPED: "commission_creation_skipped",
+} as const;
+
+// =============================================================================
+// KNOWN AUDIT ACTIONS — Hardcoded list for frontend filter dropdown
+// No runtime DB scan. O(1), deterministic, always complete.
+// =============================================================================
+
+export const KNOWN_AUDIT_ACTIONS: string[] = [
+  // Commission
+  "COMMISSION_CREATED", "COMMISSION_APPROVED", "COMMISSION_DECLINED",
+  "COMMISSION_REVERSED", "COMMISSION_STATUS_CHANGE",
+  "commission_creation_skipped", "commission_adjusted",
+  "commission_adjusted_upgrade", "commission_adjusted_downgrade",
+  // Payout
+  "payout_batch_generated", "payout_marked_paid", "batch_marked_paid",
+  // Affiliate
+  "affiliate_approved", "affiliate_rejected", "affiliate_suspended",
+  "affiliate_reactivated", "affiliate_registered", "affiliate_bulk_approved",
+  "affiliate_bulk_rejected",
+  // Click
+  "click_recorded", "click_deduplicated",
+  // Conversion
+  "conversion_recorded", "conversion_recorded_self_referral",
+  "organic_conversion_recorded", "conversion_status_changed",
+  "conversion_subscription_status_changed", "conversion_created_legacy",
+  // Attribution
+  "attribution_no_data", "attribution_affiliate_invalid",
+  "attribution_referral_link_not_found", "attribution_no_campaign",
+  "attribution_click_matched", "attribution_no_matching_click",
+  // Security
+  "security_unauthorized_access_attempt", "security_cross_tenant_query",
+  "security_cross_tenant_mutation", "security_authentication_failure",
+  // Email
+  "email_scheduling_failed", "fraud_alert_email_failed",
+  // Fraud
+  "self_referral_detected", "fraud_signal_dismissed",
+  // Payment rejection
+  "commission_rejected_payment_failed", "commission_rejected_payment_pending",
+  "commission_rejected_payment_unknown",
+];
+
+// =============================================================================
 // SECURITY EVENT TYPES
 // =============================================================================
 
@@ -579,5 +661,479 @@ export const _createAdminExportRecord = internalMutation({
       createdAt: args.createdAt,
       expiresAt: args.expiresAt,
     });
+  },
+});
+
+// =============================================================================
+// ATTRIBUTION AUDIT HELPER (Activity Log Feature)
+// =============================================================================
+
+/**
+ * Shared helper for logging attribution decisions from the commission engine.
+ * Called by all 3 copies of the attribution waterfall (payment.updated,
+ * subscription.created, subscription.updated) to ensure consistency.
+ *
+ * Wrapped in try/catch at call sites — audit failures must not break webhook processing.
+ */
+export const logAttributionDecision = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    action: v.string(),
+    eventId: v.string(),
+    metadata: v.optional(v.object({
+      eventType: v.optional(v.string()),
+      reason: v.optional(v.string()),
+      affiliateCode: v.optional(v.string()),
+      referralCode: v.optional(v.string()),
+      conversionId: v.optional(v.string()),
+      referralLinkId: v.optional(v.string()),
+      matchedClickId: v.optional(v.string()),
+      matchedClickAge: v.optional(v.number()),
+      attributionWindowDays: v.optional(v.number()),
+    })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: args.action,
+      entityType: "attribution",
+      entityId: args.eventId,
+      actorType: "system",
+      metadata: args.metadata,
+    });
+    return null;
+  },
+});
+
+// =============================================================================
+// ACTIVITY LOG QUERIES (Activity Log Feature)
+// =============================================================================
+
+/**
+ * Unified query for the Activity Log page.
+ * Returns paginated, filtered audit logs for the authenticated user's tenant.
+ * Uses compound indexes for efficient filtering.
+ * Enriches results with actor names (handles deleted actors).
+ */
+export const listTenantAuditLogs = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    entityType: v.optional(v.string()),
+    action: v.optional(v.string()),
+    affiliateId: v.optional(v.id("affiliates")),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    entityId: v.optional(v.string()),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("auditLogs"),
+      _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
+      action: v.string(),
+      entityType: v.string(),
+      entityId: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorType: v.string(),
+      targetId: v.optional(v.string()),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
+      metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+        pageStatus: null,
+        splitCursor: null,
+      };
+    }
+
+    const hasPostFilters = !!(args.action || args.affiliateId || args.entityId || args.startDate || args.endDate);
+    const pageSize = args.paginationOpts.numItems ?? 20;
+    const overscan = hasPostFilters ? 3 : 1;
+
+    let allLogs;
+
+    if (args.entityType) {
+      let queryBuilder = ctx.db
+        .query("auditLogs")
+        .withIndex("by_tenant_entity", (q) =>
+          q.eq("tenantId", user.tenantId).eq("entityType", args.entityType!)
+        );
+
+      if (args.startDate !== undefined) {
+        queryBuilder = queryBuilder.filter((q) => q.gte(q.field("_creationTime"), args.startDate!));
+      }
+      if (args.endDate !== undefined) {
+        queryBuilder = queryBuilder.filter((q) => q.lte(q.field("_creationTime"), args.endDate!));
+      }
+      if (args.action) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("action"), args.action));
+      }
+      if (args.affiliateId) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("affiliateId"), args.affiliateId));
+      }
+      if (args.entityId) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("entityId"), args.entityId));
+      }
+
+      allLogs = await queryBuilder.order("desc").take(pageSize * overscan);
+    } else {
+      let queryBuilder = ctx.db
+        .query("auditLogs")
+        .withIndex("by_tenant", (q) =>
+          q.eq("tenantId", user.tenantId)
+        );
+
+      if (args.startDate !== undefined) {
+        queryBuilder = queryBuilder.filter((q) => q.gte(q.field("_creationTime"), args.startDate!));
+      }
+      if (args.endDate !== undefined) {
+        queryBuilder = queryBuilder.filter((q) => q.lte(q.field("_creationTime"), args.endDate!));
+      }
+      if (args.action) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("action"), args.action));
+      }
+      if (args.affiliateId) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("affiliateId"), args.affiliateId));
+      }
+      if (args.entityId) {
+        queryBuilder = queryBuilder.filter((q) => q.eq(q.field("entityId"), args.entityId));
+      }
+
+      allLogs = await queryBuilder.order("desc").take(pageSize * overscan);
+    }
+
+    const page = allLogs.slice(0, pageSize);
+    const isDone = allLogs.length <= pageSize;
+
+    // Batch actor enrichment (F9)
+    const actorIds = [...new Set(
+      page.map(l => l.actorId).filter((id): id is string => !!id && id.startsWith("users_"))
+    )];
+    const actorDocs = await Promise.all(
+      actorIds.map(id => ctx.db.get(id as Id<"users">))
+    );
+    const actorMap = new Map<string, { name?: string }>();
+    for (const doc of actorDocs) {
+      if (doc) actorMap.set(doc._id, { name: doc.name });
+    }
+
+    const enrichedPage = page.map((log) => {
+      let actorName: string | undefined;
+
+      if (log.actorId && log.actorId.startsWith("users_")) {
+        const actor = actorMap.get(log.actorId);
+        actorName = actor?.name ?? "Deleted User";
+      } else {
+        if (log.actorType === "system") actorName = "System";
+        else if (log.actorType === "webhook") actorName = "Webhook";
+        else if (log.actorType === "unauthenticated") actorName = "Unknown";
+      }
+
+      return {
+        _id: log._id,
+        _creationTime: log._creationTime,
+        tenantId: log.tenantId,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        actorId: log.actorId,
+        actorName,
+        actorType: log.actorType,
+        targetId: log.targetId,
+        previousValue: log.previousValue,
+        newValue: log.newValue,
+        metadata: log.metadata,
+        affiliateId: log.affiliateId,
+      };
+    });
+
+    return {
+      page: enrichedPage,
+      isDone,
+      continueCursor: isDone ? null : (page[page.length - 1]?._id ?? null),
+      pageStatus: undefined,
+      splitCursor: undefined,
+    };
+  },
+});
+
+/**
+ * Entity Story query — resolves the full audit trail chain for any entity.
+ * Supports forward (click → conversion → commission) and reverse resolution.
+ * Handles edge cases: manual commissions, organic conversions, chain breaks.
+ */
+export const getEntityStory = query({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+  },
+  returns: v.object({
+    entries: v.array(v.object({
+      _id: v.id("auditLogs"),
+      _creationTime: v.number(),
+      action: v.string(),
+      entityType: v.string(),
+      entityId: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorType: v.string(),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
+      metadata: v.optional(v.any()),
+    })),
+    chain: v.optional(v.array(v.object({
+      entityType: v.string(),
+      entityId: v.string(),
+    }))),
+    notes: v.array(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return { entries: [], chain: undefined, notes: [] };
+    }
+
+    const notes: string[] = [];
+    const entityIds = new Map<string, { entityType: string; entityId: string }>();
+    entityIds.set(`${args.entityType}:${args.entityId}`, { entityType: args.entityType, entityId: args.entityId });
+
+    // Chain resolution based on entity type
+    if (args.entityType === "click") {
+      const click = await ctx.db.get(args.entityId as Id<"clicks">);
+      if (!click || click.tenantId !== user.tenantId) {
+        return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+      }
+
+      // Find conversion linked to this click via dedicated by_click index
+      const conversion = await ctx.db
+        .query("conversions")
+        .withIndex("by_click", (q) => q.eq("clickId", args.entityId as Id<"clicks">))
+        .first();
+
+      if (conversion) {
+        if (conversion.tenantId !== user.tenantId) {
+          return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+        }
+        entityIds.set(`conversion:${conversion._id}`, { entityType: "conversion", entityId: conversion._id });
+
+        // Find commission linked to this conversion via dedicated by_conversion index
+        const commission = await ctx.db
+          .query("commissions")
+          .withIndex("by_conversion", (q) => q.eq("conversionId", conversion._id))
+          .first();
+
+        if (commission) {
+          if (commission.tenantId !== user.tenantId) {
+            return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+          }
+          entityIds.set(`commission:${commission._id}`, { entityType: "commission", entityId: commission._id });
+        } else {
+          notes.push("No commission found for this conversion.");
+        }
+      } else {
+        notes.push("No conversion found for this click.");
+      }
+    } else if (args.entityType === "conversion") {
+      const conversion = await ctx.db.get(args.entityId as Id<"conversions">);
+      if (!conversion || conversion.tenantId !== user.tenantId) {
+        return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+      }
+
+      // Get click if present
+      if (conversion.clickId) {
+        entityIds.set(`click:${conversion.clickId}`, { entityType: "click", entityId: conversion.clickId });
+      } else {
+        notes.push("No click data — organic attribution.");
+      }
+
+      // Find commission linked to this conversion via dedicated by_conversion index
+      const commission = await ctx.db
+        .query("commissions")
+        .withIndex("by_conversion", (q) => q.eq("conversionId", conversion._id))
+        .first();
+
+      if (commission) {
+        if (commission.tenantId !== user.tenantId) {
+          return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+        }
+        entityIds.set(`commission:${commission._id}`, { entityType: "commission", entityId: commission._id });
+      } else {
+        notes.push("No commission found for this conversion.");
+      }
+    } else if (args.entityType === "commission") {
+      const commission = await ctx.db.get(args.entityId as Id<"commissions">);
+      if (!commission || commission.tenantId !== user.tenantId) {
+        return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+      }
+
+      notes.push("Payouts are tracked per affiliate, not per commission — visit the Payouts page to view payout history.");
+
+      if (commission.conversionId) {
+        const conversion = await ctx.db.get(commission.conversionId);
+        if (conversion) {
+          if (conversion.tenantId !== user.tenantId) {
+            return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+          }
+          entityIds.set(`conversion:${conversion._id}`, { entityType: "conversion", entityId: conversion._id });
+
+          if (conversion.clickId) {
+            entityIds.set(`click:${conversion.clickId}`, { entityType: "click", entityId: conversion.clickId });
+          } else {
+            notes.push("No click data — organic attribution.");
+          }
+        }
+      } else {
+        notes.push("No attribution chain — manual commission.");
+      }
+    } else if (args.entityType === "affiliate") {
+      // Verify tenant access BEFORE querying logs
+      const affiliate = await ctx.db.get(args.entityId as Id<"affiliates">);
+      if (!affiliate || affiliate.tenantId !== user.tenantId) {
+        return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+      }
+
+      // For affiliates, use by_affiliate index
+      const affiliateLogs = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.entityId as Id<"affiliates">))
+        .order("desc")
+        .take(50);
+
+      // Enrich and return
+      const enriched = await Promise.all(
+        affiliateLogs.filter(log => log.tenantId === user.tenantId).map(async (log) => {
+          let actorName: string | undefined;
+          if (log.actorId && log.actorId.startsWith("users_")) {
+            try {
+              const actorUser = await ctx.db.get(log.actorId as Id<"users">);
+              actorName = actorUser?.name ?? "Deleted User";
+            } catch {
+              actorName = "Deleted User";
+            }
+          } else {
+            if (log.actorType === "system") actorName = "System";
+            else if (log.actorType === "webhook") actorName = "Webhook";
+          }
+          return {
+            _id: log._id,
+            _creationTime: log._creationTime,
+            action: log.action,
+            entityType: log.entityType,
+            entityId: log.entityId,
+            actorId: log.actorId,
+            actorName,
+            actorType: log.actorType,
+            previousValue: log.previousValue,
+            newValue: log.newValue,
+            metadata: log.metadata,
+          };
+        })
+      );
+
+      return { entries: enriched, chain: undefined, notes };
+    } else if (args.entityType === "payouts" || args.entityType === "payoutBatches") {
+      // Verify tenant ownership
+      const entity = await ctx.db.get(args.entityId as any) as any;
+      if (!entity || entity.tenantId !== user.tenantId) {
+        return { entries: [], chain: undefined, notes: ["Entity not found or access denied."] };
+      }
+    }
+
+    // Collect all audit log entries for resolved entities
+    const allEntries: Array<{
+      _id: Id<"auditLogs">;
+      _creationTime: number;
+      action: string;
+      entityType: string;
+      entityId: string;
+      actorId?: string;
+      actorName?: string;
+      actorType: string;
+      previousValue?: any;
+      newValue?: any;
+      metadata?: any;
+    }> = [];
+
+    const seenIds = new Set<string>();
+
+    for (const [, entity] of entityIds) {
+      const logs = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_entity", (q) =>
+          q.eq("entityType", entity.entityType).eq("entityId", entity.entityId)
+        )
+        .order("desc")
+        .take(50);
+
+      for (const log of logs) {
+        if (seenIds.has(log._id)) continue;
+        if (log.tenantId !== user.tenantId) continue;
+        seenIds.add(log._id);
+
+        let actorName: string | undefined;
+        if (log.actorId && log.actorId.startsWith("users_")) {
+          try {
+            const actorUser = await ctx.db.get(log.actorId as Id<"users">);
+            actorName = actorUser?.name ?? "Deleted User";
+          } catch {
+            actorName = "Deleted User";
+          }
+        } else {
+          if (log.actorType === "system") actorName = "System";
+          else if (log.actorType === "webhook") actorName = "Webhook";
+        }
+
+        allEntries.push({
+          _id: log._id,
+          _creationTime: log._creationTime,
+          action: log.action,
+          entityType: log.entityType,
+          entityId: log.entityId,
+          actorId: log.actorId,
+          actorName,
+          actorType: log.actorType,
+          previousValue: log.previousValue,
+          newValue: log.newValue,
+          metadata: log.metadata,
+        });
+      }
+    }
+
+    // Sort chronologically ascending (oldest first)
+    allEntries.sort((a, b) => a._creationTime - b._creationTime);
+
+    // Build chain array for UI navigation
+    const chainArray = args.entityType === "affiliate" || args.entityType === "payouts" || args.entityType === "payoutBatches"
+      ? undefined
+      : Array.from(entityIds.values());
+
+    return { entries: allEntries, chain: chainArray, notes };
+  },
+});
+
+/**
+ * Returns the hardcoded list of known audit action types.
+ * O(1), deterministic, no database scan.
+ * Must be updated when new action types are added to the codebase.
+ */
+export const getActivityLogActionTypes = query({
+  args: {},
+  returns: v.array(v.string()),
+  handler: async () => {
+    return KNOWN_AUDIT_ACTIONS;
   },
 });

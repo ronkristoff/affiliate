@@ -41,6 +41,23 @@ export const trackClickInternal = internalMutation({
 
     if (existingClick) {
       // AC2: If duplicate found, return existing click ID without creating new record
+      // Log dedup event to audit trail (non-fatal — dedup result returned regardless)
+      try {
+        await ctx.db.insert("auditLogs", {
+          tenantId: args.tenantId,
+          action: "click_deduplicated",
+          entityType: "click",
+          entityId: existingClick._id,
+          actorType: "system",
+          metadata: {
+            dedupeKey: args.dedupeKey,
+            ipAddress: args.ipAddress,
+            existingClickId: existingClick._id,
+          },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log click dedup (non-fatal):", err);
+      }
       return { clickId: existingClick._id, isNew: false };
     }
 
@@ -56,25 +73,29 @@ export const trackClickInternal = internalMutation({
       dedupeKey: args.dedupeKey,
     });
 
-    // Log audit trail for click creation
-    await ctx.db.insert("auditLogs", {
-      tenantId: args.tenantId,
-      action: "click_recorded",
-      entityType: "click",
-      entityId: clickId,
-      actorType: "system",
-      newValue: {
-        affiliateId: args.affiliateId,
-        referralLinkId: args.referralLinkId,
-        campaignId: args.campaignId,
-        ipAddress: args.ipAddress,
-        dedupeKey: args.dedupeKey,
-      },
-      metadata: {
-        ipAddress: args.ipAddress,
-        userAgent: args.userAgent,
-      },
-    });
+    // Log audit trail for click creation (non-fatal — click must succeed regardless)
+    try {
+      await ctx.db.insert("auditLogs", {
+        tenantId: args.tenantId,
+        action: "click_recorded",
+        entityType: "click",
+        entityId: clickId,
+        actorType: "system",
+        newValue: {
+          affiliateId: args.affiliateId,
+          referralLinkId: args.referralLinkId,
+          campaignId: args.campaignId,
+          ipAddress: args.ipAddress,
+          dedupeKey: args.dedupeKey,
+        },
+        metadata: {
+          ipAddress: args.ipAddress,
+          userAgent: args.userAgent,
+        },
+      });
+    } catch (err) {
+      console.error("[Audit] Failed to log click_recorded (non-fatal):", err);
+    }
 
     return { clickId, isNew: true };
   },

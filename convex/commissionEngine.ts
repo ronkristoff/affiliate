@@ -205,6 +205,18 @@ export const processPaymentUpdatedToCommission = internalAction({
       if (!event.attribution?.affiliateCode) {
         console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
+        // Audit: log attribution decision (non-fatal)
+        try {
+          await ctx.runMutation(internal.audit.logAttributionDecision, {
+            tenantId: event.tenantId as Id<"tenants">,
+            action: "attribution_no_data",
+            eventId: event.eventId,
+            metadata: { eventType: "payment.updated", reason: "No attribution data in webhook payload" },
+          });
+        } catch (err) {
+          console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+        }
+
         // Create organic conversion
         const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
           tenantId: event.tenantId as Id<"tenants">,
@@ -254,8 +266,20 @@ export const processPaymentUpdatedToCommission = internalAction({
 
     // AC #5: If affiliate is invalid or inactive, create organic conversion
     if (!affiliate || affiliate.status !== "active") {
-      const invalidReason = !affiliate ? "Invalid affiliate code" : `Affiliate status is ${affiliate.status}`;
+      const invalidReason = !affiliate ? "affiliate not found" : "affiliate not active";
       console.log(`Webhook ${event.eventId}: ${invalidReason}, creating organic conversion`);
+
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_affiliate_invalid",
+          eventId: event.eventId,
+          metadata: { eventType: "payment.updated", affiliateCode: event.attribution?.affiliateCode, reason: invalidReason },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
 
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
@@ -375,6 +399,18 @@ export const processPaymentUpdatedToCommission = internalAction({
     if (!referralLink) {
       console.log(`Webhook ${event.eventId}: Referral link not found, creating organic conversion`);
 
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_referral_link_not_found",
+          eventId: event.eventId,
+          metadata: { eventType: "payment.updated", referralCode: event.attribution.affiliateCode },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
         customerEmail: event.payment.customerEmail,
@@ -446,6 +482,42 @@ export const processPaymentUpdatedToCommission = internalAction({
           timestamp: event.timestamp,
         },
       });
+    } else if (conversionId && !referralLink.campaignId) {
+      // Audit: no campaign → commission skipped (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_no_campaign",
+          eventId: event.eventId,
+          metadata: { eventType: "payment.updated", conversionId, referralLinkId: referralLink._id },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+    }
+
+    // Audit: log click matching result (non-fatal)
+    try {
+      if (recentClick) {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_click_matched",
+          eventId: event.eventId,
+          metadata: {
+            eventType: "payment.updated",
+            matchedClickId: recentClick._id,
+          },
+        });
+      } else {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_no_matching_click",
+          eventId: event.eventId,
+          metadata: { eventType: "payment.updated" },
+        });
+      }
+    } catch (err) {
+      console.error("[Audit] Failed to log click matching result (non-fatal):", err);
     }
 
     // Update webhook status to processed
@@ -550,6 +622,18 @@ export const processSubscriptionCreatedEvent = internalAction({
       if (!event.attribution?.affiliateCode) {
         console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
+        // Audit: log attribution decision (non-fatal)
+        try {
+          await ctx.runMutation(internal.audit.logAttributionDecision, {
+            tenantId: event.tenantId as Id<"tenants">,
+            action: "attribution_no_data",
+            eventId: event.eventId,
+            metadata: { eventType: "subscription.created", reason: "No attribution data in webhook payload" },
+          });
+        } catch (err) {
+          console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+        }
+
         // Create organic conversion
         const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
           tenantId: event.tenantId as Id<"tenants">,
@@ -586,6 +670,18 @@ export const processSubscriptionCreatedEvent = internalAction({
 
     if (!affiliate || affiliate.status !== "active") {
       const invalidReason = !affiliate ? "Invalid affiliate code" : `Affiliate status is ${affiliate.status}`;
+
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_affiliate_invalid",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.created", affiliateCode: event.attribution?.affiliateCode, reason: !affiliate ? "affiliate not found" : "affiliate not active" },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
       
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
@@ -647,6 +743,18 @@ export const processSubscriptionCreatedEvent = internalAction({
     });
 
     if (!referralLink) {
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_referral_link_not_found",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.created", referralCode: event.attribution?.affiliateCode },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
         customerEmail: event.payment.customerEmail,
@@ -718,6 +826,42 @@ export const processSubscriptionCreatedEvent = internalAction({
           subscriptionId: event.subscription?.id,
         },
       });
+    } else if (conversionId && !referralLink.campaignId) {
+      // Audit: no campaign → commission skipped (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_no_campaign",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.created", conversionId, referralLinkId: referralLink._id },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+    }
+
+    // Audit: log click matching result (non-fatal)
+    try {
+      if (recentClick) {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_click_matched",
+          eventId: event.eventId,
+          metadata: {
+            eventType: "subscription.created",
+            matchedClickId: recentClick._id,
+          },
+        });
+      } else {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_no_matching_click",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.created" },
+        });
+      }
+    } catch (err) {
+      console.error("[Audit] Failed to log click matching result (non-fatal):", err);
     }
 
     await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
@@ -923,6 +1067,18 @@ export const processSubscriptionUpdatedEvent = internalAction({
       if (!event.attribution?.affiliateCode) {
         console.log(`Webhook ${event.eventId}: No attribution data, logging as organic`);
 
+        // Audit: log attribution decision (non-fatal)
+        try {
+          await ctx.runMutation(internal.audit.logAttributionDecision, {
+            tenantId: event.tenantId as Id<"tenants">,
+            action: "attribution_no_data",
+            eventId: event.eventId,
+            metadata: { eventType: "subscription.updated", reason: "No attribution data in webhook payload" },
+          });
+        } catch (err) {
+          console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+        }
+
         const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
           tenantId: event.tenantId as Id<"tenants">,
           customerEmail: event.payment.customerEmail,
@@ -959,8 +1115,20 @@ export const processSubscriptionUpdatedEvent = internalAction({
     });
 
     if (!affiliate || affiliate.status !== "active") {
-      const invalidReason = !affiliate ? "Invalid affiliate code" : `Affiliate status is ${affiliate.status}`;
-      
+      const invalidReason = !affiliate ? "affiliate not found" : "affiliate not active";
+
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_affiliate_invalid",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.updated", affiliateCode: event.attribution?.affiliateCode, reason: invalidReason },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
         customerEmail: event.payment.customerEmail,
@@ -996,11 +1164,23 @@ export const processSubscriptionUpdatedEvent = internalAction({
     });
 
     if (!referralLink) {
+      // Audit: log attribution decision (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_referral_link_not_found",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.updated", referralCode: event.attribution.affiliateCode },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
+
       const conversionId: Id<"conversions"> = await ctx.runMutation(internal.conversions.createOrganicConversion, {
         tenantId: event.tenantId as Id<"tenants">,
         customerEmail: event.payment.customerEmail,
         amount: event.payment.amount / 100,
-        status: CONFIRMED_PAYMENT_STATUSES.includes(event.payment.status as any) ? "completed" : "pending",
+        status: event.payment.status === "paid" ? "completed" : "pending",
         metadata: {
           orderId: event.payment.id,
           subscriptionId: event.subscription?.id,
@@ -1171,12 +1351,24 @@ export const processSubscriptionUpdatedEvent = internalAction({
           // AC #2: Campaign has recurring commissions disabled - log reason, no commission
           console.log(`Webhook ${event.eventId}: No commission created - recurring commissions disabled for campaign`);
           
-          await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
-            webhookId: rawWebhookId,
-            status: "processed",
-            errorMessage: "Recurring commissions disabled - no renewal commission created",
-          });
+      await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
+        webhookId: rawWebhookId,
+        status: "processed",
+        errorMessage: "No commission created - recurring commissions disabled for campaign",
+      });
         }
+    } else if (conversionId && !referralLink.campaignId) {
+      // Audit: no campaign → commission skipped (non-fatal)
+      try {
+        await ctx.runMutation(internal.audit.logAttributionDecision, {
+          tenantId: event.tenantId as Id<"tenants">,
+          action: "attribution_no_campaign",
+          eventId: event.eventId,
+          metadata: { eventType: "subscription.updated", conversionId, referralLinkId: referralLink._id },
+        });
+      } catch (err) {
+        console.error("[Audit] Failed to log attribution decision (non-fatal):", err);
+      }
     }
 
     await ctx.runMutation(internal.webhooks.updateWebhookStatus, {
