@@ -12,8 +12,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, Check, X, Mail } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,7 @@ import { useDefaultTrialDays } from "@/hooks/useDefaultTrialDays";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { cn } from "@/lib/utils";
 
 type PlanKey = "starter" | "growth" | "scale";
 
@@ -67,6 +68,9 @@ function cleanDomain(input: string): string | null {
 
   // Strip port if present
   cleaned = cleaned.split(":")[0];
+
+  // Strip trailing dot
+  cleaned = cleaned.replace(/\.$/, "");
 
   // Basic validation
   if (!cleaned || cleaned.length < 3) return null;
@@ -119,6 +123,13 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Email availability check state
+  const [emailCheckStatus, setEmailCheckStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const emailCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCheckedEmail = useRef<string>("");
+
   const { executeRecaptcha } = useGoogleReCaptcha();
   const completeSignUpMutation = useMutation(api.users.completeSignUp);
 
@@ -142,6 +153,112 @@ export default function SignUp() {
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
 
   const password = form.watch("password");
+  const emailValue = form.watch("email");
+
+  // Debounced email availability check using existing Convex query
+  // getUserTypeByEmail is a public query (no auth required)
+  const emailToCheck = emailCheckStatus !== "idle" && emailValue.trim() ? emailValue.trim().toLowerCase() : undefined;
+  const emailLookup = useQuery(
+    api.auth.getUserTypeByEmail,
+    emailToCheck ? { email: emailToCheck } : "skip",
+  );
+
+  // React to lookup results
+  useEffect(() => {
+    if (emailLookup === undefined) return; // still loading
+    if (emailCheckStatus === "checking" && emailToCheck) {
+      // Any non-null result means the email is taken (owner, affiliate, or orphaned auth user)
+      setEmailCheckStatus(emailLookup !== null ? "taken" : "available");
+    }
+  }, [emailLookup, emailCheckStatus, emailToCheck]);
+
+  // Debounce the email input to trigger lookup
+  useEffect(() => {
+    if (emailCheckTimer.current) {
+      clearTimeout(emailCheckTimer.current);
+    }
+
+    const email = emailValue.trim().toLowerCase();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailCheckStatus("idle");
+      lastCheckedEmail.current = "";
+      return;
+    }
+
+    // Don't re-check the same email
+    if (email === lastCheckedEmail.current) return;
+
+    emailCheckTimer.current = setTimeout(() => {
+      lastCheckedEmail.current = email;
+      setEmailCheckStatus("checking");
+    }, 600);
+
+    return () => {
+      if (emailCheckTimer.current) {
+        clearTimeout(emailCheckTimer.current);
+      }
+    };
+  }, [emailValue]);
+
+  // Domain availability check state
+  const [domainCheckStatus, setDomainCheckStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const domainCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCheckedDomain = useRef<string>("");
+
+  const domainValue = form.watch("domain");
+
+  // Debounced domain availability check
+  const domainToCheck = domainCheckStatus !== "idle" && domainValue.trim()
+    ? cleanDomain(domainValue) ?? undefined
+    : undefined;
+  const domainLookup = useQuery(
+    api.auth.isDomainAvailable,
+    domainToCheck ? { domain: domainToCheck } : "skip",
+  );
+
+  // React to domain lookup results
+  useEffect(() => {
+    if (domainLookup === undefined) return; // still loading
+    if (domainCheckStatus === "checking" && domainToCheck) {
+      if (domainLookup === "invalid") {
+        setDomainCheckStatus("idle");
+      } else {
+        setDomainCheckStatus(domainLookup ? "available" : "taken");
+      }
+    }
+  }, [domainLookup, domainCheckStatus, domainToCheck]);
+
+  // Debounce the domain input to trigger lookup
+  useEffect(() => {
+    if (domainCheckTimer.current) {
+      clearTimeout(domainCheckTimer.current);
+    }
+
+    const cleaned = cleanDomain(domainValue);
+
+    if (!cleaned) {
+      setDomainCheckStatus("idle");
+      lastCheckedDomain.current = "";
+      return;
+    }
+
+    // Don't re-check the same domain
+    if (cleaned === lastCheckedDomain.current) return;
+
+    domainCheckTimer.current = setTimeout(() => {
+      lastCheckedDomain.current = cleaned;
+      setDomainCheckStatus("checking");
+    }, 600);
+
+    return () => {
+      if (domainCheckTimer.current) {
+        clearTimeout(domainCheckTimer.current);
+      }
+    };
+  }, [domainValue]);
 
   if (allTiers === undefined) {
     return (
@@ -247,8 +364,38 @@ export default function SignUp() {
       });
 
       if (error) {
-        toast.error(error.message || "Sign up failed");
+        if (error.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+          toast.custom(
+            () => (
+              <div className="flex items-start gap-3 bg-white border border-red-200 rounded-lg p-4 shadow-lg max-w-sm">
+                <Mail className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    This email is already registered
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Try signing in instead, or use a different email.
+                  </p>
+                  <Link
+                    href="/sign-in"
+                    className="inline-block mt-2 text-xs font-semibold text-[#1c2260] hover:text-[#1fb5a5] transition-colors"
+                  >
+                    Go to Sign In →
+                  </Link>
+                </div>
+              </div>
+            ),
+            { duration: 8000 },
+          );
+        } else {
+          toast.error(error.message || "Sign up failed");
+        }
         setLoading(false);
+        // Reset availability caches so re-check triggers on next submit attempt
+        lastCheckedEmail.current = "";
+        lastCheckedDomain.current = "";
+        setEmailCheckStatus("idle");
+        setDomainCheckStatus("idle");
         return;
       }
 
@@ -264,6 +411,11 @@ export default function SignUp() {
       } catch (err: any) {
         setLoading(false);
         toast.error(err.message || "Account created but setup failed. Please contact support.");
+        // Reset availability caches so re-check triggers on next submit attempt
+        lastCheckedEmail.current = "";
+        lastCheckedDomain.current = "";
+        setEmailCheckStatus("idle");
+        setDomainCheckStatus("idle");
         return;
       }
 
@@ -273,6 +425,11 @@ export default function SignUp() {
     } catch (err) {
       setLoading(false);
       toast.error("An unexpected error occurred. Please try again.");
+      // Reset availability caches so re-check triggers on next submit attempt
+      lastCheckedEmail.current = "";
+      lastCheckedDomain.current = "";
+      setEmailCheckStatus("idle");
+      setDomainCheckStatus("idle");
     }
   };
 
@@ -615,15 +772,47 @@ export default function SignUp() {
                         <FormControl>
                           <Input
                             {...field}
-                            className="w-full h-11 rounded-lg pl-9 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
+                            className={cn(
+                              "w-full h-11 rounded-lg pl-9 pr-9 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]",
+                              domainCheckStatus === "available" && "border-green-400 focus:border-green-500",
+                              domainCheckStatus === "taken" && "border-red-400 focus:border-red-500",
+                            )}
                             placeholder="yourcompany.com"
                             autoComplete="url"
                           />
                         </FormControl>
+                        {/* Domain availability indicator */}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {domainCheckStatus === "checking" && (
+                            <Loader2 className="w-4 h-4 animate-spin text-[#6b7280]" />
+                          )}
+                          {domainCheckStatus === "available" && (
+                            <Check className="w-4 h-4 text-green-500" />
+                          )}
+                          {domainCheckStatus === "taken" && (
+                            <X className="w-4 h-4 text-red-500" />
+                          )}
+                        </div>
                       </div>
-                      <p className="text-[11px] text-[#6b7280] mt-1">
-                        Where customers buy your product
-                      </p>
+                      {/* Domain status message */}
+                      {domainCheckStatus === "taken" && (
+                        <p className="text-[11px] text-red-500 mt-1">
+                          This domain is already registered.{" "}
+                          <Link href="/sign-in" className="underline font-medium hover:text-red-700">
+                            Sign in instead
+                          </Link>
+                        </p>
+                      )}
+                      {domainCheckStatus === "available" && (
+                        <p className="text-[11px] text-green-600 mt-1">
+                          This domain is available
+                        </p>
+                      )}
+                      {domainCheckStatus === "idle" && (
+                        <p className="text-[11px] text-[#6b7280] mt-1">
+                          Where customers buy your product
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -657,12 +846,42 @@ export default function SignUp() {
                           <Input
                             {...field}
                             type="email"
-                            className="w-full h-11 rounded-lg pl-10 pr-3 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]"
+                            className={cn(
+                              "w-full h-11 rounded-lg pl-10 pr-9 text-sm border-[#e5e7eb] focus:border-[#1c2260] focus:shadow-[0_0_0_3px_rgba(28,34,96,0.1)]",
+                              emailCheckStatus === "available" && "border-green-400 focus:border-green-500",
+                              emailCheckStatus === "taken" && "border-red-400 focus:border-red-500",
+                            )}
                             placeholder="alex@yourcompany.com"
                             autoComplete="email"
                           />
                         </FormControl>
+                        {/* Email availability indicator */}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {emailCheckStatus === "checking" && (
+                            <Loader2 className="w-4 h-4 animate-spin text-[#6b7280]" />
+                          )}
+                          {emailCheckStatus === "available" && (
+                            <Check className="w-4 h-4 text-green-500" />
+                          )}
+                          {emailCheckStatus === "taken" && (
+                            <X className="w-4 h-4 text-red-500" />
+                          )}
+                        </div>
                       </div>
+                      {/* Email status message */}
+                      {emailCheckStatus === "taken" && (
+                        <p className="text-[11px] text-red-500 mt-1">
+                          This email is already registered.{" "}
+                          <Link href="/sign-in" className="underline font-medium hover:text-red-700">
+                            Sign in instead
+                          </Link>
+                        </p>
+                      )}
+                      {emailCheckStatus === "available" && (
+                        <p className="text-[11px] text-green-600 mt-1">
+                          This email is available
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -814,7 +1033,7 @@ export default function SignUp() {
             {/* Submit */}
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || emailCheckStatus === "taken" || domainCheckStatus === "taken" || emailCheckStatus === "checking" || domainCheckStatus === "checking"}
               className="w-full h-[46px] bg-[#1c2260] text-white text-sm font-semibold rounded-lg hover:bg-[#1fb5a5] hover:shadow-[0_4px_14px_rgba(28,34,96,0.3)] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (

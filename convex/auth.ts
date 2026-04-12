@@ -166,7 +166,30 @@ const createOptions = (ctx: GenericCtx) =>
           }
         },
       }),
-      twoFactor(),
+      twoFactor({
+        otpOptions: {
+          sendOTP: async ({ user, otp }) => {
+            if ("runAction" in ctx) {
+              await (ctx as any).runAction(internal.email.sendAuthEmail, {
+                type: "otp",
+                to: user.email,
+                otp,
+                purpose: "2fa",
+              });
+            } else {
+              const { requireMutationCtx } = await import("@convex-dev/better-auth/utils");
+              const mutationCtx = requireMutationCtx(ctx as any);
+              const { sendOTPVerification } = await import("./email");
+              await sendOTPVerification(mutationCtx as any, {
+                to: user.email,
+                code: otp,
+                purpose: "2fa",
+              });
+            }
+          },
+          expiresIn: Number(process.env.TWO_FACTOR_OTP_EXPIRY_SECONDS) || 300,
+        },
+      }),
       genericOAuth({
         config: [
           {
@@ -624,6 +647,7 @@ export const getUserTypeByEmail = query({
   returns: v.union(
     v.object({ type: v.literal("owner") }),
     v.object({ type: v.literal("affiliate"), tenantSlug: v.string() }),
+    v.object({ type: v.literal("auth_only") }),
     v.null(),
   ),
   handler: async (ctx, args) => {
@@ -649,7 +673,64 @@ export const getUserTypeByEmail = query({
       return { type: "affiliate" as const, tenantSlug: tenant?.slug ?? "default" };
     }
 
+    // 3. Check Better Auth component user table (orphaned users that
+    //    exist in auth but not in app tables — will block sign-up)
+    try {
+      const factory: any = betterAuthComponent.adapter(ctx);
+      const db: any = factory({ options: {} });
+      const authUsers = await db.findMany({ model: "user" });
+      const authUser = authUsers?.find(
+        (u: any) => u.email?.toLowerCase() === cleanEmail,
+      );
+      if (authUser) {
+        return { type: "auth_only" as const };
+      }
+    } catch {
+      // Adapter lookup failed — don't block sign-up
+    }
+
     return null;
+  },
+});
+
+/**
+ * Check if a domain is available for a new tenant registration.
+ * Public query (no auth required) — used by the sign-up form
+ * for real-time domain availability feedback.
+ *
+ * Returns true if the domain is valid and not taken, false if taken,
+ * and "invalid" if the input is not a valid domain format.
+ */
+export const isDomainAvailable = query({
+  args: { domain: v.string() },
+  returns: v.union(v.literal(true), v.literal(false), v.literal("invalid")),
+  handler: async (ctx, args) => {
+    let cleaned = args.domain.toLowerCase().trim();
+    cleaned = cleaned.replace(/^https?:\/\//, "");
+    cleaned = cleaned.replace(/^www\./, "");
+    cleaned = cleaned.split("/")[0];
+    cleaned = cleaned.split(":")[0];
+    cleaned = cleaned.replace(/\.$/, ""); // strip trailing dot
+
+    if (!cleaned || cleaned.length < 3) return "invalid";
+
+    // Reject localhost
+    if (cleaned === "localhost" || cleaned.includes("localhost")) return "invalid";
+
+    // Reject IP addresses
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipRegex.test(cleaned)) return "invalid";
+
+    // Validate domain format (must have a TLD)
+    const domainRegex = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+    if (!domainRegex.test(cleaned)) return "invalid";
+
+    const existing = await ctx.db
+      .query("tenants")
+      .withIndex("by_domain", (q) => q.eq("domain", cleaned))
+      .first();
+
+    return existing === null;
   },
 });
 
