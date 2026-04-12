@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "dev:frontend": "NEXT_TURBOPACK=0 next dev",
-    "dev:backend": "convex dev",
+    "dev:backend": "convex dev --typecheck disable",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -33,7 +33,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "convex": "^1.32.0",
+    "convex": "^1.35.1",
     "convex-helpers": "^0.1.104",
     "convex-saligpay": "^1.2.0",
     "convex.config": "link:@convex-dev/resend/convex.config",

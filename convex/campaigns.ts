@@ -1255,6 +1255,8 @@ export const listCampaignsPaginated = query({
     page: v.array(campaignReturnShape),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     hasMoreFiltered: v.boolean(),
   }),
   handler: async (ctx, args) => {

@@ -51,6 +51,9 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
       leadsCreatedThisMonth: 0,
       leadsConvertedThisMonth: 0,
       lastSyncedAt: Date.now(),
+      // API Resilience Layer — degradation counters (Task 17)
+      degradationCount: 0,
+      circuitBreakerTrips: 0,
     });
     return (await ctx.db.get(id))!;
   }
@@ -110,6 +113,10 @@ export const getStats = query({
     pendingPayoutTotal: v.number(),
     pendingPayoutCount: v.number(),
     apiCallsThisMonth: v.number(),
+    // API Resilience Layer — degradation counters (Task 17)
+    degradationCount: v.number(),
+    lastDegradedAt: v.optional(v.number()),
+    circuitBreakerTrips: v.number(),
   }),
   handler: async (ctx, args) => {
     const stats = await ctx.db
@@ -136,6 +143,10 @@ export const getStats = query({
       pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
       pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
       apiCallsThisMonth: stale ? 0 : (stats?.apiCallsThisMonth ?? 0),
+      // API Resilience Layer — degradation counters
+      degradationCount: stats?.degradationCount ?? 0,
+      lastDegradedAt: stats?.lastDegradedAt,
+      circuitBreakerTrips: stats?.circuitBreakerTrips ?? 0,
     };
   },
 });
@@ -831,6 +842,8 @@ export const _listTenantsForBackfill = internalQuery({
     page: v.array(v.object({ _id: v.id("tenants") })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     return await ctx.db

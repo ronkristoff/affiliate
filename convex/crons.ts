@@ -11,6 +11,15 @@ crons.interval(
   {}
 );
 
+// Clean up expired rate limit docs every hour (API Resilience Layer — Task 16)
+// Uses by_expiresAt index with .take(500) batch cap
+crons.interval(
+  "cleanup-expired-rate-limits",
+  { hours: 1 },
+  internal.rateLimits.cleanupExpiredLimits,
+  { batchSize: 500 }
+);
+
 // Check for tenants needing deletion reminders - runs daily at 9 AM UTC
 crons.interval(
   "check-deletion-reminders",

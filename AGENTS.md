@@ -47,11 +47,14 @@ pnpm convex env set VARIABLE_NAME value
 pnpm convex env set VARIABLE_NAME value --prod
 ```
 ## 🧠 Core Engineering Principles
-Before writing any code, internalize these three non-negotiable rules:
+Before writing any code, internalize these non-negotiable rules:
 
 1.  **Solve the Root Cause**: Do not "punt" or implement "band-aid" solutions (e.g., adding a `setTimeout` to fix a race condition or a `!` to bypass a type error). Identify why the failure is happening at its source and fix the underlying logic.
 2.  **Search Before Creating**: Before building a new UI component, **search the codebase** (specifically `src/components/`) to see if a reusable component already exists. Always aim for design consistency by extending existing patterns rather than introducing one-off variations.
 3.  **Exhaust Libraries & Frameworks First**: Before writing custom logic, **exhaust the available library APIs, framework features, and plugin ecosystems first**. Never re-implement what a dependency already provides. If a library doesn't support a feature, the correct extension point is the library's plugin/hook system — not raw crypto, custom implementations, or manual workarounds. This applies to the entire app, not just auth.
+4.  **Wrap External Calls in Circuit Breakers**: Every `fetch()` call to an external service (email providers, DNS APIs, payment webhooks) MUST be wrapped with a circuit breaker from `convex/lib/circuitBreaker.ts`. This prevents cascading failures when external services go down. See `docs/scalability-guidelines.md` Rule 6a.
+5.  **Rate Limit All Public Endpoints**: Every public HTTP endpoint (`/track/*`, `/api/*`) MUST have rate limiting from `convex/lib/rateLimiter.ts`. Use the two-tier design: query for read path (check), mutation for write path (increment). See `docs/scalability-guidelines.md` Rule 6b.
+6.  **Degrade Gracefully on Failure**: Heavy dashboard queries and external service calls should have graceful degradation fallbacks. Use `withDegradation()` for server-side (actions/httpActions) and fall back to `tenantStats` for frontend queries. Infrastructure errors → degrade; auth/validation errors → throw. See `docs/scalability-guidelines.md` Rule 6c.
 
     **Examples (auth — Better Auth):**
     - ❌ Manual scrypt hashing for password comparison → ✅ `auth.api.verifyPassword()` or `auth.api.changePassword()`
@@ -735,3 +738,11 @@ pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
 |----------|---------|-------------|
 | `BETTER_AUTH_SECRET` | Required by Better Auth for token signing | `pnpm convex env set BETTER_AUTH_SECRET <value>` |
 | `SITE_URL` | Required by Better Auth for base URL + seed HTTP calls | `pnpm convex env set SITE_URL http://localhost:3000` |
+
+<!-- convex-ai-start -->
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
+<!-- convex-ai-end -->

@@ -36,6 +36,8 @@ export const _listAffiliatesForBackfill = internalQuery({
       })
     ),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -159,6 +161,8 @@ export const backfillCouponCodes = action({
     generated: v.number(),
     total: v.number(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     const tenants = await ctx.runQuery(

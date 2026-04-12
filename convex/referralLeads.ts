@@ -314,6 +314,8 @@ export const getLeadsByAffiliate = query({
     ),
     isDone: v.boolean(),
     continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     return await ctx.db

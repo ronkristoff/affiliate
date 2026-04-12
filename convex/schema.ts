@@ -572,6 +572,41 @@ export default defineSchema({
   }).index("by_email", ["email"])
     .index("by_email_and_locked", ["email", "lockedUntil"]),
 
+  // Circuit breaker state for external services (API Resilience Layer)
+  // Tracks per-service failure state: closed → open → half-open → probing
+  // See docs/scalability-guidelines.md Rule 6 for usage patterns
+  circuitBreakers: defineTable({
+    serviceId: v.string(),        // e.g. "postmark", "resend", "dns-google", "stripe"
+    state: v.union(                // F17: discriminated union prevents typos like "opne"
+      v.literal("closed"),
+      v.literal("open"),
+      v.literal("half-open"),
+      v.literal("probing"),
+    ),
+    failureCount: v.number(),      // consecutive failures in current window
+    lastFailureAt: v.optional(v.number()),
+    lastSuccessAt: v.optional(v.number()),
+    openedAt: v.optional(v.number()),        // when state went to "open"
+    lastProbeAt: v.optional(v.number()),     // when last half-open probe ran
+    config: v.object({                       // per-service overrides
+      failureThreshold: v.optional(v.number()),
+      resetTimeoutMs: v.optional(v.number()),
+      maxOpenDurationMs: v.optional(v.number()),
+    }),
+  }).index("by_serviceId", ["serviceId"]),
+
+  // Rate limiter state for API endpoints (API Resilience Layer)
+  // Two-tier design: query for read check, mutation for increment
+  // See docs/scalability-guidelines.md Rule 6 for usage patterns
+  rateLimits: defineTable({
+    key: v.string(),             // composite key: "endpoint:identifier" (e.g. "click:ABC123")
+    count: v.number(),           // current count in window
+    windowStart: v.number(),     // window start timestamp (ms)
+    windowDurationMs: v.number(), // window duration (ms)
+    expiresAt: v.number(),       // absolute expiry for cleanup cron
+  }).index("by_key", ["key"])
+    .index("by_expiresAt", ["expiresAt"]),
+
   // Performance metrics table (Story 6.6)
   performanceMetrics: defineTable({
     tenantId: v.optional(v.id("tenants")),
@@ -694,6 +729,10 @@ export default defineSchema({
     leadsConvertedThisMonth: v.optional(v.number()),
     // Staleness detection for admin dashboard (admin-reports-query-builder)
     lastSyncedAt: v.optional(v.number()),
+    // API Resilience Layer — degradation counters (backward compatible via v.optional)
+    degradationCount: v.optional(v.number()),
+    lastDegradedAt: v.optional(v.number()),
+    circuitBreakerTrips: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]),
 
   // Saved queries for Query Builder (custom reports)

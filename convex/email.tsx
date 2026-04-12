@@ -90,12 +90,14 @@ export const sendOTPVerification = async (
   }: {
     to: string;
     code: string;
-    purpose?: "email-verification" | "sign-in" | "forget-password";
+    purpose?: "email-verification" | "sign-in" | "forget-password" | "2fa";
   },
 ) => {
   const subject = purpose === "forget-password"
     ? "Reset your password"
-    : "Verify your email address";
+    : purpose === "2fa"
+      ? "Your verification code"
+      : "Verify your email address";
   await sendEmailFromMutation(ctx, {
     from: getFromAddress("onboarding"),
     to,
@@ -957,7 +959,8 @@ export const sendAuthEmail = internalAction({
     purpose: v.optional(v.union(
       v.literal("email-verification"),
       v.literal("sign-in"),
-      v.literal("forget-password")
+      v.literal("forget-password"),
+      v.literal("2fa")
     )),
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
@@ -989,7 +992,9 @@ export const sendAuthEmail = internalAction({
             ? "Reset your password"
             : args.purpose === "sign-in"
               ? "Sign in to your account"
-              : "Verify your email address";
+              : args.purpose === "2fa"
+                ? "Your verification code"
+                : "Verify your email address";
           html = await render(<VerifyOTP code={args.otp!} purpose={args.purpose} />);
           break;
       }

@@ -246,6 +246,8 @@ export const getClicksByReferralLink = query({
       dedupeKey: v.string(),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -301,6 +303,8 @@ export const getClicksByAffiliate = query({
       dedupeKey: v.string(),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -440,6 +444,8 @@ export const getClicksByTenant = query({
       dedupeKey: v.string(),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {

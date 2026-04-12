@@ -1468,6 +1468,112 @@ export const _logAuditEventInternal = internalMutation({
 });
 
 /**
+ * Internal: Get a tenant by ID. Used by actions that cannot access ctx.db directly.
+ */
+export const _getTenantById = internalQuery({
+  args: { tenantId: v.id("tenants") },
+  returns: v.union(
+    v.object({
+      _id: v.id("tenants"),
+      branding: v.optional(v.any()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) return null;
+    return { _id: tenant._id, branding: tenant.branding };
+  },
+});
+
+/**
+ * Internal: Count recent DNS verification attempts for rate limiting.
+ * Uses by_tenant index + filter to stay within scalability guidelines.
+ */
+export const _countRecentDnsAttempts = internalQuery({
+  args: {
+    tenantId: v.id("tenants"),
+    since: v.number(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const attempts = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("action"), "domain_dns_verification_attempt"),
+          q.gte(q.field("_creationTime"), args.since)
+        )
+      )
+      .take(10); // Cap at 10 — rate limit threshold is 5, so 10 is more than enough
+    return attempts.length;
+  },
+});
+
+/**
+ * Internal: Log a DNS verification attempt for rate limiting.
+ */
+export const _logDnsVerificationAttempt = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    customDomain: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "domain_dns_verification_attempt",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: args.userId,
+      actorType: "user",
+      newValue: { customDomain: args.customDomain },
+    });
+    return null;
+  },
+});
+
+/**
+ * Internal: Update DNS verification status after successful verification.
+ */
+export const _updateDnsVerificationStatus = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    customDomain: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) return null;
+
+    const currentBranding = tenant.branding || {};
+    await ctx.db.patch(args.tenantId, {
+      branding: {
+        ...currentBranding,
+        domainStatus: "dns_verification",
+        domainVerifiedAt: Date.now(),
+      },
+    });
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "domain_dns_verified",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorId: args.userId,
+      actorType: "user",
+      newValue: { customDomain: args.customDomain, verifiedAt: Date.now() },
+    });
+
+    return null;
+  },
+});
+
+/**
  * Check for tenants needing deletion reminders and send them.
  * Called by cron job daily to catch any missed reminders.
  */
@@ -1792,142 +1898,11 @@ export const updateTenantDomain = mutation({
 
 /**
  * Verify domain DNS configuration.
- * Checks if the CNAME record is properly configured.
- * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.
- * @rate-limit Max 5 attempts per minute per tenant to prevent API abuse
+ * MOVED to convex/verifyDomainDns.ts as an action (Node.js runtime).
+ * Frontend callers must import from `api.verifyDomainDns.verifyDomainDns`.
+ * DO NOT re-export here — importing a "use node" file would make all
+ * mutations in this file fail (they require V8 runtime).
  */
-export const verifyDomainDns = mutation({
-  args: {},
-  returns: v.object({
-    success: v.boolean(),
-    verified: v.boolean(),
-    message: v.string(),
-  }),
-  handler: async (ctx) => {
-    const authUser = await getAuthenticatedUser(ctx);
-    if (!authUser) {
-      throw new Error("Unauthorized: Authentication required");
-    }
-
-    // Check permission - require settings:* or manage:* permission
-    const role = authUser.role as Role;
-    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
-      throw new Error("Access denied: You require 'settings:manage' permission to verify domain DNS");
-    }
-
-    const tenant = await ctx.db.get(authUser.tenantId);
-    if (!tenant) {
-      throw new Error("Tenant not found");
-    }
-
-    const customDomain = tenant.branding?.customDomain;
-    if (!customDomain) {
-      throw new Error("No custom domain configured");
-    }
-
-    // Rate limiting: Check for recent verification attempts (last minute)
-    const oneMinuteAgo = Date.now() - 60 * 1000;
-    const recentAttempts = await ctx.db
-      .query("auditLogs")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("action"), "domain_dns_verification_attempt"),
-          q.gte(q.field("_creationTime"), oneMinuteAgo)
-        )
-      )
-      .collect();
-
-    if (recentAttempts.length >= 5) {
-      throw new Error("Rate limit exceeded. Please wait before trying again.");
-    }
-
-    // Log the verification attempt for rate limiting
-    await ctx.db.insert("auditLogs", {
-      tenantId: authUser.tenantId,
-      action: "domain_dns_verification_attempt",
-      entityType: "tenant",
-      entityId: authUser.tenantId,
-      actorId: authUser.userId,
-      actorType: "user",
-      newValue: { customDomain },
-    });
-
-    const platformDomain = PLATFORM_DOMAIN;
-
-    try {
-      // Use DNS over HTTPS (Google DNS API) to check CNAME record
-      // AbortController for timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const response = await fetch(
-        `https://dns.google/resolve?name=${encodeURIComponent(customDomain)}&type=CNAME`,
-        {
-          method: "GET",
-          headers: {
-            "Accept": "application/dns-json",
-          },
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`DNS lookup failed with status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Check if CNAME record exists and points to the correct domain
-      const cnameRecord = data.Answer?.find((record: { type: number; data: string }) => record.type === 5); // Type 5 = CNAME
-
-      if (cnameRecord && cnameRecord.data.endsWith(platformDomain + ".")) {
-        // DNS verified - update status
-        const currentBranding = tenant.branding || {};
-        await ctx.db.patch(authUser.tenantId, {
-          branding: {
-            ...currentBranding,
-            domainStatus: "dns_verification",
-            domainVerifiedAt: Date.now(),
-          },
-        });
-
-        // Create audit log entry
-        await ctx.db.insert("auditLogs", {
-          tenantId: authUser.tenantId,
-          action: "domain_dns_verified",
-          entityType: "tenant",
-          entityId: authUser.tenantId,
-          actorId: authUser.userId,
-          actorType: "user",
-          newValue: { customDomain, verifiedAt: Date.now() },
-        });
-
-        return {
-          success: true,
-          verified: true,
-          message: "DNS configuration verified successfully. Your domain is pointing to the correct location.",
-        };
-      } else {
-        // DNS not verified
-        return {
-          success: true,
-          verified: false,
-          message: `DNS verification failed. Expected CNAME record pointing to '${platformDomain}'. Please check your DNS configuration.`,
-        };
-      }
-    } catch (error) {
-      console.error("DNS verification error:", error);
-      return {
-        success: false,
-        verified: false,
-        message: "Unable to verify DNS configuration. Please try again later or check your DNS settings.",
-      };
-    }
-  },
-});
 
 /**
  * Initiate SSL provisioning for the custom domain.

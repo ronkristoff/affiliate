@@ -71,6 +71,76 @@ const campaign = await ctx.db.query("campaigns").first();
 const hasCampaigns = !!campaign;
 ```
 
+### Rule 6: Resilience Patterns
+
+All external service calls and public endpoints must use the centralized resilience infrastructure.
+
+#### 6a. Circuit Breakers
+
+Wrap **every** `fetch()` call to external services with a circuit breaker. Circuit breakers prevent cascading failures when external services go down.
+
+| When to Use | Service ID | Module |
+|-------------|-----------|--------|
+| Email sending | `"postmark"`, `"resend"` | `convex/lib/circuitBreaker.ts` |
+| DNS verification | `"dns-verification"` | `convex/lib/circuitBreaker.ts` |
+| Any new external API | `"service-{name}"` | `convex/lib/circuitBreaker.ts` |
+
+**State machine:** Closed (normal) → Open (tripped after threshold failures) → Half-Open (probe after timeout) → Closed (recovered)
+
+**Key rules:**
+- Circuit breaker state is stored in the `circuitBreakers` table (internal functions in `convex/circuitBreakers.ts`)
+- Use `withCircuitBreaker()` wrapper from `convex/lib/circuitBreaker.ts` in actions
+- Always record success/failure via `recordSuccess`/`recordFailure` mutations
+- Open breakers return fallback immediately — no outbound HTTP requests
+- Half-Open probes are atomic — only one concurrent probe allowed
+
+#### 6b. Rate Limiting
+
+**All public HTTP endpoints** must have rate limiting. All bulk operations must have per-tenant caps.
+
+| Endpoint | Key Pattern | Limit |
+|----------|------------|-------|
+| `/track/click` | `click:{referralCode}` + `click:ip:{IP}` | 100/min per code, 300/min per IP |
+| `/track/conversion` | `conversion:{tenantId}` + `conversion:ip:{IP}` | 50/min per tenant, 100/min per IP |
+| `/track/validate-coupon` | `coupon:{tenantId}` | 100/min per tenant |
+
+**Key rules:**
+- Rate limit state is in the `rateLimits` table (internal functions in `convex/rateLimits.ts`)
+- Use the two-tier design: **query** for read path (check limit), **mutation** for write path (increment)
+- Rate limit keys MUST be constructed server-side — never from client-provided values
+- Use `extractIp(req)` from `convex/lib/rateLimiter.ts` for IP extraction
+- Expired rate limits are cleaned up hourly by cron job in `convex/crons.ts`
+- **Login rate limiting stays separate** — handled by Better Auth plugin + `convex/rateLimit.ts`
+
+#### 6c. Graceful Degradation
+
+Heavy queries and external service calls should have degradation fallbacks.
+
+**Server-side (actions/httpActions):**
+- Use `withDegradation()` from `convex/lib/gracefulDegradation.ts` to wrap external calls
+- On infrastructure error → returns `DegradedResponse<T>` with fallback data
+- On auth/validation error → re-throws (never hide security issues)
+
+**Frontend (React components):**
+- When enhanced queries fail, fall back to `tenantStats` reads (O(1) aggregate)
+- `useQuery` never throws — check `.error` property, NOT try/catch
+- Degraded responses include `_degraded: true` flag and `_fallbackReason`
+- Show a degradation banner to users: "Showing cached stats — live data temporarily unavailable"
+- Use a 30-second cooldown before retrying enhanced queries (prevents thrashing)
+
+#### 6d. Error Classification
+
+Error classification is in `convex/lib/errorClassification.ts` — single source of truth.
+
+| Category | Degrade? | Examples |
+|----------|----------|----------|
+| Infrastructure | Yes (fallback) | HTTP 5xx, timeout, network error, `AbortError` |
+| Auth | No (throw) | HTTP 401/403, "unauthorized", "invalid token" |
+| Validation | No (throw) | HTTP 400/422/409, ConvexError |
+| Integrity | No (throw) | Data consistency violations |
+
+**Default:** Unknown errors default to "infrastructure" for safety.
+
 ---
 
 ## `.take()` Cap Reference
@@ -132,4 +202,4 @@ All `tenantStats` hooks treat both as equivalent for counter purposes.
 
 ---
 
-_Last Updated: 2026-03-22_
+_Last Updated: 2026-04-12_

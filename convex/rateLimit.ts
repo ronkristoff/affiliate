@@ -200,6 +200,9 @@ export const clearFailedAttempts = mutation({
 
 /**
  * Internal mutation to clean up old login attempts (for cron job)
+ *
+ * Uses .take(500) batch cap instead of unbounded .collect() to prevent
+ * 1MB transaction limit at scale (Task 17b fix).
  */
 export const cleanupOldAttempts = internalMutation({
   args: {},
@@ -209,7 +212,7 @@ export const cleanupOldAttempts = internalMutation({
     const oldAttempts = await ctx.db
       .query("loginAttempts")
       .filter((q) => q.lt(q.field("failedAt"), cutoff))
-      .collect();
+      .take(500); // Batch cap — prevents 1MB transaction limit
 
     for (const attempt of oldAttempts) {
       await ctx.db.delete(attempt._id);

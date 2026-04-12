@@ -383,6 +383,8 @@ export const getReferralLinks = query({
       campaignUrl: v.optional(v.string()),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -444,6 +446,8 @@ export const getReferralLinks = query({
       return {
         page: enrichedPage,
         continueCursor: result.continueCursor,
+        pageStatus: v.optional(v.union(v.string(), v.null())),
+        splitCursor: v.optional(v.union(v.string(), v.null())),
         isDone: result.isDone,
       };
     }
@@ -481,6 +485,8 @@ export const getReferralLinks = query({
     return {
       page: enrichedPage,
       continueCursor: result.continueCursor,
+      pageStatus: v.optional(v.union(v.string(), v.null())),
+      splitCursor: v.optional(v.union(v.string(), v.null())),
       isDone: result.isDone,
     };
   },

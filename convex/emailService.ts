@@ -20,6 +20,7 @@ import {
   internalAction,
   MutationCtx,
 } from "./_generated/server";
+import { SERVICE_IDS, DEFAULT_CIRCUIT_BREAKER_CONFIG } from "./lib/circuitBreaker";
 
 // ── Centralized from-address ─────────────────────────────────────────────────
 
@@ -86,6 +87,23 @@ export const sendEmail = internalAction({
     console.log(`[emailService]   hasTracking: ${!!args.tracking}`);
     console.log(`[emailService]   EMAIL_TEST_MODE: ${process.env.EMAIL_TEST_MODE ?? "(not set)"}`);
 
+    // Circuit breaker: Check if email provider is available (Task 14)
+    const serviceId = provider === "postmark" ? SERVICE_IDS.POSTMARK : SERVICE_IDS.RESEND;
+    const breakerState = await ctx.runQuery(internal.circuitBreakers.getServiceState, { serviceId });
+    if (breakerState && (breakerState.state === "open" || breakerState.state === "probing")) {
+      console.warn(`[emailService] ⚡ Circuit breaker OPEN for ${serviceId} — returning fallback`);
+      // Track as degraded send
+      if (args.tracking) {
+        await ctx.runMutation(internal.emails.trackEmailSent, {
+          tenantId: args.tracking.tenantId, type: args.tracking.type,
+          recipientEmail: Array.isArray(args.to) ? args.to[0] : args.to,
+          subject: args.subject, status: "failed", errorMessage: `Circuit breaker open for ${serviceId}`,
+          broadcastId: args.tracking.broadcastId, affiliateId: args.tracking.affiliateId, provider,
+        });
+      }
+      return { success: false, provider, messageId: undefined };
+    }
+
     try {
       let messageId: string | undefined;
 
@@ -148,6 +166,10 @@ export const sendEmail = internalAction({
       }
 
       console.log(`[emailService] ✅ Email sent successfully via ${provider}, messageId=${messageId ?? "(none)"}`);
+
+      // Circuit breaker: Record success
+      await ctx.runMutation(internal.circuitBreakers.recordSuccess, { serviceId });
+
       return { success: true, provider, messageId };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -155,6 +177,11 @@ export const sendEmail = internalAction({
       console.error(`[emailService]   Error message: ${errorMsg}`);
       console.error(`[emailService]   Error stack:`, error instanceof Error ? error.stack : "(no stack)");
       console.error(`[emailService]   Full error:`, error);
+
+      // Circuit breaker: Record failure
+      await ctx.runMutation(internal.circuitBreakers.recordFailure, { serviceId }).catch((e) => {
+        console.error("[emailService] Failed to record circuit breaker failure:", e);
+      });
 
       // Track failed send
       if (args.tracking) {

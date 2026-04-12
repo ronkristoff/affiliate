@@ -850,6 +850,8 @@ export const getConversionsByAffiliate = query({
       metadata: v.optional(v.any()),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -885,6 +887,8 @@ export const getConversionsByAffiliate = query({
     return {
       page: filteredPage,
       continueCursor: result.continueCursor,
+      pageStatus: v.optional(v.union(v.string(), v.null())),
+      splitCursor: v.optional(v.union(v.string(), v.null())),
       isDone: result.isDone,
     };
   },
@@ -922,6 +926,8 @@ export const getConversionsByTenant = query({
       metadata: v.optional(v.any()),
     })),
     continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
@@ -989,6 +995,8 @@ export const getConversionsByTenant = query({
     return {
       page: enrichedPage,
       continueCursor: result.continueCursor,
+      pageStatus: v.optional(v.union(v.string(), v.null())),
+      splitCursor: v.optional(v.union(v.string(), v.null())),
       isDone: result.isDone,
     };
   },

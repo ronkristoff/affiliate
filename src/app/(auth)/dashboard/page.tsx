@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState, useCallback, useMemo } from "react";
+import { Suspense, useState, useCallback, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import {
   QuickActionsPanel,
   ActivityFeed,
@@ -30,7 +31,7 @@ import {
   parseAsInteger,
 } from "nuqs";
 import { toast } from "sonner";
-import { Loader2, Download, TrendingUp, Clock, Users, Wallet, Leaf } from "lucide-react";
+import { Loader2, Download, TrendingUp, Clock, Users, Wallet, Leaf, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 type Period = "daily" | "weekly" | "monthly";
@@ -198,7 +199,9 @@ function DashboardContent() {
     }
   }, [tenantId, exportCSV]);
 
-  // ─── MERGED: Single query replaces 3 separate queries ────────────────
+  // ─── Queries ──────────────────────────────────────────────────────
+  // All useQuery hooks called unconditionally (Rules of Hooks)
+  // Convex useQuery throws on server error — caught by DashboardErrorBoundary
   const dashboardData = useQuery(
     api.dashboard.getDashboardData,
     tenantId && dateRange
@@ -212,15 +215,15 @@ function DashboardContent() {
       : "skip"
   );
 
-   const stats = dashboardData?.stats;
-   const topAffiliates = dashboardData?.topAffiliates;
-   const topCampaigns = dashboardData?.topCampaigns;
-   const recentCommissions = dashboardData?.recentCommissions;
-
   const setupStatus = useQuery(
     api.dashboard.getSetupStatus,
     tenantId ? { tenantId } : "skip"
   );
+
+   const stats = dashboardData?.stats;
+   const topAffiliates = dashboardData?.topAffiliates;
+   const topCampaigns = dashboardData?.topCampaigns;
+   const recentCommissions = dashboardData?.recentCommissions;
 
   const isLoading = !dashboardData;
 
@@ -351,12 +354,129 @@ function DashboardContent() {
   );
 }
 
-// ─── Page export with Suspense boundary ──────────────────────────────────
+// ─── Dashboard Error Boundary (graceful degradation) ────────────────────────
+// F2 fix: Convex useQuery throws on server error — caught here.
+// Falls back to a degraded view using tenantStats when the heavy
+// dashboard query fails (infrastructure error, timeout, etc.).
+
+interface DegradedDashboardProps {
+  tenantId?: Id<"tenants">;
+}
+
+function DegradedDashboard({ tenantId }: DegradedDashboardProps) {
+  // This component renders OUTSIDE the error boundary, so it only
+  // uses the lightweight tenantStats query (O(1) read)
+  const stats = useQuery(
+    api.tenantStats.getStats,
+    tenantId ? { tenantId } : "skip"
+  );
+
+  const mappedStats = stats ? {
+    mrrInfluenced: stats.commissionsConfirmedValueThisMonth,
+    activeAffiliatesCount: stats.affiliatesActive,
+    pendingCommissionsCount: stats.commissionsPendingCount,
+    pendingCommissionsValue: stats.commissionsPendingValue,
+    totalPaidOut: stats.totalPaidOut,
+    recentClicks: 0,
+    recentConversions: stats.commissionsConfirmedThisMonth,
+    recentOrganicConversions: 0,
+    previousPeriodMrr: 0,
+    mrrChangePercent: 0,
+    mrrSparkline: [] as number[],
+    clicksSparkline: [] as number[],
+    conversionsSparkline: [] as number[],
+    approvedConversionsCount: stats.commissionsConfirmedThisMonth,
+    previousPeriodApprovedConversions: 0,
+    conversionRate: 0,
+    affiliatesPending: stats.affiliatesPending,
+    pendingPayoutCount: stats.pendingPayoutCount,
+    pendingPayoutTotal: stats.pendingPayoutTotal,
+  } : undefined;
+
+  return (
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      <PageTopbar description="Track your affiliate program performance and key metrics at a glance">
+        <h1 className="text-[17px] font-bold text-[var(--text-heading)]">Overview</h1>
+      </PageTopbar>
+      <div className="page-content">
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Showing cached stats — live data temporarily unavailable. Some metrics may be delayed.</span>
+        </div>
+        <FadeIn>
+          <SummaryCards 
+            stats={{
+              mrr: mappedStats?.mrrInfluenced,
+              affiliates: mappedStats?.activeAffiliatesCount,
+              organicSales: mappedStats?.recentOrganicConversions,
+              totalPaidOut: mappedStats?.totalPaidOut,
+            }}
+            isLoading={!mappedStats}
+          />
+        </FadeIn>
+        <FadeIn delay={100}>
+          <PendingActions 
+            pendingAffiliates={mappedStats?.affiliatesPending}
+            pendingCommissions={mappedStats?.pendingCommissionsCount}
+            pendingPayouts={mappedStats?.pendingPayoutCount}
+            isLoading={!mappedStats}
+          />
+        </FadeIn>
+      </div>
+    </div>
+  );
+}
+
+interface DashboardErrorBoundaryState {
+  hasError: boolean;
+  tenantId?: Id<"tenants">;
+}
+
+class DashboardErrorBoundary extends Component<
+  { children: ReactNode },
+  DashboardErrorBoundaryState
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): DashboardErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("[Dashboard] Query error caught by error boundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Render degraded dashboard — uses tenantStats instead of heavy query
+      // We pass tenantId via a wrapper so the degraded component can fetch it
+      return <DegradedDashboardErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
+
+/**
+ * Wrapper that extracts tenantId for the degraded fallback.
+ * Uses a separate useQuery (tenantStats) which is lightweight and unlikely to fail.
+ */
+function DegradedDashboardErrorFallback() {
+  const user = useQuery(api.auth.getCurrentUser);
+  const tenantId = user?.tenantId;
+  return <DegradedDashboard tenantId={tenantId} />;
+}
+
+// ─── Page export with Suspense + Error boundary ──────────────────────────
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent />
-    </Suspense>
+    <DashboardErrorBoundary>
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </DashboardErrorBoundary>
   );
 }

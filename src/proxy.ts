@@ -116,7 +116,10 @@ export default async function proxy(request: NextRequest) {
   // Allow public and marketing routes
   if (isPublicRoute || isMarketingRoute) {
     // If authenticated and trying to access auth pages, redirect to dashboard
-    if (isAuthed && publicRoutes.some(route => pathname.startsWith(route))) {
+    // Exception: /verify-2fa must remain accessible for authenticated users
+    // who need to complete OTP verification.
+    const isVerify2fa = pathname.startsWith("/verify-2fa");
+    if (isAuthed && !isVerify2fa && publicRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();

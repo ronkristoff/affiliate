@@ -247,6 +247,8 @@ export const executeQuery = query({
     page: v.array(v.record(v.string(), v.any())),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
     columns: v.array(v.object({
       table: v.string(),
       column: v.string(),

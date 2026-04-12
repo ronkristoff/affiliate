@@ -163,6 +163,13 @@ export default function SignIn() {
             setLoading(false);
             // Clear failed attempts on successful login
             await clearFailedAttempts({ email: values.email });
+
+            // Mandatory 2FA: always redirect to OTP verification when enabled
+            if (process.env.NEXT_PUBLIC_TWO_FACTOR_ENABLED === "true") {
+              router.push("/verify-2fa");
+              return;
+            }
+
             if (ctx.data.twoFactorRedirect) {
               router.push("/verify-2fa");
             } else {

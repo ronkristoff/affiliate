@@ -3,6 +3,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { betterAuthComponent, createAuth } from "./auth";
 import { internal, api } from "./_generated/api";
+import { buildRateLimitKey, extractIp, ENDPOINT_CONFIGS } from "./lib/rateLimiter";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { normalizeToBillingEvent, normalizeStripeToBillingEvent } from "./webhooks";
@@ -107,6 +108,42 @@ http.route({
       const clientIp = forwardedFor 
         ? forwardedFor.split(",")[0].trim() 
         : realIp || undefined;
+
+      // Rate limiting: Per-tenant + global IP cap (Tasks 11 & 12)
+      const tenantIdStr = tenant._id as string;
+      const convRateLimitKey = buildRateLimitKey("conversion", tenantIdStr);
+      const convStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: convRateLimitKey, limit: ENDPOINT_CONFIGS.conversion.limit,
+      });
+      if (convStatus.remaining <= 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Too many requests", resetsAt: convStatus.resetsAt }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      if (clientIp) {
+        const globalConvKey = buildRateLimitKey("conversion:global", clientIp);
+        const globalConvStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+          key: globalConvKey, limit: ENDPOINT_CONFIGS["conversion:global"].limit,
+        });
+        if (globalConvStatus.remaining <= 0) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Too many requests", resetsAt: globalConvStatus.resetsAt }),
+            { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      // Increment rate limit counters (fire-and-forget, after rate check passed)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: convRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.conversion.windowDurationMs,
+      }).catch(() => {});
+      if (clientIp) {
+        ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+          key: buildRateLimitKey("conversion:global", clientIp),
+          windowDurationMs: ENDPOINT_CONFIGS["conversion:global"].windowDurationMs,
+        }).catch(() => {});
+      }
 
       // AC1.2: Parse attribution from POST body (new track.js) or cookie (legacy)
       // Coupon code takes precedence over cookie/body attribution (ADR-4)
@@ -701,8 +738,25 @@ http.route({
               ...corsHeaders,
             },
           }
+         );
+       }
+
+      // Rate limiting: Per-tenant coupon validation (Task 12)
+      const couponRateLimitKey = buildRateLimitKey("coupon", tenantId);
+      const couponStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: couponRateLimitKey, limit: ENDPOINT_CONFIGS.coupon.limit,
+      });
+      if (couponStatus.remaining <= 0) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Too many requests", resetsAt: couponStatus.resetsAt }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
+
+      // Increment rate limit counter (fire-and-forget, after rate check passed)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: couponRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.coupon.windowDurationMs,
+      }).catch(() => {});
 
       const result = await ctx.runQuery(api.couponCodes.validateCouponCode, {
         tenantId: tenantId as any,
@@ -2041,6 +2095,41 @@ http.route({
       const clientIp = forwardedFor 
         ? forwardedFor.split(",")[0].trim() 
         : realIp || "unknown";
+
+      // Rate limiting: Per-referral-code + per-IP global cap (Task 10)
+      // F12: Validate referral code format to prevent table pollution from arbitrary codes
+      const isValidCode = /^[a-zA-Z0-9_-]{1,50}$/.test(code);
+      const codeRateLimitKey = isValidCode
+        ? buildRateLimitKey("click", code)
+        : buildRateLimitKey("click", "invalid");
+      const codeStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: codeRateLimitKey, limit: ENDPOINT_CONFIGS.click.limit,
+      });
+      if (codeStatus.remaining <= 0) {
+        // Silently return tracking pixel — don't reveal rate limit
+        return new Response("ok", {
+          status: 200,
+          headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+        });
+      }
+      const globalIpKey = buildRateLimitKey("click:global", clientIp);
+      const globalIpStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: globalIpKey, limit: ENDPOINT_CONFIGS["click:global"].limit,
+      });
+      if (globalIpStatus.remaining <= 0) {
+        return new Response("ok", {
+          status: 200,
+          headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+        });
+      }
+
+      // Increment rate limit counters (fire-and-forget, after rate check passed)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: codeRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.click.windowDurationMs,
+      }).catch(() => {});
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: globalIpKey, windowDurationMs: ENDPOINT_CONFIGS["click:global"].windowDurationMs,
+      }).catch(() => {});
 
       // Extract User-Agent and Referrer
       const userAgent = req.headers.get("User-Agent") || undefined;

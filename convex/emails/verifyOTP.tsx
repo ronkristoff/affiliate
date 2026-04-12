@@ -8,7 +8,7 @@ interface VerifyOTPProps {
   brandTagline?: string;
   brandLogoUrl?: string;
   /** Context for why the OTP was sent */
-  purpose?: "email-verification" | "sign-in" | "forget-password";
+  purpose?: "email-verification" | "sign-in" | "forget-password" | "2fa";
 }
 
 export default function VerifyOTP({
@@ -20,28 +20,35 @@ export default function VerifyOTP({
 }: VerifyOTPProps) {
   const isForgotPassword = purpose === "forget-password";
   const isSignIn = purpose === "sign-in";
+  const is2fa = purpose === "2fa";
 
   const headingText = isForgotPassword
     ? "Reset Your Password"
     : isSignIn
       ? "Sign In to Your Account"
-      : "Verify Your Email";
+      : is2fa
+        ? "Two-Factor Authentication"
+        : "Verify Your Email";
 
   const bodyText = isForgotPassword
     ? "We received a request to reset the password for your account. Use the verification code below to proceed. This code will expire in 5 minutes for security."
     : isSignIn
       ? "Use the verification code below to sign in to your account. This code will expire in 5 minutes."
-      : "Use the verification code below to verify your email address. This code will expire in 5 minutes.";
+      : is2fa
+        ? "Use the verification code below to complete your sign-in. This code will expire in 5 minutes."
+        : "Use the verification code below to verify your email address. This code will expire in 5 minutes.";
 
   const disclaimerText = isForgotPassword
     ? "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged."
     : isSignIn
       ? "If you didn't attempt to sign in, you can safely ignore this email."
-      : "If you didn't create an account, you can safely ignore this email.";
+      : is2fa
+        ? "If you didn't attempt to sign in, you can safely ignore this email."
+        : "If you didn't create an account, you can safely ignore this email.";
 
   return (
     <BaseEmail
-      previewText={isForgotPassword ? "Reset your password" : "Your verification code"}
+      previewText={isForgotPassword ? "Reset your password" : is2fa ? "Your verification code" : "Your verification code"}
       brandName={brandName}
       brandTagline={brandTagline}
       brandLogoUrl={brandLogoUrl}

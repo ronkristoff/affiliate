@@ -315,6 +315,8 @@ export const getPlatformFraudSummary = query({
     })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
