@@ -5,7 +5,7 @@
 
 /* ============================================
    SALIG-AFFILIATE DESIGN SYSTEM
-   Theme: Affilio-inspired Design System
+   Theme: Command Center (Direction 1)
    ============================================ */
 
 /* Brand theme variables - Single source of truth */
@@ -18,55 +18,54 @@
   --brand-light: #eff6ff;
   --brand-link: #1fb5a5;
   --brand-hover: #161c50;
-   
-  /* Text Colors - Updated to match DESIGN.md neutral scale */
-  --text-heading: #1a1d2e; /* Neutral 900 */
-  --text-body: #3f4462;    /* Neutral 700 */
-  --text-muted: #5a5f7a;   /* Neutral 600 */
-   
+  
+  /* Text Colors */
+  --text-heading: #333333;
+  --text-body: #474747;
+  --text-muted: #6b7280;
+  
   /* Surface Colors */
-  --bg-page: #eff6ff;      /* Brand Light */
-  --bg-surface: #ffffff;   /* Surface White */
-  --bg-card: #ffffff;      /* Surface White */
-   
+  --bg-page: #f2f2f2;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  
   /* Border & Input */
-  --border: #dfe1e9;       /* Neutral 200 */
-  --border-light: #eeeef3; /* Neutral 100 */
-  --input-border: #dfe1e9; /* Neutral 200 */
-   
+  --border: #e5e7eb;
+  --border-light: #f0f0f0;
+  --input-border: #e5e7eb;
+  
   /* Status Colors */
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   --info: #3b82f6;
-   
+  
   /* Status Backgrounds */
-  --success-bg: #ecfdf5;   /* Success Light */
-  --success-text: #059669;
-  --warning-bg: #fffbeb;   /* Warning Light */
-  --warning-text: #d97706;
-  --danger-bg: #fef2f2;    /* Error Light */
-  --danger-text: #dc2626;
-  --info-bg: #eff6ff;      /* Info Light */
-  --info-text: #2563eb;
-   
+  --success-bg: #d1fae5;
+  --success-text: #065f46;
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --info-bg: #dbeafe;
+  --info-text: #1e40af;
+  
   /* Typography */
   --font-poppins: 'Poppins', system-ui, -apple-system, sans-serif;
   --font-passion: 'Passion One', 'Poppins', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-   
-  /* Shadows - Updated to match DESIGN.md shadow colors */
-  --shadow-sm: rgba(28, 34, 96, 0.04);
-  --shadow-md: rgba(28, 34, 96, 0.08);
-  --shadow-lg: rgba(28, 34, 96, 0.12);
-  --shadow-xl: rgba(28, 34, 96, 0.16);
-   
+  --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+  
   /* Layout */
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 72px;
-  --topbar-height: 72px;
-  --max-content-width: 1440px;
-  --radius: 0.75rem; /* 12px */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 60px;
+  --max-content-width: 1400px;
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -98,7 +97,7 @@
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
   --color-brand-link: var(--brand-link);
-   
+  
   /* Status Colors */
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
@@ -112,13 +111,13 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
   --color-info-text: var(--info-text);
-   
+  
   /* Typography */
   --font-sans: var(--font-poppins);
   --font-display: var(--font-passion);
   --font-mono: var(--font-mono);
   --font-serif: serif;
-   
+  
   /* Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -126,14 +125,14 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-full: 9999px;
-   
-  /* Shadows - Updated to match DESIGN.md shadow colors */
-  --shadow-sm: rgba(28, 34, 96, 0.04);
-  --shadow-md: rgba(28, 34, 96, 0.08);
-  --shadow-lg: rgba(28, 34, 96, 0.12);
-  --shadow-xl: rgba(28, 34, 96, 0.16);
+  
+  /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.18);
   --shadow-2xl: 0 20px 48px rgba(0, 0, 0, 0.22);
-   
+  
   /* Sidebar */
   --color-sidebar: var(--bg-page);
   --color-sidebar-foreground: var(--text-body);
@@ -143,15 +142,15 @@
   --color-sidebar-accent-foreground: var(--brand-primary);
   --color-sidebar-border: var(--border);
   --color-sidebar-ring: var(--brand-primary);
-   
+  
   /* Charts */
   --color-chart-1: var(--brand-primary);
   --color-chart-2: var(--brand-secondary);
   --color-chart-3: var(--success);
   --color-chart-4: var(--warning);
   --color-chart-5: var(--danger);
-   
-  /* Spacing - Updated to match DESIGN.md spacing system */
+  
+  /* Spacing */
   --spacing-1: 4px;
   --spacing-2: 8px;
   --spacing-3: 12px;
@@ -161,9 +160,6 @@
   --spacing-8: 32px;
   --spacing-10: 40px;
   --spacing-12: 48px;
-  --spacing-16: 64px;
-  --spacing-20: 80px;
-  --spacing-24: 96px;
 }
 
 /* Light Mode - Default */
@@ -208,38 +204,38 @@
 
 /* Dark Mode */
 .dark {
-  --background: #0e1333; /* Brand Dark */
-  --foreground: #f6f7fa; /* Neutral 50 */
-  --card: #1a1d2e; /* Neutral 900 */
-  --card-foreground: #f6f7fa; /* Neutral 50 */
-  --popover: #0e1333; /* Brand Dark */
-  --popover-foreground: #f6f7fa; /* Neutral 50 */
-  --primary: #1c2260; /* Brand Primary */
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #1c2260;
   --primary-foreground: #ffffff;
-  --secondary: #1fb5a5; /* Brand Secondary */
-  --secondary-foreground: #0e1333; /* Brand Dark */
-  --muted: #5a5f7a; /* Neutral 600 */
-  --muted-foreground: #f6f7fa; /* Neutral 50 */
-  --accent: #eff6ff; /* Brand Light */
-  --accent-foreground: #1c2260; /* Brand Primary */
+  --secondary: #1fb5a5;
+  --secondary-foreground: #0f172a;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #2d3148; /* Neutral 800 */
-  --input: #2d3148; /* Neutral 800 */
-  --ring: #1fb5a5; /* Brand Secondary (Teal) */
-  --chart-1: #1c2260; /* Brand Primary */
-  --chart-2: #1fb5a5; /* Brand Secondary */
-  --chart-3: #10b981; /* Success */
-  --chart-4: #f59e0b; /* Warning */
-  --chart-5: #ef4444; /* Error */
-  --sidebar: #0e1333; /* Brand Dark */
-  --sidebar-foreground: #f6f7fa; /* Neutral 50 */
-  --sidebar-primary: #1c2260; /* Brand Primary */
+  --border: #334155;
+  --input: #334155;
+  --ring: #1c2260;
+  --chart-1: #1c2260;
+  --chart-2: #1fb5a5;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #1c2260;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1fb5a5; /* Brand Secondary */
-  --sidebar-accent-foreground: #0e1333; /* Brand Dark */
-  --sidebar-border: #2d3148; /* Neutral 800 */
-  --sidebar-ring: #1fb5a5; /* Brand Secondary (Teal) */
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #334155;
+  --sidebar-ring: #1c2260;
   --font-sans: var(--font-poppins);
   --font-serif: serif;
   --font-mono: var(--font-mono);

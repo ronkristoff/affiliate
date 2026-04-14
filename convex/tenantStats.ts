@@ -839,7 +839,26 @@ export const _discoverAndBackfillImpl = internalAction({
 export const _listTenantsForBackfill = internalQuery({
   args: { cursor: v.union(v.string(), v.null()) },
   returns: v.object({
-    page: v.array(v.object({ _id: v.id("tenants") })),
+    page: v.array(v.object({
+      _id: v.id("tenants"),
+      _creationTime: v.number(),
+      name: v.string(),
+      domain: v.string(),
+      slug: v.string(),
+      status: v.string(),
+      plan: v.string(),
+      branding: v.optional(v.object({
+        portalName: v.optional(v.string()),
+        primaryColor: v.optional(v.string()),
+      })),
+      trackingVerifiedAt: v.optional(v.number()),
+      billingProvider: v.optional(v.string()),
+      billingStartDate: v.optional(v.number()),
+      billingEndDate: v.optional(v.number()),
+      subscriptionId: v.optional(v.string()),
+      subscriptionStatus: v.optional(v.string()),
+      stripeAccountId: v.optional(v.string()),
+    })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
     pageStatus: v.optional(v.union(v.string(), v.null())),

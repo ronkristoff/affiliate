@@ -232,7 +232,7 @@ export function Sidebar({ className }: SidebarProps) {
     if (!isMounted) return;
     document.documentElement.style.setProperty(
       "--sidebar-width",
-      isCollapsed ? "var(--sidebar-collapsed-width)" : "240px"
+      isCollapsed ? "var(--sidebar-collapsed-width)" : "260px"
     );
     try {
       localStorage.setItem(STORAGE_KEY, String(isCollapsed));

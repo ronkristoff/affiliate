@@ -132,8 +132,8 @@ export function AvatarCell({
         {initials}
       </div>
       <div>
-        <div className="font-semibold text-[#333] text-[13px]">{name}</div>
-        {email && <div className="text-[11px] text-[#6b7280]">{email}</div>}
+        <div className="font-semibold text-[#1a1d2e] text-[13px]">{name}</div>
+        {email && <div className="text-[11px] text-[#5a5f7a]">{email}</div>}
       </div>
     </div>
   );
@@ -155,7 +155,7 @@ export function CurrencyCell({
     <span
       className={cn(
         "text-[12px] tabular-nums",
-        muted ? "text-[#9ca3af]" : "text-[#474747]"
+        muted ? "text-[#9da1b4]" : "text-[#3f4462]"
       )}
     >
       {formatted}
@@ -181,7 +181,7 @@ export function NumberCell({
     formatted = value.toLocaleString();
   }
 
-  return <span className="text-[12px] tabular-nums text-[#474747]">{formatted}</span>;
+  return <span className="text-[12px] tabular-nums text-[#3f4462]">{formatted}</span>;
 }
 
 export function DateCell({
@@ -206,19 +206,19 @@ export function DateCell({
     const days = Math.floor(diff / 86400000);
 
     if (format === "relative-full") {
-      if (minutes < 60) return <span className={cn("text-[#6b7280]", sizeClass)}>{minutes} minutes ago</span>;
-      if (hours < 24) return <span className={cn("text-[#6b7280]", sizeClass)}>{hours} hours ago</span>;
-      if (days === 1) return <span className={cn("text-[#6b7280]", sizeClass)}>1 day ago</span>;
-      if (days < 7) return <span className={cn("text-[#6b7280]", sizeClass)}>{days} days ago</span>;
+      if (minutes < 60) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{minutes} minutes ago</span>;
+      if (hours < 24) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{hours} hours ago</span>;
+      if (days === 1) return <span className={cn("text-[#5a5f7a]", sizeClass)}>1 day ago</span>;
+      if (days < 7) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{days} days ago</span>;
       const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
-      return <span className={cn("text-[#6b7280]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
+      return <span className={cn("text-[#5a5f7a]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
     }
 
     // "relative" — abbreviated format
-    if (minutes < 60) return <span className={cn("text-[#6b7280]", sizeClass)}>{minutes}m ago</span>;
-    if (hours < 24) return <span className={cn("text-[#6b7280]", sizeClass)}>{hours}h ago</span>;
-    if (days === 1) return <span className={cn("text-[#6b7280]", sizeClass)}>1 day ago</span>;
-    if (days < 7) return <span className={cn("text-[#6b7280]", sizeClass)}>{days} days ago</span>;
+    if (minutes < 60) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{minutes}m ago</span>;
+    if (hours < 24) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{hours}h ago</span>;
+    if (days === 1) return <span className={cn("text-[#5a5f7a]", sizeClass)}>1 day ago</span>;
+    if (days < 7) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{days} days ago</span>;
   }
 
   const options: Intl.DateTimeFormatOptions =
@@ -226,7 +226,7 @@ export function DateCell({
       ? { month: "short", day: "numeric", year: "numeric" }
       : { month: "short", day: "numeric", year: "numeric" };
 
-  return <span className={cn("text-[#6b7280]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
+  return <span className={cn("text-[#5a5f7a]", sizeClass)}>{date.toLocaleDateString("en-US", options)}</span>;
 }
 
 // ============================================================================

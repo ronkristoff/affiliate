@@ -36,27 +36,27 @@ interface MetricCardProps {
 }
 
 const variantStyles = {
-  blue: "bg-[var(--bg-surface)]",
-  green: "bg-[var(--bg-surface)]",
-  yellow: "bg-[var(--bg-surface)]",
-  gray: "bg-[var(--bg-surface)]",
-  red: "bg-[var(--bg-surface)]",
+  blue: "bg-white",
+  green: "bg-white",
+  yellow: "bg-white",
+  gray: "bg-white",
+  red: "bg-white",
 };
 
 const accentGradientMap: Record<string, string> = {
   blue: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%)",
-  green: "linear-gradient(135deg, var(--success) 0%, #059669 100%)",
-  yellow: "linear-gradient(135deg, var(--warning) 0%, #d97706 100%)",
-  gray: "linear-gradient(135deg, var(--text-muted) 0%, #4b5563 100%)",
-  red: "linear-gradient(135deg, var(--danger) 0%, #b91c1c 100%)",
+  green: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+  yellow: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+  gray: "linear-gradient(135deg, #5a5f7a 0%, #4b5563 100%)",
+  red: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
 };
 
 const iconBgMap: Record<string, string> = {
-  blue: "bg-[var(--brand-light)] text-[var(--brand-primary)]",
-  green: "bg-[var(--success-bg)] text-[var(--success-text)]",
-  yellow: "bg-[var(--warning-bg)] text-[var(--warning-text)]",
-  gray: "bg-[var(--bg-page)] text-[var(--text-muted)]",
-  red: "bg-red-50 text-[var(--danger)]",
+  blue: "bg-[#eff6ff] text-[#1c2260]",
+  green: "bg-[#ecfdf5] text-[#059669]",
+  yellow: "bg-[#fffbeb] text-[#d97706]",
+  gray: "bg-[#f6f7fa] text-[#5a5f7a]",
+  red: "bg-[#fef2f2] text-[#dc2626]",
 };
 
 export function MetricCard({
