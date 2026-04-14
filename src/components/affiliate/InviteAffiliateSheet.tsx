@@ -105,7 +105,13 @@ export function InviteAffiliateSheet({ isOpen, onClose }: InviteAffiliateSheetPr
       onClose();
       router.push(`/affiliates/${result.affiliateId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to invite affiliate");
+      const message =
+        typeof error === "object" && error !== null && "data" in error
+          ? String(error.data)
+          : error instanceof Error
+            ? error.message
+            : "Failed to invite affiliate";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
