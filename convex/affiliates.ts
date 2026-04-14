@@ -1,5 +1,5 @@
 import { query, mutation, internalQuery, internalMutation, internalAction } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticatedUser } from "./tenantContext";
 import { hasPermission } from "./permissions";
@@ -1009,7 +1009,7 @@ export const registerAffiliate = mutation({
       .first();
 
     if (existingAffiliate) {
-      throw new Error("An affiliate with this email already exists in this tenant");
+      throw new ConvexError("This email address is already associated with an affiliate in your program");
     }
 
     // Check tier limits before creating affiliate
@@ -1108,7 +1108,7 @@ export const inviteAffiliate = mutation({
       .first();
 
     if (existingAffiliate) {
-      throw new Error("An affiliate with this email already exists in your program");
+      throw new ConvexError("This email address is already associated with an affiliate in your program");
     }
 
     const tierConfig = await ctx.runQuery(api.tierConfig.getMyTierConfig);
