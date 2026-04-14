@@ -29,6 +29,7 @@ import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
 import { sendEmail, getFromAddress } from "./emailService";
+import { renderTemplate } from "./templates";
 
 // Workaround: RegisteredMutation type doesn't expose callable signature to tsc,
 // but Convex runtime supports calling internal mutations directly with (ctx, args).
@@ -651,6 +652,7 @@ export const sendAffiliateWelcomeEmail = async (
 /**
  * Action: Send welcome email with retry logic.
  * Uses exponential backoff for retry attempts.
+ * Checks for custom template before sending.
  */
 export const sendAffiliateWelcomeEmailWithRetry = internalAction({
   args: {
@@ -682,7 +684,45 @@ export const sendAffiliateWelcomeEmailWithRetry = internalAction({
     let retryCount = 0;
     const baseDelay = 1000; // 1 second base delay
 
-    const subject = `Welcome to ${args.portalName}! Your application is pending approval`;
+    const defaultSubject = `Welcome to ${args.portalName}! Your application is pending approval`;
+
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_welcome" }
+    );
+
+    const referralUrl = args.referralUrl || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.example.com"}/r/${args.uniqueCode}`;
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      referral_link: referralUrl,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateWelcomeEmail
+          affiliateName={args.affiliateName}
+          affiliateEmail={args.affiliateEmail}
+          uniqueCode={args.uniqueCode}
+          portalName={args.portalName}
+          referralUrl={referralUrl}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          approvalTimeframe={args.approvalTimeframe}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -690,20 +730,8 @@ export const sendAffiliateWelcomeEmailWithRetry = internalAction({
         const result = await ctx.runAction(internal.emailService.sendEmail, {
           from: getFromAddress("onboarding"),
           to: args.to,
-          subject,
-          html: await render(
-            <AffiliateWelcomeEmail
-              affiliateName={args.affiliateName}
-              affiliateEmail={args.affiliateEmail}
-              uniqueCode={args.uniqueCode}
-              portalName={args.portalName}
-              referralUrl={args.referralUrl}
-              brandLogoUrl={args.brandLogoUrl}
-              brandPrimaryColor={args.brandPrimaryColor}
-              approvalTimeframe={args.approvalTimeframe}
-              contactEmail={args.contactEmail}
-            />
-          ),
+          subject: finalSubject,
+          html,
           tracking: {
             tenantId: args.tenantId,
             type: "affiliate_welcome",
@@ -793,6 +821,7 @@ export const sendNewAffiliateNotificationEmail = async (
 /**
  * Action: Send approval email to affiliate.
  * Called from approveAffiliate mutation.
+ * Checks for custom template before sending.
  */
 export const sendApprovalEmail = action({
   args: {
@@ -808,23 +837,49 @@ export const sendApprovalEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const subject = `Your application to ${args.portalName} has been approved!`;
+    const defaultSubject = `Your application to ${args.portalName} has been approved!`;
+    
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_approval" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      portal_login_url: args.portalLoginUrl,
+      contact_email: args.contactEmail,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateApprovalEmail
+          affiliateName={args.affiliateName}
+          affiliateEmail={args.affiliateEmail}
+          portalName={args.portalName}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          portalLoginUrl={args.portalLoginUrl}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
+
     try {
       await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject,
-        html: await render(
-          <AffiliateApprovalEmail
-            affiliateName={args.affiliateName}
-            affiliateEmail={args.affiliateEmail}
-            portalName={args.portalName}
-            brandLogoUrl={args.brandLogoUrl}
-            brandPrimaryColor={args.brandPrimaryColor}
-            portalLoginUrl={args.portalLoginUrl}
-            contactEmail={args.contactEmail}
-          />
-        ),
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "affiliate_approved",
@@ -843,6 +898,7 @@ export const sendApprovalEmail = action({
 /**
  * Action: Send rejection email to affiliate.
  * Called from rejectAffiliate mutation.
+ * Checks for custom template before sending.
  */
 export const sendRejectionEmail = action({
   args: {
@@ -858,22 +914,47 @@ export const sendRejectionEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const subject = `Update on your ${args.portalName} affiliate application`;
+    const defaultSubject = `Update on your ${args.portalName} affiliate application`;
+    
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_rejection" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      contact_email: args.contactEmail,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateRejectionEmail
+          affiliateName={args.affiliateName}
+          portalName={args.portalName}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          reason={args.reason}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
+
     try {
       await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject,
-        html: await render(
-          <AffiliateRejectionEmail
-            affiliateName={args.affiliateName}
-            portalName={args.portalName}
-            brandLogoUrl={args.brandLogoUrl}
-            brandPrimaryColor={args.brandPrimaryColor}
-            reason={args.reason}
-            contactEmail={args.contactEmail}
-          />
-        ),
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "affiliate_rejected",
@@ -892,6 +973,7 @@ export const sendRejectionEmail = action({
 /**
  * Action: Send suspension email to affiliate.
  * Called from suspendAffiliate mutation.
+ * Checks for custom template before sending.
  */
 export const sendSuspensionEmail = action({
   args: {
@@ -907,22 +989,48 @@ export const sendSuspensionEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const subject = `Your ${args.portalName} affiliate account has been suspended`;
+    const defaultSubject = `Your ${args.portalName} affiliate account has been suspended`;
+    
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_suspension" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      contact_email: args.contactEmail,
+      suspension_reason: args.reason,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateSuspensionEmail
+          affiliateName={args.affiliateName}
+          portalName={args.portalName}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          reason={args.reason}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
+
     try {
       await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject,
-        html: await render(
-          <AffiliateSuspensionEmail
-            affiliateName={args.affiliateName}
-            portalName={args.portalName}
-            brandLogoUrl={args.brandLogoUrl}
-            brandPrimaryColor={args.brandPrimaryColor}
-            reason={args.reason}
-            contactEmail={args.contactEmail}
-          />
-        ),
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "affiliate_suspended",
@@ -941,6 +1049,7 @@ export const sendSuspensionEmail = action({
 /**
  * Action: Send reactivation email to affiliate.
  * Called from reactivateAffiliate mutation.
+ * Checks for custom template before sending.
  */
 export const sendReactivationEmail = action({
   args: {
@@ -956,22 +1065,48 @@ export const sendReactivationEmail = action({
   },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const subject = `Your ${args.portalName} affiliate account has been reactivated!`;
+    const defaultSubject = `Your ${args.portalName} affiliate account has been reactivated!`;
+    
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_reactivation" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      portal_login_url: args.portalLoginUrl,
+      contact_email: args.contactEmail,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateReactivationEmail
+          affiliateName={args.affiliateName}
+          portalName={args.portalName}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          portalLoginUrl={args.portalLoginUrl}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
+
     try {
       await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.affiliateEmail,
-        subject,
-        html: await render(
-          <AffiliateReactivationEmail
-            affiliateName={args.affiliateName}
-            portalName={args.portalName}
-            brandLogoUrl={args.brandLogoUrl}
-            brandPrimaryColor={args.brandPrimaryColor}
-            portalLoginUrl={args.portalLoginUrl}
-            contactEmail={args.contactEmail}
-          />
-        ),
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "affiliate_reactivated",

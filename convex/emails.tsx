@@ -273,6 +273,7 @@ export const getEmailHistory = internalMutation({
  * Story 5.6 AC #9.
  * 
  * NOTE: Changed from internalMutation to internalAction to support Resend email sending.
+ * Checks for custom template before sending.
  */
 export const sendFraudAlertEmail = internalAction({
   args: {
@@ -326,14 +327,34 @@ export const sendFraudAlertEmail = internalAction({
       const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.boboddy.business"}/commissions/${args.commissionId}`;
 
       // Email subject with warning emoji (AC #9)
-      const subject = "🚨 Fraud Alert: Self-Referral Detected";
+      const defaultSubject = "🚨 Fraud Alert: Self-Referral Detected";
 
-      // Send the email via unified email service
-      const emailResult: { success: boolean; messageId?: string } = await ctx.runAction(internal.emailService.sendEmail, {
-        from: getFromAddress("security"),
-        to: ownerEmail,
-        subject,
-        html: await render(
+      // Check for custom template
+      const customTemplate = await ctx.runQuery(
+        internal.templates.getEmailTemplateForSending,
+        { tenantId: args.tenantId, templateType: "fraud_alert_self_referral" }
+      );
+
+      const templateVariables: Record<string, string | number | undefined> = {
+        brand_name: brandName,
+        brand_logo_url: brandLogo,
+        brand_primary_color: brandColor,
+        affiliate_name: affiliate.name,
+        affiliate_email: affiliate.email,
+        commission_amount: commission.amount.toLocaleString("en-US", { style: "currency", currency: "PHP" }),
+        commission_id: args.commissionId,
+        matched_indicators: args.matchedIndicators.join(", "),
+        dashboard_url: dashboardUrl,
+      };
+
+      let finalSubject = defaultSubject;
+      let html: string;
+
+      if (customTemplate) {
+        finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+        html = renderTemplate(customTemplate.customBody, templateVariables);
+      } else {
+        html = await render(
           <FraudAlertEmail
             brandName={brandName}
             brandLogoUrl={brandLogo}
@@ -346,7 +367,15 @@ export const sendFraudAlertEmail = internalAction({
             matchedIndicators={args.matchedIndicators}
             dashboardUrl={dashboardUrl}
           />
-        ),
+        );
+      }
+
+      // Send the email via unified email service
+      const emailResult: { success: boolean; messageId?: string } = await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("security"),
+        to: ownerEmail,
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "fraud_alert_self_referral",
@@ -676,6 +705,7 @@ export const sendPayoutSentEmail = internalAction({
  * - Email sent within 5-minute SLA (AC1)
  * 
  * Sends email with affiliate details, conversion amount, and commission information.
+ * Checks for custom template before sending.
  */
 export const sendNewReferralAlertEmail = internalAction({
   args: {
@@ -723,33 +753,67 @@ export const sendNewReferralAlertEmail = internalAction({
     // Use provided owner name or default
     const ownerName = args.ownerName || "SaaS Owner";
 
-    const subject = `New Referral: ${args.affiliateName} - ${args.commissionAmount.toLocaleString("en-US", { style: "currency", currency })}`;
+    const defaultSubject = `New Referral: ${args.affiliateName} - ${args.commissionAmount.toLocaleString("en-US", { style: "currency", currency })}`;
+
+    // Check for custom template
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "new_referral_alert" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      owner_name: ownerName,
+      affiliate_name: args.affiliateName,
+      affiliate_email: args.affiliateEmail,
+      conversion_amount: args.conversionAmount.toLocaleString("en-US", { style: "currency", currency }),
+      commission_amount: args.commissionAmount.toLocaleString("en-US", { style: "currency", currency }),
+      customer_email: args.customerEmail,
+      campaign_name: args.campaignName,
+      portal_name: args.portalName,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      conversion_date: new Date(args.conversionTimestamp).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+      dashboard_affiliate_url: args.dashboardAffiliateUrl,
+      dashboard_conversion_url: args.dashboardConversionUrl,
+      contact_email: args.contactEmail,
+      currency: currency,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <NewReferralAlertEmail
+          ownerName={ownerName}
+          affiliateName={args.affiliateName}
+          affiliateEmail={args.affiliateEmail}
+          conversionAmount={args.conversionAmount}
+          conversionDate={args.conversionTimestamp}
+          customerEmail={args.customerEmail}
+          campaignName={args.campaignName}
+          commissionAmount={args.commissionAmount}
+          portalName={args.portalName}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          dashboardAffiliateUrl={args.dashboardAffiliateUrl}
+          dashboardConversionUrl={args.dashboardConversionUrl}
+          contactEmail={args.contactEmail}
+          currency={currency}
+        />
+      );
+    }
 
     try {
       // Send the email via unified email service
       const emailResult = await ctx.runAction(internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: args.ownerEmail,
-        subject,
-        html: await render(
-          <NewReferralAlertEmail
-            ownerName={ownerName}
-            affiliateName={args.affiliateName}
-            affiliateEmail={args.affiliateEmail}
-            conversionAmount={args.conversionAmount}
-            conversionDate={args.conversionTimestamp}
-            customerEmail={args.customerEmail}
-            campaignName={args.campaignName}
-            commissionAmount={args.commissionAmount}
-            portalName={args.portalName}
-            brandLogoUrl={args.brandLogoUrl}
-            brandPrimaryColor={args.brandPrimaryColor}
-            dashboardAffiliateUrl={args.dashboardAffiliateUrl}
-            dashboardConversionUrl={args.dashboardConversionUrl}
-            contactEmail={args.contactEmail}
-            currency={currency}
-          />
-        ),
+        subject: finalSubject,
+        html,
         tracking: {
           tenantId: args.tenantId,
           type: "new_referral_alert",

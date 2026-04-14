@@ -94,6 +94,34 @@ export const TEMPLATE_VARIABLES: Record<string, string[]> = {
     "portal_login_url",
     "contact_email",
   ],
+  new_referral_alert: [
+    "owner_name",
+    "affiliate_name",
+    "affiliate_email",
+    "conversion_amount",
+    "commission_amount",
+    "customer_email",
+    "campaign_name",
+    "portal_name",
+    "brand_logo_url",
+    "brand_primary_color",
+    "conversion_date",
+    "dashboard_affiliate_url",
+    "dashboard_conversion_url",
+    "contact_email",
+    "currency",
+  ],
+  fraud_alert_self_referral: [
+    "brand_name",
+    "brand_logo_url",
+    "brand_primary_color",
+    "affiliate_name",
+    "affiliate_email",
+    "commission_amount",
+    "commission_id",
+    "matched_indicators",
+    "dashboard_url",
+  ],
 };
 
 /**
@@ -108,6 +136,8 @@ const REQUIRED_VARIABLES: Record<string, string[]> = {
   affiliate_rejection: ["affiliate_name", "portal_name"],
   affiliate_suspension: ["affiliate_name", "portal_name"],
   affiliate_reactivation: ["affiliate_name", "portal_name"],
+  new_referral_alert: ["affiliate_name", "commission_amount", "portal_name"],
+  fraud_alert_self_referral: ["affiliate_name", "commission_amount", "brand_name"],
 };
 
 /**
@@ -285,6 +315,73 @@ export const TEMPLATE_DEFINITIONS: TemplateTypeDefinition[] = [
 <li>You can continue earning commissions</li>
 </ul>
 <p>Thank you for your patience. Welcome back to the team!</p>`,
+  },
+  {
+    type: "new_referral_alert",
+    label: "New Referral Alert",
+    description: "Sent to SaaS owner when a new referral conversion is attributed to an affiliate.",
+    variables: TEMPLATE_VARIABLES.new_referral_alert,
+    requiredVariables: REQUIRED_VARIABLES.new_referral_alert,
+    sampleData: {
+      owner_name: "Alex",
+      affiliate_name: "Jamie Cruz",
+      affiliate_email: "jamie@example.com",
+      conversion_amount: "$299.00",
+      commission_amount: "$59.80",
+      customer_email: "customer@example.com",
+      campaign_name: "Summer Sale",
+      portal_name: "My SaaS",
+      brand_logo_url: "https://example.com/logo.png",
+      brand_primary_color: "#1c2260",
+      conversion_date: "March 15, 2026",
+      dashboard_affiliate_url: "https://app.example.com/affiliates/123",
+      dashboard_conversion_url: "https://app.example.com/conversions/456",
+      contact_email: "support@example.com",
+      currency: "USD",
+    },
+    defaultSubject: "New Referral: {{affiliate_name}} - {{commission_amount}}",
+    defaultBody: `<h1>New Referral Alert! 🎯</h1>
+<p>Hi {{owner_name}},</p>
+<p>A new conversion has been attributed to your affiliate program:</p>
+<h3>Conversion Details</h3>
+<p><strong>Affiliate:</strong> {{affiliate_name}} ({{affiliate_email}})</p>
+<p><strong>Conversion Amount:</strong> {{conversion_amount}}</p>
+<p><strong>Commission Earned:</strong> {{commission_amount}}</p>
+<p><strong>Campaign:</strong> {{campaign_name}}</p>
+<p><strong>Customer:</strong> {{customer_email}}</p>
+<p><strong>Date:</strong> {{conversion_date}}</p>
+<p>Log in to your dashboard to view details and manage your affiliate program.</p>`,
+  },
+  {
+    type: "fraud_alert_self_referral",
+    label: "Fraud Alert - Self Referral",
+    description: "Sent to SaaS owner when self-referral fraud is detected. Includes details of the suspicious activity.",
+    variables: TEMPLATE_VARIABLES.fraud_alert_self_referral,
+    requiredVariables: REQUIRED_VARIABLES.fraud_alert_self_referral,
+    sampleData: {
+      brand_name: "My SaaS",
+      brand_logo_url: "https://example.com/logo.png",
+      brand_primary_color: "#1c2260",
+      affiliate_name: "Jamie Cruz",
+      affiliate_email: "jamie@example.com",
+      commission_amount: "$59.80",
+      commission_id: "COM-12345",
+      matched_indicators: "Same email domain, Same IP address",
+      dashboard_url: "https://app.example.com/commissions/12345",
+    },
+    defaultSubject: "🚨 Fraud Alert: Self-Referral Detected",
+    defaultBody: `<h1>🚨 Fraud Alert: Self-Referral Detected</h1>
+<p>This is an automated alert from <strong>{{brand_name}}</strong>'s affiliate program.</p>
+<p>We have detected a potential self-referral fraud incident that requires your attention.</p>
+<h3>Incident Details</h3>
+<p><strong>Affiliate:</strong> {{affiliate_name}} ({{affiliate_email}})</p>
+<p><strong>Commission Amount:</strong> {{commission_amount}}</p>
+<p><strong>Commission ID:</strong> {{commission_id}}</p>
+<h3>Matched Fraud Indicators</h3>
+<ul>
+<li>{{matched_indicators}}</li>
+</ul>
+<p>Review this commission in your dashboard and take appropriate action (approve, decline, or reverse).</p>`,
   },
 ];
 
