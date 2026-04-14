@@ -455,7 +455,8 @@ if (window.Affilio) {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {/* Action Buttons — hidden when used inline in wizard (no callbacks provided) */}
+      {(onComplete || onSkip) && (
       <div className="flex items-center justify-between pt-4 border-t">
         {onSkip && (
           <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
@@ -469,6 +470,7 @@ if (window.Affilio) {
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   CreditCard,
@@ -26,6 +25,7 @@ import {
   Unplug,
   RefreshCw,
   Info,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +33,8 @@ import { toast } from "sonner";
  * Integrations Settings Content
  * Shows connected billing providers with status, connect/disconnect actions,
  * and the ability to switch between Stripe and SaligPay.
+ *
+ * Stripe: one-click OAuth if Connect is configured, manual secret dialog as fallback.
  */
 export function IntegrationsSettingsContent() {
   const user = useQuery(api.auth.getCurrentUser);
@@ -47,33 +49,88 @@ export function IntegrationsSettingsContent() {
     tenantId ? { tenantId } : "skip"
   );
 
+  // Check if Stripe Connect OAuth is configured on this platform
+  const checkConnectConfig = useAction(api.tenants.isStripeConnectConfigured);
+  const [useOAuth, setUseOAuth] = useState(false);
+
+  useEffect(() => {
+    checkConnectConfig({}).then((result) => {
+      if (result) setUseOAuth(result.configured);
+    }).catch(() => {
+      setUseOAuth(false);
+    });
+  }, [checkConnectConfig]);
+
   // Connect mutations
-  const connectStripe = useMutation(api.tenants.connectStripe);
   const connectMockSaligPay = useMutation(api.tenants.connectMockSaligPay);
+  const connectStripe = useMutation(api.tenants.connectStripe);
 
   // Disconnect mutations
   const disconnectStripe = useMutation(api.tenants.disconnectStripe);
   const disconnectSaligPay = useMutation(api.tenants.disconnectSaligPay);
 
-  // Stripe connect form state
+  // Disconnect confirmation state
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  // Manual secret dialog state (fallback when Connect is not configured)
   const [stripeDialogOpen, setStripeDialogOpen] = useState(false);
   const [signingSecret, setSigningSecret] = useState("");
   const [stripeAccountId, setStripeAccountId] = useState("");
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
-  // Disconnect confirmation state
-  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  // Handle OAuth callback URL params
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
 
-  // Connect Stripe handler
-  const handleConnectStripe = async () => {
-    if (!tenantId || !signingSecret.trim()) return;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setSearchParams(params);
+
+    // Show toast based on callback result, then clean up URL
+    if (params.get("stripe_connected") === "true") {
+      toast.success("Stripe connected successfully!");
+      window.history.replaceState({}, "", "/settings/integrations");
+    } else if (params.get("stripe_error")) {
+      toast.error(`Stripe connection failed: ${params.get("stripe_error")}`);
+      window.history.replaceState({}, "", "/settings/integrations");
+    }
+  }, []);
+
+  // Stripe Connect OAuth: one-click redirect
+  const handleConnectStripeOAuth = () => {
+    if (!tenantId) return;
+    window.location.href = `/api/stripe/connect?tenantId=${tenantId}&redirect=/settings/integrations`;
+  };
+
+  // Stripe manual: validate and save signing secret
+  const handleConnectStripeManual = async () => {
+    if (!tenantId) return;
+
+    const trimmed = signingSecret.trim();
+    if (!trimmed) {
+      toast.error("Webhook signing secret is required.");
+      return;
+    }
+    if (!trimmed.startsWith("whsec_")) {
+      toast.error("Signing secret must start with \"whsec_\". Check your Stripe Dashboard under Developers \u2192 Webhooks.");
+      return;
+    }
+    const payload = trimmed.slice(6);
+    if (payload.length < 24) {
+      toast.error("Signing secret appears too short. Make sure you copied the full secret from Stripe Dashboard.");
+      return;
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(payload)) {
+      toast.error("Signing secret contains invalid characters. It should only contain letters, numbers, hyphens, and underscores after \"whsec_\".");
+      return;
+    }
 
     setIsConnectingStripe(true);
     try {
       await connectStripe({
         tenantId,
-        signingSecret: signingSecret.trim(),
+        signingSecret: trimmed,
         stripeAccountId: stripeAccountId.trim() || undefined,
       });
       toast.success("Stripe connected successfully!");
@@ -86,6 +143,9 @@ export function IntegrationsSettingsContent() {
       setIsConnectingStripe(false);
     }
   };
+
+  // Unified: pick the right handler based on config
+  const handleConnectStripe = useOAuth ? handleConnectStripeOAuth : () => setStripeDialogOpen(true);
 
   // Connect Mock SaligPay handler
   const handleConnectSaligPay = async () => {
@@ -106,6 +166,18 @@ export function IntegrationsSettingsContent() {
     setIsDisconnecting(true);
     try {
       if (stripeStatus?.isConnected) {
+        // For OAuth connections, call the deauthorize endpoint to revoke on Stripe's side
+        if (stripeStatus.connectedVia === "oauth") {
+          try {
+            await fetch("/api/stripe/deauthorize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tenantId }),
+            });
+          } catch {
+            // Non-blocking: local disconnect will still proceed
+          }
+        }
         await disconnectStripe({ tenantId });
         toast.success("Stripe disconnected.");
       } else if (saligPayStatus?.isConnected) {
@@ -167,7 +239,7 @@ export function IntegrationsSettingsContent() {
                 </div>
                 <div>
                   <CardTitle className="text-base">Stripe</CardTitle>
-                  <CardDescription>Webhook-based commission tracking</CardDescription>
+                  <CardDescription>Connect your Stripe account</CardDescription>
                 </div>
               </div>
               {stripeStatus?.isConnected ? (
@@ -187,7 +259,7 @@ export function IntegrationsSettingsContent() {
                   {stripeStatus.stripeAccountId && (
                     <p className="text-muted-foreground">
                       Account: <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {stripeStatus.stripeAccountId.slice(-4).padStart(stripeAccountId.length, "•")}
+                        {stripeStatus.stripeAccountId.slice(-4).padStart(stripeStatus.stripeAccountId.length, "•")}
                       </code>
                     </p>
                   )}
@@ -196,9 +268,12 @@ export function IntegrationsSettingsContent() {
                       Connected: {new Date(stripeStatus.connectedAt).toLocaleDateString()}
                     </p>
                   )}
-                  {stripeStatus.mode && (
+                  <Badge variant="outline" className="text-xs">
+                    {stripeStatus.livemode === false ? "Test Mode" : "Live"}
+                  </Badge>
+                  {stripeStatus.connectedVia === "oauth" && (
                     <Badge variant="outline" className="text-xs">
-                      {stripeStatus.mode === "test" ? "Test Mode" : "Live"}
+                      OAuth
                     </Badge>
                   )}
                 </div>
@@ -216,64 +291,76 @@ export function IntegrationsSettingsContent() {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Connect via webhook signing secret. Stripe events are verified using signature validation.
+                  {useOAuth
+                    ? "Connect your Stripe account with one click. Affilio will receive webhook events automatically — no manual setup needed."
+                    : "Connect via webhook signing secret. Stripe events are verified using signature validation."}
                 </p>
-                <Dialog open={stripeDialogOpen} onOpenChange={setStripeDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm">
+                {useOAuth ? (
+                  <Button size="sm" onClick={handleConnectStripe}>
+                    <Plug className="w-3 h-3 mr-1" />
+                    Connect Stripe
+                    <ExternalLink className="w-3 h-3 ml-1.5 opacity-50" />
+                  </Button>
+                ) : (
+                  <Dialog open={stripeDialogOpen} onOpenChange={setStripeDialogOpen}>
+                    <Button size="sm" onClick={() => setStripeDialogOpen(true)}>
                       <Plug className="w-3 h-3 mr-1" />
                       Connect Stripe
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Connect Stripe</DialogTitle>
-                      <DialogDescription>
-                        Paste your webhook signing secret from the Stripe Dashboard. You can find it under
-                        Developers &rarr; Webhooks &rarr; your endpoint &rarr; Signing secret.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="signing-secret">Webhook Signing Secret</Label>
-                        <Input
-                          id="signing-secret"
-                          type="password"
-                          placeholder="whsec_..."
-                          value={signingSecret}
-                          onChange={(e) => setSigningSecret(e.target.value)}
-                        />
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Connect Stripe</DialogTitle>
+                        <DialogDescription>
+                          Paste your webhook signing secret from the Stripe Dashboard. You can find it under
+                          Developers &rarr; Webhooks &rarr; your endpoint &rarr; Signing secret.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="settings-signing-secret">Webhook Signing Secret</Label>
+                          <Input
+                            id="settings-signing-secret"
+                            type="password"
+                            placeholder="whsec_..."
+                            value={signingSecret}
+                            onChange={(e) => setSigningSecret(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="settings-stripe-account-id">Stripe Account ID (optional)</Label>
+                          <Input
+                            id="settings-stripe-account-id"
+                            placeholder="acct_..."
+                            value={stripeAccountId}
+                            onChange={(e) => setStripeAccountId(e.target.value)}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="stripe-account-id">Stripe Account ID (optional)</Label>
-                        <Input
-                          id="stripe-account-id"
-                          placeholder="acct_..."
-                          value={stripeAccountId}
-                          onChange={(e) => setStripeAccountId(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setStripeDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleConnectStripe}
-                        disabled={!signingSecret.trim() || isConnectingStripe}
-                      >
-                        {isConnectingStripe ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          "Connect"
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setStripeDialogOpen(false);
+                          setSigningSecret("");
+                          setStripeAccountId("");
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleConnectStripeManual}
+                          disabled={!signingSecret.trim() || isConnectingStripe}
+                        >
+                          {isConnectingStripe ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            "Connect"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             )}
           </CardContent>

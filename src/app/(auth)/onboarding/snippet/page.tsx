@@ -9,11 +9,13 @@ export default function OnboardingSnippetPage() {
   const router = useRouter();
 
   const handleComplete = () => {
-    router.push("/dashboard");
+    // Navigate back to the onboarding wizard at the snippet step, then continue
+    router.push("/onboarding?step=4");
   };
 
   const handleSkip = () => {
-    router.push("/dashboard");
+    // Navigate back to the onboarding wizard at the next step
+    router.push("/onboarding?step=4");
   };
 
   return (

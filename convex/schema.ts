@@ -51,11 +51,13 @@ export default defineSchema({
       mockRefreshToken: v.optional(v.string()),
     })),
     stripeCredentials: v.optional(v.object({
-      signingSecret: v.string(),       // Webhook signing secret (manual input for MVP)
+      signingSecret: v.string(),       // Webhook signing secret (manual fallback)
       mode: v.optional(v.string()),     // "test" or "live"
       connectedAt: v.optional(v.number()),
-      // OAuth fields deferred to post-MVP:
-      // accessToken, refreshToken, tokenExpiresAt, webhookEndpointId
+      connectedVia: v.optional(v.string()), // "oauth" or "manual"
+      livemode: v.optional(v.boolean()),    // Whether OAuth connection is in live mode
+      accessToken: v.optional(v.string()),  // OAuth access token (obfuscated)
+      refreshToken: v.optional(v.string()), // OAuth refresh token (obfuscated)
     })),
     branding: v.optional(v.object({
       logoUrl: v.optional(v.string()),
@@ -74,6 +76,9 @@ export default defineSchema({
       domainVerifiedAt: v.optional(v.number()),
       sslProvisionedAt: v.optional(v.number()),
     })),
+    // Onboarding state
+    onboardingCompleted: v.optional(v.boolean()), // true once user finishes the onboarding wizard
+    onboardingCompletedAt: v.optional(v.number()), // timestamp of completion
   }).index("by_slug", ["slug"])
     .index("by_domain", ["domain"])
     .index("by_tracking_key", ["trackingPublicKey"])

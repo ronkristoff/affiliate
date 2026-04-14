@@ -115,7 +115,7 @@ export const createNotification = internalMutation({
       try {
         const userEmail = user?.email;
         if (userEmail) {
-          await ctx.runMutation(internal.emailServiceMutation.sendEmailFromMutation, {
+          await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
             from: getFromAddress("billing"),
             to: userEmail,
             subject: args.emailSubject,

@@ -6,10 +6,8 @@ import { hasPermission, Role } from "./permissions";
 import { api, internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
 import { getFromAddress } from "./emailService";
-// Workaround: RegisteredMutation type doesn't expose callable signature to tsc.
-const sendEmailFromMutation = _sendEmailFromMutation as any;
+
 import TeamInvitationEmail from "./emails/TeamInvitation";
 import TeamWelcomeEmail from "./emails/TeamWelcome";
 import TeamAcceptedNotificationEmail from "./emails/TeamAcceptedNotification";
@@ -118,9 +116,34 @@ export const createTeamInvitation = mutation({
     if (existingInvitation && !existingInvitation.acceptedAt) {
       // Check if invitation has expired
       if (existingInvitation.expiresAt > Date.now()) {
-        throw new Error("An invitation is already pending for this email address");
+        // Invitation still pending — re-send the email instead of throwing.
+        // This handles the case where the first email failed to deliver.
+        const inviterName = authUser.email?.split("@")[0] || "Someone";
+        await ctx.scheduler.runAfter(0, internal.teamInvitations.scheduleInvitationEmail, {
+          invitationId: existingInvitation._id,
+          email: args.email.toLowerCase(),
+          role: existingInvitation.role,
+          tenantId: tenantId,
+          inviterName,
+        });
+
+        // Audit log for re-send
+        await ctx.db.insert("auditLogs", {
+          tenantId,
+          action: "team_invitation_resent",
+          entityType: "teamInvitations",
+          entityId: existingInvitation._id,
+          actorId: authUser.userId,
+          actorType: "user",
+          newValue: { email: args.email.toLowerCase(), role: existingInvitation.role },
+        });
+
+        return {
+          invitationId: existingInvitation._id,
+          token: existingInvitation.token,
+        };
       }
-      // If expired, we'll allow creating a new one
+      // If expired, we'll allow creating a new one (falls through below)
     }
 
     // AC7: Check if user already exists in the tenant
@@ -241,7 +264,7 @@ export const scheduleInvitationEmail = internalMutation({
     const primaryColor = tenant.branding?.primaryColor || "#1c2260";
 
     try {
-      await sendEmailFromMutation(ctx, {
+      await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
         from: getFromAddress("onboarding"),
         to: args.email,
         subject: `You're invited to join ${tenant.name} as a ${args.role}`,
@@ -486,7 +509,7 @@ export const scheduleAcceptanceEmails = internalMutation({
 
     // Send welcome email to new team member
     try {
-      await sendEmailFromMutation(ctx, {
+      await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
         from: getFromAddress("onboarding"),
         to: args.email,
         subject: `Welcome to ${portalName}!`,
@@ -523,7 +546,7 @@ export const scheduleAcceptanceEmails = internalMutation({
 
       if (ownerEmails.length > 0) {
         for (const ownerEmail of ownerEmails) {
-          await sendEmailFromMutation(ctx, {
+          await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
             from: getFromAddress("notifications"),
             to: ownerEmail,
             subject: `New team member joined ${portalName}`,

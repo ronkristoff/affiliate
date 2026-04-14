@@ -18,6 +18,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { readDefaultTrialDays } from "./platformSettings";
+import { betterAuthComponent } from "./auth";
 
 /** Create a timestamp from year/month/day (1-indexed month). */
 function date(year: number, month: number, day: number): number {
@@ -2095,5 +2096,67 @@ export const getTestCredentials = internalQuery({
       affiliates,
       commonPassword: TEST_PASSWORD,
     };
+  },
+});
+
+/**
+ * Delete specific users by email — targeted cleanup for dev.
+ * Removes from: users table, tenants (if owner), auth component user/account tables.
+ */
+export const deleteUsersByEmail = internalMutation({
+  args: { emails: v.array(v.string()) },
+  returns: v.object({ deleted: v.object({ users: v.number(), tenants: v.number(), authUsers: v.number(), authAccounts: v.number() }) }),
+  handler: async (ctx, args) => {
+    const result = { users: 0, tenants: 0, authUsers: 0, authAccounts: 0 };
+
+    for (const email of args.emails) {
+      const cleanEmail = email.trim().toLowerCase();
+
+      // 1. Delete app user + tenant (if owner)
+      const appUser = await ctx.db.query("users").withIndex("by_email", q => q.eq("email", cleanEmail)).first();
+      if (appUser) {
+        // If owner, delete the tenant and all its data
+        if (appUser.role === "owner") {
+          const tenant = await ctx.db.get(appUser.tenantId);
+          if (tenant) {
+            // Delete tenant-related data
+            const tenantAffiliates = await ctx.db.query("affiliates").withIndex("by_tenant", q => q.eq("tenantId", appUser.tenantId)).take(500);
+            for (const a of tenantAffiliates) await ctx.db.delete(a._id);
+            const tenantCampaigns = await ctx.db.query("campaigns").withIndex("by_tenant", q => q.eq("tenantId", appUser.tenantId)).take(500);
+            for (const c of tenantCampaigns) await ctx.db.delete(c._id);
+            const tenantUsers = await ctx.db.query("users").withIndex("by_tenant", q => q.eq("tenantId", appUser.tenantId)).take(500);
+            for (const u of tenantUsers) await ctx.db.delete(u._id);
+            await ctx.db.delete(appUser.tenantId);
+            result.tenants++;
+          }
+        } else {
+          await ctx.db.delete(appUser._id);
+        }
+        result.users++;
+      }
+
+      // 2. Delete from Better Auth component tables
+      const factory: any = betterAuthComponent.adapter(ctx);
+      const db: any = factory({ options: {} });
+      try {
+        const authUsers = await db.findMany({ model: "user" });
+        const authUser = authUsers?.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+        if (authUser) {
+          await (ctx.db as any).delete(authUser.id);
+          result.authUsers++;
+        }
+      } catch {}
+
+      try {
+        const accounts = await (ctx.db as any).query("account").collect();
+        const acct = accounts?.find((a: any) => a.accountId?.toLowerCase() === cleanEmail);
+        if (acct) {
+          await (ctx.db as any).delete(acct._id);
+          result.authAccounts++;
+        }
+      } catch {}
+    }
+
+    return { deleted: result };
   },
 });

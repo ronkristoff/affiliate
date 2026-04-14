@@ -807,8 +807,8 @@ export const getSetupStatus = query({
       throw new Error("Tenant not found");
     }
 
-    // Billing provider connected: Stripe or SaligPay
-    const isStripeConnected = !!tenant.stripeAccountId && !!tenant.stripeCredentials?.signingSecret;
+    // Billing provider connected: Stripe (OAuth or manual) or SaligPay
+    const isStripeConnected = !!tenant.stripeAccountId && !!tenant.stripeCredentials?.connectedAt;
     const isSaligPayConnected = !!tenant.saligPayCredentials?.connectedAt;
 
     return {

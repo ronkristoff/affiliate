@@ -18,6 +18,7 @@ import AffiliateApprovalEmail from "./emails/AffiliateApprovalEmail";
 import AffiliateRejectionEmail from "./emails/AffiliateRejectionEmail";
 import AffiliateSuspensionEmail from "./emails/AffiliateSuspensionEmail";
 import AffiliateReactivationEmail from "./emails/AffiliateReactivationEmail";
+import OwnerWelcomeEmail from "./emails/OwnerWelcomeEmail";
 import { type MutationCtx, action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { render } from "@react-email/components";
@@ -73,7 +74,7 @@ export const sendEmailVerification = async (
     url: string;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Verify your email address",
@@ -98,7 +99,7 @@ export const sendOTPVerification = async (
     : purpose === "2fa"
       ? "Your verification code"
       : "Verify your email address";
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject,
@@ -116,7 +117,7 @@ export const sendMagicLink = async (
     url: string;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Sign in to your account",
@@ -134,7 +135,7 @@ export const sendResetPassword = async (
     url: string;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Reset your password",
@@ -150,7 +151,7 @@ export const sendPasswordChanged = async (
     to: string;
   },
 ) => {
-  await sendEmailFromMutation(ctx, {
+  await sendViaAction(ctx, {
     from: getFromAddress("onboarding"),
     to,
     subject: "Your password has been changed",
@@ -514,6 +515,54 @@ export const sendPaymentSuccessEmail = async (
     },
   });
 };
+
+// ── Group B.3: Owner onboarding helpers ─────────────────────────────────────
+
+/**
+ * Internal action: Send welcome email to new SaaS Owner after sign-up.
+ * Runs in Node.js runtime (supports Postmark SDK + JSX rendering).
+ * Called from completeSignUp mutation via ctx.scheduler.runAfter.
+ */
+export const sendOwnerWelcomeEmailAction = internalAction({
+  args: {
+    to: v.string(),
+    ownerName: v.string(),
+    companyName: v.string(),
+    plan: v.string(),
+    dashboardUrl: v.string(),
+    trialDays: v.optional(v.number()),
+    tenantId: v.id("tenants"),
+  },
+  returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("onboarding"),
+        to: args.to,
+        subject: `Welcome to Salig Affiliate — ${args.companyName} is ready!`,
+        html: await render(
+          <OwnerWelcomeEmail
+            ownerName={args.ownerName}
+            companyName={args.companyName}
+            plan={args.plan}
+            dashboardUrl={args.dashboardUrl}
+            trialDays={args.trialDays}
+          />
+        ),
+        tracking: {
+          tenantId: args.tenantId,
+          type: "owner_welcome",
+        },
+      });
+
+      return { success: result.success, error: result.success ? undefined : "Email send failed" };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("[sendOwnerWelcomeEmailAction] FAILED:", errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  },
+});
 
 // ── Group C: Affiliate helpers ──────────────────────────────────────────────
 

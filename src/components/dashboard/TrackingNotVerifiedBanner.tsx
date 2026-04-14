@@ -52,7 +52,7 @@ export function TrackingNotVerifiedBanner({ isVerified }: { isVerified?: boolean
             Install the tracking snippet to enable click and conversion attribution for your affiliate program.
           </p>
           <Button asChild variant="outline" size="sm" className="mt-3">
-            <Link href="/onboarding/snippet">
+            <Link href="/onboarding?step=3">
               View Setup Guide
               <ExternalLink className="w-4 h-4 ml-2" />
             </Link>

@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { query, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server";
+import { query, mutation, action, internalMutation, internalQuery, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -13,10 +13,7 @@ import DeletionReminderEmail from "./emails/DeletionReminderEmail";
 import DomainChangeNotificationEmail from "./emails/DomainChangeNotificationEmail";
 import { render } from "@react-email/components";
 import React from "react";
-import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
 import { sendEmail, getFromAddress } from "./emailService";
-// Workaround: RegisteredMutation type doesn't expose callable signature to tsc.
-const sendEmailFromMutation = _sendEmailFromMutation as any;
 
 /** Milliseconds in one day. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -274,7 +271,7 @@ export const sendDomainChangeNotification = internalMutation({
     }
 
     try {
-      await sendEmailFromMutation(ctx, {
+      await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
         from: getFromAddress("notifications"),
         to: affiliate.email,
         subject: `Important: ${tenant.name} has updated their website domain`,
@@ -950,11 +947,28 @@ export const disconnectSaligPay = mutation({
 });
 
 // =============================================================================
-// Stripe Connection (MVP — Manual Signing Secret)
+// Stripe Configuration
 // =============================================================================
 
 /**
- * Connect Stripe integration (MVP: manual signing secret input)
+ * Check whether Stripe Connect OAuth is configured on this platform.
+ * Returns true if STRIPE_CLIENT_ID is set — the frontend uses this to decide
+ * whether to show the one-click OAuth button or the manual secret dialog.
+ */
+export const isStripeConnectConfigured = action({
+  args: {},
+  returns: v.object({ configured: v.boolean() }),
+  handler: async () => {
+    return { configured: !!process.env.STRIPE_CLIENT_ID };
+  },
+});
+
+// =============================================================================
+// Stripe Connection
+// =============================================================================
+
+/**
+ * Connect Stripe via manual signing secret (legacy fallback).
  * Merchant pastes their Stripe webhook signing secret from Stripe Dashboard.
  */
 export const connectStripe = mutation({
@@ -1011,6 +1025,7 @@ export const connectStripe = mutation({
         signingSecret: obfuscatedSecret,
         mode: "live",
         connectedAt,
+        connectedVia: "manual",
       },
       stripeAccountId: args.stripeAccountId || undefined,
     });
@@ -1022,7 +1037,7 @@ export const connectStripe = mutation({
       entityId: args.tenantId,
       actorId: authUser.userId,
       actorType: "user",
-      newValue: { stripeAccountId: args.stripeAccountId, mode: "live" },
+      newValue: { stripeAccountId: args.stripeAccountId, mode: "live", connectedVia: "manual" },
     });
 
     return { success: true, connectedAt };
@@ -1030,7 +1045,83 @@ export const connectStripe = mutation({
 });
 
 /**
- * Disconnect Stripe integration
+ * Internal Mutation: Complete Stripe Connect OAuth flow.
+ * Called by the /api/stripe/callback HTTP action after exchanging the code.
+ * Stores the OAuth credentials (obfuscated) and Stripe account ID.
+ */
+export const completeStripeOAuth = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    stripeAccountId: v.string(),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    livemode: v.boolean(),
+  },
+  returns: v.object({ success: v.boolean() }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const connectedAt = Date.now();
+
+    // If a different provider is already connected, disconnect it first
+    if (tenant.billingProvider && tenant.billingProvider !== "stripe") {
+      if (tenant.billingProvider === "saligpay" && tenant.saligPayCredentials) {
+        await ctx.db.patch(args.tenantId, {
+          saligPayCredentials: undefined,
+        });
+        await ctx.db.insert("auditLogs", {
+          tenantId: args.tenantId,
+          action: "saligpay_disconnected",
+          entityType: "tenant",
+          entityId: args.tenantId,
+          actorType: "system",
+          previousValue: { reason: "switched_to_stripe_oauth" },
+        });
+      }
+    }
+
+    // Obfuscate tokens before storing
+    const obfuscatedAccessToken = obfuscate(args.accessToken);
+    const obfuscatedRefreshToken = obfuscate(args.refreshToken);
+
+    await ctx.db.patch(args.tenantId, {
+      billingProvider: "stripe",
+      stripeCredentials: {
+        signingSecret: "", // Not used for OAuth — platform secret handles verification
+        mode: args.livemode ? "live" : "test",
+        connectedAt,
+        connectedVia: "oauth",
+        livemode: args.livemode,
+        accessToken: obfuscatedAccessToken,
+        refreshToken: obfuscatedRefreshToken,
+      },
+      stripeAccountId: args.stripeAccountId,
+    });
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: args.tenantId,
+      action: "stripe_connected",
+      entityType: "tenant",
+      entityId: args.tenantId,
+      actorType: "system",
+      newValue: {
+        stripeAccountId: args.stripeAccountId,
+        mode: args.livemode ? "live" : "test",
+        connectedVia: "oauth",
+      },
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Disconnect Stripe integration.
+ * For OAuth connections, the caller should also call Stripe's deauthorize endpoint
+ * from an action (Node.js runtime) before calling this mutation.
  */
 export const disconnectStripe = mutation({
   args: {
@@ -1068,11 +1159,115 @@ export const disconnectStripe = mutation({
         entityId: args.tenantId,
         actorId: authUser.userId,
         actorType: "user",
-        previousValue: { stripeAccountId: tenant.stripeAccountId },
+        previousValue: {
+          stripeAccountId: tenant.stripeAccountId,
+          connectedVia: tenant.stripeCredentials?.connectedVia,
+        },
       });
     }
 
     return true;
+  },
+});
+
+/**
+ * Internal Mutation: Clear Stripe credentials (called by deauthorize action).
+ * No auth check needed — the action verifies the Stripe token before calling this.
+ */
+export const clearStripeCredentialsInternal = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) return null;
+
+    const wasConnected = !!tenant.stripeCredentials;
+
+    await ctx.db.patch(args.tenantId, {
+      stripeCredentials: undefined,
+      stripeAccountId: undefined,
+      billingProvider: undefined,
+    });
+
+    if (wasConnected) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: args.tenantId,
+        action: "stripe_disconnected",
+        entityType: "tenant",
+        entityId: args.tenantId,
+        actorType: "system",
+        previousValue: {
+          stripeAccountId: tenant.stripeAccountId,
+          reason: "oauth_deauthorized",
+        },
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Mark onboarding as completed for the current tenant.
+ * Called when the user clicks "Complete Setup" on the final onboarding step.
+ */
+export const completeOnboarding = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    // Idempotent — only set if not already completed
+    if (!tenant.onboardingCompleted) {
+      await ctx.db.patch(authUser.tenantId, {
+        onboardingCompleted: true,
+        onboardingCompletedAt: Date.now(),
+      });
+
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "onboarding_completed",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Check if onboarding is completed for a tenant.
+ */
+export const getOnboardingStatus = query({
+  args: {
+    tenantId: v.id("tenants"),
+  },
+  returns: v.object({
+    onboardingCompleted: v.boolean(),
+    onboardingCompletedAt: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) {
+      return { onboardingCompleted: false };
+    }
+    return {
+      onboardingCompleted: tenant.onboardingCompleted ?? false,
+      onboardingCompletedAt: tenant.onboardingCompletedAt,
+    };
   },
 });
 
@@ -1089,6 +1284,8 @@ export const getStripeConnectionStatus = query({
       stripeAccountId: v.optional(v.string()),
       mode: v.optional(v.string()),
       connectedAt: v.optional(v.number()),
+      connectedVia: v.optional(v.string()),
+      livemode: v.optional(v.boolean()),
     }),
     v.object({
       isConnected: v.literal(false),
@@ -1105,6 +1302,8 @@ export const getStripeConnectionStatus = query({
       stripeAccountId: tenant.stripeAccountId,
       mode: tenant.stripeCredentials.mode,
       connectedAt: tenant.stripeCredentials.connectedAt,
+      connectedVia: tenant.stripeCredentials.connectedVia,
+      livemode: tenant.stripeCredentials.livemode,
     };
   },
 });
@@ -1125,6 +1324,8 @@ export const getTenantByStripeAccountId = internalQuery({
         signingSecret: v.string(),
         mode: v.optional(v.string()),
         connectedAt: v.optional(v.number()),
+        connectedVia: v.optional(v.string()),
+        livemode: v.optional(v.boolean()),
       })),
     })
   ),
@@ -1158,6 +1359,11 @@ export const getTenantInternal = internalQuery({
     v.object({
       name: v.string(),
       slug: v.string(),
+      stripeAccountId: v.optional(v.string()),
+      stripeCredentials: v.optional(v.object({
+        connectedVia: v.optional(v.string()),
+        accessToken: v.optional(v.string()),
+      })),
       branding: v.optional(v.object({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
@@ -1178,6 +1384,11 @@ export const getTenantInternal = internalQuery({
     return {
       name: tenant.name,
       slug: tenant.slug,
+      stripeAccountId: tenant.stripeAccountId,
+      stripeCredentials: tenant.stripeCredentials ? {
+        connectedVia: tenant.stripeCredentials.connectedVia,
+        accessToken: tenant.stripeCredentials.accessToken,
+      } : undefined,
       branding: tenant.branding,
     };
   },

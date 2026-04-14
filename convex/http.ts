@@ -1320,22 +1320,39 @@ http.route({
         });
       }
 
-      // 6. Signature verification (MVP: verify against stored signing secret)
-      if (signature && tenant.stripeCredentials?.signingSecret) {
-        // Dynamic import for Stripe SDK (httpAction runs in Node.js)
-        try {
-          const stripe = (await import("stripe")).default;
-          const webhookSecret = tenant.stripeCredentials.signingSecret;
-          stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-        } catch (err: any) {
-          console.error(`[Stripe Webhook] Signature verification failed for tenant ${tenant._id}:`, err.message);
-          return new Response(JSON.stringify({ received: true, error: "Invalid signature" }), {
-            status: 200,
-            headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
-          });
+      // 6. Signature verification
+      // For OAuth connections: use platform webhook secret (STRIPE_WEBHOOK_SECRET env var)
+      // For manual connections: use per-tenant signing secret (backwards compat)
+      if (signature) {
+        const stripe = (await import("stripe")).default;
+        const platformSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+        // Try platform secret first (OAuth / Connect webhook endpoint)
+        if (platformSecret && tenant.stripeCredentials?.connectedVia === "oauth") {
+          try {
+            stripe.webhooks.constructEvent(rawBody, signature, platformSecret);
+          } catch (err: any) {
+            console.error(`[Stripe Webhook] Platform signature verification failed for tenant ${tenant._id}:`, err.message);
+            return new Response(JSON.stringify({ received: true, error: "Invalid signature" }), {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+            });
+          }
+        } else if (tenant.stripeCredentials?.signingSecret) {
+          // Manual fallback: verify with per-tenant secret
+          try {
+            const webhookSecret = tenant.stripeCredentials.signingSecret;
+            stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+          } catch (err: any) {
+            console.error(`[Stripe Webhook] Signature verification failed for tenant ${tenant._id}:`, err.message);
+            return new Response(JSON.stringify({ received: true, error: "Invalid signature" }), {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+            });
+          }
+        } else {
+          console.warn(`[Stripe Webhook] No signing secret configured for tenant ${tenant._id}`);
         }
-      } else if (signature) {
-        console.warn(`[Stripe Webhook] No signing secret configured for tenant ${tenant._id}`);
       }
 
       // 7. Test mode check
@@ -2586,6 +2603,273 @@ http.route({
         JSON.stringify({ success: false, message: "Internal error" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+  }),
+});
+
+// =============================================================================
+// Stripe Connect OAuth Routes
+// =============================================================================
+
+/**
+ * Generate a signed state parameter for CSRF protection.
+ * Format: base64url(HMAC-SHA256(tenantId, secret) + "." + tenantId)
+ * Uses Web Crypto API (globalThis.crypto.subtle) — no Node.js require needed.
+ */
+async function generateOAuthState(tenantId: string): Promise<string> {
+  const secret = process.env.BETTER_AUTH_SECRET || "fallback-secret";
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(tenantId));
+  const hmac = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
+  return Buffer.from(`${hmac}.${tenantId}`).toString("base64url");
+}
+
+/**
+ * Verify and extract tenant ID from OAuth state parameter.
+ * Returns null if state is invalid or tampered.
+ */
+async function verifyOAuthState(state: string): Promise<string | null> {
+  try {
+    const secret = process.env.BETTER_AUTH_SECRET || "fallback-secret";
+    const encoder = new TextEncoder();
+    const decoded = Buffer.from(state, "base64url").toString("utf-8");
+    const [hmac, tenantId] = decoded.split(".", 2);
+    if (!hmac || !tenantId) return null;
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(tenantId));
+    const expectedHmac = Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 16);
+    if (hmac !== expectedHmac) return null;
+
+    return tenantId;
+  } catch {
+    return null;
+  }
+}
+
+// GET /api/stripe/connect — Initiate Stripe Connect OAuth
+http.route({
+  path: "/api/stripe/connect",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const tenantId = url.searchParams.get("tenantId");
+    const redirectTo = url.searchParams.get("redirect") || "/onboarding";
+
+    if (!tenantId) {
+      return new Response("Missing tenantId parameter", { status: 400 });
+    }
+
+    const clientId = process.env.STRIPE_CLIENT_ID;
+    if (!clientId) {
+      console.error("[Stripe Connect] STRIPE_CLIENT_ID not configured");
+      return new Response(
+        JSON.stringify({ error: "Stripe Connect is not configured. Set STRIPE_CLIENT_ID environment variable." }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the tenant exists
+    const tenant = await ctx.runQuery(internal.tenants.getTenantInternal, {
+      tenantId: tenantId as any,
+    });
+    if (!tenant) {
+      return new Response("Tenant not found", { status: 404 });
+    }
+
+    // Generate CSRF-protected state
+    const state = await generateOAuthState(tenantId);
+
+    // Build Stripe OAuth URL
+    const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const stripeAuthUrl = new URL("https://connect.stripe.com/oauth/authorize");
+    stripeAuthUrl.searchParams.set("response_type", "code");
+    stripeAuthUrl.searchParams.set("client_id", clientId);
+    stripeAuthUrl.searchParams.set("scope", "read_write");
+    stripeAuthUrl.searchParams.set("state", state);
+
+    // Redirect to Stripe
+    return Response.redirect(stripeAuthUrl.toString(), 302);
+  }),
+});
+
+// GET /api/stripe/callback — Handle Stripe OAuth callback
+http.route({
+  path: "/api/stripe/callback",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
+
+    // Handle Stripe error (e.g., user denied access)
+    if (error) {
+      const errorDesc = url.searchParams.get("error_description") || error;
+      console.error("[Stripe Connect] OAuth error:", error, errorDesc);
+      const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+      return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent(errorDesc)}`, 302);
+    }
+
+    if (!code || !state) {
+      return new Response("Missing code or state parameter", { status: 400 });
+    }
+
+    // Verify state and extract tenant ID
+    const tenantId = await verifyOAuthState(state);
+    if (!tenantId) {
+      console.error("[Stripe Connect] Invalid or tampered state parameter");
+      const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+      return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent("Invalid OAuth state. Please try again.")}`, 302);
+    }
+
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      console.error("[Stripe Connect] STRIPE_SECRET_KEY not configured");
+      const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+      return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent("Stripe Connect is not configured. Set STRIPE_SECRET_KEY environment variable.")}`, 302);
+    }
+
+    try {
+      // Exchange authorization code for access token
+      const tokenResponse = await fetch("https://connect.stripe.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: process.env.STRIPE_CLIENT_ID || "",
+          code,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorBody = await tokenResponse.text();
+        console.error("[Stripe Connect] Token exchange failed:", tokenResponse.status, errorBody);
+        const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+        return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent("Failed to connect Stripe. Please try again.")}`, 302);
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenData.stripe_user_id || !tokenData.access_token) {
+        console.error("[Stripe Connect] Invalid token response:", tokenData);
+        const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+        return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent("Invalid response from Stripe. Please try again.")}`, 302);
+      }
+
+      // Store OAuth credentials
+      await ctx.runMutation(internal.tenants.completeStripeOAuth, {
+        tenantId: tenantId as any,
+        stripeAccountId: tokenData.stripe_user_id,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || "",
+        livemode: tokenData.livemode === true,
+      });
+
+      console.log(`[Stripe Connect] Successfully connected account ${tokenData.stripe_user_id} for tenant ${tenantId} (livemode: ${tokenData.livemode})`);
+
+      // Redirect to settings with success flag
+      const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+      return Response.redirect(`${siteUrl}/settings/integrations?stripe_connected=true`, 302);
+    } catch (err: any) {
+      console.error("[Stripe Connect] Unexpected error during callback:", err);
+      const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+      return Response.redirect(`${siteUrl}/settings/integrations?stripe_error=${encodeURIComponent("An unexpected error occurred. Please try again.")}`, 302);
+    }
+  }),
+});
+
+// POST /api/stripe/deauthorize — Deauthorize a Stripe Connect account
+http.route({
+  path: "/api/stripe/deauthorize",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      const { tenantId } = await req.json();
+
+      if (!tenantId) {
+        return new Response(JSON.stringify({ error: "Missing tenantId" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Get tenant's Stripe credentials
+      const tenant = await ctx.runQuery(internal.tenants.getTenantInternal, {
+        tenantId: tenantId as any,
+      });
+
+      if (!tenant?.stripeCredentials?.accessToken) {
+        return new Response(JSON.stringify({ error: "No Stripe connection found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const secretKey = process.env.STRIPE_SECRET_KEY;
+      const clientId = process.env.STRIPE_CLIENT_ID;
+
+      if (!secretKey || !clientId) {
+        console.error("[Stripe Connect] STRIPE_SECRET_KEY or STRIPE_CLIENT_ID not configured");
+        return new Response(JSON.stringify({ error: "Stripe Connect not configured" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Deauthorize via Stripe API
+      const deauthResponse = await fetch("https://connect.stripe.com/oauth/deauthorize", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${secretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          stripe_user_id: tenant.stripeAccountId || "",
+        }),
+      });
+
+      if (!deauthResponse.ok) {
+        const errorBody = await deauthResponse.text();
+        console.error("[Stripe Connect] Deauthorize failed:", deauthResponse.status, errorBody);
+        // Still clear local credentials even if deauthorize API call fails
+      }
+
+      // Clear local credentials
+      await ctx.runMutation(internal.tenants.clearStripeCredentialsInternal, {
+        tenantId: tenantId as any,
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      console.error("[Stripe Connect] Deauthorize error:", err);
+      return new Response(JSON.stringify({ error: "Failed to disconnect Stripe" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   }),
 });
