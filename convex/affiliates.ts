@@ -1169,6 +1169,31 @@ export const inviteAffiliate = mutation({
       newValue: { email: args.email, name: fullName, uniqueCode, status: "active" },
     });
 
+    // Send invitation email to the newly invited affiliate
+    try {
+      const tenant = await ctx.db.get(tenantId);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const referralUrl = `${baseUrl}/r/${uniqueCode}`;
+      const portalLoginUrl = `${baseUrl}/portal/login`;
+      const contactEmail = process.env.SUPPORT_EMAIL || "support@saligaffiliate.com";
+
+      await ctx.scheduler.runAfter(0, api.email.sendAffiliateInvitationEmail, {
+        tenantId,
+        affiliateId,
+        to: args.email,
+        affiliateName: fullName,
+        uniqueCode,
+        portalName: tenant?.branding?.portalName || tenant?.name || "Affiliate Portal",
+        referralUrl,
+        brandLogoUrl: tenant?.branding?.logoUrl,
+        brandPrimaryColor: tenant?.branding?.primaryColor,
+        portalLoginUrl,
+        contactEmail,
+      });
+    } catch (error) {
+      console.error("Failed to schedule invitation email:", error);
+    }
+
     return {
       affiliateId,
       uniqueCode,
@@ -1280,6 +1305,7 @@ export const updateAffiliateStatus = mutation({
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
+      affiliateId: args.affiliateId,
       action: "affiliate_status_updated",
       entityType: "affiliate",
       entityId: args.affiliateId,
@@ -1573,6 +1599,7 @@ export const setAffiliateStatus = mutation({
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
+      affiliateId: args.affiliateId,
       action: `affiliate_${args.status}`,
       entityType: "affiliate",
       entityId: args.affiliateId,
@@ -1698,6 +1725,7 @@ export const suspendAffiliate = mutation({
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
+      affiliateId: args.affiliateId,
       action: "affiliate_suspended",
       entityType: "affiliate",
       entityId: args.affiliateId,
@@ -1842,6 +1870,7 @@ export const reactivateAffiliate = mutation({
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
+      affiliateId: args.affiliateId,
       action: "affiliate_reactivated",
       entityType: "affiliate",
       entityId: args.affiliateId,
@@ -2015,6 +2044,7 @@ export const approveAffiliate = mutation({
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
+      affiliateId: args.affiliateId,
       action: "affiliate_approved",
       entityType: "affiliate",
       entityId: args.affiliateId,
