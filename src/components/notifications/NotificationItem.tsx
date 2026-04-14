@@ -10,10 +10,11 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface NotificationItemProps {
   notification: {
-    _id: string;
+    _id: Id<"notifications">;
     type: string;
     title: string;
     message: string;
@@ -24,7 +25,7 @@ interface NotificationItemProps {
     _creationTime: number;
     aggregatedCount: number;
   };
-  onMarkRead?: (notificationId: string) => void;
+  onMarkRead?: (notificationId: Id<"notifications">) => void;
   onClick?: () => void;
 }
 

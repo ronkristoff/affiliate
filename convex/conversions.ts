@@ -689,7 +689,6 @@ export const createConversion = internalMutation({
         metadata: {
           affiliateId: args.affiliateId,
           amount: args.amount,
-          campaignId: args.campaignId,
         },
       });
     } catch (err) {
@@ -932,8 +931,8 @@ export const getConversionsByAffiliate = query({
     return {
       page: filteredPage,
       continueCursor: result.continueCursor,
-      pageStatus: v.optional(v.union(v.string(), v.null())),
-      splitCursor: v.optional(v.union(v.string(), v.null())),
+      pageStatus: result.pageStatus,
+      splitCursor: result.splitCursor,
       isDone: result.isDone,
     };
   },
@@ -1040,8 +1039,8 @@ export const getConversionsByTenant = query({
     return {
       page: enrichedPage,
       continueCursor: result.continueCursor,
-      pageStatus: v.optional(v.union(v.string(), v.null())),
-      splitCursor: v.optional(v.union(v.string(), v.null())),
+      pageStatus: result.pageStatus,
+      splitCursor: result.splitCursor,
       isDone: result.isDone,
     };
   },

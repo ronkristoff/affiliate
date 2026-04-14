@@ -461,3 +461,76 @@ export function getActionSeverity(action: string): AuditSeverity {
 export function getAuditActionLabel(action: string): string {
   return AUDIT_ACTION_LABELS[action] ?? action.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// =============================================================================
+// EXCEPTION-ONLY ACTIONS — Actions that represent issues requiring attention
+// =============================================================================
+
+/**
+ * Actions that indicate problems, failures, or items needing review.
+ * Used for the "Exceptions Only" default view in Activity Log.
+ * 
+ * IMPORTANT: Keep in sync with EXCEPTION_ACTION_SET in convex/audit.ts
+ */
+export const EXCEPTION_ACTIONS = new Set([
+  // Commission issues
+  "COMMISSION_DECLINED",
+  "COMMISSION_REVERSED",
+  "commission_rejected_payment_failed",
+  "commission_rejected_payment_pending",
+  "commission_rejected_payment_unknown",
+  "commission_creation_skipped",
+  
+  // Payout issues
+  "payout_failed",
+  
+  // Affiliate issues
+  "affiliate_rejected",
+  "affiliate_suspended",
+  "affiliate_bulk_rejected",
+  
+  // Attribution issues (potential lost commissions)
+  "attribution_no_data",
+  "attribution_affiliate_invalid",
+  "attribution_referral_link_not_found",
+  "attribution_no_campaign",
+  "attribution_no_matching_click",
+  
+  // Fraud
+  "self_referral_detected",
+  "FRAUD_SIGNAL_ADDED",
+  "conversion_recorded_self_referral",
+  
+  // Email failures
+  "email_send_failed",
+  "email_scheduling_failed",
+  "fraud_alert_email_failed",
+  "email_bounced",
+  "email_complained",
+  
+  // Security
+  "security_unauthorized_access_attempt",
+  "AUTH_SIGNIN_FAILURE",
+  "AUTH_ACCOUNT_LOCKED",
+  "permission_denied",
+  
+  // Commission adjustments (downgrades need review)
+  "commission_adjusted_downgrade",
+]);
+
+/**
+ * Check if an action is an exception (requires attention).
+ */
+export function isExceptionAction(action: string): boolean {
+  return EXCEPTION_ACTIONS.has(action);
+}
+
+/**
+ * Actions to hide by default (noise events).
+ * These are shown only when "Show All Activity" is enabled.
+ */
+export const NOISE_ACTIONS = new Set([
+  "click_recorded",
+  "click_deduplicated",
+  "attribution_click_matched",
+]);

@@ -4,11 +4,125 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getAuditActionLabel } from "@/lib/audit-constants";
 import { formatCurrency } from "@/lib/format";
-import { ChevronDown, ChevronUp, Clock, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, ExternalLink, User, MousePointerClick, ShoppingCart, DollarSign, Users, Package } from "lucide-react";
 
 interface AuditLogEntryProps {
   log: any;
   onEntityClick?: (entityType: string, entityId: string) => void;
+}
+
+/**
+ * Get a user-friendly display label for an entity based on its type and metadata.
+ * Falls back to a shortened ID if no meaningful label can be extracted.
+ */
+function getEntityDisplayLabel(entityType: string, entityId: string, metadata?: Record<string, any>): { label: string; icon: React.ReactNode } {
+  const meta = metadata ?? {};
+
+  switch (entityType) {
+    case "affiliate":
+      return {
+        label: meta.affiliateName ?? meta.name ?? meta.email ?? "Affiliate",
+        icon: <User className="h-3 w-3" />,
+      };
+
+    case "commission": {
+      const amount = meta.amount ?? meta.commissionAmount ?? meta.newAmount;
+      const affiliateName = meta.affiliateName;
+      if (amount) {
+        return {
+          label: `${formatCurrency(amount)}${affiliateName ? ` for ${affiliateName}` : ""}`,
+          icon: <DollarSign className="h-3 w-3" />,
+        };
+      }
+      return {
+        label: affiliateName ? `Commission for ${affiliateName}` : "Commission",
+        icon: <DollarSign className="h-3 w-3" />,
+      };
+    }
+
+    case "conversion": {
+      const amount = meta.amount ?? meta.conversionAmount;
+      const customerEmail = meta.customerEmail ?? meta.email;
+      if (amount && customerEmail) {
+        return {
+          label: `${formatCurrency(amount)} from ${customerEmail}`,
+          icon: <ShoppingCart className="h-3 w-3" />,
+        };
+      }
+      if (amount) {
+        return {
+          label: `${formatCurrency(amount)} conversion`,
+          icon: <ShoppingCart className="h-3 w-3" />,
+        };
+      }
+      if (customerEmail) {
+        return {
+          label: `Conversion from ${customerEmail}`,
+          icon: <ShoppingCart className="h-3 w-3" />,
+        };
+      }
+      return {
+        label: "Conversion",
+        icon: <ShoppingCart className="h-3 w-3" />,
+      };
+    }
+
+    case "click": {
+      let referrerHost = "";
+      if (meta.referrer) {
+        try {
+          referrerHost = new URL(meta.referrer).hostname;
+        } catch {
+          // Invalid URL - use empty string
+        }
+      }
+      return {
+        label: referrerHost ? `Click via ${referrerHost}` : "Click event",
+        icon: <MousePointerClick className="h-3 w-3" />,
+      };
+    }
+
+    case "payouts":
+    case "payoutBatches": {
+      const amount = meta.amount ?? meta.totalAmount;
+      const affiliateCount = meta.affiliateCount;
+      if (amount) {
+        return {
+          label: `Payout ${formatCurrency(amount)}${affiliateCount ? ` (${affiliateCount} affiliates)` : ""}`,
+          icon: <DollarSign className="h-3 w-3" />,
+        };
+      }
+      return {
+        label: entityType === "payoutBatches" ? "Payout Batch" : "Payout",
+        icon: <DollarSign className="h-3 w-3" />,
+      };
+    }
+
+    case "campaign":
+      return {
+        label: meta.campaignName ?? meta.name ?? "Campaign",
+        icon: <Package className="h-3 w-3" />,
+      };
+
+    case "user":
+      return {
+        label: meta.userName ?? meta.name ?? meta.email ?? "User",
+        icon: <User className="h-3 w-3" />,
+      };
+
+    case "tenant":
+      return {
+        label: meta.tenantName ?? meta.name ?? "Account",
+        icon: <Users className="h-3 w-3" />,
+      };
+
+    default:
+      // Fallback: show shortened ID for unknown entity types
+      return {
+        label: `${entityType} #${entityId.slice(0, 8)}`,
+        icon: <ExternalLink className="h-3 w-3" />,
+      };
+  }
 }
 
 const ACTION_COLOR_MAP: Record<string, string> = {
@@ -176,8 +290,8 @@ export function AuditLogEntry({ log, onEntityClick }: AuditLogEntryProps) {
   const severity = getSeverity(log.action);
   const colorClass = ACTION_COLOR_MAP[severity] ?? ACTION_COLOR_MAP.info;
   const actionLabel = getAuditActionLabel(log.action);
-  const truncatedId = log.entityId
-    ? `${log.entityId.slice(0, 12)}...`
+  const entityDisplay = log.entityId
+    ? getEntityDisplayLabel(log.entityType, log.entityId, log.metadata)
     : null;
 
   return (
@@ -206,14 +320,15 @@ export function AuditLogEntry({ log, onEntityClick }: AuditLogEntryProps) {
         </div>
 
         <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] flex-wrap">
-          {truncatedId && (
+          {entityDisplay && (
             <button
               type="button"
               onClick={() => onEntityClick?.(log.entityType, log.entityId)}
-              className="inline-flex items-center gap-1 font-mono text-[11px] text-[var(--brand-primary)] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] text-[var(--brand-primary)] hover:underline cursor-pointer"
+              title={`View ${log.entityType} details`}
             >
-              {truncatedId}
-              <ExternalLink className="h-2.5 w-2.5" />
+              {entityDisplay.icon}
+              {entityDisplay.label}
             </button>
           )}
           {log.actorName && (

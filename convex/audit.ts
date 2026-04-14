@@ -22,7 +22,7 @@
  * full documentation of the exception.
  */
 
-import { internalMutation, internalAction, mutation, query } from "./_generated/server";
+import { internalMutation, internalAction, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
@@ -819,6 +819,8 @@ export const logAttributionDecision = internalMutation({
  * Returns paginated, filtered audit logs for the authenticated user's tenant.
  * Uses compound indexes for efficient filtering.
  * Enriches results with actor names (handles deleted actors).
+ * 
+ * Supports affiliateSearch to filter by affiliate name (case-insensitive partial match).
  */
 export const listTenantAuditLogs = query({
   args: {
@@ -829,6 +831,7 @@ export const listTenantAuditLogs = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     entityId: v.optional(v.string()),
+    affiliateSearch: v.optional(v.string()),
   },
   returns: v.object({
     page: v.array(v.object({
@@ -864,11 +867,31 @@ export const listTenantAuditLogs = query({
       };
     }
 
-    const hasPostFilters = !!(args.action || args.affiliateId || args.entityId || args.startDate || args.endDate);
+    // If affiliateSearch is provided, find matching affiliate IDs first
+    let matchingAffiliateIds: Set<string> | undefined;
+    if (args.affiliateSearch && args.affiliateSearch.trim().length > 0) {
+      const searchLower = args.affiliateSearch.toLowerCase();
+      const affiliates = await ctx.db
+        .query("affiliates")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .collect();
+      
+      matchingAffiliateIds = new Set(
+        affiliates
+          .filter(a => {
+            const name = (a.name ?? "").toLowerCase();
+            const email = (a.email ?? "").toLowerCase();
+            return name.includes(searchLower) || email.includes(searchLower);
+          })
+          .map(a => a._id)
+      );
+    }
+
+    const hasPostFilters = !!(args.action || args.affiliateId || args.entityId || args.startDate || args.endDate || matchingAffiliateIds);
     const pageSize = args.paginationOpts.numItems ?? 20;
     const overscan = hasPostFilters ? 3 : 1;
 
-    let allLogs;
+    let allLogs: Doc<"auditLogs">[];
 
     if (args.entityType) {
       let queryBuilder = ctx.db
@@ -918,6 +941,22 @@ export const listTenantAuditLogs = query({
       }
 
       allLogs = await queryBuilder.order("desc").take(pageSize * overscan);
+    }
+
+    // Apply affiliate search filter post-query
+    if (matchingAffiliateIds && matchingAffiliateIds.size > 0) {
+      allLogs = allLogs.filter(log => {
+        // Include if affiliateId matches
+        if (log.affiliateId && matchingAffiliateIds!.has(log.affiliateId)) return true;
+        // Include if entityId is an affiliate that matches
+        if (log.entityType === "affiliate" && matchingAffiliateIds!.has(log.entityId)) return true;
+        // Include if metadata contains affiliate info
+        if (log.metadata?.affiliateId && matchingAffiliateIds!.has(log.metadata.affiliateId)) return true;
+        return false;
+      });
+    } else if (matchingAffiliateIds && matchingAffiliateIds.size === 0) {
+      // No matching affiliates found - return empty
+      allLogs = [];
     }
 
     const page = allLogs.slice(0, pageSize);
@@ -1243,6 +1282,273 @@ export const getActivityLogActionTypes = query({
 });
 
 // =============================================================================
+// AFFILIATE ACTIVITY SUMMARY (Per-Affiliate View)
+// =============================================================================
+
+/**
+ * Exception actions that require attention.
+ * These are the actions that indicate problems or issues.
+ * 
+ * IMPORTANT: Keep in sync with EXCEPTION_ACTIONS in src/lib/audit-constants.ts
+ */
+const EXCEPTION_ACTION_SET = new Set([
+  "COMMISSION_DECLINED",
+  "COMMISSION_REVERSED",
+  "commission_rejected_payment_failed",
+  "commission_rejected_payment_pending",
+  "commission_rejected_payment_unknown",
+  "commission_creation_skipped",
+  "payout_failed",
+  "affiliate_rejected",
+  "affiliate_suspended",
+  "affiliate_bulk_rejected",
+  "attribution_no_data",
+  "attribution_affiliate_invalid",
+  "attribution_referral_link_not_found",
+  "attribution_no_campaign",
+  "attribution_no_matching_click",
+  "self_referral_detected",
+  "FRAUD_SIGNAL_ADDED",
+  "conversion_recorded_self_referral",
+  "email_send_failed",
+  "email_scheduling_failed",
+  "fraud_alert_email_failed",
+  "email_bounced",
+  "email_complained",
+  "security_unauthorized_access_attempt",
+  "AUTH_SIGNIN_FAILURE",
+  "AUTH_ACCOUNT_LOCKED",
+  "permission_denied",
+  "commission_adjusted_downgrade",
+]);
+
+/**
+ * Get affiliates with their activity summary for the Activity Log page.
+ * Returns affiliates grouped by whether they have issues requiring attention.
+ */
+export const getAffiliateActivitySummary = query({
+  args: {
+    search: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    issuesOnly: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    affiliates: v.array(v.object({
+      _id: v.id("affiliates"),
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      status: v.string(),
+      issueCount: v.number(),
+      lastActivityTime: v.number(),
+      latestAction: v.string(),
+      hasIssues: v.boolean(),
+    })),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return { affiliates: [] };
+    }
+
+    // Get all affiliates for this tenant
+    const affiliates = await ctx.db
+      .query("affiliates")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+      .collect();
+
+    // Filter by search term if provided
+    let filteredAffiliates = affiliates;
+    if (args.search && args.search.trim().length > 0) {
+      const searchLower = args.search.toLowerCase();
+      filteredAffiliates = affiliates.filter((a) => {
+        const name = (a.name ?? "").toLowerCase();
+        const email = (a.email ?? "").toLowerCase();
+        return name.includes(searchLower) || email.includes(searchLower);
+      });
+    }
+
+    // Create a set of affiliate IDs for filtering
+    const affiliateIds = new Set(filteredAffiliates.map((a) => a._id));
+
+    // Batch fetch: get ALL audit logs for this tenant in date range (single query)
+    let allLogsQuery = ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId));
+
+    if (args.startDate !== undefined) {
+      allLogsQuery = allLogsQuery.filter((q) =>
+        q.gte(q.field("_creationTime"), args.startDate!)
+      );
+    }
+
+    // Take a reasonable limit - most tenants won't have more than 1000 logs in 30 days
+    const allLogs = await allLogsQuery.order("desc").take(1000);
+
+    // Group logs by affiliate ID
+    const logsByAffiliate = new Map<string, typeof allLogs>();
+    for (const log of allLogs) {
+      if (log.affiliateId && affiliateIds.has(log.affiliateId)) {
+        const existing = logsByAffiliate.get(log.affiliateId) ?? [];
+        existing.push(log);
+        logsByAffiliate.set(log.affiliateId, existing);
+      }
+    }
+
+    // Build summaries from grouped logs
+    const affiliateSummaries = filteredAffiliates.map((affiliate) => {
+      const logs = logsByAffiliate.get(affiliate._id) ?? [];
+
+      // Count exceptions
+      const issueCount = logs.filter((log) =>
+        EXCEPTION_ACTION_SET.has(log.action)
+      ).length;
+
+      // Get latest activity
+      const latestLog = logs[0];
+
+      return {
+        _id: affiliate._id,
+        name: affiliate.name,
+        email: affiliate.email,
+        status: affiliate.status ?? "unknown",
+        issueCount,
+        lastActivityTime: latestLog?._creationTime ?? affiliate._creationTime,
+        latestAction: latestLog?.action ?? "affiliate_registered",
+        hasIssues: issueCount > 0,
+      };
+    });
+
+    // Filter to issues only if requested
+    let result = affiliateSummaries;
+    if (args.issuesOnly) {
+      result = result.filter((a) => a.hasIssues);
+    }
+
+    // Sort: issues first (by issue count desc), then by last activity
+    result.sort((a, b) => {
+      if (a.hasIssues && !b.hasIssues) return -1;
+      if (!a.hasIssues && b.hasIssues) return 1;
+      if (a.hasIssues && b.hasIssues) {
+        return b.issueCount - a.issueCount;
+      }
+      return b.lastActivityTime - a.lastActivityTime;
+    });
+
+    return { affiliates: result };
+  },
+});
+
+/**
+ * Get activity timeline for a specific affiliate.
+ * Returns the recent audit log entries for that affiliate.
+ */
+export const getAffiliateActivityTimeline = query({
+  args: {
+    affiliateId: v.id("affiliates"),
+    paginationOpts: paginationOptsValidator,
+    startDate: v.optional(v.number()),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("auditLogs"),
+      _creationTime: v.number(),
+      action: v.string(),
+      entityType: v.string(),
+      entityId: v.string(),
+      actorName: v.optional(v.string()),
+      actorType: v.string(),
+      metadata: v.optional(v.any()),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
+    }
+
+    // Verify affiliate belongs to tenant
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate || affiliate.tenantId !== user.tenantId) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
+    }
+
+    let queryBuilder = ctx.db
+      .query("auditLogs")
+      .withIndex("by_tenant_affiliate", (q) =>
+        q.eq("tenantId", user.tenantId).eq("affiliateId", args.affiliateId)
+      );
+
+    if (args.startDate !== undefined) {
+      queryBuilder = queryBuilder.filter((q) =>
+        q.gte(q.field("_creationTime"), args.startDate!)
+      );
+    }
+
+    const pageSize = args.paginationOpts.numItems ?? 20;
+    const allLogs = await queryBuilder.order("desc").take(pageSize + 1);
+
+    const page = allLogs.slice(0, pageSize);
+    const isDone = allLogs.length <= pageSize;
+
+    // Batch actor enrichment
+    const actorIds = [
+      ...new Set(
+        page
+          .map((l) => l.actorId)
+          .filter((id): id is string => !!id && id.startsWith("users_"))
+      ),
+    ];
+    const actorDocs = await Promise.all(
+      actorIds.map((id) => ctx.db.get(id as Id<"users">))
+    );
+    const actorMap = new Map<string, { name?: string }>();
+    for (const doc of actorDocs) {
+      if (doc) actorMap.set(doc._id, { name: doc.name });
+    }
+
+    const enrichedPage = page.map((log) => {
+      let actorName: string | undefined;
+
+      if (log.actorId && log.actorId.startsWith("users_")) {
+        const actor = actorMap.get(log.actorId);
+        actorName = actor?.name ?? "Deleted User";
+      } else {
+        if (log.actorType === "system") actorName = "System";
+        else if (log.actorType === "webhook") actorName = "Webhook";
+        else if (log.actorType === "unauthenticated") actorName = "Unknown";
+      }
+
+      return {
+        _id: log._id,
+        _creationTime: log._creationTime,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        actorName,
+        actorType: log.actorType,
+        metadata: log.metadata,
+      };
+    });
+
+    return {
+      page: enrichedPage,
+      isDone,
+      continueCursor: isDone ? null : (page[page.length - 1]?._id ?? null),
+    };
+  },
+});
+
+// =============================================================================
 // AUDIT LOG RETENTION (Story 15.7)
 // =============================================================================
 
@@ -1366,7 +1672,7 @@ export const runAuditLogRetention = internalAction({
  * Internal query to list all tenant IDs for the retention cron.
  * Kept private — not part of the public API.
  */
-const _listAllTenantIds = query({
+export const _listAllTenantIds = internalQuery({
   args: {},
   returns: v.array(v.id("tenants")),
   handler: async (ctx) => {

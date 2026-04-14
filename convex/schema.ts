@@ -475,6 +475,8 @@ export default defineSchema({
     // Index for security events by action type
     .index("by_action", ["action"])
     .index("by_affiliate", ["affiliateId"])
+    // Index for tenant+affiliate filtering (Activity Log per-affiliate view)
+    .index("by_tenant_affiliate", ["tenantId", "affiliateId"])
     // Index for user timeline: chronological events per actor (Story 15.4)
     // _creationTime is auto-appended by Convex to all indexes, so by_actor
     // already provides chronological ordering within each actorId.

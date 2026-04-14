@@ -52,6 +52,7 @@ export const getCurrentSubscription = query({
         v.literal("admin_cancelled"),
         v.literal("owner_cancelled"),
       )),
+      deletionScheduledDate: v.optional(v.number()),
     }),
     v.null()
   ),
@@ -93,6 +94,7 @@ export const getCurrentSubscription = query({
       subscriptionId: tenant.subscriptionId,
       cancellationDate: tenant.cancellationDate,
       cancelledReason: tenant.cancelledReason as "grace_expired" | "trial_expired" | "admin_cancelled" | "owner_cancelled" | undefined,
+      deletionScheduledDate: undefined,
     };
   },
 });

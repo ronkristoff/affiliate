@@ -32,7 +32,7 @@ export function NotificationPanel({ userId }: NotificationPanelProps) {
     }
   };
 
-  const handleMarkRead = async (notificationId: string) => {
+  const handleMarkRead = async (notificationId: Id<"notifications">) => {
     await markRead({ notificationId });
   };
 

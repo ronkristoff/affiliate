@@ -120,6 +120,9 @@ pnpm convex dev --once
 # Production build
 pnpm build
 
+# Full TypeScript check without building (recommended before committing)
+pnpm tsc --noEmit
+
 # Start production server
 pnpm start
 

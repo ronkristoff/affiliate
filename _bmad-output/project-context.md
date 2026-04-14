@@ -165,6 +165,15 @@ When implementing, AI agents MUST load relevant skills:
 | **Frontend Design** | UI components |
 | **Convex Realtime** | Real-time features |
 
+### TypeScript Checking
+
+**Run before committing** to catch type errors that `pnpm dev` misses (Turbopack is lenient):
+
+```bash
+# Full TypeScript check without building
+pnpm tsc --noEmit
+```
+
 ### Button Motion (`src/components/ui/button.tsx` + `globals.css`)
 
 **All buttons across the app have subtle motion built into the base `Button` component** via the `btn-motion` CSS class in `@layer utilities`. No additional imports or wrappers needed — every `<Button>` automatically inherits these micro-interactions.

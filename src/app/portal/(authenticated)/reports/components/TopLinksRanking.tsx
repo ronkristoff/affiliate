@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface TopLink {
   referralLinkId: string;
-  slug: string;
-  shortUrl: string;
+  code: string;
   clicks: number;
   conversions: number;
   earnings: number;

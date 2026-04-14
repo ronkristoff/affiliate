@@ -1399,6 +1399,7 @@ export const getAffiliatePayoutHistory = query({
   returns: v.array(
     v.object({
       _id: v.id("payouts"),
+      _creationTime: v.number(),
       amount: v.number(),
       status: v.string(),
       paidAt: v.optional(v.number()),
@@ -1441,6 +1442,7 @@ export const getAffiliatePayoutHistory = query({
 
         return {
           _id: payout._id,
+          _creationTime: payout._creationTime,
           amount: payout.amount,
           status: payout.status,
           paidAt: payout.paidAt,

@@ -1,20 +1,17 @@
 import { Metadata } from "next";
 import { AffiliateDetailClient } from "./client";
 
-interface AffiliateDetailPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export async function generateMetadata({
-  params,
-}: AffiliateDetailPageProps): Promise<Metadata> {
-  const { id } = await params;
+export function generateMetadata(): Metadata {
   return {
     title: `Affiliate Details | Salig Affiliates`,
     description: "View affiliate details and manage commission overrides",
   };
+}
+
+interface AffiliateDetailPageProps {
+  params: Promise<{
+    id: string;
+  }>;
 }
 
 export default async function AffiliateDetailPage({

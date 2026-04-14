@@ -5,10 +5,9 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 export function useNotificationCount(userId: Id<"users"> | undefined) {
-  const unreadCount = useQuery(
-    userId ? api.notifications.getUnreadNotificationCount : undefined,
-    userId ? { userId } : "SKIP"
-  );
+  const unreadCount = userId
+    ? useQuery(api.notifications.getUnreadNotificationCount, { userId })
+    : useQuery(api.notifications.getUnreadNotificationCount, "skip");
 
   return {
     total: unreadCount?.total ?? 0,

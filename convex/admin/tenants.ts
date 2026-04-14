@@ -311,6 +311,7 @@ export const getPlatformStats = query({
     suspended: v.number(),
     flagged: v.number(),
     pastDue: v.number(),
+    billingOverdue: v.number(),
     deltaThisWeek: v.number(),
   }),
   handler: async (ctx) => {
@@ -353,6 +354,7 @@ export const getPlatformStats = query({
       suspended,
       flagged,
       pastDue,
+      billingOverdue: pastDue, // billingOverdue maps to pastDue for now
       deltaThisWeek,
     };
   },

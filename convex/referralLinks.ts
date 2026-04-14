@@ -446,8 +446,8 @@ export const getReferralLinks = query({
       return {
         page: enrichedPage,
         continueCursor: result.continueCursor,
-        pageStatus: v.optional(v.union(v.string(), v.null())),
-        splitCursor: v.optional(v.union(v.string(), v.null())),
+        pageStatus: result.pageStatus,
+        splitCursor: result.splitCursor,
         isDone: result.isDone,
       };
     }
@@ -485,8 +485,8 @@ export const getReferralLinks = query({
     return {
       page: enrichedPage,
       continueCursor: result.continueCursor,
-      pageStatus: v.optional(v.union(v.string(), v.null())),
-      splitCursor: v.optional(v.union(v.string(), v.null())),
+      pageStatus: result.pageStatus,
+      splitCursor: result.splitCursor,
       isDone: result.isDone,
     };
   },

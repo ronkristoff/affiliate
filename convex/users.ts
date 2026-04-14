@@ -441,6 +441,112 @@ export const createUser = mutation({
   },
 });
 
+/**
+ * Remove a team member from the current tenant.
+ * Only owners and managers can remove team members.
+ * Cannot remove the last owner.
+ */
+export const removeTeamMember = mutation({
+  args: {
+    userId: v.id("users"),
+    reason: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (!currentUser) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get the user to be removed
+    const userToRemove = await ctx.db.get(args.userId);
+    if (!userToRemove) {
+      throw new Error("User not found");
+    }
+
+    // Check permission: must be owner or manager, and same tenant
+    if (currentUser.role !== "owner" && currentUser.role !== "manager") {
+      throw new Error("Only owners and managers can remove team members");
+    }
+
+    if (userToRemove.tenantId !== currentUser.tenantId) {
+      throw new Error("User not found in your tenant");
+    }
+
+    // Cannot remove the last owner
+    if (userToRemove.role === "owner") {
+      const owners = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", currentUser.tenantId))
+        .filter((q) => q.eq(q.field("role"), "owner"))
+        .collect();
+
+      if (owners.length <= 1) {
+        throw new Error("Cannot remove the last owner");
+      }
+    }
+
+    // Create audit log entry
+    await ctx.db.insert("auditLogs", {
+      tenantId: currentUser.tenantId,
+      action: "user_deleted",
+      entityType: "user",
+      entityId: args.userId,
+      actorType: "user",
+      actorId: currentUser.userId,
+      metadata: {
+        removedUserEmail: userToRemove.email,
+        removedUserRole: userToRemove.role,
+        reason: args.reason,
+      },
+    });
+
+    // Delete the user
+    await ctx.db.delete(args.userId);
+
+    return null;
+  },
+});
+
+/**
+ * Get all users in the current tenant.
+ * Returns users sorted by role (owner first) then by creation time.
+ */
+export const getUsersByTenant = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("users"),
+      _creationTime: v.number(),
+      email: v.string(),
+      name: v.optional(v.string()),
+      role: v.string(),
+      emailVerified: v.optional(v.boolean()),
+    })
+  ),
+  handler: async (ctx, _args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (!currentUser) {
+      throw new Error("Unauthorized");
+    }
+
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", currentUser.tenantId))
+      .collect();
+
+    // Sort by role priority (owner > manager > viewer) then by creation time
+    const rolePriority: Record<string, number> = { owner: 0, manager: 1, viewer: 2 };
+    users.sort((a, b) => {
+      const priorityDiff = (rolePriority[a.role] ?? 3) - (rolePriority[b.role] ?? 3);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a._creationTime - b._creationTime;
+    });
+
+    return users;
+  },
+});
+
 // =============================================================================
 // TENANT-SCOPED FUNCTIONS
 // =============================================================================

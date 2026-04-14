@@ -74,6 +74,8 @@ export const ensureAuthAccounts = internalMutation({
         results.push({ email: user.email, status: `create_failed: ${e.message}` });
       }
     }
+
+    return results;
   },
 });
 
@@ -85,7 +87,7 @@ export const ensureAuthAccounts = internalMutation({
 export const disableUserTwoFactor = action({
   args: { email: v.string() },
   returns: v.object({ success: v.boolean(), message: v.string() }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
     const cleanEmail = args.email.trim().toLowerCase();
 
     // The adapter's findMany doesn't expose _id. We need to find the doc
@@ -243,7 +245,7 @@ export const _forceDisableTwoFactor = internalMutation({
 export const createPlatformAdmin = action({
   args: { email: v.string(), name: v.string() },
   returns: v.object({ success: v.boolean(), message: v.string() }),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
     const cleanEmail = args.email.trim().toLowerCase();
     try {
       const result = await ctx.runMutation(

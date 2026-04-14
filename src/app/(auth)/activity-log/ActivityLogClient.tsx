@@ -5,32 +5,21 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
-import { AuditLogEntry } from "./components/AuditLogEntry";
-import { EntityStoryDrawer } from "./components/EntityStoryDrawer";
+import { SearchField } from "@/components/ui/SearchField";
+import { Badge } from "@/components/ui/badge";
+import { AffiliateTimeline } from "./components/AffiliateTimeline";
 import { getAuditActionLabel } from "@/lib/audit-constants";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/format";
 import {
   Clock,
-  ChevronLeft,
+  AlertTriangle,
+  ChevronDown,
   ChevronRight,
+  User,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
-
-const ENTITY_TABS: FilterTabItem[] = [
-  { key: "all", label: "All" },
-  { key: "commission", label: "Commissions" },
-  { key: "conversion", label: "Conversions" },
-  { key: "click", label: "Clicks" },
-  { key: "affiliate", label: "Affiliates" },
-  { key: "payoutBatches", label: "Payouts" },
-];
 
 type DateRange = "7d" | "30d" | "90d" | "all";
 
@@ -48,109 +37,188 @@ function getStartTime(range: DateRange): number | undefined {
   return now - days * 24 * 60 * 60 * 1000;
 }
 
-function getEntityTypeFilter(tab: string): string | undefined {
-  return tab === "all" ? undefined : tab;
+interface AffiliateSummary {
+  _id: string;
+  name?: string;
+  email?: string;
+  status: string;
+  issueCount: number;
+  lastActivityTime: number;
+  latestAction: string;
+  hasIssues: boolean;
+}
+
+function AffiliateRow({
+  affiliate,
+  isExpanded,
+  onToggle,
+  dateRange,
+}: {
+  affiliate: AffiliateSummary;
+  isExpanded: boolean;
+  onToggle: () => void;
+  dateRange: DateRange;
+}) {
+  const displayName = affiliate.name || affiliate.email || "Unknown Affiliate";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* Affiliate Header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-full flex items-center gap-3 p-3 text-left transition-colors",
+          isExpanded ? "bg-muted/50" : "hover:bg-muted/30"
+        )}
+      >
+        {/* Expand Icon */}
+        <div className="flex-shrink-0">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-[var(--text-muted)]" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+          )}
+        </div>
+
+        {/* Avatar */}
+        <div
+          className={cn(
+            "flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-[12px] font-medium",
+            affiliate.hasIssues
+              ? "bg-amber-100 text-amber-700"
+              : "bg-green-100 text-green-700"
+          )}
+        >
+          {initials}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium text-[var(--text-heading)] truncate">
+              {displayName}
+            </span>
+            {affiliate.hasIssues && (
+              <Badge
+                variant="outline"
+                className="text-[10px] font-medium bg-amber-50 text-amber-700 border-amber-200"
+              >
+                {affiliate.issueCount} issue{affiliate.issueCount > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+            {affiliate.hasIssues ? (
+              <span className="text-amber-600">
+                {getAuditActionLabel(affiliate.latestAction)}
+              </span>
+            ) : (
+              <span>
+                Last activity: {formatRelativeTime(affiliate.lastActivityTime)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Status Indicator */}
+        <div className="flex-shrink-0">
+          {affiliate.hasIssues ? (
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+          ) : (
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          )}
+        </div>
+      </button>
+
+      {/* Expanded Timeline */}
+      {isExpanded && (
+        <div className="border-t bg-[var(--bg-page)]">
+          <AffiliateTimeline
+            affiliateId={affiliate._id as any}
+            affiliateName={displayName}
+            startDate={getStartTime(dateRange)}
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ActivityLogClient() {
-  const [entityTab, setEntityTab] = useState("all");
-  const [actionFilter, setActionFilter] = useState<string | undefined>(
-    undefined
-  );
   const [dateRange, setDateRange] = useState<DateRange>("30d");
-  const [paginationCursor, setPaginationCursor] = useState<
-    string | undefined
-  >(undefined);
+  const [affiliateSearch, setAffiliateSearch] = useState("");
+  const [showIssuesOnly, setShowIssuesOnly] = useState(true);
+  const [expandedAffiliateId, setExpandedAffiliateId] = useState<
+    string | null
+  >(null);
 
-  const [drawerState, setDrawerState] = useState<{
-    open: boolean;
-    entityType: string;
-    entityId: string;
-  }>({
-    open: false,
-    entityType: "",
-    entityId: "",
+  const summaryResult = useQuery(api.audit.getAffiliateActivitySummary, {
+    search: affiliateSearch || undefined,
+    startDate: getStartTime(dateRange),
+    issuesOnly: showIssuesOnly || undefined,
   });
-
-  const actionTypes = useQuery(api.audit.getActivityLogActionTypes, {});
-
-  const queryArgs = useMemo(() => {
-    const startTime = getStartTime(dateRange);
-    const entityType = getEntityTypeFilter(entityTab);
-
-    return {
-      paginationOpts: {
-        numItems: 20,
-        cursor: paginationCursor ?? null,
-      },
-      entityType,
-      action: actionFilter,
-      startDate: startTime,
-    };
-  }, [entityTab, actionFilter, dateRange, paginationCursor]);
-
-  const logsResult = useQuery(api.audit.listTenantAuditLogs, queryArgs);
-
-  const handleTabChange = useCallback((key: string) => {
-    setEntityTab(key);
-    setPaginationCursor(undefined);
-  }, []);
-
-  const handleActionChange = useCallback((value: string) => {
-    setActionFilter(value === "all" ? undefined : value);
-    setPaginationCursor(undefined);
-  }, []);
 
   const handleDateRangeChange = useCallback((range: DateRange) => {
     setDateRange(range);
-    setPaginationCursor(undefined);
+    setExpandedAffiliateId(null);
   }, []);
 
-  const handleEntityClick = useCallback(
-    (entityType: string, entityId: string) => {
-      setDrawerState({ open: true, entityType, entityId });
-    },
-    []
-  );
-
-  const handleDrawerClose = useCallback(() => {
-    setDrawerState((prev) => ({ ...prev, open: false }));
+  const handleAffiliateSearch = useCallback((value: string) => {
+    setAffiliateSearch(value);
+    setExpandedAffiliateId(null);
   }, []);
+
+  const handleAffiliateToggle = useCallback((affiliateId: string) => {
+    setExpandedAffiliateId((prev) => (prev === affiliateId ? null : affiliateId));
+  }, []);
+
+  const affiliates: AffiliateSummary[] = summaryResult?.affiliates ?? [];
+  const issuesAffiliates = affiliates.filter((a: AffiliateSummary) => a.hasIssues);
+  const clearAffiliates = affiliates.filter((a: AffiliateSummary) => !a.hasIssues);
 
   return (
     <div className="space-y-6">
-      {/* Filter Bar */}
+      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3 overflow-x-auto pb-1">
-          <FilterTabs
-            tabs={ENTITY_TABS}
-            activeTab={entityTab}
-            onTabChange={handleTabChange}
-            size="sm"
-          />
+        <div>
+          <h1 className="text-lg font-semibold text-[var(--text-heading)] flex items-center gap-2">
+            {showIssuesOnly ? (
+              <>
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Issues Requiring Attention
+              </>
+            ) : (
+              <>
+                <User className="h-5 w-5 text-[var(--text-muted)]" />
+                All Affiliates
+              </>
+            )}
+          </h1>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+            {showIssuesOnly
+              ? "Affiliates with recent issues that may need your review"
+              : "Activity summary for all affiliates"}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Select
-            value={actionFilter ?? "all"}
-            onValueChange={handleActionChange}
-          >
-            <SelectTrigger size="sm" className="w-[180px] text-[12px]">
-              <SelectValue placeholder="All actions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-[12px]">
-                All actions
-              </SelectItem>
-              {actionTypes &&
-                actionTypes.map((action: string) => (
-                  <SelectItem key={action} value={action} className="text-[12px]">
-                    {getAuditActionLabel(action)}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          {/* Search */}
+          <SearchField
+            value={affiliateSearch}
+            onChange={handleAffiliateSearch}
+            placeholder="Search affiliates..."
+            size="sm"
+            clearable
+          />
 
+          {/* Date Range */}
           <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] p-0.5">
             {DATE_RANGES.map((range) => (
               <button
@@ -168,18 +236,25 @@ export function ActivityLogClient() {
               </button>
             ))}
           </div>
+
+          {/* Toggle */}
+          <Button
+            variant={showIssuesOnly ? "outline" : "secondary"}
+            size="sm"
+            onClick={() => setShowIssuesOnly(!showIssuesOnly)}
+            className="gap-2 text-[12px]"
+          >
+            {showIssuesOnly ? "Show All Affiliates" : "Show Issues Only"}
+          </Button>
         </div>
       </div>
 
-      {/* Feed */}
-      {logsResult === undefined ? (
+      {/* Content */}
+      {summaryResult === undefined ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 p-3 rounded-lg border"
-            >
-              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-3 w-48" />
@@ -187,67 +262,81 @@ export function ActivityLogClient() {
             </div>
           ))}
         </div>
-      ) : logsResult.page.length === 0 ? (
+      ) : affiliates.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-12 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-page)]">
-            <Clock className="h-6 w-6 text-[var(--text-muted)]" />
+            {showIssuesOnly ? (
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            ) : (
+              <User className="h-6 w-6 text-[var(--text-muted)]" />
+            )}
           </div>
           <h3 className="text-[13px] font-semibold text-[var(--text-heading)]">
-            No Activity Found
+            {showIssuesOnly ? "All Clear!" : "No Affiliates Found"}
           </h3>
           <p className="mt-1 text-[12px] text-[var(--text-muted)] max-w-sm mx-auto">
-            No audit log entries match your current filters. Try adjusting the
-            date range or entity type.
+            {showIssuesOnly
+              ? "No affiliates have issues requiring attention."
+              : affiliateSearch
+                ? "No affiliates match your search."
+                : "You don't have any affiliates yet."}
           </p>
+          {showIssuesOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowIssuesOnly(false)}
+              className="mt-4 text-[12px]"
+            >
+              View All Affiliates
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {logsResult.page.map((log: any) => (
-            <AuditLogEntry
-              key={log._id}
-              log={log}
-              onEntityClick={handleEntityClick}
-            />
-          ))}
+        <div className="space-y-6">
+          {/* Issues Section */}
+          {issuesAffiliates.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] font-medium text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Needs Attention ({issuesAffiliates.length})
+              </div>
+              <div className="space-y-2">
+                {issuesAffiliates.map((affiliate: AffiliateSummary) => (
+                  <AffiliateRow
+                    key={affiliate._id}
+                    affiliate={affiliate}
+                    isExpanded={expandedAffiliateId === affiliate._id}
+                    onToggle={() => handleAffiliateToggle(affiliate._id)}
+                    dateRange={dateRange}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={paginationCursor === undefined}
-              onClick={() => setPaginationCursor(undefined)}
-              className="text-[12px]"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              Newer
-            </Button>
-            <span className="text-[12px] text-[var(--text-muted)]">
-              {logsResult.page.length} entries
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={logsResult.isDone}
-              onClick={() =>
-                setPaginationCursor(logsResult.continueCursor ?? undefined)
-              }
-              className="text-[12px]"
-            >
-              Older
-              <ChevronRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </div>
+          {/* All Clear Section */}
+          {clearAffiliates.length > 0 && !showIssuesOnly && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] font-medium text-green-700">
+                <CheckCircle className="h-3.5 w-3.5" />
+                All Clear ({clearAffiliates.length})
+              </div>
+              <div className="space-y-2">
+                {clearAffiliates.map((affiliate: AffiliateSummary) => (
+                  <AffiliateRow
+                    key={affiliate._id}
+                    affiliate={affiliate}
+                    isExpanded={expandedAffiliateId === affiliate._id}
+                    onToggle={() => handleAffiliateToggle(affiliate._id)}
+                    dateRange={dateRange}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
-
-      {/* Entity Story Drawer */}
-      <EntityStoryDrawer
-        open={drawerState.open}
-        onClose={handleDrawerClose}
-        entityType={drawerState.entityType}
-        entityId={drawerState.entityId}
-      />
     </div>
   );
 }

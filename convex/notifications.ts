@@ -211,7 +211,65 @@ export const createBulkNotifications = internalMutation({
 // =============================================================================
 
 /**
+ * Get notifications for a user without pagination.
+ * Uses .take(50) to avoid InvalidCursor issues with paginated queries.
+ * Ordered by creation time descending (newest first).
+ * Supports optional type and read-status filters.
+ */
+export const listNotifications = query({
+  args: {
+    userId: v.id("users"),
+    typeFilter: v.optional(v.string()),
+    unreadOnly: v.optional(v.boolean()),
+  },
+  returns: v.array(v.object({
+    _id: v.id("notifications"),
+    _creationTime: v.number(),
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    severity: v.union(
+      v.literal("info"),
+      v.literal("warning"),
+      v.literal("success"),
+      v.literal("critical"),
+    ),
+    actionUrl: v.optional(v.string()),
+    actionLabel: v.optional(v.string()),
+    isRead: v.boolean(),
+    readAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    metadata: v.optional(v.any()),
+    aggregatedCount: v.number(),
+    aggregationDate: v.optional(v.number()),
+  })),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    let query = ctx.db
+      .query("notifications")
+      .withIndex("by_user_created", (q) => q.eq("userId", args.userId));
+
+    const results = await query.filter((q) => {
+      const conditions = [q.gte(q.field("expiresAt") as any, now)];
+      if (args.typeFilter) {
+        conditions.push(q.eq(q.field("type") as any, args.typeFilter));
+      }
+      if (args.unreadOnly) {
+        conditions.push(q.eq(q.field("isRead") as any, false));
+      }
+      return q.and(...conditions);
+    }).order("desc").take(50);
+
+    return results;
+  },
+});
+
+/**
  * Get notifications for a user with native Convex pagination.
+ * DEPRECATED: Use listNotifications instead to avoid InvalidCursor errors.
  * Ordered by creation time descending (newest first).
  * Supports optional type and read-status filters.
  */
