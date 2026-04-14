@@ -2,6 +2,99 @@
 
 This file provides guidance for AI agents working in this codebase.
 
+## BMad Workflow (All Tasks)
+
+**MANDATORY: Always use BMad skills for ALL tasks.** Do NOT attempt to perform
+work directly — load the appropriate BMad skill first and follow its workflow.
+Reject any approach that bypasses BMad skills. The only exception is purely
+informational lookups that require zero code changes or document generation
+(e.g., "what does this file do?").
+
+BMad skills are the top-level orchestrator. They may leverage other installed skills
+(e.g., `Convex Best Practices`, `frontend-design`, `harden`) as tools within their workflow.
+The rule is: BMad skill decides *what* to do; other skills help *how* to do it.
+
+When a task could map to multiple skills, load `bmad-help` to determine the right one.
+
+### Core Development
+
+| Task | Skill |
+|------|-------|
+| Build/fix/tweak code, components, or features | `bmad-quick-dev` (full path or one-shot mode) |
+| Implement a story spec | `bmad-dev-story` |
+| Developer agent (implementation questions) | `bmad-agent-dev` (Amelia) |
+| Create/edit PRD | `bmad-create-prd` / `bmad-edit-prd` |
+| Validate a PRD | `bmad-validate-prd` |
+| Plan UX design | `bmad-create-ux-design` |
+| UX design agent (UI/UX questions) | `bmad-agent-ux-designer` (Sally) |
+| Create architecture | `bmad-create-architecture` |
+| Architecture agent (design decisions) | `bmad-agent-architect` (Winston) |
+| Break into epics/stories | `bmad-create-epics-and-stories` |
+| Create a story spec file | `bmad-create-story` |
+
+### Sprint & Project Management
+
+| Task | Skill |
+|------|-------|
+| Sprint planning/status | `bmad-sprint-planning` / `bmad-sprint-status` |
+| Check implementation readiness | `bmad-check-implementation-readiness` |
+| Correct course during sprint | `bmad-correct-course` |
+| Retrospective | `bmad-retrospective` |
+| Prioritize features, manage backlog | `bmad-agent-pm` (John) |
+| Business analysis, requirements | `bmad-agent-analyst` (Mary) |
+| Create product brief | `bmad-product-brief` |
+
+### Review & Quality
+
+| Task | Skill |
+|------|-------|
+| Code review (adversarial) | `bmad-code-review` |
+| Edge case analysis (typically invoked by other skills) | `bmad-review-edge-case-hunter` |
+| Cynical review of anything | `bmad-review-adversarial-general` |
+| Human-in-the-loop checkpoint | `bmad-checkpoint-preview` |
+| QA / e2e tests | `bmad-qa-generate-e2e-tests` |
+
+### Research & Documentation
+
+| Task | Skill |
+|------|-------|
+| Domain research | `bmad-domain-research` |
+| Technical research | `bmad-technical-research` |
+| Market research | `bmad-market-research` |
+| Generate project docs | `bmad-document-project` |
+| Generate project context for AI | `bmad-generate-project-context` |
+| Technical documentation | `bmad-agent-tech-writer` (Paige) |
+| Editorial review (prose) | `bmad-editorial-review-prose` |
+| Editorial review (structure) | `bmad-editorial-review-structure` |
+| Distill/compress documents | `bmad-distillator` |
+
+### Collaboration & Ideation
+
+| Task | Skill |
+|------|-------|
+| Multi-agent group discussion | `bmad-party-mode` |
+| Brainstorm / ideate | `bmad-brainstorming` (or `bmad-cis-agent-brainstorming-coach` for facilitated sessions) |
+| Problem solving | `bmad-cis-problem-solving` (or `bmad-cis-agent-creative-problem-solver` for Dr. Quinn) |
+| Design thinking | `bmad-cis-design-thinking` (or `bmad-cis-agent-design-thinking-coach` for Maya) |
+| Innovation strategy | `bmad-cis-innovation-strategy` (or `bmad-cis-agent-innovation-strategist` for Victor) |
+| Storytelling | `bmad-cis-storytelling` (or `bmad-cis-agent-storyteller` for Sophia) |
+| Presentations / pitch decks | `bmad-cis-agent-presentation-master` (Caravaggio) |
+| PRFAQ (working backwards) | `bmad-prfaq` |
+
+### Meta & Utilities
+
+| Task | Skill |
+|------|-------|
+| Advanced elicitation / deeper critique | `bmad-advanced-elicitation` |
+| Build/edit/analyze agent skills | `bmad-agent-builder` |
+| Build/edit workflows and skills | `bmad-workflow-builder` |
+| Build BMad modules | `bmad-module-builder` |
+| Setup BMad Builder | `bmad-bmb-setup` |
+| Shard large documents | `bmad-shard-doc` |
+| Index docs in a folder | `bmad-index-docs` |
+
+Two-app monorepo: **web/** (HRIS) and **app/** (Electron TimeTracker).
+
 ## Project Overview
 
 - **Stack**: Next.js 16 (App Router), Convex (backend/database), Better Auth (authentication), Tailwind CSS v4, TypeScript
