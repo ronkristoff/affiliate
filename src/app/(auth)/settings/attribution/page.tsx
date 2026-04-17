@@ -13,6 +13,7 @@ import {
   Info, 
   CheckCircle,
   AlertCircle,
+  XCircle,
   Code2,
   Webhook,
   ChevronDown,
@@ -26,6 +27,9 @@ export default function AttributionSettingsPage() {
   
   // Get recent webhooks
   const webhooks = useQuery(api.webhooks.listRecentWebhooks, { count: 5 });
+  
+  // Get attribution config (dynamic)
+  const attributionConfig = useQuery(api.tenants.getAttributionConfig);
   
   return (
     <div className="animate-fade-in">
@@ -44,13 +48,29 @@ export default function AttributionSettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="font-semibold">Active</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Webhook processing enabled
-              </p>
+              {attributionConfig === undefined ? (
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              ) : attributionConfig.isActive ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold">Active</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tracking snippet verified
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    <span className="font-semibold">Inactive</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Install tracking snippet to activate
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -61,13 +81,19 @@ export default function AttributionSettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold">Cookie + Metadata</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Dual attribution for accuracy
-              </p>
+              {attributionConfig === undefined ? (
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Code2 className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold">{attributionConfig.trackingMethod}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Attribution method
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -78,13 +104,31 @@ export default function AttributionSettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-purple-600" />
-                <Badge variant="outline">Mock SaligPay</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Connected and receiving events
-              </p>
+              {attributionConfig === undefined ? (
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              ) : attributionConfig.webhookSource === "none" ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    <span className="font-semibold">Not Connected</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connect a payment provider
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Webhook className="w-5 h-5 text-purple-600" />
+                    <Badge variant="outline">
+                      {attributionConfig.webhookSource === "saligpay" ? "SaligPay" : "Stripe"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connected and receiving events
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

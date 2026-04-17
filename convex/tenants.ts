@@ -2380,3 +2380,59 @@ export const getTierCustomDomainStatus = query({
     };
   },
 });
+
+export const getAttributionConfig = query({
+  args: {},
+  returns: v.object({
+    isActive: v.boolean(),
+    trackingMethod: v.string(),
+    trackingVerifiedAt: v.optional(v.number()),
+    webhookSource: v.union(v.literal("saligpay"), v.literal("stripe"), v.literal("none")),
+    webhookConnectedAt: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized");
+    }
+    
+    const tenantId = authUser.tenantId;
+    if (!tenantId) {
+      throw new Error("No tenant found");
+    }
+
+    const tenant = await ctx.db.get(tenantId) as { 
+      trackingVerifiedAt?: number; 
+      trackingPublicKey?: string;
+      billingProvider?: "saligpay" | "stripe";
+      saligPayCredentials?: { connectedAt?: number };
+      stripeCredentials?: { connectedAt?: number };
+    } | null;
+    
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    const isActive = !!tenant.trackingVerifiedAt;
+    const trackingMethod = tenant.trackingPublicKey ? "Cookie + Metadata" : "Metadata Only";
+    
+    let webhookSource: "saligpay" | "stripe" | "none" = "none";
+    let webhookConnectedAt: number | undefined;
+
+    if (tenant.billingProvider === "saligpay" && tenant.saligPayCredentials) {
+      webhookSource = "saligpay";
+      webhookConnectedAt = tenant.saligPayCredentials.connectedAt;
+    } else if (tenant.billingProvider === "stripe" && tenant.stripeCredentials) {
+      webhookSource = "stripe";
+      webhookConnectedAt = tenant.stripeCredentials.connectedAt;
+    }
+
+    return {
+      isActive,
+      trackingMethod,
+      trackingVerifiedAt: tenant.trackingVerifiedAt,
+      webhookSource,
+      webhookConnectedAt,
+    };
+  },
+});
