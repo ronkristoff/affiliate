@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { requireWriteAccess } from "./tenantContext";
 
 /**
  * Helper function to get the current user with their tenant context
@@ -154,6 +155,8 @@ export const getTrackingSnippetConfig = mutation({
       throw new Error("Not authenticated");
     }
 
+    await requireWriteAccess(ctx);
+
     const tenant = await getTenantById(ctx, currentUser.tenantId);
     if (!tenant) {
       throw new Error("Tenant not found");
@@ -268,6 +271,8 @@ export const recordTrackingPing = mutation({
       };
     }
 
+    await requireWriteAccess(ctx);
+
     // Record the ping
     await ctx.db.insert("trackingPings", {
       tenantId: tenant._id,
@@ -325,6 +330,8 @@ export const markTrackingVerified = mutation({
       throw new Error("Not authenticated");
     }
 
+    await requireWriteAccess(ctx);
+
     await patchTenant(ctx, currentUser.tenantId, { trackingVerifiedAt: Date.now() });
     return null;
   },
@@ -341,6 +348,8 @@ export const resetTrackingVerification = mutation({
     if (!currentUser) {
       throw new Error("Not authenticated");
     }
+
+    await requireWriteAccess(ctx);
 
     // Clear verification status
     await patchTenant(ctx, currentUser.tenantId, { trackingVerifiedAt: undefined });

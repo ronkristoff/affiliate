@@ -1,6 +1,6 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { internal } from "./_generated/api";
 
 // ============================================================================
@@ -644,6 +644,7 @@ export const upsertMyEmailTemplate = mutation({
         error: "Not authenticated",
       };
     }
+    await requireWriteAccess(ctx);
 
     const definition = TEMPLATE_DEFINITIONS.find((d) => d.type === args.templateType);
     if (!definition) {
@@ -725,6 +726,7 @@ export const resetMyEmailTemplate = mutation({
     if (!authUser) {
       return null;
     }
+    await requireWriteAccess(ctx);
 
     const existing = await ctx.db
       .query("emailTemplates")

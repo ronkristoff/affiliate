@@ -1,6 +1,6 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getTenantId, requireTenantId, getAuthenticatedUser } from "./tenantContext";
+import { getTenantId, requireTenantId, getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api } from "./_generated/api";
@@ -220,6 +220,7 @@ export const dismissFraudSignal = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -332,6 +333,7 @@ export const suspendAffiliateFromFraudSignal = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 

@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { onOrganicConversionCreated, incrementTotalConversions } from "./tenantStats";
 import { normalizeEmail } from "./emailNormalization";
+import { requireWriteAccess } from "./tenantContext";
 
 /**
  * Internal: Get tenant by tracking public key
@@ -791,6 +792,8 @@ export const updateConversionStatus = mutation({
     if (!user || user.tenantId !== conversion.tenantId) {
       throw new Error("Unauthorized");
     }
+
+    await requireWriteAccess(ctx);
 
     // Log conversion status change to audit trail (non-fatal)
     try {

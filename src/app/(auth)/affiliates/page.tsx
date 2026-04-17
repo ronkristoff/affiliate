@@ -5,6 +5,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import {
   useQueryState,
   parseAsStringLiteral,
@@ -611,7 +612,7 @@ function AffiliatesContent() {
       downloadCsv(base64Data, "affiliates");
       toast.success("Affiliate data exported successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to export affiliate data.");
+      toast.error(getErrorMessage(error, "Failed to export affiliate data."));
     } finally {
       setIsExporting(false);
     }
@@ -627,7 +628,7 @@ function AffiliatesContent() {
       await approveAffiliate({ affiliateId });
       toast.success(`Approved ${affiliateName}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to approve affiliate");
+      toast.error(getErrorMessage(error, "Failed to approve affiliate"));
     }
   };
 
@@ -638,7 +639,7 @@ function AffiliatesContent() {
       toast.success(`Rejected ${rejectingAffiliate.name}`);
       setRejectingAffiliate(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reject affiliate");
+      toast.error(getErrorMessage(error, "Failed to reject affiliate"));
     }
   };
 
@@ -650,7 +651,7 @@ function AffiliatesContent() {
       toast.success(`Approved ${result.success} affiliates${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
       setSelectedAffiliates(new Set());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to bulk approve affiliates");
+      toast.error(getErrorMessage(error, "Failed to bulk approve affiliates"));
     } finally {
       setIsProcessing(false);
     }
@@ -664,7 +665,7 @@ function AffiliatesContent() {
       toast.success(`Rejected ${result.success} affiliates${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
       setSelectedAffiliates(new Set());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to bulk reject affiliates");
+      toast.error(getErrorMessage(error, "Failed to bulk reject affiliates"));
     } finally {
       setIsProcessing(false);
     }
@@ -678,7 +679,7 @@ function AffiliatesContent() {
       setSuspendingAffiliate(null);
       setIsDrawerOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to suspend affiliate");
+      toast.error(getErrorMessage(error, "Failed to suspend affiliate"));
     }
   };
 
@@ -690,7 +691,7 @@ function AffiliatesContent() {
       setReactivatingAffiliate(null);
       setIsDrawerOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reactivate affiliate");
+      toast.error(getErrorMessage(error, "Failed to reactivate affiliate"));
     }
   };
 
@@ -700,7 +701,7 @@ function AffiliatesContent() {
       await updateNote({ affiliateId: detailDrawerAffiliate._id, note });
       toast.success("Note saved successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save note");
+      toast.error(getErrorMessage(error, "Failed to save note"));
     }
   };
 

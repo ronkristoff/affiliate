@@ -18,6 +18,7 @@ import { CommissionHistoryList } from "@/components/affiliate/CommissionHistoryL
 import { FraudSignalsSection } from "@/components/affiliate/FraudSignalsSection";
 import { InternalNotesTextarea } from "@/components/affiliate/InternalNotesTextarea";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -112,7 +113,7 @@ function AffiliateDetailContent() {
       toast.success(`${affiliate?.name || "Affiliate"} has been suspended`);
       setShowSuspendDialog(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to suspend affiliate");
+      toast.error(getErrorMessage(error, "Failed to suspend affiliate"));
     }
   };
 
@@ -122,7 +123,7 @@ function AffiliateDetailContent() {
       toast.success(`${affiliate?.name || "Affiliate"} has been reactivated`);
       setShowReactivateDialog(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reactivate affiliate");
+      toast.error(getErrorMessage(error, "Failed to reactivate affiliate"));
     }
   };
 
@@ -137,7 +138,7 @@ function AffiliateDetailContent() {
       await dismissFraudSignal({ affiliateId, signalId, note });
       toast.success("Fraud signal dismissed successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to dismiss fraud signal");
+      toast.error(getErrorMessage(error, "Failed to dismiss fraud signal"));
       throw error; // Re-throw to let the component handle the error state
     }
   };
@@ -147,7 +148,7 @@ function AffiliateDetailContent() {
       await suspendFromFraudSignal({ affiliateId, reason });
       toast.success(`${affiliate?.name || "Affiliate"} has been suspended`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to suspend affiliate");
+      toast.error(getErrorMessage(error, "Failed to suspend affiliate"));
       throw error;
     }
   };

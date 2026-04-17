@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getAuthenticatedUser, getTenantId } from "./tenantContext";
+import { getAuthenticatedUser, getTenantId, requireWriteAccess } from "./tenantContext";
 import { hasPermission, Role } from "./permissions";
 import { api, internal } from "./_generated/api";
 import { render } from "@react-email/components";
@@ -66,6 +66,7 @@ export const createTeamInvitation = mutation({
     if (!authUser) {
       throw new Error("Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -399,6 +400,7 @@ export const cancelInvitation = mutation({
     if (!authUser) {
       throw new Error("Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 

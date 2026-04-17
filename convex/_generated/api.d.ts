@@ -46,6 +46,7 @@ import type * as emailServiceMutation from "../emailServiceMutation.js";
 import type * as emails from "../emails.js";
 import type * as emails_AccountReactivatedEmail from "../emails/AccountReactivatedEmail.js";
 import type * as emails_AffiliateApprovalEmail from "../emails/AffiliateApprovalEmail.js";
+import type * as emails_AffiliateInvitationEmail from "../emails/AffiliateInvitationEmail.js";
 import type * as emails_AffiliateReactivationEmail from "../emails/AffiliateReactivationEmail.js";
 import type * as emails_AffiliateRejectionEmail from "../emails/AffiliateRejectionEmail.js";
 import type * as emails_AffiliateSuspensionEmail from "../emails/AffiliateSuspensionEmail.js";
@@ -174,6 +175,7 @@ declare const fullApi: ApiFromModules<{
   emails: typeof emails;
   "emails/AccountReactivatedEmail": typeof emails_AccountReactivatedEmail;
   "emails/AffiliateApprovalEmail": typeof emails_AffiliateApprovalEmail;
+  "emails/AffiliateInvitationEmail": typeof emails_AffiliateInvitationEmail;
   "emails/AffiliateReactivationEmail": typeof emails_AffiliateReactivationEmail;
   "emails/AffiliateRejectionEmail": typeof emails_AffiliateRejectionEmail;
   "emails/AffiliateSuspensionEmail": typeof emails_AffiliateSuspensionEmail;

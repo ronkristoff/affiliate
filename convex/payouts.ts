@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getAuthenticatedUser, requireTenantId } from "./tenantContext";
+import { getAuthenticatedUser, requireTenantId, requireWriteAccess } from "./tenantContext";
 import { incrementTotalPaidOut, onCommissionStatusChange } from "./tenantStats";
 
 // =============================================================================
@@ -71,6 +71,7 @@ export const generatePayoutBatch = mutation({
     if (!user) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // Query approved unpaid commissions for this tenant (not already in a batch)
     const allCommissions = await ctx.db
@@ -442,6 +443,7 @@ export const recalcPendingPayoutStats = mutation({
   }),
   handler: async (ctx) => {
     const tenantId = await requireTenantId(ctx);
+    await requireWriteAccess(ctx);
 
     // Get all approved commissions for this tenant
     const commissions = await ctx.db
@@ -850,6 +852,7 @@ export const markPayoutAsPaid = mutation({
     if (!user) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // 1. Verify payout belongs to current tenant
     const payout = await ctx.db.get(args.payoutId);
@@ -1007,6 +1010,7 @@ export const markBatchAsPaid = mutation({
     if (!user) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // 1. Verify batch belongs to current tenant
     const batch = await ctx.db.get(args.batchId);

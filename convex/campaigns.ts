@@ -2,7 +2,7 @@ import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { Id, Doc } from "./_generated/dataModel";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { internal } from "./_generated/api";
 
 /**
@@ -107,6 +107,7 @@ export const createCampaign = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = user.tenantId;
 
@@ -498,6 +499,7 @@ export const updateCampaign = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const campaign = await ctx.db.get(args.campaignId);
 
@@ -625,6 +627,7 @@ export const archiveCampaign = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const campaign = await ctx.db.get(args.campaignId);
 
@@ -692,6 +695,7 @@ export const pauseCampaign = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const campaign = await ctx.db.get(args.campaignId);
 
@@ -762,6 +766,7 @@ export const resumeCampaign = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const campaign = await ctx.db.get(args.campaignId);
 

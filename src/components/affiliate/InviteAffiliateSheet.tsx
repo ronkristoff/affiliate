@@ -32,6 +32,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import { Loader2, UserPlus } from "lucide-react";
 
 const PROMOTION_CHANNELS = [
@@ -105,12 +106,7 @@ export function InviteAffiliateSheet({ isOpen, onClose }: InviteAffiliateSheetPr
       onClose();
       router.push(`/affiliates/${result.affiliateId}`);
     } catch (error) {
-      const message =
-        typeof error === "object" && error !== null && "data" in error
-          ? String(error.data)
-          : error instanceof Error
-            ? error.message
-            : "Failed to invite affiliate";
+      const message = getErrorMessage(error, "Failed to invite affiliate");
       toast.error(message);
     } finally {
       setIsSubmitting(false);

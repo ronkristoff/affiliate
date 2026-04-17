@@ -1,7 +1,7 @@
 import { query, mutation, internalQuery, internalMutation, internalAction } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticatedUser } from "./tenantContext";
+import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api, internal } from "./_generated/api";
@@ -1094,6 +1094,7 @@ export const inviteAffiliate = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
     if (authUser.role !== "owner" && authUser.role !== "manager") {
       throw new Error("Forbidden: Only owners and managers can invite affiliates");
     }
@@ -1219,6 +1220,7 @@ export const updateAffiliateStatus = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
     
     const tenantId = authUser.tenantId;
     
@@ -1397,6 +1399,7 @@ export const updateAffiliateProfile = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
+    await requireWriteAccess(ctx);
     
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate) {
@@ -1446,6 +1449,7 @@ export const updateAffiliatePassword = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
+    await requireWriteAccess(ctx);
     
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate) {
@@ -1546,6 +1550,7 @@ export const setAffiliateStatus = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
     
     const tenantId = authUser.tenantId;
     
@@ -1630,6 +1635,7 @@ export const suspendAffiliate = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -1786,6 +1792,7 @@ export const reactivateAffiliate = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -1960,6 +1967,7 @@ export const approveAffiliate = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2111,6 +2119,7 @@ export const rejectAffiliate = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2237,6 +2246,7 @@ export const bulkApproveAffiliates = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2369,6 +2379,7 @@ export const bulkRejectAffiliates = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2654,6 +2665,7 @@ export const setCommissionOverride = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2768,6 +2780,7 @@ export const removeCommissionOverride = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -2842,6 +2855,7 @@ export const toggleOverrideStatus = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -3011,6 +3025,7 @@ export const updateAffiliateNote = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 

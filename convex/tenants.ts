@@ -3,7 +3,7 @@ import { query, mutation, action, internalMutation, internalQuery, internalActio
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { obfuscate, deobfuscate } from "./encryption";
@@ -121,6 +121,7 @@ export const updateTenantWebsiteDomain = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     // Check permission - require settings:* or manage:* permission
     const role = authUser.role as Role;
@@ -484,6 +485,7 @@ export const updateTenant = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
     
     // Check permission - require billing:* or billing:manage permission
     const role = authUser.role as Role;
@@ -557,6 +559,7 @@ export const updateTenantBranding = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
     
     // Check permission - require settings:* or manage:* permission
     const role = authUser.role as Role;
@@ -645,6 +648,7 @@ export const resetTenantBranding = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     // Check permission - require settings:* or manage:* permission
     const role = authUser.role as Role;
@@ -822,6 +826,7 @@ export const connectMockSaligPay = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     // Validate tenant ownership
     if (authUser.tenantId !== args.tenantId) {
@@ -910,6 +915,7 @@ export const disconnectSaligPay = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     // Validate tenant ownership
     if (authUser.tenantId !== args.tenantId) {
@@ -986,6 +992,7 @@ export const connectStripe = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     if (authUser.tenantId !== args.tenantId) {
       throw new Error("Access denied: Cannot connect Stripe for another tenant");
@@ -1133,6 +1140,7 @@ export const disconnectStripe = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     if (authUser.tenantId !== args.tenantId) {
       throw new Error("Access denied: Cannot disconnect Stripe for another tenant");
@@ -1221,6 +1229,7 @@ export const completeOnboarding = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenant = await ctx.db.get(authUser.tenantId);
     if (!tenant) {

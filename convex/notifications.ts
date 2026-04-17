@@ -19,6 +19,7 @@ import { paginationOptsValidator } from "convex/server";
 import { internal } from "./_generated/api";
 import { Id, Doc } from "./_generated/dataModel";
 import { getFromAddress } from "./emailService";
+import { requireWriteAccess } from "./tenantContext";
 
 // 90 days in milliseconds
 const NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -347,6 +348,7 @@ export const markNotificationRead = mutation({
     if (!identity) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) {
@@ -398,6 +400,7 @@ export const markAllNotificationsRead = mutation({
     if (!identity) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // Auth check: verify the caller is the user whose notifications are being marked
     const callerUser = await ctx.db

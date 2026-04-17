@@ -103,3 +103,59 @@ export function downloadCsv(base64Data: string, filename: string): void {
 export function decodeCsvContent(base64Data: string): string {
   return atob(base64Data);
 }
+
+// ============================================
+// Error Handling Utilities
+// ============================================
+
+/**
+ * Extract a safe, user-facing message from any error thrown by mutations.
+ * Traverses error.cause chains and Convex error wrappers to find the root message.
+ * Returns fallback if no usable message is found.
+ */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  // Handle null/undefined
+  if (error == null) return fallback;
+
+  // Handle strings
+  if (typeof error === "string") return error;
+
+  // Handle Error-like objects (covers native Error, cross-realm Error, Convex RPC errors)
+  if (error instanceof Error) {
+    const msg = error.message;
+    // Only use fallback if message is truly empty
+    if (msg && msg.length > 0) {
+      return msg;
+    }
+    // Try .cause if message is empty
+    if (error.cause !== undefined) {
+      return getErrorMessage(error.cause, fallback);
+    }
+    return fallback;
+  }
+
+  // Handle plain objects with a message property
+  const err = error as Record<string, unknown>;
+  if (typeof err.message === "string" && err.message.length > 0) {
+    return err.message;
+  }
+
+  // Handle Convex error wrapper: { data: { message: string } }
+  if (err.data && typeof err.data === "object") {
+    const data = err.data as Record<string, unknown>;
+    if (typeof data.message === "string" && data.message.length > 0) {
+      return data.message;
+    }
+    // Try nested cause inside data
+    if (data.cause !== undefined) {
+      return getErrorMessage(data.cause, fallback);
+    }
+  }
+
+  // Last resort: try .cause
+  if (err.cause !== undefined) {
+    return getErrorMessage(err.cause, fallback);
+  }
+
+  return fallback;
+}

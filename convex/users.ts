@@ -2,7 +2,7 @@ import { internalMutation, internalQuery, internalAction, mutation, query } from
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
-import { getTenantId, requireTenantId, getTenant, getAuthenticatedUser } from "./tenantContext";
+import { getTenantId, requireTenantId, getTenant, getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
@@ -406,6 +406,7 @@ export const createUser = mutation({
   returns: v.id("users"),
   handler: async (ctx, args) => {
     const tenantId = await requireTenantId(ctx);
+    await requireWriteAccess(ctx);
     
     // Check if user already exists in this tenant
     const existingUser = await ctx.db
@@ -457,6 +458,7 @@ export const removeTeamMember = mutation({
     if (!currentUser) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // Get the user to be removed
     const userToRemove = await ctx.db.get(args.userId);
@@ -518,10 +520,21 @@ export const getUsersByTenant = query({
     v.object({
       _id: v.id("users"),
       _creationTime: v.number(),
+      tenantId: v.id("tenants"),
       email: v.string(),
       name: v.optional(v.string()),
       role: v.string(),
+      status: v.optional(v.string()),
+      removedAt: v.optional(v.number()),
+      removedBy: v.optional(v.string()),
       emailVerified: v.optional(v.boolean()),
+      permissionOverrides: v.optional(v.object({
+        canManageAffiliates: v.boolean(),
+        canManageCampaigns: v.boolean(),
+        canViewCommissions: v.boolean(),
+      })),
+      authId: v.optional(v.string()),
+      notificationUnreadCount: v.optional(v.number()),
     })
   ),
   handler: async (ctx, _args) => {
@@ -637,6 +650,7 @@ export const updateUserProfile = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     // Validate name field
     if (args.name.length < 2) {

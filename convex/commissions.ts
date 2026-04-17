@@ -1,7 +1,7 @@
 import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
-import { getAuthenticatedUser, getTenantId, getAffiliateTenantId } from "./tenantContext";
+import { getAuthenticatedUser, getTenantId, getAffiliateTenantId, requireWriteAccess } from "./tenantContext";
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
@@ -65,6 +65,8 @@ export const createCommission = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+
+    await requireWriteAccess(ctx);
 
     const tenantId = user.tenantId;
 
@@ -1082,6 +1084,8 @@ export const approveCommission = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+
+    await requireWriteAccess(ctx);
     
     // 2. Get commission and validate existence
     const commission = await ctx.db.get(args.commissionId);
@@ -1266,6 +1270,8 @@ export const declineCommission = mutation({
     if (!user) {
       throw new Error("Unauthorized: Authentication required");
     }
+
+    await requireWriteAccess(ctx);
     
     // Validate reason is not empty
     if (!args.reason || args.reason.trim().length === 0) {

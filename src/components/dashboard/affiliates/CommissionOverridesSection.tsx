@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import {
   Loader2,
   Plus,
@@ -100,11 +101,7 @@ export function CommissionOverridesSection({
       setIsRemoveDialogOpen(false);
       setSelectedOverride(null);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to remove commission override"
-      );
+      toast.error(getErrorMessage(error, "Failed to remove commission override"));
     } finally {
       setIsRemoving(false);
     }

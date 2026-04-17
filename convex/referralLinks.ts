@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireTenantId, requireAffiliateTenantId, getAuthenticatedUser, getTenantId, getAffiliateTenantId } from "./tenantContext";
+import { requireTenantId, requireAffiliateTenantId, getAuthenticatedUser, getTenantId, getAffiliateTenantId, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
@@ -240,6 +240,7 @@ export const generateReferralLink = mutation({
     if (!authUser) {
       throw new Error("Unauthorized: Authentication required");
     }
+    await requireWriteAccess(ctx);
 
     const tenantId = authUser.tenantId;
 
@@ -704,6 +705,7 @@ export const updateVanitySlug = mutation({
   }),
   handler: async (ctx, args) => {
     const tenantId = await requireAffiliateTenantId(ctx);
+    await requireWriteAccess(ctx);
 
     const affiliate = await ctx.db.get(args.affiliateId);
     if (!affiliate || affiliate.tenantId !== tenantId) {

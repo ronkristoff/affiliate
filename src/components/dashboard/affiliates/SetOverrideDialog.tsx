@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import { Loader2, Percent, PhilippinePeso } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -114,11 +115,7 @@ export function SetOverrideDialog({
 
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to set commission override"
-      );
+      toast.error(getErrorMessage(error, "Failed to set commission override"));
     } finally {
       setIsSubmitting(false);
     }

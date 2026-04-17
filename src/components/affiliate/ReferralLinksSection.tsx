@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import { Copy, Check, Link as LinkIcon, Loader2, Plus } from "lucide-react";
 import { DomainVerificationBanner } from "./DomainVerificationBanner";
 
@@ -94,7 +95,7 @@ export function ReferralLinksSection({ affiliateId, canManage, affiliateName }: 
       setIsGenerateDialogOpen(false);
       setSelectedCampaignId("none");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to generate referral link");
+      toast.error(getErrorMessage(error, "Failed to generate referral link"));
     } finally {
       setIsGenerating(false);
     }

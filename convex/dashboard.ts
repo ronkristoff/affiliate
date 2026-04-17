@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, checkWriteAccess } from "./tenantContext";
 import { Doc, Id } from "./_generated/dataModel";
 
 /**
@@ -769,6 +769,8 @@ export const getSetupStatus = query({
       referralTrackingActive: v.boolean(),
       firstCampaignCreated: v.boolean(),
       firstAffiliateApproved: v.boolean(),
+      subscriptionStatus: v.optional(v.string()),
+      writeAccessBlocked: v.boolean(),
     }),
     v.null()
   ),
@@ -817,6 +819,8 @@ export const getSetupStatus = query({
       referralTrackingActive: !!recentReferralPing,
       firstCampaignCreated: !!campaign,
       firstAffiliateApproved: !!activeAffiliate,
+      subscriptionStatus: tenant.subscriptionStatus,
+      writeAccessBlocked: !tenant ? false : !(await checkWriteAccess(ctx)).canWrite,
     };
   },
 });

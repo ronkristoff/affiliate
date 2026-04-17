@@ -9,6 +9,7 @@
 import { query, internalMutation, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { requireWriteAccess } from "./tenantContext";
 
 // =============================================================================
 // Pure Functions (testable, no DB access)
@@ -332,6 +333,7 @@ export const updateAffiliateCouponCode = mutation({
     if (!identity) {
       throw new Error("Unauthorized");
     }
+    await requireWriteAccess(ctx);
 
     // Validate format
     if (!validateCouponCodeFormat(args.newCode)) {

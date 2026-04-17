@@ -26,7 +26,7 @@ import { internalMutation, internalAction, internalQuery, mutation, query } from
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
-import { getAuthenticatedUser } from "./tenantContext";
+import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { internal } from "./_generated/api";
 
 // =============================================================================
@@ -372,6 +372,10 @@ export const logClientAuthEvent = mutation({
       } catch {
         // Email not found — log without tenant
       }
+    }
+
+    if (tenantId) {
+      await requireWriteAccess(ctx);
     }
 
     await ctx.db.insert("auditLogs", {
