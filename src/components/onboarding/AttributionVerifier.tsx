@@ -33,7 +33,11 @@ interface AttributionTestResult {
   message: string;
 }
 
-export function AttributionVerifier() {
+interface AttributionVerifierProps {
+  webhookSource?: "saligpay" | "stripe" | "none";
+}
+
+export function AttributionVerifier({ webhookSource = "none" }: AttributionVerifierProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState<AttributionTestResult[]>([]);
   
@@ -70,14 +74,17 @@ export function AttributionVerifier() {
         : "No attribution data in cookie - visit an affiliate link first",
     });
 
-    // Step 3: Check SaligPay integration
+    // Step 3: Check SaligPay/Stripe integration
     setTestResults([...results]);
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const hasPaymentIntegration = webhookSource !== "none";
     results.push({
       step: "Payment Integration",
-      status: "success",
-      message: "Payment integration configured for webhook processing",
+      status: hasPaymentIntegration ? "success" : "error",
+      message: hasPaymentIntegration 
+        ? `Connected to ${webhookSource === "saligpay" ? "SaligPay" : "Stripe"} - webhook processing active`
+        : "No payment provider connected - configure in billing settings",
     });
 
     // Step 4: Summary

@@ -240,7 +240,7 @@ export default function AttributionSettingsPage() {
         </Card>
 
         {/* Attribution Verifier */}
-        <AttributionVerifier />
+        <AttributionVerifier webhookSource={attributionConfig?.webhookSource} />
         </div>
       </div>
     </div>
