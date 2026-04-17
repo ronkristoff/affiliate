@@ -1,4 +1,5 @@
-import { query, mutation, internalAction, internalQuery } from "./_generated/server";
+import { query, internalAction, internalQuery } from "./_generated/server";
+import { mutation } from "./triggers";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
@@ -19,10 +20,10 @@ async function countPendingPayouts(
   ctx: MutationCtx,
   batchId: Id<"payoutBatches">
 ): Promise<number> {
-  const payouts = await ctx.db
-    .query("payouts")
-    .withIndex("by_batch", (q) => q.eq("batchId", batchId))
-    .collect();
+    const payouts = await ctx.db
+      .query("payouts")
+      .withIndex("by_batch", (q) => q.eq("batchId", batchId))
+      .take(500);
   return payouts.filter((p) => p.status === "pending").length;
 }
 
@@ -32,7 +33,7 @@ async function countPendingPayouts(
 
 /**
  * Generate a payout batch for all affiliates with approved, unpaid commissions.
- * Creates a payoutBatch record with "pending" status, updates commissions to "paid",
+ * Creates a payoutBatch record with "pending" status, links commissions to the batch,
  * creates individual payout records, and returns a summary.
  *
  * AC#1: Generate Batch - list all affiliates with approved unpaid commissions
@@ -202,20 +203,11 @@ export const generatePayoutBatch = mutation({
         status: "pending",
       });
 
-      // Update all commissions for this affiliate: mark as paid and link to batch
+      // Update all commissions for this affiliate: link to batch (status stays "approved" until markBatchAsPaid)
       for (const commissionId of affiliate.commissionIds) {
-        const commission = await ctx.db.get(commissionId);
-        const wasFlagged = commission ? ((commission.fraudIndicators?.length ?? 0) > 0 || commission.isSelfReferral === true) : false;
-
         await ctx.db.patch(commissionId, {
-          status: "paid",
           batchId,
         });
-
-        // Wire tenantStats counter hook — approved/paid → paid decrements approved counters
-        if (commission) {
-          await onCommissionStatusChange(ctx, tenantId, commission.amount, commission.status, "paid", wasFlagged, false);
-        }
       }
     }
 
@@ -884,28 +876,8 @@ export const markPayoutAsPaid = mutation({
     // Update denormalized totalPaidOut counter
     await incrementTotalPaidOut(ctx, tenantId, payout.amount);
 
-    // Payout processed notification (non-fatal, best-effort)
-    try {
-      const affiliateDoc = await ctx.db.get(payout.affiliateId);
-      if (affiliateDoc) {
-        const affiliateUser = await ctx.db
-          .query("users")
-          .withIndex("by_email", (q) => q.eq("email", affiliateDoc.email))
-          .first();
-        if (affiliateUser) {
-          await ctx.runMutation(internal.notifications.createNotification, {
-            tenantId,
-            userId: affiliateUser._id,
-            type: "payout.processed",
-            title: "Payout Processed",
-            message: `Your payout of ₱${payout.amount.toFixed(2)} has been processed.${args.paymentReference ? ` Ref: ${args.paymentReference}` : ""}`,
-            severity: "success",
-          });
-        }
-      }
-    } catch (notifErr) {
-      console.error("[Notification] Failed to send payout processed notification:", notifErr);
-    }
+    // Note: Affiliate in-app notifications require a userId from the users table.
+    // Affiliates live in the affiliates table and may not have a users record.
 
     // --- Schedule payout notification email (Story 13.4) ---
     let emailScheduled = false;
@@ -1040,6 +1012,31 @@ export const markBatchAsPaid = mutation({
       });
     }
 
+    // 4. Update corresponding commissions to "paid" status
+    //    Commissions are linked to the batch via batchId field
+    const batchCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .filter((q) => q.eq(q.field("batchId") as any, args.batchId))
+      .take(500);
+    for (const commission of batchCommissions) {
+      if (commission.status === "approved") {
+        await ctx.db.patch(commission._id, {
+          status: "paid",
+        });
+        const wasFlagged = (commission.fraudIndicators?.length ?? 0) > 0;
+        await onCommissionStatusChange(
+          ctx,
+          tenantId,
+          commission.amount,
+          "approved",
+          "paid",
+          wasFlagged,
+          wasFlagged,
+        );
+      }
+    }
+
     // Update denormalized totalPaidOut counter (sum of all individual payout amounts)
     let batchTotalPaid = 0;
     for (const payout of pendingPayouts) {
@@ -1047,9 +1044,13 @@ export const markBatchAsPaid = mutation({
     }
     await incrementTotalPaidOut(ctx, tenantId, batchTotalPaid);
 
-    // Payout processed notifications for all affiliates (non-fatal, best-effort)
-    try {
-      for (const payout of pendingPayouts) {
+    // --- Affiliate in-app notifications for payout sent ---
+    // Look up user by email (affiliates may not have a users record)
+    const notifiedAffiliateIds = new Set<string>();
+    for (const payout of pendingPayouts) {
+      if (notifiedAffiliateIds.has(payout.affiliateId)) continue;
+      notifiedAffiliateIds.add(payout.affiliateId);
+      try {
         const affiliate = await ctx.db.get(payout.affiliateId);
         if (affiliate) {
           const affiliateUser = await ctx.db
@@ -1060,16 +1061,16 @@ export const markBatchAsPaid = mutation({
             await ctx.runMutation(internal.notifications.createNotification, {
               tenantId,
               userId: affiliateUser._id,
-              type: "payout.processed",
-              title: "Payout Processed",
-              message: `Your payout of ₱${payout.amount.toFixed(2)} has been processed.${args.paymentReference ? ` Ref: ${args.paymentReference}` : ""}`,
+              type: "payout.sent",
+              title: "Payout Sent",
+              message: `A payout of ₱${payout.amount.toFixed(2)} has been sent to you.`,
               severity: "success",
             });
           }
         }
+      } catch (notifErr) {
+        console.error("[Notification] Failed to send payout notification:", notifErr);
       }
-    } catch (notifErr) {
-      console.error("[Notification] Failed to send batch payout processed notifications:", notifErr);
     }
 
     // --- Schedule payout notification emails for all affiliates (Story 13.4) ---

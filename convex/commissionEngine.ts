@@ -177,7 +177,7 @@ export const processPaymentUpdatedToCommission = internalAction({
         });
         if (couponValidation) {
           event.attribution = {
-            affiliateCode: couponValidation.affiliateName, // Will be resolved by affiliate lookup
+            affiliateCode: couponValidation.uniqueCode,
             clickId: couponValidation.referralLinkId as any,
           };
           webhookAttributionSource = "coupon";
@@ -250,7 +250,7 @@ export const processPaymentUpdatedToCommission = internalAction({
       });
       if (couponValidation) {
         event.attribution = {
-          affiliateCode: couponValidation.affiliateName,
+          affiliateCode: couponValidation.uniqueCode,
           clickId: couponValidation.referralLinkId as any,
         };
         webhookAttributionSource = "coupon";
@@ -594,7 +594,7 @@ export const processSubscriptionCreatedEvent = internalAction({
         });
         if (subCouponValidation) {
           event.attribution = {
-            affiliateCode: subCouponValidation.affiliateName,
+            affiliateCode: subCouponValidation.uniqueCode,
             clickId: subCouponValidation.referralLinkId as any,
             couponCode: subCouponCode,
           };
@@ -1040,7 +1040,7 @@ export const processSubscriptionUpdatedEvent = internalAction({
         });
         if (updCouponValidation) {
           event.attribution = {
-            affiliateCode: updCouponValidation.affiliateName,
+            affiliateCode: updCouponValidation.uniqueCode,
             clickId: updCouponValidation.referralLinkId as any,
             couponCode: updCouponCode,
           };

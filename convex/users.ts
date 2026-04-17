@@ -126,6 +126,10 @@ export const completeSignUp = mutation({
 
     const email = args.email.trim().toLowerCase();
 
+    // Get Better Auth identity to capture authId
+    const identity = await ctx.auth.getUserIdentity();
+    const authId = identity?.subject;
+
     // Check if user already exists by email (idempotent)
     const existingUser = await ctx.db
       .query("users")
@@ -133,6 +137,10 @@ export const completeSignUp = mutation({
       .first();
 
     if (existingUser) {
+      // Backfill authId if missing on existing user
+      if (authId && !existingUser.authId) {
+        await ctx.db.patch(existingUser._id, { authId });
+      }
       return existingUser._id;
     }
 
@@ -191,12 +199,13 @@ export const completeSignUp = mutation({
     // Seed denormalized tenantStats counters
     await ctx.runMutation(internal.tenantStats.seedStats, { tenantId });
 
-    // Create user with owner role
+    // Create user with owner role AND store the Better Auth authId
     const userId = await ctx.db.insert("users", {
       tenantId,
       email,
       name: args.name,
       role: "owner",
+      ...(authId ? { authId } : {}),
     });
 
     // Create audit log entry

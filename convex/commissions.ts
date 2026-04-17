@@ -1,4 +1,5 @@
-import { mutation, internalMutation, query, internalQuery, action } from "./_generated/server";
+import { query, internalQuery, action } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { getAuthenticatedUser, getTenantId, getAffiliateTenantId, requireWriteAccess } from "./tenantContext";
@@ -425,26 +426,11 @@ export const createCommissionFromConversionInternal = internalMutation({
 
     // Commission earned notification (non-fatal, best-effort)
     try {
-      const affiliateUser = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
-        .first();
       const ownerUsers = await ctx.db
         .query("users")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
         .filter((q) => q.eq(q.field("role") as any, "owner"))
         .take(5);
-      if (affiliateUser) {
-        await ctx.runMutation(internal.notifications.createNotification, {
-          tenantId: args.tenantId,
-          userId: affiliateUser._id,
-          type: "commission.earned",
-          title: "New Commission",
-          message: `You earned a commission of ₱${commissionAmount.toFixed(2)}.`,
-          severity: "success",
-          shouldAggregate: true,
-        });
-      }
       for (const owner of ownerUsers) {
         await ctx.runMutation(internal.notifications.createNotification, {
           tenantId: args.tenantId,
@@ -452,6 +438,23 @@ export const createCommissionFromConversionInternal = internalMutation({
           type: "commission.earned",
           title: "New Commission",
           message: `${affiliate.name || "An affiliate"} earned a commission of ₱${commissionAmount.toFixed(2)}.`,
+          severity: "success",
+          shouldAggregate: true,
+        });
+      }
+
+      // Affiliate notification — look up user by email (affiliates may not have a users record)
+      const affiliateUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", affiliate.email))
+        .first();
+      if (affiliateUser) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: args.tenantId,
+          userId: affiliateUser._id,
+          type: "commission.earned",
+          title: "New Commission",
+          message: `You earned a commission of ₱${commissionAmount.toFixed(2)}.`,
           severity: "success",
           shouldAggregate: true,
         });
@@ -1014,6 +1017,23 @@ export const reverseCommissionInternal = internalMutation({
 
     // Commission reversed notification (non-fatal, best-effort)
     try {
+      const ownerUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", commission.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .take(5);
+      for (const owner of ownerUsers) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: commission.tenantId,
+          userId: owner._id,
+          type: "commission.reversed",
+          title: "Commission Reversed",
+          message: `A commission of ₱${commission.amount.toFixed(2)} has been reversed (${args.reversalReason}).`,
+          severity: "critical",
+        });
+      }
+
+      // Affiliate notification
       const affiliateDoc = await ctx.db.get(commission.affiliateId);
       if (affiliateDoc) {
         const affiliateUser = await ctx.db
@@ -1030,21 +1050,6 @@ export const reverseCommissionInternal = internalMutation({
             severity: "critical",
           });
         }
-      }
-      const ownerUsers = await ctx.db
-        .query("users")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", commission.tenantId))
-        .filter((q) => q.eq(q.field("role") as any, "owner"))
-        .take(5);
-      for (const owner of ownerUsers) {
-        await ctx.runMutation(internal.notifications.createNotification, {
-          tenantId: commission.tenantId,
-          userId: owner._id,
-          type: "commission.reversed",
-          title: "Commission Reversed",
-          message: `A commission of ₱${commission.amount.toFixed(2)} has been reversed (${args.reversalReason}).`,
-          severity: "critical",
-        });
       }
     } catch (notifErr) {
       console.error("[Notification] Failed to send commission reversed notifications:", notifErr);
@@ -1139,6 +1144,23 @@ export const approveCommission = mutation({
 
     // Commission approved notification (non-fatal, best-effort)
     try {
+      const ownerUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .take(5);
+      for (const owner of ownerUsers) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: user.tenantId,
+          userId: owner._id,
+          type: "commission.approved",
+          title: "Commission Approved",
+          message: `A commission of ₱${commission.amount.toFixed(2)} has been approved.`,
+          severity: "success",
+        });
+      }
+
+      // Affiliate notification
       const affiliateDoc = await ctx.db.get(commission.affiliateId);
       if (affiliateDoc) {
         const affiliateUser = await ctx.db
@@ -1333,6 +1355,23 @@ export const declineCommission = mutation({
     
     // Commission declined notification (non-fatal, best-effort)
     try {
+      const ownerUsers = await ctx.db
+        .query("users")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", user.tenantId))
+        .filter((q) => q.eq(q.field("role") as any, "owner"))
+        .take(5);
+      for (const owner of ownerUsers) {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          tenantId: user.tenantId,
+          userId: owner._id,
+          type: "commission.declined",
+          title: "Commission Declined",
+          message: `A commission of ₱${commission.amount.toFixed(2)} has been declined.`,
+          severity: "warning",
+        });
+      }
+
+      // Affiliate notification
       const affiliateDoc = await ctx.db.get(commission.affiliateId);
       if (affiliateDoc) {
         const affiliateUser = await ctx.db

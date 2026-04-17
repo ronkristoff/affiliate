@@ -262,3 +262,11 @@ development_status:
   15-6-login-email-chain-integration: done
   15-7-audit-log-housekeeping: done
   epic-15-retrospective: optional
+
+  # ========================================
+  # EPIC 16: E2E Review — Signup-to-Payout Bug Fixes
+  # 1 story | Batch fix for 16 findings (3 critical, 5 high, 5 medium, 3 low)
+  # ========================================
+  epic-16: in-progress
+  16-1-e2e-signup-to-payout-review-fixes: review
+  epic-16-retrospective: optional

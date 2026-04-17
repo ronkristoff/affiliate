@@ -1,4 +1,5 @@
-import { query, mutation, internalQuery, internalMutation, internalAction } from "./_generated/server";
+import { query, internalQuery, internalAction } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
@@ -6,6 +7,21 @@ import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api, internal } from "./_generated/api";
 import { updateAffiliateCount } from "./tenantStats";
+import { affiliateAggregate, clicksAggregate, conversionsAggregate, commissionsAggregate } from "./aggregates";
+
+/**
+ * Constant-time string comparison safe for V8 runtime.
+ * Prevents timing attacks by always comparing full length.
+ * Used instead of crypto.timingSafeEqual which requires Node.js.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
 
 /**
  * Generate a unique signal ID for fraud signals.
@@ -357,42 +373,80 @@ export const listAffiliatesByStatus = query({
       commissionTotals.set(affiliate._id, 0);
     }
 
-    // Fetch all clicks for the tenant and aggregate by affiliate
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(500);
-
-    for (const click of allClicks) {
-      if (clickCounts.has(click.affiliateId)) {
-        clickCounts.set(click.affiliateId, (clickCounts.get(click.affiliateId) ?? 0) + 1);
-      }
-    }
-
-    // Fetch all conversions for the tenant and aggregate by affiliate
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(500);
-
-    for (const conversion of allConversions) {
-      if (conversion.affiliateId && conversionCounts.has(conversion.affiliateId)) {
-        conversionCounts.set(conversion.affiliateId, (conversionCounts.get(conversion.affiliateId) ?? 0) + 1);
-      }
-    }
-
-    // Fetch all commissions for the tenant and aggregate by affiliate
-    // Only count approved commissions as earnings
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(500);
-
-    for (const commission of allCommissions) {
-      if (commissionTotals.has(commission.affiliateId)) {
-        if (commission.status === "approved") {
-          commissionTotals.set(commission.affiliateId, (commissionTotals.get(commission.affiliateId) ?? 0) + commission.amount);
+    // Fetch all clicks for the tenant using aggregate — no silent truncation.
+    {
+      const clickPageSize = 500;
+      let clickCursor: string | undefined;
+      let clickDone = false;
+      while (!clickDone) {
+        const clickResult = await clicksAggregate.paginate(ctx, {
+          namespace: tenantId,
+          pageSize: clickPageSize,
+          cursor: clickCursor,
+          order: "desc",
+        });
+        const clickDocs = await Promise.all(
+          clickResult.page.map((item: any) => ctx.db.get(item.id as Id<"clicks">))
+        );
+        for (const doc of clickDocs) {
+          if (doc && clickCounts.has(doc.affiliateId)) {
+            clickCounts.set(doc.affiliateId, (clickCounts.get(doc.affiliateId) ?? 0) + 1);
+          }
         }
+        clickCursor = clickResult.isDone ? undefined : clickResult.cursor;
+        clickDone = !clickCursor;
+      }
+    }
+
+    // Fetch all conversions for the tenant using aggregate — no silent truncation.
+    {
+      const convPageSize = 500;
+      let convCursor: string | undefined;
+      let convDone = false;
+      while (!convDone) {
+        const convResult = await conversionsAggregate.paginate(ctx, {
+          namespace: tenantId,
+          pageSize: convPageSize,
+          cursor: convCursor,
+          order: "desc",
+        });
+        const convDocs = await Promise.all(
+          convResult.page.map((item: any) => ctx.db.get(item.id as Id<"conversions">))
+        );
+        for (const doc of convDocs) {
+          if (doc && doc.affiliateId && conversionCounts.has(doc.affiliateId)) {
+            conversionCounts.set(doc.affiliateId, (conversionCounts.get(doc.affiliateId) ?? 0) + 1);
+          }
+        }
+        convCursor = convResult.isDone ? undefined : convResult.cursor;
+        convDone = !convCursor;
+      }
+    }
+
+    // Fetch all commissions for the tenant using aggregate — no silent truncation.
+    {
+      const commPageSize = 500;
+      let commCursor: string | undefined;
+      let commDone = false;
+      while (!commDone) {
+        const commResult = await commissionsAggregate.paginate(ctx, {
+          namespace: tenantId,
+          pageSize: commPageSize,
+          cursor: commCursor,
+          order: "desc",
+        });
+        const commDocs = await Promise.all(
+          commResult.page.map((item: any) => ctx.db.get(item.id as Id<"commissions">))
+        );
+        for (const doc of commDocs) {
+          if (doc && commissionTotals.has(doc.affiliateId)) {
+            if (doc.status === "approved") {
+              commissionTotals.set(doc.affiliateId, (commissionTotals.get(doc.affiliateId) ?? 0) + doc.amount);
+            }
+          }
+        }
+        commCursor = commResult.isDone ? undefined : commResult.cursor;
+        commDone = !commCursor;
       }
     }
 
@@ -636,7 +690,7 @@ export const listAffiliatesFiltered = query({
       allReferralLinks = await ctx.db
         .query("referralLinks")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .take(5000);
+        .take(500);
     }
 
     // Build campaign allowlist if campaign filter is active
@@ -789,31 +843,61 @@ export const listAffiliatesFiltered = query({
       );
     }
 
-    const [allClicks, allConversions, allCommissions] = await Promise.all([
-      ctx.db.query("clicks").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(5000),
-      ctx.db.query("conversions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(2000),
-      ctx.db.query("commissions").withIndex("by_tenant", (q) => q.eq("tenantId", tenantId)).take(2000),
-    ]);
-
-    // Build stat maps
     const clickCountMap = new Map<string, number>();
     const referralCountMap = new Map<string, number>();
     const earningsMap = new Map<string, number>();
 
-    for (const click of allClicks) {
-      const key = click.affiliateId.toString();
-      clickCountMap.set(key, (clickCountMap.get(key) ?? 0) + 1);
-    }
-    for (const conv of allConversions) {
-      if (conv.affiliateId) {
-        const key = conv.affiliateId.toString();
-        referralCountMap.set(key, (referralCountMap.get(key) ?? 0) + 1);
+    // Use aggregate pagination for accurate counts (no silent truncation)
+    {
+      let clickCursor: string | undefined;
+      let clickDone = false;
+      while (!clickDone) {
+        const result = await clicksAggregate.paginate(ctx, {
+          namespace: tenantId, pageSize: 500, cursor: clickCursor, order: "desc",
+        });
+        for (const item of result.page) {
+          const key = (item.id as Id<"clicks">).toString();
+          const doc = await ctx.db.get(item.id as Id<"clicks">);
+          if (doc && clickCountMap.has(doc.affiliateId.toString())) {
+            clickCountMap.set(doc.affiliateId.toString(), (clickCountMap.get(doc.affiliateId.toString()) ?? 0) + 1);
+          }
+        }
+        clickCursor = result.isDone ? undefined : result.cursor;
+        clickDone = !clickCursor;
       }
     }
-    for (const comm of allCommissions) {
-      if (comm.status === "approved") {
-        const key = comm.affiliateId.toString();
-        earningsMap.set(key, (earningsMap.get(key) ?? 0) + comm.amount);
+    {
+      let convCursor: string | undefined;
+      let convDone = false;
+      while (!convDone) {
+        const result = await conversionsAggregate.paginate(ctx, {
+          namespace: tenantId, pageSize: 500, cursor: convCursor, order: "desc",
+        });
+        for (const item of result.page) {
+          const doc = await ctx.db.get(item.id as Id<"conversions">);
+          if (doc && doc.affiliateId && referralCountMap.has(doc.affiliateId.toString())) {
+            referralCountMap.set(doc.affiliateId.toString(), (referralCountMap.get(doc.affiliateId.toString()) ?? 0) + 1);
+          }
+        }
+        convCursor = result.isDone ? undefined : result.cursor;
+        convDone = !convCursor;
+      }
+    }
+    {
+      let commCursor: string | undefined;
+      let commDone = false;
+      while (!commDone) {
+        const result = await commissionsAggregate.paginate(ctx, {
+          namespace: tenantId, pageSize: 500, cursor: commCursor, order: "desc",
+        });
+        for (const item of result.page) {
+          const doc = await ctx.db.get(item.id as Id<"commissions">);
+          if (doc && doc.status === "approved" && earningsMap.has(doc.affiliateId.toString())) {
+            earningsMap.set(doc.affiliateId.toString(), (earningsMap.get(doc.affiliateId.toString()) ?? 0) + doc.amount);
+          }
+        }
+        commCursor = result.isDone ? undefined : result.cursor;
+        commDone = !commCursor;
       }
     }
 
@@ -1015,12 +1099,8 @@ export const registerAffiliate = mutation({
     // Check tier limits before creating affiliate
     const tierConfig = await ctx.runQuery(api.tierConfig.getMyTierConfig);
     if (tierConfig) {
-      const currentAffiliates = await ctx.db
-        .query("affiliates")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .take(500);
-      
-      const affiliateCount = currentAffiliates.length;
+      // Use aggregate for O(log n) exact count instead of capped .take(500)
+      const affiliateCount = await affiliateAggregate.count(ctx, { namespace: tenantId });
       
       // Check if limit is enforced (not unlimited = -1)
       if (tierConfig.maxAffiliates !== -1 && affiliateCount >= tierConfig.maxAffiliates) {
@@ -1114,14 +1194,11 @@ export const inviteAffiliate = mutation({
 
     const tierConfig = await ctx.runQuery(api.tierConfig.getMyTierConfig);
     if (tierConfig) {
-      const currentAffiliates = await ctx.db
-        .query("affiliates")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .take(500);
+      const affiliateCount = await affiliateAggregate.count(ctx, { namespace: tenantId });
 
-      if (tierConfig.maxAffiliates !== -1 && currentAffiliates.length >= tierConfig.maxAffiliates) {
+      if (tierConfig.maxAffiliates !== -1 && affiliateCount >= tierConfig.maxAffiliates) {
         throw new Error(
-          `Affiliate limit reached (${currentAffiliates.length}/${tierConfig.maxAffiliates}). Please upgrade your plan to add more affiliates.`
+          `Affiliate limit reached (${affiliateCount}/${tierConfig.maxAffiliates}). Please upgrade your plan to add more affiliates.`
         );
       }
     }
@@ -1361,8 +1438,8 @@ export const authenticateAffiliate = query({
       return null;
     }
 
-    // Compare password hashes (client should send hashed password)
-    if (affiliate.passwordHash !== args.passwordHash) {
+    // Compare password hashes using constant-time comparison (timing-safe)
+    if (!affiliate.passwordHash || !timingSafeEqual(affiliate.passwordHash, args.passwordHash)) {
       return null;
     }
 
@@ -1461,7 +1538,7 @@ export const updateAffiliatePassword = mutation({
       throw new Error("Affiliate not found or access denied");
     }
 
-    if (!affiliate.passwordHash || affiliate.passwordHash !== args.currentPasswordHash) {
+    if (!affiliate.passwordHash || !timingSafeEqual(affiliate.passwordHash, args.currentPasswordHash)) {
       throw new Error("Current password is incorrect");
     }
 

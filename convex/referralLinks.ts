@@ -1,9 +1,11 @@
-import { query, mutation } from "./_generated/server";
+import { query } from "./_generated/server";
+import { mutation } from "./triggers";
 import { v } from "convex/values";
 import { requireTenantId, requireAffiliateTenantId, getAuthenticatedUser, getTenantId, getAffiliateTenantId, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
+import { conversionsAggregate } from "./aggregates";
 
 /**
  * Generate a unique referral code for a referral link.
@@ -554,6 +556,23 @@ export const getAffiliatePortalLinks = query({
     // Sort by creation time descending
     filteredLinks.sort((a, b) => b._creationTime - a._creationTime);
 
+    // Pre-fetch tenant-wide conversions once for all links (avoid N+1).
+    // Build a map of referralLinkId → conversion count.
+    const tenantConversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .order("desc")
+      .take(500);
+    const conversionCountByLink = new Map<string, number>();
+    for (const c of tenantConversions) {
+      if (c.referralLinkId) {
+        conversionCountByLink.set(
+          c.referralLinkId.toString(),
+          (conversionCountByLink.get(c.referralLinkId.toString()) ?? 0) + 1,
+        );
+      }
+    }
+
     // Enrich with campaign names, URLs, and statistics
     const enrichedLinks = await Promise.all(filteredLinks.map(async (link) => {
       let campaignName: string | undefined;
@@ -576,19 +595,14 @@ export const getAffiliatePortalLinks = query({
         campaignUrl = buildCampaignUrl(domain, link.code, campaignSlug);
       }
 
-      // Get click count for this link
+      // Get click count for this link (capped)
       const clicks = await ctx.db
         .query("clicks")
         .withIndex("by_referral_link", (q) => q.eq("referralLinkId", link._id))
-        .collect();
+        .take(500);
       const clickCount = clicks.length;
 
-      // Get conversion count for this link
-      const conversions = await ctx.db
-        .query("conversions")
-        .filter((q) => q.eq(q.field("referralLinkId"), link._id))
-        .collect();
-      const conversionCount = conversions.length;
+      const conversionCount = conversionCountByLink.get(link._id.toString()) ?? 0;
 
       // Calculate conversion rate
       const conversionRate = clickCount > 0 
@@ -636,19 +650,17 @@ export const getAffiliateDailyClicks = query({
       throw new Error("Affiliate not found or access denied");
     }
 
-    // Get all referral links for this affiliate
+    // Get all referral links for this affiliate (capped)
     const links = await ctx.db
       .query("referralLinks")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
-
-    const linkIds = links.map(link => link._id);
+      .take(200);
 
     // Calculate date range (last 7 days including today)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // 6 days ago + today = 7 days
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -662,24 +674,26 @@ export const getAffiliateDailyClicks = query({
         date: dateString,
         dayName: dayNames[date.getDay()],
         clicks: 0,
-        isToday: i === 6, // Last day is today
+        isToday: i === 6,
       });
     }
 
-    // Query all clicks for these links in the last 7 days
     const startTime = sevenDaysAgo.getTime();
-    const endTime = today.getTime() + 24 * 60 * 60 * 1000; // End of today
+    const endTime = today.getTime() + 24 * 60 * 60 * 1000;
 
-    for (const linkId of linkIds) {
-      const clicks = await ctx.db
+    // Fetch clicks per referral link using by_referral_link index (bounded per link).
+    // This is more efficient than a tenant-wide scan — each affiliate typically has few links.
+    for (const linkId of links.map(l => l._id)) {
+      const linkClicks = await ctx.db
         .query("clicks")
         .withIndex("by_referral_link", (q) => q.eq("referralLinkId", linkId))
-        .collect();
+        .order("desc")
+        .take(1000); // cap per link — generous for high-traffic affiliates
 
-      // Count clicks per day
-      for (const click of clicks) {
+      for (const click of linkClicks) {
+        if (click._creationTime < startTime) break;
         const clickDate = new Date(click._creationTime);
-        if (clickDate.getTime() >= startTime && clickDate.getTime() < endTime) {
+        if (clickDate.getTime() < endTime) {
           const dateString = clickDate.toISOString().split('T')[0];
           const dayEntry = result.find(r => r.date === dateString);
           if (dayEntry) {

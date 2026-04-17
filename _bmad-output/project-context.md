@@ -1,7 +1,7 @@
 ---
 project_name: "salig-affiliate"
 user_name: "msi"
-date: "2026-03-19"
+date: "2026-04-17"
 sections_completed:
   - "technology_stack"
   - "framework_rules"
@@ -9,8 +9,9 @@ sections_completed:
   - "email_rules"
   - "skills"
   - "convex_module_import_rules"
+  - "datatable_best_practices"
 status: "complete"
-rule_count: 19
+rule_count: 28
 optimized_for_llm: true
 ---
 
@@ -92,6 +93,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
        return { ...campaign, commissionRate: campaign.commissionValue };
      },
      ```
+
+7. **Read Convex AI Guidelines First** - When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+
+   Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
 
 ### Next.js Frontend Rules
 
@@ -211,6 +216,261 @@ pnpm tsc --noEmit
 
 **NEVER use raw `<button>` tags** — always use `<Button>` from `@/components/ui/button` (or `<Button asChild>` for links). Raw buttons bypass the motion system entirely.
 
+### Data Table Best Practices (Convex + Next.js 16)
+
+All data tables in this project MUST follow these patterns. Convex is a NoSQL real-time database with a **hard 1MB query payload limit** and **32,000 document scan limit per transaction**. These limits are embedded in the Convex engine itself (even self-hosted) and cannot be changed. Every data table must be architected to stay within these boundaries.
+
+#### 1. Choose the Right Pagination Path
+
+There are **two distinct paths** for data table pagination. Choose based on UX requirements:
+
+| Requirement | Path | Backend Strategy | Frontend Hook |
+|-------------|------|-----------------|---------------|
+| URL-driven numbered pages (`?page=3`), jump to any page | **Path A: Offset** | `TableAggregate.at(offset)` | `useQuery` with manual offset |
+| Infinite scroll, "Load More", Next/Prev buttons | **Path B: Cursor** | Convex native `.paginate()` | `usePaginatedQuery` |
+| URL state + Next/Prev (no page numbers) | **Path C: Cursor URL** | Explicit cursor arg | `useQuery` with cursor stack |
+
+**You CANNOT have all three simultaneously:** dynamic multi-column filters + exact numbered pages + unlimited result sets. Pick ONE path per table.
+
+#### 2. Path A: Offset/Numbered Pagination (Recommended for this project)
+
+Most admin dashboards (affiliates, commissions, campaigns) need numbered pages and URL state. Use the **Hybrid Approach**:
+
+- **No search/filters active** → Use `TableAggregate` for O(log n) page jumps
+- **Search or filters active** → Use `withSearchIndex` or `withIndex`, cap results at `.take(500)`, paginate in-memory
+
+**Backend pattern (convex module):**
+```typescript
+import { TableAggregate } from "@convex-dev/aggregate";
+import { components } from "./_generated/api";
+import { DataModel } from "./_generated/dataModel";
+
+const myTableAggregate = new TableAggregate<{
+  Key: number;
+  DataModel: DataModel;
+  TableName: "myTable";
+}>(components.aggregate, {
+  sortKey: (doc) => doc._creationTime,
+});
+
+export const getHybridPage = query({
+  args: {
+    offset: v.number(),
+    limit: v.number(),
+    search: v.optional(v.string()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // PATH A-1: Search or filters active → capped in-memory pagination
+    if (args.search || args.status) {
+      const results = args.search
+        ? await ctx.db.query("myTable")
+            .withSearchIndex("search_field", (q) => {
+              let s = q.search("name", args.search!);
+              if (args.status) s = s.eq("status", args.status);
+              return s;
+            })
+            .take(500)
+        : await ctx.db.query("myTable")
+            .withIndex("by_status", (q) => q.eq("status", args.status!))
+            .take(500);
+
+      return {
+        items: results.slice(args.offset, args.offset + args.limit),
+        totalCount: results.length,
+      };
+    }
+
+    // PATH A-2: No filters → O(log n) aggregate offset
+    const totalCount = await myTableAggregate.count(ctx);
+    if (args.offset >= totalCount || totalCount === 0) {
+      return { items: [], totalCount };
+    }
+
+    const firstInPage = await myTableAggregate.at(ctx, args.offset);
+    const pageData = await myTableAggregate.paginate(ctx, {
+      bounds: {
+        lower: { key: firstInPage.key, id: firstInPage.id, inclusive: true },
+      },
+      pageSize: args.limit,
+    });
+
+    const items = await Promise.all(
+      pageData.page.map((doc) => ctx.db.get(doc.id))
+    );
+
+    return { items: items.filter(Boolean), totalCount };
+  },
+});
+```
+
+**Frontend pattern (Next.js 16):**
+```typescript
+// page.tsx (Server Component)
+import { Suspense } from "react";
+import MyDataTable from "./MyDataTable";
+
+export default function Page() {
+  return (
+    <Suspense fallback={<TableSkeleton />}>
+      <MyDataTable />
+    </Suspense>
+  );
+}
+
+// MyDataTable.tsx (Client Component)
+"use client";
+import { useQuery } from "convex/react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+
+const ITEMS_PER_PAGE = 10;
+
+export default function MyDataTable() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "";
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const data = useQuery(api.myModule.getHybridPage, {
+    offset, limit: ITEMS_PER_PAGE, search, status,
+  });
+
+  const updateUrl = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value) params.delete(key);
+      else params.set(key, String(value));
+    });
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const totalPages = Math.ceil((data?.totalCount ?? 0) / ITEMS_PER_PAGE);
+
+  // When changing search/filter, ALWAYS reset to page 1:
+  // updateUrl({ search: newSearch, page: 1 });
+}
+```
+
+#### 3. Path B: Cursor-Based (Infinite Scroll / Load More)
+
+Use for feeds, activity logs, or any view where users don't need to jump to specific pages.
+
+```typescript
+// Frontend
+const { results, status, loadMore } = usePaginatedQuery(
+  api.myModule.getList,
+  { status: "active" },  // filter args
+  { initialNumItems: 50 }
+);
+// <button onClick={() => loadMore(50)}>Load More</button>
+```
+
+#### 4. Total Counts — ALWAYS Use `@convex-dev/aggregate`
+
+**NEVER** do `ctx.db.query("table").collect().length` or `ctx.db.query("table").filter(...).collect()` for counts. These scan the entire table and WILL hit the 1MB limit on large tables.
+
+- Use `TableAggregate.count(ctx)` for O(log n) counts
+- Register aggregate in `convex/convex.config.ts`: `app.use(aggregate)`
+- Keep aggregates in sync via Convex triggers or by calling aggregate operations in your mutations
+- For filtered counts on predictable dimensions (e.g., per-status), use aggregate **Namespaces**
+
+#### 5. Search — Use `withSearchIndex`, NOT `.filter()`
+
+Text search MUST use Convex's native full-text search indexes defined in `convex/schema.ts`:
+```typescript
+// In schema.ts
+defineTable({ name: v.string(), status: v.string() })
+  .searchIndex("search_name", {
+    searchField: "name",
+    filterFields: ["status"],  // Chain equality filters with search
+  })
+```
+
+**NEVER** use `.filter((q) => q.eq(q.field("name"), searchTerm))` for text matching — that's an exact equality check, not a search.
+
+#### 6. Filters — Use Database Indexes (`withIndex`)
+
+For non-search filters (dropdowns, status tabs), ALWAYS use `withIndex()`:
+```typescript
+// Schema must have: .index("by_status", ["status"])
+ctx.db.query("table").withIndex("by_status", (q) => q.eq("status", "active"))
+```
+
+**NEVER** use unbounded `.filter()` on paginated queries — it causes variable page sizes and inconsistent results.
+
+#### 7. Export — Use Actions with Chunked Queries
+
+Exporting data MUST use a Convex `action` (Node.js runtime, higher limits) with chunked internal queries. NEVER export from a query.
+
+```typescript
+// 1. Internal query fetches safe chunks
+export const getExportChunk = internalQuery({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("myTable").paginate({
+      cursor: args.cursor, numItems: 1000,
+    });
+  },
+});
+
+// 2. Action loops through chunks, builds file, stores it
+export const generateCsvExport = action({
+  args: {},
+  handler: async (ctx) => {
+    let cursor: string | null = null;
+    let isDone = false;
+    let csvLines = ["id,name,status"];
+
+    while (!isDone) {
+      const page = await ctx.runQuery(internal.export.getExportChunk, { cursor });
+      for (const row of page.page) {
+        csvLines.push(`${row._id},"${row.name}",${row.status}`);
+      }
+      cursor = page.continueCursor;
+      isDone = page.isDone;
+    }
+
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+    const storageId = await ctx.storage.store(blob);
+    return await ctx.storage.getUrl(storageId);
+  },
+});
+```
+
+#### 8. Suspense Boundaries for Tables Using `useSearchParams`
+
+In Next.js 16, any client component using `useSearchParams()` MUST be wrapped in `<Suspense>` by its parent server component. Without this, the entire route de-opts into client-side rendering.
+
+```typescript
+// page.tsx (Server Component)
+export default function Page() {
+  return (
+    <Suspense fallback={<TableSkeleton />}>
+      <MyDataTable />  // uses useSearchParams
+    </Suspense>
+  );
+}
+```
+
+#### 9. Filtered Count Cap Display
+
+When search or filters are active (capped at `.take(500)`), the UI MUST indicate the cap to users:
+- Show: `"Showing 50 of 500 results"` (not `"of 12,000"`)
+- If results hit the cap: show a message like `"Showing top 500 results. Refine your search for more specific results."`
+
+#### 10. Filter Changes MUST Reset Pagination
+
+When any search term or filter changes, ALWAYS reset to page 1:
+```typescript
+updateUrl({ search: newTerm, status: newStatus, page: 1 });
+```
+
+---
+
 ### Design Context
 
 **Users:**
@@ -261,4 +521,4 @@ pnpm tsc --noEmit
 
 ---
 
-_Last Updated: 2026-03-19_
+_Last Updated: 2026-04-17_

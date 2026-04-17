@@ -1,4 +1,5 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { getTenantId, requireTenantId, getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { hasPermission } from "./permissions";

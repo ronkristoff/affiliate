@@ -6,7 +6,8 @@
  * Format: {AFFILIATE_PREFIX}{TENANT_SLUG} (max 10 chars, A-Z only)
  */
 
-import { query, internalMutation, mutation, internalQuery } from "./_generated/server";
+import { query, internalQuery } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { requireWriteAccess } from "./tenantContext";
@@ -241,6 +242,7 @@ export const validateCouponCode = query({
     v.object({
       affiliateId: v.id("affiliates"),
       affiliateName: v.string(),
+      uniqueCode: v.string(),
       campaignId: v.id("campaigns"),
       referralLinkId: v.optional(v.id("referralLinks")),
     })
@@ -308,6 +310,7 @@ export const validateCouponCode = query({
     return {
       affiliateId: affiliate._id,
       affiliateName: affiliate.name,
+      uniqueCode: affiliate.uniqueCode,
       campaignId,
       referralLinkId: referralLink?._id,
     };

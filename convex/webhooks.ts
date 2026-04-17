@@ -503,6 +503,7 @@ async function validateCouponCodeInWebhook(
 ): Promise<{
   affiliateId: Id<"affiliates">;
   affiliateName: string;
+  uniqueCode: string;
   campaignId: Id<"campaigns">;
   referralLinkId?: Id<"referralLinks">;
 } | null> {
@@ -553,6 +554,7 @@ async function validateCouponCodeInWebhook(
   return {
     affiliateId: affiliate._id,
     affiliateName: affiliate.name,
+    uniqueCode: affiliate.uniqueCode,
     campaignId,
     referralLinkId: referralLink?._id,
   };
@@ -622,7 +624,7 @@ export const processWebhookToConversion = internalMutation({
         const couponValidation = await validateCouponCodeInWebhook(ctx, event.tenantId as Id<"tenants">, couponCode);
         if (couponValidation) {
           event.attribution = {
-            affiliateCode: couponValidation.affiliateName,
+            affiliateCode: couponValidation.uniqueCode,
             couponCode,
           };
           pwcAttributionSource = "coupon";

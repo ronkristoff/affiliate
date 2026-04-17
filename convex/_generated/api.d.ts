@@ -21,6 +21,7 @@ import type * as admin_tier_overrides from "../admin/tier_overrides.js";
 import type * as affiliateAuth from "../affiliateAuth.js";
 import type * as affiliatePortalReports from "../affiliatePortalReports.js";
 import type * as affiliates from "../affiliates.js";
+import type * as aggregates from "../aggregates.js";
 import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as billingLifecycle from "../billingLifecycle.js";
@@ -125,6 +126,7 @@ import type * as tenants from "../tenants.js";
 import type * as testData from "../testData.js";
 import type * as tierConfig from "../tierConfig.js";
 import type * as tracking from "../tracking.js";
+import type * as triggers from "../triggers.js";
 import type * as users from "../users.js";
 import type * as util from "../util.js";
 import type * as verifyDomainDns from "../verifyDomainDns.js";
@@ -150,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   affiliateAuth: typeof affiliateAuth;
   affiliatePortalReports: typeof affiliatePortalReports;
   affiliates: typeof affiliates;
+  aggregates: typeof aggregates;
   audit: typeof audit;
   auth: typeof auth;
   billingLifecycle: typeof billingLifecycle;
@@ -254,6 +257,7 @@ declare const fullApi: ApiFromModules<{
   testData: typeof testData;
   tierConfig: typeof tierConfig;
   tracking: typeof tracking;
+  triggers: typeof triggers;
   users: typeof users;
   util: typeof util;
   verifyDomainDns: typeof verifyDomainDns;
@@ -289,4 +293,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  aggregate: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregate">;
 };

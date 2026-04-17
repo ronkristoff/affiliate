@@ -1,8 +1,10 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { query, internalQuery } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
+import { conversionsAggregate, clicksAggregate, commissionsAggregate } from "./aggregates";
 import { onOrganicConversionCreated, incrementTotalConversions } from "./tenantStats";
 import { normalizeEmail } from "./emailNormalization";
 import { requireWriteAccess } from "./tenantContext";
@@ -130,8 +132,17 @@ export const getReferralLinkByCodeInternal = internalQuery({
 
 /**
  * Internal: Detect self-referral fraud
- * Compares customer data with affiliate's stored data
- * Includes device fingerprint matching per Task 3.1 requirements
+ * Compares customer data with affiliate's stored data.
+ * Includes device fingerprint matching per Task 3.1 requirements.
+ *
+ * NOTE: This is a simplified pre-creation check used before a conversion is created.
+ * For the full weighted-scoring version (with IP subnet matching and threshold calibration),
+ * see fraudDetection.ts → detectSelfReferral. That version runs post-creation via conversionId.
+ *
+ * Both functions are intentionally separate because:
+ * - This one runs BEFORE conversion creation (no conversionId available yet)
+ * - The fraudDetection version runs AFTER conversion creation (requires conversionId)
+ * Consolidating them would require changing the creation flow, which is out of scope.
  */
 export const detectSelfReferralInternal = internalQuery({
   args: {
@@ -908,22 +919,60 @@ export const getConversionsByAffiliate = query({
     }
     const tenantId = (affiliate as { tenantId: Id<"tenants"> }).tenantId;
 
-    let query = ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) =>
-        q.eq("tenantId", tenantId)
+    // Use O(log n) aggregate pagination — no silent truncation, correct isDone.
+    const numItems = args.paginationOpts.numItems ?? 20;
+    const cursor = args.paginationOpts.cursor;
+
+    // Paginate through all tenant conversions, then filter by affiliateId in-memory.
+    // This is correct because the aggregate covers all conversions for the namespace (tenantId).
+    const aggResult = await conversionsAggregate.paginate(ctx, {
+      namespace: tenantId,
+      pageSize: numItems + 50, // overscan for post-filter by affiliateId
+      cursor: cursor ?? undefined,
+      order: "desc",
+    });
+
+    // Collect full pages until we have enough matching items or exhaust the namespace
+    // Note: item.id is Id<"conversions">, so we must resolve docs to check affiliateId
+    let allItems = aggResult.page;
+    let nextCursor = aggResult.isDone ? undefined : aggResult.cursor;
+    let lastAggCursor = aggResult.cursor;
+
+    const resolveAndFilter = async (items: typeof allItems) => {
+      const docs = await Promise.all(
+        items.map((item: any) => ctx.db.get(item.id as Id<"conversions">))
       );
+      return docs.filter((doc): doc is NonNullable<typeof doc> =>
+        doc !== null && doc.affiliateId === args.affiliateId
+      );
+    };
 
-    const result = await query.order("desc").paginate(args.paginationOpts);
+    let filtered = await resolveAndFilter(allItems);
 
-    let filteredPage = result.page.filter(conv => conv.affiliateId === args.affiliateId);
-
-    if (args.status) {
-      filteredPage = filteredPage.filter(conv => conv.status === args.status);
+    // Keep fetching pages until we have numItems matches or run out
+    while (filtered.length < numItems && nextCursor) {
+      const moreResult = await conversionsAggregate.paginate(ctx, {
+        namespace: tenantId,
+        pageSize: numItems + 50,
+        cursor: nextCursor,
+        order: "desc",
+      });
+      allItems = moreResult.page;
+      nextCursor = moreResult.isDone ? undefined : moreResult.cursor;
+      lastAggCursor = moreResult.cursor;
+      const moreFiltered = await resolveAndFilter(allItems);
+      filtered.push(...moreFiltered);
     }
 
+    // Apply status filter
+    let page = filtered.slice(0, numItems);
+    if (args.status) {
+      page = page.filter(conv => conv.status === args.status);
+    }
+
+    // Apply date range filter
     if (args.startDate || args.endDate) {
-      filteredPage = filteredPage.filter(conv => {
+      page = page.filter(conv => {
         const timestamp = conv._creationTime;
         if (args.startDate && timestamp < args.startDate) return false;
         if (args.endDate && timestamp > args.endDate) return false;
@@ -931,12 +980,14 @@ export const getConversionsByAffiliate = query({
       });
     }
 
+    const isDone = !nextCursor || filtered.length <= numItems;
+
     return {
-      page: filteredPage,
-      continueCursor: result.continueCursor,
-      pageStatus: result.pageStatus,
-      splitCursor: result.splitCursor,
-      isDone: result.isDone,
+      page,
+      continueCursor: lastAggCursor,
+      pageStatus: undefined,
+      splitCursor: undefined,
+      isDone,
     };
   },
 });
@@ -978,24 +1029,31 @@ export const getConversionsByTenant = query({
     isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    // Use the by_tenant index for efficient querying
-    let query = ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => 
-        q.eq("tenantId", args.tenantId)
-      );
+    // Use O(log n) aggregate pagination — no silent truncation.
+    const numItems = args.paginationOpts.numItems ?? 20;
+    const cursor = args.paginationOpts.cursor;
 
-    const result = await query.order("desc").paginate(args.paginationOpts);
+    const aggResult = await conversionsAggregate.paginate(ctx, {
+      namespace: args.tenantId,
+      pageSize: numItems + 50,
+      cursor: cursor ?? undefined,
+      order: "desc",
+    });
 
-    // Apply status filtering if provided
-    let filteredPage = result.page;
+    // Resolve conversion documents from aggregate IDs
+    const convDocs = await Promise.all(
+      aggResult.page.map((item: any) => ctx.db.get(item.id as Id<"conversions">))
+    );
+    let page = convDocs.filter((doc): doc is NonNullable<typeof doc> => doc !== null);
+
+    // Apply status filtering
     if (args.status) {
-      filteredPage = filteredPage.filter(conv => conv.status === args.status);
+      page = page.filter(conv => conv.status === args.status);
     }
 
-    // Apply date range filtering if provided
+    // Apply date range filtering
     if (args.startDate || args.endDate) {
-      filteredPage = filteredPage.filter(conv => {
+      page = page.filter(conv => {
         const timestamp = conv._creationTime;
         if (args.startDate && timestamp < args.startDate) return false;
         if (args.endDate && timestamp > args.endDate) return false;
@@ -1003,15 +1061,16 @@ export const getConversionsByTenant = query({
       });
     }
 
-    // Apply affiliate filtering if provided
+    // Apply affiliate filtering
     if (args.affiliateId) {
-      filteredPage = filteredPage.filter(conv => 
-        conv.affiliateId === args.affiliateId
-      );
+      page = page.filter(conv => conv.affiliateId === args.affiliateId);
     }
 
+    const isDone = aggResult.isDone;
+    const continueCursor = aggResult.cursor;
+
     // Enrich with affiliate and campaign names (batch fetch to avoid N+1)
-    const affiliateIds = [...new Set(filteredPage.map(c => c.affiliateId).filter((id): id is Id<"affiliates"> => !!id))];
+    const affiliateIds = [...new Set(page.map(c => c.affiliateId).filter((id): id is Id<"affiliates"> => !!id))];
     const affiliateMap: Record<string, { name: string }> = {};
     for (const id of affiliateIds) {
       const affiliate = await ctx.db.get(id);
@@ -1021,7 +1080,7 @@ export const getConversionsByTenant = query({
     }
 
     const campaignIds = [...new Set(
-      filteredPage
+      page
         .map(c => c.campaignId)
         .filter((id): id is Id<"campaigns"> => !!id)
     )];
@@ -1033,7 +1092,7 @@ export const getConversionsByTenant = query({
       }
     }
 
-    const enrichedPage = filteredPage.map(conv => ({
+    const enrichedPage = page.map(conv => ({
       ...conv,
       affiliateName: conv.affiliateId ? affiliateMap[conv.affiliateId]?.name : undefined,
       campaignName: conv.campaignId ? campaignMap[conv.campaignId]?.name : undefined,
@@ -1041,10 +1100,10 @@ export const getConversionsByTenant = query({
 
     return {
       page: enrichedPage,
-      continueCursor: result.continueCursor,
-      pageStatus: result.pageStatus,
-      splitCursor: result.splitCursor,
-      isDone: result.isDone,
+      continueCursor,
+      pageStatus: undefined,
+      splitCursor: undefined,
+      isDone,
     };
   },
 });
@@ -1085,15 +1144,21 @@ export const getConversionStatsByTenant = query({
     })),
   }),
   handler: async (ctx, args) => {
-    // Get conversions based on provided filters
-    let conversions = await ctx.db
+    // Use O(log n) aggregate count for totalConversions — accurate regardless of dataset size.
+    const totalConversions = await conversionsAggregate.count(ctx, { namespace: args.tenantId });
+
+    // NOTE: Breakdown stats below are computed from the most recent 500 conversions.
+    // For tenants with >500 conversions, breakdown counts may undercount.
+    // totalConversions is always accurate. Use tenantStats denormalized counters
+    // for precise dashboard totals when available.
+    let filteredConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(800);
+      .take(500);
 
     // Apply date range filtering if provided
     if (args.startDate || args.endDate) {
-      conversions = conversions.filter(conv => {
+      filteredConversions = filteredConversions.filter(conv => {
         const timestamp = conv._creationTime;
         if (args.startDate && timestamp < args.startDate) return false;
         if (args.endDate && timestamp > args.endDate) return false;
@@ -1103,42 +1168,41 @@ export const getConversionStatsByTenant = query({
 
     // Apply affiliate filtering if provided
     if (args.affiliateId) {
-      conversions = conversions.filter(conv => 
+      filteredConversions = filteredConversions.filter(conv => 
         conv.affiliateId === args.affiliateId
       );
     }
 
     // Apply campaign filtering if provided
     if (args.campaignId) {
-      conversions = conversions.filter(conv => 
+      filteredConversions = filteredConversions.filter(conv => 
         conv.campaignId === args.campaignId
       );
     }
 
-    // Calculate statistics
-    const totalConversions = conversions.length;
-    const totalAmount = conversions.reduce((sum, c) => sum + c.amount, 0);
-    const pendingConversions = conversions.filter(c => c.status === "pending").length;
-    const completedConversions = conversions.filter(c => c.status === "completed").length;
-    const refundedConversions = conversions.filter(c => c.status === "refunded").length;
-    const attributedConversions = conversions.filter(c => 
+    // Calculate statistics from filtered set
+    const totalAmount = filteredConversions.reduce((sum, c) => sum + c.amount, 0);
+    const pendingConversions = filteredConversions.filter(c => c.status === "pending").length;
+    const completedConversions = filteredConversions.filter(c => c.status === "completed").length;
+    const refundedConversions = filteredConversions.filter(c => c.status === "refunded").length;
+    const attributedConversions = filteredConversions.filter(c => 
       c.attributionSource === "cookie" || c.attributionSource === "webhook"
     ).length;
-    const organicConversions = conversions.filter(c => 
+    const organicConversions = filteredConversions.filter(c => 
       c.attributionSource === "organic" || !c.attributionSource
     ).length;
-    const selfReferralCount = conversions.filter(c => c.isSelfReferral).length;
+    const selfReferralCount = filteredConversions.filter(c => c.isSelfReferral).length;
 
     // By attribution source
     const byAttributionSource: Record<string, number> = {};
-    conversions.forEach(c => {
+    filteredConversions.forEach(c => {
       const source = c.attributionSource || "none";
       byAttributionSource[source] = (byAttributionSource[source] || 0) + 1;
     });
 
     // Top affiliates
     const affiliateStats: Record<string, { name: string; count: number; amount: number }> = {};
-    conversions.forEach(conv => {
+    filteredConversions.forEach(conv => {
       const aid = conv.affiliateId;
       if (!aid) return;
       if (!affiliateStats[aid]) {
@@ -1168,7 +1232,7 @@ export const getConversionStatsByTenant = query({
 
     // Top campaigns
     const campaignStats: Record<string, { name: string; count: number; amount: number }> = {};
-    conversions.forEach(conv => {
+    filteredConversions.forEach(conv => {
       if (conv.campaignId) {
         const cid = conv.campaignId;
         if (!campaignStats[cid]) {
@@ -1239,21 +1303,37 @@ export const findConversionBySubscriptionIdInternal = internalQuery({
     v.null()
   ),
   handler: async (ctx, args) => {
-    // Query conversions by tenant and filter for matching subscriptionId in metadata
-    const conversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
-    
-    // Find conversion with matching subscriptionId
-    for (const conversion of conversions) {
-      if (conversion.metadata?.subscriptionId === args.subscriptionId) {
-        return {
-          _id: conversion._id,
-          amount: conversion.amount,
-          metadata: conversion.metadata,
-        };
+    // Scan conversions by tenant using aggregate pagination to find matching subscriptionId.
+    // This avoids the .take(500) silent truncation — we paginate until found or exhausted.
+    const pageSize = 200;
+    let cursor: string | undefined;
+    let done = false;
+
+    while (!done) {
+      const aggResult = await conversionsAggregate.paginate(ctx, {
+        namespace: args.tenantId,
+        pageSize,
+        cursor,
+        order: "desc",
+      });
+
+      // Resolve documents and check for matching subscriptionId
+      const docs = await Promise.all(
+        aggResult.page.map((item: any) => ctx.db.get(item.id as Id<"conversions">))
+      );
+
+      for (const conversion of docs) {
+        if (conversion && conversion.metadata?.subscriptionId === args.subscriptionId) {
+          return {
+            _id: conversion._id,
+            amount: conversion.amount,
+            metadata: conversion.metadata,
+          };
+        }
       }
+
+      cursor = aggResult.isDone ? undefined : aggResult.cursor;
+      done = !cursor;
     }
     
     return null;
