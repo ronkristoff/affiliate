@@ -271,6 +271,8 @@ export const getTenantLeaderboard = query({
   },
   returns: v.object({
     page: v.array(v.object({
+      _id: v.id("tenantLeaderboard"),
+      _creationTime: v.number(),
       tenantId: v.id("tenants"),
       tenantName: v.string(),
       plan: v.string(),
@@ -284,8 +286,6 @@ export const getTenantLeaderboard = query({
     })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
-    pageStatus: v.optional(v.union(v.string(), v.null())),
-    splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -299,8 +299,6 @@ export const getTenantLeaderboard = query({
       page: results.page,
       isDone: results.isDone,
       continueCursor: results.continueCursor,
-      pageStatus: results.pageStatus,
-      splitCursor: results.splitCursor,
     };
   },
 });
