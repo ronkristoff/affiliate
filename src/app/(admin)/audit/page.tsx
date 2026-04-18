@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect } from "react";
-import Link from "next/link";
+import { Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 import {
   useQueryState,
   parseAsString,
@@ -195,7 +195,7 @@ function FilterBar({
 // ---------------------------------------------------------------------------
 
 function FraudRadarSection() {
-  const platformStats = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
+  const platformStats = usePlatformStats();
   const fraudResult = useQuery(api.admin.audit.getPlatformFraudSummary, {
     paginationOpts: { numItems: 10, cursor: null },
   });

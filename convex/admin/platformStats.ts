@@ -1,4 +1,4 @@
-import { query, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { requireAdmin } from "./_helpers";
@@ -9,9 +9,10 @@ import {
   payoutByStatusAggregate,
   clicksAggregate,
   conversionsAggregate,
-  type AggregateBounds,
 } from "../aggregates";
 import type { Id } from "../_generated/dataModel";
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // NOTE: All month-boundary calculations use UTC (Convex V8 runtime timezone).
 // Timestamps are stored in UTC in the database. Frontend display uses
@@ -35,7 +36,8 @@ function getNextMonthStart(): number {
 /**
  * Read platform KPIs from the cached platformStats document.
  * Falls back to zeros if the cache hasn't been populated yet.
- * Refreshed every 5 minutes by the refreshPlatformStats cron.
+ * Returns `isStale: true` when the cache is older than 5 minutes,
+ * signalling the frontend to call refreshPlatformStats.
  */
 export const getAggregatePlatformKPIs = query({
   args: {},
@@ -54,6 +56,7 @@ export const getAggregatePlatformKPIs = query({
     totalApprovedCommissions: v.number(),
     totalPaidOut: v.number(),
     lastUpdatedAt: v.number(),
+    isStale: v.boolean(),
   }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
@@ -79,22 +82,27 @@ export const getAggregatePlatformKPIs = query({
         totalApprovedCommissions: 0,
         totalPaidOut: 0,
         lastUpdatedAt: 0,
+        isStale: true,
       };
     }
 
-    return cached;
+    return {
+      ...cached,
+      isStale: Date.now() - cached.lastUpdatedAt > CACHE_TTL_MS,
+    };
   },
 });
 
 /**
  * Recalculate platformStats and rebuild tenantLeaderboard from aggregate queries.
- * Called by a lightweight cron every 5 minutes.
+ * Called on-demand by admin pages when cache is stale (replaces the 5-min cron).
  * Iterates all non-deleted/non-cancelled tenants and sums O(log n) aggregate calls.
  */
-export const refreshPlatformStats = internalMutation({
+export const refreshPlatformStats = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     let totalActiveAffiliates = 0;
     let totalClicks = 0;
     let totalConversions = 0;

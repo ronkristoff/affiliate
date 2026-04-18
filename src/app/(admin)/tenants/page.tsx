@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 import { StatsRow } from "./_components/StatsRow";
 import { SearchInput } from "./_components/SearchInput";
 import { FilterPills, type Filter } from "./_components/FilterPills";
@@ -74,25 +75,23 @@ function ViewToggle({ activeView, onViewChange }: { activeView: ViewMode; onView
 // ---------------------------------------------------------------------------
 
 function PlatformAnalyticsContent() {
-  const kpis = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
+  const kpis = usePlatformStats();
   const leaderboardResult = useQuery(api.admin.platformStats.getTenantLeaderboard, {
     paginationOpts: { numItems: 20, cursor: null },
   });
 
   const isLoading = kpis === undefined || leaderboardResult === undefined;
 
-  // Staleness warning: > 2 hours
   const isStale = kpis ? (Date.now() - kpis.lastUpdatedAt > 2 * 60 * 60 * 1000) : false;
 
   return (
     <div className="space-y-6">
-      {/* Staleness warning */}
       {isStale && (
         <FadeIn delay={0}>
           <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span className="text-sm text-amber-800">
-              Platform stats were last updated {kpis ? new Date(kpis.lastUpdatedAt).toLocaleString() : "unknown"}. Data may be up to 5 minutes stale.
+              Platform stats were last updated {kpis ? new Date(kpis.lastUpdatedAt).toLocaleString() : "unknown"}. Data may be stale.
             </span>
           </div>
         </FadeIn>

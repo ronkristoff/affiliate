@@ -8,10 +8,7 @@ import {
   RevenueDashboard,
   RevenueDashboardSkeleton,
 } from "./_components/RevenueDashboard";
-
-// ---------------------------------------------------------------------------
-// Inner content (hooks live here, wrapped by Suspense)
-// ---------------------------------------------------------------------------
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 
 function RevenueContent() {
   const metrics = useQuery(api.admin.subscriptions.getPlatformRevenueMetrics, {});
@@ -19,11 +16,10 @@ function RevenueContent() {
     api.admin.subscriptions.getRecentSubscriptionActivity,
     {}
   );
-  const platformStats = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
+  const platformStats = usePlatformStats();
 
   const isLoading = metrics === undefined;
 
-  // Derive affiliate metrics from platformStats (only if loaded)
   const affiliateMetrics = platformStats
     ? {
         totalCommissions: platformStats.totalCommissions,
