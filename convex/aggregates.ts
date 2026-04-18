@@ -1,7 +1,7 @@
 import { TableAggregate, DirectAggregate } from "@convex-dev/aggregate";
 import { components, internal } from "./_generated/api";
-import { DataModel, Id, Doc } from "./_generated/dataModel";
-import { action, internalQuery, internalMutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -170,34 +170,7 @@ const TABLES_TO_BACKFILL = [
   "notifications",
 ] as const;
 
-const AGGREGATE_MAP: Record<string, TableAggregate<any>> = {
-  affiliates: affiliateAggregate,
-  referralLinks: referralLinksAggregate,
-  clicks: clicksAggregate,
-  conversions: conversionsAggregate,
-  commissions: commissionsAggregate,
-  payouts: payoutsAggregate,
-  referralLeads: leadByStatusAggregate,
-  notifications: notificationsByReadAggregate,
-};
 
-/**
- * Internal mutation that performs a no-op patch on a document.
- * This triggers the Triggers wrapper which re-indexes the document in the aggregate.
- */
-export const backfillReindex = internalMutation({
-  args: {
-    tableName: v.string(),
-    docId: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const doc = await ctx.db.get(args.docId as any);
-    if (!doc) return null;
-    await ctx.db.patch(args.docId as any, {});
-    return null;
-  },
-});
 
 /**
  * Query to list all document IDs for a table (paginated).
@@ -235,10 +208,10 @@ export const listTableDocIds = internalQuery({
 /**
  * Backfill all aggregate indexes for existing data.
  *
- * This action iterates all documents in each tracked table and re-saves them
- * through the triggers wrapper, which re-indexes them into the aggregate.
+ * Clears all aggregate trees first, then iterates all documents in each
+ * tracked table and inserts them into the aggregate using insertIfDoesNotExist.
  *
- * Usage: pnpm convex run aggregates:backfillAll --typecheck=disable -- '{}'
+ * Usage: pnpm convex run aggregates:backfillAll --typecheck=disable --push -- '{}'
  */
 export const backfillAll = action({
   args: { batchSize: v.optional(v.number()) },
@@ -252,6 +225,8 @@ export const backfillAll = action({
     const batchSize = args.batchSize ?? 100;
     const results: Array<{ table: string; processed: number }> = [];
 
+    await ctx.runMutation(internal.backfillIndex.clearAllAggregates, {});
+
     for (const tableName of TABLES_TO_BACKFILL) {
       let processed = 0;
       let cursor: string | undefined;
@@ -263,7 +238,7 @@ export const backfillAll = action({
         });
 
         for (const docId of page.docIds) {
-          await ctx.runMutation(internal.aggregates.backfillReindex, {
+          await ctx.runMutation(internal.backfillIndex.backfillReindex, {
             tableName,
             docId,
           });

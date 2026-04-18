@@ -586,6 +586,9 @@ pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
 
 # 3. Seed app data (tenants, users, affiliates, campaigns, clicks, commissions, etc.)
 pnpm convex run testData:seedAllTestData --typecheck=disable -- '{}'
+
+# 4. Backfill aggregate indexes (CRITICAL: seed bypasses triggers, so aggregates are empty)
+pnpm convex run aggregates:backfillAll --typecheck=disable --push -- '{}'
 ```
 
 **Important:** Always use `--typecheck=disable` when running Convex functions from the CLI. Pre-existing test files (commissionEngine.test.ts, payouts.test.ts, webhooks.test.ts) have TypeScript errors that will block function push/deployment otherwise.

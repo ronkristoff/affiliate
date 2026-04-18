@@ -24,6 +24,7 @@ import type * as affiliates from "../affiliates.js";
 import type * as aggregates from "../aggregates.js";
 import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
+import type * as backfillIndex from "../backfillIndex.js";
 import type * as billingLifecycle from "../billingLifecycle.js";
 import type * as brandAssets from "../brandAssets.js";
 import type * as branding from "../branding.js";
@@ -121,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   aggregates: typeof aggregates;
   audit: typeof audit;
   auth: typeof auth;
+  backfillIndex: typeof backfillIndex;
   billingLifecycle: typeof billingLifecycle;
   brandAssets: typeof brandAssets;
   branding: typeof branding;
