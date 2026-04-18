@@ -129,6 +129,11 @@ const commissionByFlagAggregate = new TableAggregate(components.aggregate, {
   namespace: (d: any) => d.tenantId,
 } as any);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cronExecutionsByStatusAggregate = new TableAggregate(components.cronExecutionsByStatus, {
+  sortKey: (d: any) => [d.status, d._creationTime] as [string, number],
+} as any);
+
 export {
   affiliateAggregate,
   referralLinksAggregate,
@@ -144,6 +149,7 @@ export {
   degradationDirect,
   notificationsByReadAggregate,
   commissionByFlagAggregate,
+  cronExecutionsByStatusAggregate,
 };
 
 export const affiliatesTrigger = affiliateAggregate.trigger();
@@ -158,6 +164,7 @@ export const leadByStatusTrigger = leadByStatusAggregate.trigger();
 export const payoutByStatusTrigger = payoutByStatusAggregate.trigger();
 export const notificationsByReadTrigger = notificationsByReadAggregate.trigger();
 export const commissionByFlagTrigger = commissionByFlagAggregate.trigger();
+export const cronExecutionsByStatusTrigger = cronExecutionsByStatusAggregate.trigger();
 
 const TABLES_TO_BACKFILL = [
   "affiliates",

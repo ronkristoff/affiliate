@@ -873,4 +873,31 @@ export default defineSchema({
     expiresAt: v.number(),
   }).index("by_created_by", ["createdBy"])
     .index("by_expires_at", ["expiresAt"]),
+
+  cronConfigs: defineTable({
+    name: v.string(),
+    handlerRef: v.string(),
+    enabled: v.boolean(),
+    intervalHours: v.number(),
+    description: v.string(),
+    lastFinishedAt: v.optional(v.number()),
+    lastScheduledAt: v.optional(v.number()),
+    extraArgs: v.optional(v.any()),
+  }).index("by_name", ["name"]),
+
+  cronExecutions: defineTable({
+    jobName: v.string(),
+    status: v.union(
+      v.literal("running"),
+      v.literal("success"),
+      v.literal("failed"),
+    ),
+    startedAt: v.number(),
+    finishedAt: v.number(),
+    durationMs: v.number(),
+    resultSummary: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }).index("by_jobName_and_startedAt", ["jobName", "startedAt"])
+    .index("by_status_and_startedAt", ["status", "startedAt"])
+    .index("by_startedAt", ["startedAt"]),
 });

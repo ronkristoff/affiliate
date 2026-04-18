@@ -18,6 +18,7 @@ import {
   payoutByStatusAggregate,
   notificationsByReadAggregate,
   commissionByFlagAggregate,
+  cronExecutionsByStatusAggregate,
 } from "./aggregates";
 
 const triggers = new Triggers<DataModel>();
@@ -34,6 +35,7 @@ triggers.register("referralLeads", leadByStatusAggregate.trigger());
 triggers.register("payouts", payoutByStatusAggregate.trigger());
 triggers.register("notifications", notificationsByReadAggregate.trigger());
 triggers.register("commissions", commissionByFlagAggregate.trigger());
+triggers.register("cronExecutions", cronExecutionsByStatusAggregate.trigger());
 
 export const mutation = customMutation(rawMutation, customCtx(triggers.wrapDB));
 export const internalMutation = customMutation(

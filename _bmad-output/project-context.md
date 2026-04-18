@@ -76,23 +76,43 @@ _This file contains critical rules and patterns that AI agents must follow when 
      }
      ```
 
-6. **Return Validators Must Match Actual Returns** - The return validator MUST include ALL fields returned, including computed/alias fields. Spreading `...campaign` and adding computed fields requires those fields in the validator.
-   - **WRONG** (causes `ReturnsValidationError`):
-     ```typescript
-     returns: v.object({ _id: v.id("campaigns"), name: v.string() /* Missing: commissionRate */ }),
-     handler: async (ctx, args) => {
-       const campaign = await ctx.db.get(args.campaignId);
-       return { ...campaign, commissionRate: campaign.commissionValue }; // Extra field!
-     },
-     ```
-   - **CORRECT** (validator matches actual return):
-     ```typescript
-     returns: v.object({ _id: v.id("campaigns"), name: v.string(), commissionRate: v.number() }),
-     handler: async (ctx, args) => {
-       const campaign = await ctx.db.get(args.campaignId);
-       return { ...campaign, commissionRate: campaign.commissionValue };
-     },
-     ```
+ 6. **Return Validators Must Match Actual Returns** - The return validator MUST include ALL fields returned, including computed/alias fields. Spreading `...campaign` and adding computed fields requires those fields in the validator.
+    - **WRONG** (causes `ReturnsValidationError`):
+      ```typescript
+      returns: v.object({ _id: v.id("campaigns"), name: v.string() /* Missing: commissionRate */ }),
+      handler: async (ctx, args) => {
+        const campaign = await ctx.db.get(args.campaignId);
+        return { ...campaign, commissionRate: campaign.commissionValue }; // Extra field!
+      },
+      ```
+    - **CORRECT** (validator matches actual return):
+      ```typescript
+      returns: v.object({ _id: v.id("campaigns"), name: v.string(), commissionRate: v.number() }),
+      handler: async (ctx, args) => {
+        const campaign = await ctx.db.get(args.campaignId);
+        return { ...campaign, commissionRate: campaign.commissionValue };
+      },
+      ```
+
+    **Two hidden sources of "Extra Field" errors:**
+
+    - **System fields are always on documents.** `_id` and `_creationTime` are on every Convex document. If your query returns a document, these MUST be in the return validator.
+      ```typescript
+      // ❌ WRONG — _creationTime missing
+      returns: v.object({ _id: v.id("users"), name: v.string() })
+      // ✅ CORRECT
+      returns: v.object({ _id: v.id("users"), _creationTime: v.number(), name: v.string() })
+      ```
+
+    - **`.paginate()` returns internal fields you must strip.** The result includes `pageStatus` and `splitCursor`. Never spread or return a paginate result directly — destructure only validated fields.
+      ```typescript
+      // ❌ WRONG — pageStatus/splitCursor leak through
+      const result = await q.paginate(opts);
+      return result;
+      // ✅ CORRECT — only return validated fields
+      const result = await q.paginate(opts);
+      return { page: result.page, continueCursor: result.continueCursor, isDone: result.isDone };
+      ```
 
 7. **Read Convex AI Guidelines First** - When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
 

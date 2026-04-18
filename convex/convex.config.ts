@@ -19,5 +19,6 @@ app.use(aggregate, { name: "clicks" });
 app.use(aggregate, { name: "conversions" });
 app.use(aggregate, { name: "commissions" });
 app.use(aggregate, { name: "payouts" });
+app.use(aggregate, { name: "cronExecutionsByStatus" });
 
 export default app;

@@ -37,6 +37,9 @@ import type * as commissions from "../commissions.js";
 import type * as conversions from "../conversions.js";
 import type * as couponCodes from "../couponCodes.js";
 import type * as couponCodesBackfill from "../couponCodesBackfill.js";
+import type * as cronAdmin from "../cronAdmin.js";
+import type * as cronDispatcher from "../cronDispatcher.js";
+import type * as cronDispatcherHelpers from "../cronDispatcherHelpers.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as dashboardExport from "../dashboardExport.js";
@@ -135,6 +138,9 @@ declare const fullApi: ApiFromModules<{
   conversions: typeof conversions;
   couponCodes: typeof couponCodes;
   couponCodesBackfill: typeof couponCodesBackfill;
+  cronAdmin: typeof cronAdmin;
+  cronDispatcher: typeof cronDispatcher;
+  cronDispatcherHelpers: typeof cronDispatcherHelpers;
   crons: typeof crons;
   dashboard: typeof dashboard;
   dashboardExport: typeof dashboardExport;
@@ -240,4 +246,5 @@ export declare const components: {
   conversions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"conversions">;
   commissions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"commissions">;
   payouts: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"payouts">;
+  cronExecutionsByStatus: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"cronExecutionsByStatus">;
 };

@@ -334,6 +334,30 @@ export const getCampaign = query({
 
 **Common pattern**: Frontend aliases (e.g., `commissionRate` → `commissionValue`) require the alias to be in the validator.
 
+### ⚠️ Two Hidden Sources of "Extra Field" Errors
+
+**1. System fields (`_creationTime`, `_id`) are always on documents.** Every Convex document includes `_id` and `_creationTime`. When returning a document from a query, these MUST be in the return validator — even if you didn't explicitly set them.
+
+```typescript
+// ❌ WRONG — _creationTime is missing from validator
+returns: v.object({ _id: v.id("users"), name: v.string(), email: v.string() })
+
+// ✅ CORRECT — system fields included
+returns: v.object({ _id: v.id("users"), _creationTime: v.number(), name: v.string(), email: v.string() })
+```
+
+**2. `.paginate()` returns internal fields you must strip.** The result of `q.paginate(opts)` includes `pageStatus` and `splitCursor` fields that Convex uses internally. Never spread a paginate result directly into a return — destructure only the validated fields.
+
+```typescript
+// ❌ WRONG — pageStatus and splitCursor leak through
+const result = await q.paginate(opts);
+return result; // or { ...result, page: filtered }
+
+// ✅ CORRECT — only return validated fields
+const result = await q.paginate(opts);
+return { page: result.page, continueCursor: result.continueCursor, isDone: result.isDone };
+```
+
 ### ⚠️ Critical: Dynamic Module Imports
 
 **Dynamic imports (`await import()`) are NOT supported in queries/mutations.** They only work in `actions` and `httpAction` (Node.js runtime). Queries/mutations run in V8 which doesn't support dynamic module loading.
