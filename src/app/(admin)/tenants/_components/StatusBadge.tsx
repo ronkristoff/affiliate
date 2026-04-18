@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
     text: "text-[var(--danger-text)]",
   },
   flagged: {
-    label: "Flagged",
+    label: "Security Alert",
     dotColor: "bg-[var(--warning)]",
     bg: "bg-[var(--warning-bg)]",
     text: "text-[var(--warning-text)]",

@@ -60,7 +60,7 @@ export function StatsRow({ stats, isLoading }: StatsRowProps) {
         icon={<Clock className="w-4 h-4" />}
       />
       <MetricCard
-        label="Flagged"
+        label="Security Alerts"
         numericValue={stats?.flagged ?? 0}
         isLoading={isLoading}
         variant="gray"

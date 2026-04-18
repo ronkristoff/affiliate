@@ -43,7 +43,7 @@ function buildTabs(
     },
     {
       key: "flagged",
-      label: "Flagged",
+      label: "Security Alerts",
       count: counts?.flagged,
       icon: <ShieldAlert className="h-3.5 w-3.5" />,
       activeColor: "bg-red-600",
@@ -64,7 +64,7 @@ function buildTabs(
     },
     {
       key: "billing_overdue",
-      label: "Needs Attention",
+      label: "Billing Issues",
       count: counts?.billingOverdue,
       icon: <AlertTriangle className="h-3.5 w-3.5" />,
       activeColor: "bg-amber-600",
