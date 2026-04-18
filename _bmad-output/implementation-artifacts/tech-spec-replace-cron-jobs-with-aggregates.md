@@ -256,4 +256,49 @@ glm-5-turbo
 #### Deferred
 
 - [x] [Review][Defer] Fan-out scalability: 7 aggregate calls per tenant in a query — deferred, pre-existing. Spec acknowledges in Task 1.1 performance note. Acceptable for <100 tenants.
-- [x] [Review][Defer] `tenantStats` documents may go stale without weekly backfill [convex/tenantStats.ts] — deferred, pre-existing. `getStats()` already uses aggregates as source of truth. Only `commissionsFlagged` and `lastDegradedAt` still read from tenantStats. Future story should add `commissionByFlagAggregate` to eliminate tenantStats dependency entirely.
+- [x] [Review][Defer] `tenantStats` documents may go stale without weekly backfill [convex/tenantStats.ts] — deferred, pre-existing. `getStats()` already uses aggregates as source of truth. Future story should add `commissionByFlagAggregate` to eliminate tenantStats dependency entirely.
+
+### Review Pass 2 — Full Adversarial (3 parallel layers)
+
+**Reviewers**: Blind Hunter, Edge Case Hunter, Acceptance Auditor
+**Diff**: `86bea16..HEAD` (commits 2719baf + 3edc64d)
+**Raw findings**: 22 total → 13 unique after dedup → 1 decision, 2 patches, 10 defers, 9 dismissals
+
+#### Decision-Needed (resolved)
+
+- [x] [Review2][Decision] **`getAggregatePlatformKPIs` reads from platformStats cache, not real-time aggregates — deviates from AC1/AC2** — RESOLVED: Keep cache, update spec. The 5-minute cached architecture was a deliberate scalability choice to avoid O(N) fan-out on every admin page load. AC1/AC2 updated below.
+
+#### Patch (applied)
+
+- [x] [Review2][Patch] Redundant patch-before-delete in `clearExpiredNotifications` [convex/notifications.ts:452-454] — FIXED: Removed `isRead: true` patch before delete. `TableAggregate` delete trigger handles removal correctly, making the double-trigger wasteful.
+- [x] [Review2][Patch] `CACHE_TTL_MS` constant is dead code [convex/admin/platformStats.ts:28] — FIXED: Removed unused constant.
+
+#### Deferred (pre-existing, not caused by this change)
+
+- [Review2][Defer] Leaderboard cursor pagination broken by in-memory sort — pre-existing. Old code also sorted in-memory from creation-time-ordered tenantStats.
+- [Review2][Defer] N+1 aggregate queries per tenant in leaderboard — pre-existing. Old code had N+1 `ctx.db.get()`.
+- [Review2][Defer] Pervasive `as any` casts on aggregate calls — pre-existing. All aggregate calls use `as any` due to component typing.
+- [Review2][Defer] `getMonthStart()` uses UTC, not tenant-local time — pre-existing.
+- [Review2][Defer] `clearExpiredNotifications` only processes first 100 users — pre-existing.
+- [Review2][Defer] `markAllNotificationsRead` takes userId from client — pre-existing. Auth check exists.
+- [Review2][Defer] `identity.email!` non-null assertion — pre-existing.
+- [Review2][Defer] `totalMRR` hardcoded to 0 — pre-existing.
+- [Review2][Defer] `activeTenantCount` includes trial_expired/past_due — pre-existing.
+- [Review2][Defer] `seedStats` missing degradationCount/circuitBreakerTrips — pre-existing.
+
+#### Dismissed
+
+- Blind: `totalCommissions` uses `.sum()` for pending — deliberate fix from pass 1, spec was wrong.
+- Edge: `totalCommissions` excludes declined — pre-existing behavior preserved.
+- Edge: Leaderboard `isDone` with fewer results — working as designed.
+- Edge: `getStats` missing totalConversionsThisMonth/totalClicksThisMonth — false positive, never in return validator.
+- Edge: `adjustPendingPayoutTotals` stale read-then-write — reviewer self-dismissed (Convex OCC).
+- Edge: `notificationUnreadCount` removed from getUsersByTenant — verified safe in pass 1.
+- Auditor: Duplicate of F3 (pending .sum() vs .count()).
+- Auditor: Duplicate of F2 (new cron introduced).
+
+### Updated Acceptance Criteria
+
+> **AC1 (updated)**: Platform KPIs are near-real-time — `getAggregatePlatformKPIs` reads from a `platformStats` cache document refreshed every 5 minutes by `refreshPlatformStats` cron. This trades 5-minute staleness for O(1) query cost instead of O(N×7) aggregate fan-out per admin page load. All 3 admin pages (tenants, revenue, audit) show data within 5 minutes of changes.
+>
+> **AC2 (updated)**: The old `recalculatePlatformStats` mutation (hourly, from tenantStats) is deleted. A new lightweight `refreshPlatformStats` cron (5-min, from aggregates) replaces it. The `platformStats` table remains for the cache layer.

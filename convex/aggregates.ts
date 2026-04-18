@@ -5,6 +5,26 @@ import { action, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
+ * Type-safe bounds for aggregate count/sum calls.
+ * Used for documentation and IDE autocompletion.
+ * Note: `as AggregateBounds` is still needed at call sites because the
+ * @convex-dev/aggregate library has strict generic types that don't
+ * align with this broader union type.
+ *
+ * Usage:
+ *   aggregate.count(ctx, { namespace: tenantId, bounds: { prefix: ["active"] } } as AggregateBounds);
+ */
+export type AggregateBounds = {
+  namespace: string;
+  bounds:
+    | { prefix: Array<string | boolean | number> }
+    | {
+        lower?: { key: string | number | Array<string | number>; inclusive: boolean };
+        upper?: { key: string | number | Array<string | number>; inclusive: boolean };
+      };
+};
+
+/**
  * Aggregate definitions for high-volume tables.
  *
  * These provide O(log n) counts and offset pagination,

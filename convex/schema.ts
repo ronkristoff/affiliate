@@ -814,8 +814,25 @@ export default defineSchema({
     // Future settings can be added here (e.g., defaultGracePeriodDays, maxTrialExtensionDays)
   }).index("by_key", ["key"]),
 
+  // Materialized tenant leaderboard for platform analytics.
+  // Rebuilt every 5 minutes by refreshPlatformStats cron.
+  // Enables true global sort + cursor-based pagination without N+1 aggregate queries.
+  // Admin-only access via requireAdmin(ctx).
+  tenantLeaderboard: defineTable({
+    tenantId: v.id("tenants"),
+    tenantName: v.string(),
+    plan: v.string(),
+    status: v.string(),
+    affiliatesActive: v.number(),
+    commissionsConfirmedThisMonth: v.number(),
+    totalClicksThisMonth: v.number(),
+    totalConversionsThisMonth: v.number(),
+    commissionsFlagged: v.number(),
+    computedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]),
+
   // Pre-aggregated platform-wide KPIs (singleton document keyed by "platform")
-  // Recalculated hourly by cron from all tenantStats rows
+  // Recalculated every 5 minutes by refreshPlatformStats cron from aggregates.
   // Admin-only access via requireAdmin(ctx)
   platformStats: defineTable({
     key: v.string(),

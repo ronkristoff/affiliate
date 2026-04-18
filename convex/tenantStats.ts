@@ -13,11 +13,17 @@ import {
   conversionsAggregate,
   apiCallsDirect,
   degradationDirect,
+  type AggregateBounds,
 } from "./aggregates";
 
 // =============================================================================
 // Helpers
 // =============================================================================
+
+// NOTE: All month-boundary calculations use UTC (Convex V8 runtime timezone).
+// Timestamps are stored in UTC in the database. Frontend display uses
+// browser-local timezone via Intl.DateTimeFormat / date-fns, so users
+// see dates converted to their local time automatically.
 
 function getMonthStart(): number {
   const now = new Date();

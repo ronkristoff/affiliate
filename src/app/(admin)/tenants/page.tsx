@@ -77,7 +77,6 @@ function PlatformAnalyticsContent() {
   const kpis = useQuery(api.admin.platformStats.getAggregatePlatformKPIs, {});
   const leaderboardResult = useQuery(api.admin.platformStats.getTenantLeaderboard, {
     paginationOpts: { numItems: 20, cursor: null },
-    sortBy: "mrr",
   });
 
   const isLoading = kpis === undefined || leaderboardResult === undefined;
@@ -93,7 +92,7 @@ function PlatformAnalyticsContent() {
           <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span className="text-sm text-amber-800">
-              Platform stats were last updated {kpis ? new Date(kpis.lastUpdatedAt).toLocaleString() : "unknown"}. Data may be up to 1 hour stale.
+              Platform stats were last updated {kpis ? new Date(kpis.lastUpdatedAt).toLocaleString() : "unknown"}. Data may be up to 5 minutes stale.
             </span>
           </div>
         </FadeIn>

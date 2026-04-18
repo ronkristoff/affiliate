@@ -21,7 +21,7 @@ import { internal } from "./_generated/api";
 import { Id, Doc } from "./_generated/dataModel";
 import { getFromAddress } from "./emailService";
 import { requireWriteAccess } from "./tenantContext";
-import { notificationsByReadAggregate } from "./aggregates";
+import { notificationsByReadAggregate, type AggregateBounds } from "./aggregates";
 
 // 90 days in milliseconds
 const NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -449,9 +449,6 @@ export const clearExpiredNotifications = internalMutation({
 
         for (const notification of expired) {
           try {
-            if (!notification.isRead) {
-              await ctx.db.patch(notification._id, { isRead: true, readAt: Date.now() });
-            }
             await ctx.db.delete(notification._id);
             deletedCount++;
           } catch {
