@@ -129,7 +129,6 @@ export const getStats = query({
     pendingPayoutCount: v.number(),
     apiCallsThisMonth: v.number(),
     degradationCount: v.number(),
-    lastDegradedAt: v.optional(v.number()),
     circuitBreakerTrips: v.number(),
   }),
   handler: async (ctx, args) => {
@@ -221,11 +220,6 @@ export const getStats = query({
     const commissionsReversedThisMonth = declinedCount + reversedCount;
     const commissionsReversedValueThisMonth = declinedValue + reversedValue;
 
-    const stats = await ctx.db
-      .query("tenantStats")
-      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .first();
-
     return {
       affiliatesPending,
       affiliatesActive,
@@ -243,7 +237,6 @@ export const getStats = query({
       pendingPayoutCount,
       apiCallsThisMonth: apiCallsCount,
       degradationCount,
-      lastDegradedAt: stats?.lastDegradedAt,
       circuitBreakerTrips,
     };
   },

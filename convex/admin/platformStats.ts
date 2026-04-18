@@ -1,4 +1,4 @@
-import { query } from "../_generated/server";
+import { query, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { requireAdmin } from "./_helpers";
@@ -22,13 +22,15 @@ function getNextMonthStart(): number {
 }
 
 // =============================================================================
-// Platform-wide Stats — Real-time from Aggregates
+// Platform-wide Stats — Cached in platformStats table, refreshed by cron
 // =============================================================================
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Read platform KPIs directly from @convex-dev/aggregate components.
- * Iterates all non-deleted/non-cancelled tenants and sums O(log n) aggregate calls.
- * Returns the same shape as before for backward compatibility.
+ * Read platform KPIs from the cached platformStats document.
+ * Falls back to zeros if the cache hasn't been populated yet.
+ * Refreshed every 5 minutes by the refreshPlatformStats cron.
  */
 export const getAggregatePlatformKPIs = query({
   args: {},
@@ -51,6 +53,43 @@ export const getAggregatePlatformKPIs = query({
   handler: async (ctx) => {
     await requireAdmin(ctx);
 
+    const cached = await ctx.db
+      .query("platformStats")
+      .withIndex("by_key", (q) => q.eq("key", "platform"))
+      .first();
+
+    if (!cached) {
+      return {
+        _id: undefined,
+        _creationTime: 0,
+        key: "platform",
+        totalMRR: 0,
+        totalActiveAffiliates: 0,
+        totalCommissions: 0,
+        totalClicks: 0,
+        totalConversions: 0,
+        totalFraudSignals: 0,
+        activeTenantCount: 0,
+        totalPendingCommissions: 0,
+        totalApprovedCommissions: 0,
+        totalPaidOut: 0,
+        lastUpdatedAt: 0,
+      };
+    }
+
+    return cached;
+  },
+});
+
+/**
+ * Recalculate platformStats from aggregate queries.
+ * Called by a lightweight cron every 5 minutes.
+ * Iterates all non-deleted/non-cancelled tenants and sums O(log n) aggregate calls.
+ */
+export const refreshPlatformStats = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
     let totalActiveAffiliates = 0;
     let totalCommissions = 0;
     let totalClicks = 0;
@@ -109,10 +148,8 @@ export const getAggregatePlatformKPIs = query({
 
     totalCommissions = totalPendingCommissions + totalApprovedCommissions;
 
-    return {
-      _id: undefined,
-      _creationTime: 0,
-      key: "platform",
+    const now = Date.now();
+    const data = {
       totalMRR: 0,
       totalActiveAffiliates,
       totalCommissions,
@@ -123,14 +160,27 @@ export const getAggregatePlatformKPIs = query({
       totalPendingCommissions,
       totalApprovedCommissions,
       totalPaidOut,
-      lastUpdatedAt: Date.now(),
+      lastUpdatedAt: now,
     };
+
+    const existing = await ctx.db
+      .query("platformStats")
+      .withIndex("by_key", (q) => q.eq("key", "platform"))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, data);
+    } else {
+      await ctx.db.insert("platformStats", { key: "platform", ...data });
+    }
+
+    return null;
   },
 });
 
 /**
  * Get tenant leaderboard for platform analytics.
- * Reads all metrics from real-time aggregates instead of stale tenantStats.
+ * Reads all metrics from real-time aggregates.
  * Sorted by the specified metric (default: MRR → using commissions as proxy).
  * Paginated via tenants table, in-memory sort within page.
  */
@@ -167,60 +217,72 @@ export const getTenantLeaderboard = query({
     const monthStart = getMonthStart();
     const nextMonthStart = getNextMonthStart();
 
-    const results = await ctx.db
-      .query("tenants")
-      .withIndex("by_status")
-      .paginate(args.paginationOpts);
+    let cursor: string | null = (args.paginationOpts.cursor ?? undefined) as string | null;
+    let isDone = false;
+    const MAX_EMPTY_PAGES = 3;
+    let emptyPages = 0;
 
     const page = [];
-    for (const tenant of results.page) {
-      if (tenant.status === "deleted" || tenant.status === "cancelled") continue;
+    while (page.length < (args.paginationOpts.numItems ?? 20) && !isDone && emptyPages < MAX_EMPTY_PAGES) {
+      const results = await ctx.db
+        .query("tenants")
+        .withIndex("by_status")
+        .paginate({ numItems: args.paginationOpts.numItems ?? 20, cursor: (cursor ?? undefined) as string });
 
-      const ns = { namespace: tenant._id };
+      isDone = results.isDone;
+      cursor = results.continueCursor;
 
-      const [
-        affiliatesActive,
-        commissionsConfirmedThisMonth,
-        clicksThisMonth,
-        conversionsThisMonth,
-        commissionsFlagged,
-      ] = await Promise.all([
-        affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["active"] } } as any),
-        commissionByStatusAggregate.count(ctx, {
-          ...ns,
-          bounds: {
-            lower: { key: ["approved", monthStart] as [string, number], inclusive: true },
-            upper: { key: ["approved", nextMonthStart] as [string, number], inclusive: false },
-          },
-        } as any),
-        clicksAggregate.count(ctx, {
-          ...ns,
-          bounds: {
-            lower: { key: monthStart, inclusive: true },
-            upper: { key: nextMonthStart, inclusive: false },
-          },
-        } as any),
-        conversionsAggregate.count(ctx, {
-          ...ns,
-          bounds: {
-            lower: { key: monthStart, inclusive: true },
-            upper: { key: nextMonthStart, inclusive: false },
-          },
-        } as any),
-        commissionByFlagAggregate.count(ctx, { ...ns, bounds: { prefix: [true] } } as any),
-      ]);
+      for (const tenant of results.page) {
+        if (tenant.status === "deleted" || tenant.status === "cancelled") continue;
 
-      page.push({
-        tenantId: tenant._id,
-        tenantName: tenant.name,
-        plan: tenant.plan,
-        status: tenant.status,
-        affiliatesActive,
-        commissionsConfirmedThisMonth,
-        totalClicksThisMonth: clicksThisMonth,
-        totalConversionsThisMonth: conversionsThisMonth,
-        commissionsFlagged,
-      });
+        const ns = { namespace: tenant._id };
+
+        const [
+          affiliatesActive,
+          commissionsConfirmedThisMonth,
+          clicksThisMonth,
+          conversionsThisMonth,
+          commissionsFlagged,
+        ] = await Promise.all([
+          affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["active"] } } as any),
+          commissionByStatusAggregate.count(ctx, {
+            ...ns,
+            bounds: {
+              lower: { key: ["approved", monthStart] as [string, number], inclusive: true },
+              upper: { key: ["approved", nextMonthStart] as [string, number], inclusive: false },
+            },
+          } as any),
+          clicksAggregate.count(ctx, {
+            ...ns,
+            bounds: {
+              lower: { key: monthStart, inclusive: true },
+              upper: { key: nextMonthStart, inclusive: false },
+            },
+          } as any),
+          conversionsAggregate.count(ctx, {
+            ...ns,
+            bounds: {
+              lower: { key: monthStart, inclusive: true },
+              upper: { key: nextMonthStart, inclusive: false },
+            },
+          } as any),
+          commissionByFlagAggregate.count(ctx, { ...ns, bounds: { prefix: [true] } } as any),
+        ]);
+
+        page.push({
+          tenantId: tenant._id,
+          tenantName: tenant.name,
+          plan: tenant.plan,
+          status: tenant.status,
+          affiliatesActive,
+          commissionsConfirmedThisMonth,
+          totalClicksThisMonth: clicksThisMonth,
+          totalConversionsThisMonth: conversionsThisMonth,
+          commissionsFlagged,
+        });
+      }
+
+      if (page.length === 0) emptyPages++;
     }
 
     const sortBy = args.sortBy ?? "mrr";
@@ -235,8 +297,8 @@ export const getTenantLeaderboard = query({
 
     return {
       page,
-      isDone: results.isDone,
-      continueCursor: results.continueCursor,
+      isDone,
+      continueCursor: cursor,
     };
   },
 });

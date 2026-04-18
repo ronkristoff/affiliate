@@ -3,6 +3,14 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
+// Refresh platformStats cache from aggregates every 5 minutes
+crons.interval(
+  "refresh-platform-stats",
+  { minutes: 5 },
+  internal.admin.platformStats.refreshPlatformStats,
+  {}
+);
+
 // Clean up old login attempts every hour
 crons.interval(
   "cleanup-old-login-attempts",

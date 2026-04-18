@@ -449,6 +449,9 @@ export const clearExpiredNotifications = internalMutation({
 
         for (const notification of expired) {
           try {
+            if (!notification.isRead) {
+              await ctx.db.patch(notification._id, { isRead: true, readAt: Date.now() });
+            }
             await ctx.db.delete(notification._id);
             deletedCount++;
           } catch {
