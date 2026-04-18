@@ -7,6 +7,7 @@ import { AdminSidebar } from "./_components/AdminSidebar";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "sonner";
 
 function AdminLayoutSkeleton() {
   return (
@@ -76,6 +77,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
+      <Toaster richColors />
       {/* Admin Sidebar — fixed, matching auth sidebar pattern */}
       <AdminSidebar />
 

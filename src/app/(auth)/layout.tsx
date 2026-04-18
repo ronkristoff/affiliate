@@ -125,7 +125,7 @@ function AuthLayoutContent({
         </div>
       </main>
 
-      <Toaster />
+      <Toaster richColors />
     </div>
   );
 }

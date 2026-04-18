@@ -25,7 +25,20 @@ import {
   Play,
   Pause,
   ChevronDown,
+  TriangleAlert,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface CronConfig {
@@ -86,7 +99,7 @@ function CronConfigCard({
   isToggling,
 }: {
   config: CronConfig;
-  onToggle: (name: string) => void;
+  onToggle: (name: string, enable: boolean) => void;
   onIntervalChange: (name: string, hours: number) => void;
   isToggling: boolean;
 }) {
@@ -153,27 +166,52 @@ function CronConfigCard({
       </div>
 
       <div className="mt-4 pt-3 border-t border-[var(--border-light)] flex items-center gap-2">
-        <Button
-          variant={config.enabled ? "outline" : "default"}
-          size="sm"
-          onClick={() => onToggle(config.name)}
-          disabled={isToggling}
-          className="text-[12px] h-7 px-3"
-        >
-          {isToggling ? (
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-          ) : config.enabled ? (
-            <>
-              <Pause className="w-3 h-3 mr-1" />
-              Disable
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3 mr-1" />
-              Enable
-            </>
-          )}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant={config.enabled ? "outline" : "default"}
+              size="sm"
+              disabled={isToggling}
+              className="text-[12px] h-7 px-3"
+            >
+              {isToggling ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              ) : config.enabled ? (
+                <>
+                  <Pause className="w-3 h-3 mr-1" />
+                  Disable
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 mr-1" />
+                  Enable
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <TriangleAlert className="w-4 h-4 text-amber-500" />
+                {config.enabled ? "Disable" : "Enable"} "{config.name}"?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {config.enabled
+                  ? "This will stop the scheduled job from running automatically. You can re-enable it at any time."
+                  : "This will start running the job on its configured schedule. The job will execute automatically at the set interval."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[12px]">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onToggle(config.name, !config.enabled)}
+                className={config.enabled ? "text-[12px]" : "text-[12px]"}
+              >
+                {config.enabled ? "Disable Job" : "Enable Job"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="relative" ref={pickerRef}>
           <Button
@@ -338,10 +376,13 @@ function CronJobsContent() {
   const intervalMutation = useMutation(api.cronAdmin.updateCronInterval);
 
   const handleToggle = useCallback(
-    async (name: string) => {
+    async (name: string, enable: boolean) => {
       setTogglingJob(name);
       try {
         await toggleMutation({ jobName: name });
+        toast.success(`"${name}" ${enable ? "enabled" : "disabled"} successfully`);
+      } catch {
+        toast.error(`Failed to ${enable ? "enable" : "disable"} "${name}"`);
       } finally {
         setTogglingJob(null);
       }
@@ -351,7 +392,12 @@ function CronJobsContent() {
 
   const handleIntervalChange = useCallback(
     async (name: string, hours: number) => {
-      await intervalMutation({ jobName: name, intervalHours: hours });
+      try {
+        await intervalMutation({ jobName: name, intervalHours: hours });
+        toast.success(`Interval updated for "${name}" to ${formatInterval(hours)}`);
+      } catch {
+        toast.error(`Failed to update interval for "${name}"`);
+      }
     },
     [intervalMutation],
   );
