@@ -13,5 +13,11 @@ app.use(aggregate, { name: "leadByStatus" });
 app.use(aggregate, { name: "payoutByStatus" });
 app.use(aggregate, { name: "apiCalls" });
 app.use(aggregate, { name: "degradation" });
+app.use(aggregate, { name: "affiliates" });
+app.use(aggregate, { name: "referralLinks" });
+app.use(aggregate, { name: "clicks" });
+app.use(aggregate, { name: "conversions" });
+app.use(aggregate, { name: "commissions" });
+app.use(aggregate, { name: "payouts" });
 
 export default app;

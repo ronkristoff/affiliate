@@ -402,12 +402,12 @@ export const getDashboardData = query({
       .slice(0, recentCommissionsLimit);
 
     // Batch-fetch only referenced entities (reuse conversions already fetched)
-    const affiliateIds = [...new Set(filteredRecentCommissions.map((c) => c.affiliateId as Id<"affiliates">))];
-    const campaignIds = [...new Set(filteredRecentCommissions.map((c) => c.campaignId as Id<"campaigns">))];
+    const affiliateIds = [...new Set(filteredRecentCommissions.map((c) => c.affiliateId as Id<"affiliates">).filter(Boolean))];
+    const campaignIds = [...new Set(filteredRecentCommissions.map((c) => c.campaignId as Id<"campaigns">).filter(Boolean))];
 
     const [affiliateDocs, campaignDocs] = await Promise.all([
-      Promise.all(affiliateIds.map((id) => ctx.db.get(id))),
-      Promise.all(campaignIds.map((id) => ctx.db.get(id))),
+      affiliateIds.length > 0 ? Promise.all(affiliateIds.map((id) => ctx.db.get(id))) : [],
+      campaignIds.length > 0 ? Promise.all(campaignIds.map((id) => ctx.db.get(id))) : [],
     ]);
 
     const affiliateMap = new Map<Id<"affiliates">, Doc<"affiliates">>();

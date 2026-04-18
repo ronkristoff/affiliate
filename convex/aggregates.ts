@@ -35,37 +35,37 @@ export type AggregateBounds = {
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const affiliateAggregate = new TableAggregate(components.aggregate, {
+const affiliateAggregate = new TableAggregate(components.affiliates, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const referralLinksAggregate = new TableAggregate(components.aggregate, {
+const referralLinksAggregate = new TableAggregate(components.referralLinks, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const clicksAggregate = new TableAggregate(components.aggregate, {
+const clicksAggregate = new TableAggregate(components.clicks, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const conversionsAggregate = new TableAggregate(components.aggregate, {
+const conversionsAggregate = new TableAggregate(components.conversions, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const commissionsAggregate = new TableAggregate(components.aggregate, {
+const commissionsAggregate = new TableAggregate(components.commissions, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const payoutsAggregate = new TableAggregate(components.aggregate, {
+const payoutsAggregate = new TableAggregate(components.payouts, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
 } as any);

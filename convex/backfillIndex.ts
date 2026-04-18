@@ -1,5 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { TableAggregate } from "@convex-dev/aggregate";
+import { components } from "./_generated/api";
 import {
   affiliateAggregate,
   referralLinksAggregate,
@@ -14,6 +16,12 @@ import {
   notificationsByReadAggregate,
   commissionByFlagAggregate,
 } from "./aggregates";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const legacySharedAggregate = new TableAggregate(components.aggregate, {
+  sortKey: (d: any) => d._creationTime,
+  namespace: (d: any) => d.tenantId,
+} as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ALL_AGGREGATES: Array<{ name: string; agg: any }> = [
@@ -38,6 +46,7 @@ export const clearAllAggregates = internalMutation({
     for (const { agg } of ALL_AGGREGATES) {
       await agg.clear(ctx);
     }
+    await legacySharedAggregate.clear(ctx);
     return null;
   },
 });

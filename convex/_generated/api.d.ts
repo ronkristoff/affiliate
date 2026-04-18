@@ -234,4 +234,10 @@ export declare const components: {
   payoutByStatus: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"payoutByStatus">;
   apiCalls: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"apiCalls">;
   degradation: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"degradation">;
+  affiliates: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"affiliates">;
+  referralLinks: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"referralLinks">;
+  clicks: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"clicks">;
+  conversions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"conversions">;
+  commissions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"commissions">;
+  payouts: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"payouts">;
 };

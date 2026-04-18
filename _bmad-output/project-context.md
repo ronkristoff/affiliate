@@ -227,7 +227,51 @@ const subject = renderTemplate(definition.defaultSubject, {
 
 Custom templates (stored in `emailTemplates` table) override defaults. Check via `getEmailTemplateForSending` internal query before falling back to defaults.
 
+#### Aggregate Component Architecture
+
+**Each `TableAggregate` instance MUST use its own dedicated component instance.** Multiple `TableAggregate` instances sharing the same component (e.g., `components.aggregate`) share the **same B-tree**. If they also share the same namespace (e.g., `tenantId`) and sort key (e.g., `_creationTime`), all their documents get mixed together. Paginating one table's aggregate returns documents from ALL tables.
+
+```typescript
+// ❌ WRONG — all tables share one B-tree, paginate() returns mixed documents
+const commissionsAggregate = new TableAggregate(components.aggregate, { namespace: d.tenantId });
+const clicksAggregate = new TableAggregate(components.aggregate, { namespace: d.tenantId });
+
+// ✅ CORRECT — each table gets its own isolated B-tree
+const commissionsAggregate = new TableAggregate(components.commissions, { namespace: d.tenantId });
+const clicksAggregate = new TableAggregate(components.clicks, { namespace: d.tenantId });
+```
+
+Register each as a separate component in `convex/convex.config.ts`:
+```typescript
+app.use(aggregate, { name: "commissions" });
+app.use(aggregate, { name: "clicks" });
+// etc.
+```
+
+The only time multiple `TableAggregate` instances can safely share a component is when their namespaces never overlap (e.g., one uses `tenantId` and another uses `userId`).
+
 #### Aggregate Backfill
+
+**Seed data bypasses aggregate triggers.** Seed files use raw `internalMutation` from `./_generated/server`, not the trigger-wrapped version from `./triggers`. Aggregate tables are never populated during seeding — a `backfillAll` step is mandatory after seeding.
+
+```bash
+# Full seed workflow — step 4 is critical
+pnpm convex run testData:clearAllTestData --typecheck=disable -- '{}'
+pnpm convex run seedAuthUsers:seedAuthUsers --typecheck=disable --push
+pnpm convex run testData:seedAllTestData --typecheck=disable -- '{}'
+pnpm convex run aggregates:backfillAll --typecheck=disable --push -- '{}'
+```
+
+**No-op `patch({})` fails on empty aggregates.** The naive backfill approach of `ctx.db.patch(docId, {})` triggers `replace` (delete + insert) under the hood. If the aggregate tree is empty, the delete throws `DELETE_MISSING_KEY`. The correct backfill approach is:
+
+1. `clear()` all aggregate trees first
+2. `insertIfDoesNotExist()` directly on the aggregate for each document
+
+See `convex/backfillIndex.ts` for the implementation.
+
+**`_creationTime` is immutable.** Convex sets `_creationTime` to `Date.now()` on insert and it cannot be overridden. Seed data with simulated historical timestamps only records the real time in `_creationTime` — date-filtered queries ("This Month") will only show data if the seed was run in the current period.
+
+#### Aggregate Backfill CLI
 
 When the Convex backend is already running, backfill works WITHOUT `--push`:
 ```bash
