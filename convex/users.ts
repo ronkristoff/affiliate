@@ -543,7 +543,6 @@ export const getUsersByTenant = query({
         canViewCommissions: v.boolean(),
       })),
       authId: v.optional(v.string()),
-      notificationUnreadCount: v.optional(v.number()),
     })
   ),
   handler: async (ctx, _args) => {

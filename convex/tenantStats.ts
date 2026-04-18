@@ -1,4 +1,4 @@
-import { query, action, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -7,6 +7,7 @@ import { getTenantId } from "./tenantContext";
 import {
   affiliateByStatusAggregate,
   commissionByStatusAggregate,
+  commissionByFlagAggregate,
   leadByStatusAggregate,
   payoutByStatusAggregate,
   conversionsAggregate,
@@ -145,6 +146,7 @@ export const getStats = query({
       totalPaidOut,
       pendingPayoutTotal,
       pendingPayoutCount,
+      commissionsFlagged,
       apiCallsCount,
       degradationCount,
       circuitBreakerTrips,
@@ -158,6 +160,7 @@ export const getStats = query({
       payoutByStatusAggregate.sum(ctx, { ...ns, bounds: { prefix: ["paid"] } } as any),
       commissionByStatusAggregate.sum(ctx, { ...ns, bounds: { prefix: ["approved"] } } as any),
       commissionByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["approved"] } } as any),
+      commissionByFlagAggregate.count(ctx, { ...ns, bounds: { prefix: [true] } } as any),
       apiCallsDirect.count(ctx, { ...ns, bounds: { lower: { key: monthStart, inclusive: true }, upper: { key: getNextMonthStart(), inclusive: false } } } as any),
       degradationDirect.count(ctx, { ...ns, bounds: { prefix: ["degradation"] } } as any),
       degradationDirect.count(ctx, { ...ns, bounds: { prefix: ["circuitBreaker"] } } as any),
@@ -218,8 +221,6 @@ export const getStats = query({
     const commissionsReversedThisMonth = declinedCount + reversedCount;
     const commissionsReversedValueThisMonth = declinedValue + reversedValue;
 
-    // commissionsFlagged still reads from tenantStats (cannot be derived from aggregate
-    // without a derived isFlagged field on commissions)
     const stats = await ctx.db
       .query("tenantStats")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
@@ -236,7 +237,7 @@ export const getStats = query({
       commissionsConfirmedValueThisMonth,
       commissionsReversedThisMonth,
       commissionsReversedValueThisMonth,
-      commissionsFlagged: stats?.commissionsFlagged ?? 0,
+      commissionsFlagged,
       totalPaidOut,
       pendingPayoutTotal,
       pendingPayoutCount,
@@ -490,35 +491,6 @@ export const backfillStats = internalMutation({
   },
 });
 
-/**
- * Backfill stats for all tenants. Run once after deploying tenantStats.
- * Also runs weekly via cron job in crons.ts.
- */
-export const backfillAllTenants = internalMutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    let cursor = null;
-    let totalBackfilled = 0;
-    let isDone = false;
-    do {
-      const result = await ctx.db
-        .query("tenants")
-        .paginate({ numItems: 500, cursor, });
-      for (const tenant of result.page) {
-        await ctx.runMutation(internal.tenantStats.backfillStats, {
-          tenantId: tenant._id,
-        });
-        totalBackfilled++;
-      }
-      cursor = result.continueCursor;
-      isDone = result.isDone;
-    } while (!isDone);
-    console.log(`Backfilled ${totalBackfilled} tenants`);
-    return null;
-  },
-});
-
 // =============================================================================
 // Mutation Hooks — replaced by aggregate triggers
 // =============================================================================
@@ -571,176 +543,7 @@ export async function adjustPendingPayoutTotals(
 }
 
 // =============================================================================
-// Public Action: Trigger Backfill (dev convenience)
-// =============================================================================
-
-/**
- * Public action to trigger a full backfill of all tenant stats.
- * Intended for dev/debugging use only — the weekly cron handles production.
- * Run via: npx convex run tenantStats:backfillAll
- */
-export const backfillAll = action({
-  args: {},
-  returns: v.string(),
-  handler: async (ctx) => {
-    await ctx.runMutation(internal.tenantStats.backfillAllTenants, {});
-    return "Backfill complete.";
-  },
-});
-
-// =============================================================================
 // Internal Action: Discover & Backfill New Tenants (Cron-driven)
 // =============================================================================
-
-/**
- * Internal implementation: discover tenants missing tenantStats and batch-backfill them.
- * Called by cron every 4 hours.
- * Processes up to 10 tenants per invocation.
- * Uses ctx.scheduler.runAfter to chain batches when more remain.
- *
- * NOTE: This is an internalAction (not public action) to avoid circular type
- * references since it schedules itself recursively via internal.
- */
-export const _discoverAndBackfillImpl = internalAction({
-  args: {
-    cursor: v.optional(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const startTime = Date.now();
-    const BATCH_SIZE = 10;
-    const TIMEOUT_MS = 20000; // 20 second guard
-
-    // Fetch tenants (paginated, max 200 per batch to avoid unbounded scan)
-    const tenants = await ctx.runQuery(
-      internal.tenantStats._listTenantsForBackfill,
-      { cursor: args.cursor ?? null },
-    );
-
-    const missingTenants: Array<{ tenantId: string; cursor: string | null }> = [];
-
-    for (const tenant of tenants.page) {
-      if (missingTenants.length >= BATCH_SIZE) break;
-      if (Date.now() - startTime > TIMEOUT_MS) break;
-
-      const hasStats = await ctx.runQuery(
-        internal.tenantStats._checkTenantHasStats,
-        { tenantId: tenant._id },
-      );
-
-      if (!hasStats) {
-        missingTenants.push({ tenantId: tenant._id, cursor: null });
-      }
-    }
-
-    // Backfill each missing tenant
-    for (const { tenantId } of missingTenants) {
-      if (Date.now() - startTime > TIMEOUT_MS) break;
-      await ctx.runMutation(internal.tenantStats.backfillStats, {
-        tenantId: tenantId as any,
-      });
-    }
-
-    // If there may be more tenants, schedule next batch
-    if (!tenants.isDone || missingTenants.length >= BATCH_SIZE) {
-      const nextCursor = tenants.isDone ? null : tenants.continueCursor;
-      if (nextCursor) {
-        await ctx.scheduler.runAfter(0, internal.tenantStats._discoverAndBackfillImpl, {
-          cursor: nextCursor,
-        });
-      }
-    }
-
-    return null;
-  },
-});
-
-// Internal helpers for discoverAndBackfillNewTenants
-
-export const _listTenantsForBackfill = internalQuery({
-  args: { cursor: v.union(v.string(), v.null()) },
-  returns: v.object({
-    page: v.array(v.object({
-      _id: v.id("tenants"),
-      _creationTime: v.number(),
-      name: v.string(),
-      domain: v.string(),
-      slug: v.string(),
-      status: v.string(),
-      plan: v.string(),
-      branding: v.optional(v.object({
-        portalName: v.optional(v.string()),
-        primaryColor: v.optional(v.string()),
-        logoUrl: v.optional(v.string()),
-        assetGuidelines: v.optional(v.string()),
-        customDomain: v.optional(v.string()),
-        domainStatus: v.optional(v.string()),
-        sslExpiryDate: v.optional(v.number()),
-      })),
-      trackingVerifiedAt: v.optional(v.number()),
-      billingProvider: v.optional(v.string()),
-      billingStartDate: v.optional(v.number()),
-      billingEndDate: v.optional(v.number()),
-      subscriptionId: v.optional(v.string()),
-      subscriptionStatus: v.optional(v.string()),
-      stripeAccountId: v.optional(v.string()),
-      cancellationDate: v.optional(v.number()),
-      deletionScheduledDate: v.optional(v.number()),
-      trialEndsAt: v.optional(v.number()),
-      trackingPublicKey: v.optional(v.string()),
-      cancelledReason: v.optional(v.string()),
-      pastDueSince: v.optional(v.number()),
-      payoutSchedule: v.optional(v.object({
-        payoutDayOfMonth: v.optional(v.number()),
-        minimumPayoutAmount: v.optional(v.number()),
-        payoutProcessingDays: v.optional(v.number()),
-        payoutScheduleNote: v.optional(v.string()),
-      })),
-      saligPayCredentials: v.optional(v.object({
-        clientId: v.string(),
-        clientSecret: v.string(),
-        mode: v.optional(v.string()),
-        connectedAt: v.optional(v.number()),
-        mockMerchantId: v.optional(v.string()),
-        realMerchantId: v.optional(v.string()),
-        expiresAt: v.optional(v.number()),
-        mockAccessToken: v.optional(v.string()),
-        mockRefreshToken: v.optional(v.string()),
-      })),
-      stripeCredentials: v.optional(v.object({
-        signingSecret: v.string(),
-        mode: v.optional(v.string()),
-        connectedAt: v.optional(v.number()),
-        connectedVia: v.optional(v.string()),
-        livemode: v.optional(v.boolean()),
-        accessToken: v.optional(v.string()),
-        refreshToken: v.optional(v.string()),
-      })),
-    })),
-    isDone: v.boolean(),
-    continueCursor: v.union(v.string(), v.null()),
-    pageStatus: v.optional(v.union(v.string(), v.null())),
-    splitCursor: v.optional(v.union(v.string(), v.null())),
-  }),
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("tenants")
-      .withIndex("by_status")
-      .paginate({
-        numItems: 200,
-        cursor: (args.cursor ?? undefined) as string,
-      });
-  },
-});
-
-export const _checkTenantHasStats = internalQuery({
-  args: { tenantId: v.id("tenants") },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const stats = await ctx.db
-      .query("tenantStats")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .first();
-    return !!stats;
-  },
-});
+// REMOVED: _discoverAndBackfillImpl, _listTenantsForBackfill, _checkTenantHasStats
+// getOrCreateStats() in tenantStats.ts already creates stats on-demand.

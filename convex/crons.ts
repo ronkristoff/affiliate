@@ -37,18 +37,6 @@ crons.interval(
 //   {}
 // );
 
-// Weekly backfill of tenantStats counters — catches any drift from edge cases
-crons.weekly(
-  "weekly-stats-backfill",
-  {
-    dayOfWeek: "sunday",
-    hourUTC: 2,
-    minuteUTC: 0,
-  },
-  internal.tenantStats.backfillAllTenants,
-  {}
-);
-
 // Clean up expired query builder export files — runs daily at 3 AM UTC
 crons.interval(
   "cleanup-expired-query-exports",
@@ -81,33 +69,6 @@ crons.interval(
   "notification-cleanup",
   { hours: 24 },
   internal.notifications.clearExpiredNotifications,
-  {}
-);
-
-// Notification unread count reconciliation — runs daily
-// Fixes drift in denormalized unread counters on users table
-crons.interval(
-  "notification-reconciliation",
-  { hours: 24 },
-  internal.notifications.reconcileUnreadCounts,
-  {}
-);
-
-// Hourly platformStats recalculation from all tenantStats
-// V1: cron-only (no incremental hooks). Recalculates aggregate KPIs.
-crons.interval(
-  "recalculate-platform-stats",
-  { hours: 1 },
-  internal.admin.platformStats.recalculatePlatformStats,
-  {}
-);
-
-// New tenant backfill — runs every 4 hours
-// Discovers tenants missing tenantStats and batch-creates them
-crons.interval(
-  "backfill-new-tenant-stats",
-  { hours: 4 },
-  internal.tenantStats._discoverAndBackfillImpl,
   {}
 );
 

@@ -94,6 +94,21 @@ const degradationDirect = new DirectAggregate<{
   Namespace: Id<"tenants">;
 }>(components.degradation);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const notificationsByReadAggregate = new TableAggregate(components.aggregate, {
+  sortKey: (d: any) => [d.isRead, d._creationTime] as [boolean, number],
+  namespace: (d: any) => d.userId,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const commissionByFlagAggregate = new TableAggregate(components.aggregate, {
+  sortKey: (d: any) => {
+    const isFlagged = !!(d.fraudIndicators?.length || d.isSelfReferral === true);
+    return [isFlagged, d._creationTime] as [boolean, number];
+  },
+  namespace: (d: any) => d.tenantId,
+} as any);
+
 export {
   affiliateAggregate,
   referralLinksAggregate,
@@ -107,6 +122,8 @@ export {
   payoutByStatusAggregate,
   apiCallsDirect,
   degradationDirect,
+  notificationsByReadAggregate,
+  commissionByFlagAggregate,
 };
 
 export const affiliatesTrigger = affiliateAggregate.trigger();
@@ -119,6 +136,8 @@ export const affiliateByStatusTrigger = affiliateByStatusAggregate.trigger();
 export const commissionByStatusTrigger = commissionByStatusAggregate.trigger();
 export const leadByStatusTrigger = leadByStatusAggregate.trigger();
 export const payoutByStatusTrigger = payoutByStatusAggregate.trigger();
+export const notificationsByReadTrigger = notificationsByReadAggregate.trigger();
+export const commissionByFlagTrigger = commissionByFlagAggregate.trigger();
 
 const TABLES_TO_BACKFILL = [
   "affiliates",
@@ -128,6 +147,7 @@ const TABLES_TO_BACKFILL = [
   "commissions",
   "payouts",
   "referralLeads",
+  "notifications",
 ] as const;
 
 const AGGREGATE_MAP: Record<string, TableAggregate<any>> = {
@@ -138,6 +158,7 @@ const AGGREGATE_MAP: Record<string, TableAggregate<any>> = {
   commissions: commissionsAggregate,
   payouts: payoutsAggregate,
   referralLeads: leadByStatusAggregate,
+  notifications: notificationsByReadAggregate,
 };
 
 /**

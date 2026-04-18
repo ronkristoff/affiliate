@@ -7,19 +7,21 @@
  * Features:
  * - Aggregation: same-type + same-day notifications are merged
  * - Email: best-effort (try/catch, never throws from email failure)
- * - Unread count: denormalized on users table for O(1) reads
+ * - Unread count: real-time via @convex-dev/aggregate (notificationsByReadAggregate)
  * - Retention: 90-day auto-expire via expiresAt field
  * - Cleanup cron: daily batch delete of expired notifications
  * - Pagination: native Convex .paginate() for scale
  */
 
-import { query, mutation, internalMutation, internalAction } from "./_generated/server";
+import { query } from "./_generated/server";
+import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { internal } from "./_generated/api";
 import { Id, Doc } from "./_generated/dataModel";
 import { getFromAddress } from "./emailService";
 import { requireWriteAccess } from "./tenantContext";
+import { notificationsByReadAggregate } from "./aggregates";
 
 // 90 days in milliseconds
 const NOTIFICATION_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -104,16 +106,10 @@ export const createNotification = internalMutation({
       aggregationDate: todayBoundary,
     });
 
-    // Increment denormalized unread count
-    const user = await ctx.db.get(args.userId);
-    const currentCount = user?.notificationUnreadCount ?? 0;
-    await ctx.db.patch(args.userId, {
-      notificationUnreadCount: currentCount + 1,
-    });
-
     // Send email (best-effort — never throws)
     if (args.emailSubject && args.emailHtml) {
       try {
+        const user = await ctx.db.get(args.userId);
         const userEmail = user?.email;
         if (userEmail) {
           await ctx.scheduler.runAfter(0, internal.emailService.sendEmail, {
@@ -187,13 +183,6 @@ export const createBulkNotifications = internalMutation({
           metadata: args.metadata,
           aggregatedCount: 1,
           aggregationDate: todayBoundary,
-        });
-
-        // Increment unread count
-        const user = await ctx.db.get(userId);
-        const currentCount = user?.notificationUnreadCount ?? 0;
-        await ctx.db.patch(userId, {
-          notificationUnreadCount: currentCount + 1,
         });
       } catch (error) {
         // Accept partial delivery — log but continue
@@ -311,7 +300,7 @@ export const getNotifications = query({
 
 /**
  * Get unread notification count for a user.
- * Returns the denormalized count from users table for O(1) reads.
+ * Uses O(log n) aggregate query instead of denormalized counter.
  */
 export const getUnreadNotificationCount = query({
   args: {
@@ -321,10 +310,11 @@ export const getUnreadNotificationCount = query({
     total: v.number(),
   }),
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    return {
-      total: user?.notificationUnreadCount ?? 0,
-    };
+    const count = await notificationsByReadAggregate.count(ctx, {
+      namespace: args.userId,
+      bounds: { prefix: [false] },
+    } as any);
+    return { total: count };
   },
 });
 
@@ -374,13 +364,6 @@ export const markNotificationRead = mutation({
       readAt: Date.now(),
     });
 
-    // Decrement unread count (min 0)
-    const user = await ctx.db.get(notification.userId);
-    const currentCount = user?.notificationUnreadCount ?? 0;
-    await ctx.db.patch(notification.userId, {
-      notificationUnreadCount: Math.max(0, currentCount - 1),
-    });
-
     return null;
   },
 });
@@ -428,11 +411,6 @@ export const markAllNotificationsRead = mutation({
         readAt: now,
       });
     }
-
-    // Reset denormalized count to 0
-    await ctx.db.patch(args.userId, {
-      notificationUnreadCount: 0,
-    });
 
     return null;
   },
@@ -487,52 +465,5 @@ export const clearExpiredNotifications = internalMutation({
     }
 
     return { deletedCount, usersProcessed };
-  },
-});
-
-/**
- * Reconcile unread notification counts.
- * Runs daily, fixes drift in denormalized counters.
- * Processes up to 100 users per run.
- */
-export const reconcileUnreadCounts = internalMutation({
-  args: {},
-  returns: v.object({
-    fixedCount: v.number(),
-  }),
-  handler: async (ctx) => {
-    const now = Date.now();
-    let fixedCount = 0;
-
-    const users = await ctx.db.query("users").take(100);
-
-    for (const user of users) {
-      try {
-        const unreadNotifications = await ctx.db
-          .query("notifications")
-          .withIndex("by_user_unread", (q) =>
-            q.eq("userId", user._id).eq("isRead", false)
-          )
-          .filter((q) => q.gte(q.field("expiresAt") as any, now))
-          .take(200);
-
-        const actualCount = unreadNotifications.length;
-        const storedCount = user.notificationUnreadCount ?? 0;
-
-        if (actualCount !== storedCount) {
-          await ctx.db.patch(user._id, {
-            notificationUnreadCount: actualCount,
-          });
-          fixedCount++;
-        }
-      } catch (error) {
-        console.error(
-          `[notifications] Reconciliation failed for userId="${user._id}":`,
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-    }
-
-    return { fixedCount };
   },
 });
