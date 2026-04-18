@@ -7,6 +7,7 @@ import { betterAuthComponent } from "../auth";
 import { DEFAULT_TIER_CONFIGS } from "../tierConfig";
 import { requireAdmin, readTenantStats } from "./_helpers";
 import { internal } from "../_generated/api";
+import { commissionsAggregate } from "../aggregates";
 
 // =============================================================================
 // Helpers
@@ -769,13 +770,8 @@ export const getTenantDetails = query({
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
-    const commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant_and_status", (q: any) =>
-        q.eq("tenantId", args.tenantId).eq("status", "approved")
-      )
-      .order("desc")
-      .take(1500);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
+    const commissions = allCommissions.filter((c: any) => c.status === "approved");
 
     const recentApproved = commissions.filter(
       (c: { _creationTime: number }) => c._creationTime >= thirtyDaysAgo
@@ -878,13 +874,8 @@ export const getTenantStats = query({
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
     const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
 
-    const commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant_and_status", (q: any) =>
-        q.eq("tenantId", args.tenantId).eq("status", "approved")
-      )
-      .order("desc")
-      .take(1500);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
+    const commissions = allCommissions.filter((c: any) => c.status === "approved");
 
     const approvedInRange = commissions.filter(
       (c: { _creationTime: number }) => c._creationTime >= thirtyDaysAgo
@@ -1599,3 +1590,34 @@ export const getAdminCommissionDetail = query({
     };
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

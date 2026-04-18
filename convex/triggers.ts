@@ -12,6 +12,10 @@ import {
   commissionsAggregate,
   referralLinksAggregate,
   payoutsAggregate,
+  affiliateByStatusAggregate,
+  commissionByStatusAggregate,
+  leadByStatusAggregate,
+  payoutByStatusAggregate,
 } from "./aggregates";
 
 const triggers = new Triggers<DataModel>();
@@ -22,6 +26,10 @@ triggers.register("clicks", clicksAggregate.trigger());
 triggers.register("conversions", conversionsAggregate.trigger());
 triggers.register("commissions", commissionsAggregate.trigger());
 triggers.register("payouts", payoutsAggregate.trigger());
+triggers.register("affiliates", affiliateByStatusAggregate.trigger());
+triggers.register("commissions", commissionByStatusAggregate.trigger());
+triggers.register("referralLeads", leadByStatusAggregate.trigger());
+triggers.register("payouts", payoutByStatusAggregate.trigger());
 
 export const mutation = customMutation(rawMutation, customCtx(triggers.wrapDB));
 export const internalMutation = customMutation(

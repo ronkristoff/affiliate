@@ -4,6 +4,15 @@ import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getTenantId } from "./tenantContext";
+import {
+  affiliateByStatusAggregate,
+  commissionByStatusAggregate,
+  leadByStatusAggregate,
+  payoutByStatusAggregate,
+  conversionsAggregate,
+  apiCallsDirect,
+  degradationDirect,
+} from "./aggregates";
 
 // =============================================================================
 // Helpers
@@ -12,6 +21,11 @@ import { getTenantId } from "./tenantContext";
 function getMonthStart(): number {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+}
+
+function getNextMonthStart(): number {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
 }
 
 /**
@@ -93,7 +107,7 @@ async function getOrCreateStats(ctx: MutationCtx, tenantId: Id<"tenants">) {
 
 /**
  * Get the denormalized stats for a tenant.
- * Used by the owner dashboard to show summary metrics without scanning tables.
+ * Uses O(log n) aggregate queries instead of reading a single denormalized document.
  */
 export const getStats = query({
   args: { tenantId: v.id("tenants") },
@@ -113,40 +127,123 @@ export const getStats = query({
     pendingPayoutTotal: v.number(),
     pendingPayoutCount: v.number(),
     apiCallsThisMonth: v.number(),
-    // API Resilience Layer — degradation counters (Task 17)
     degradationCount: v.number(),
     lastDegradedAt: v.optional(v.number()),
     circuitBreakerTrips: v.number(),
   }),
   handler: async (ctx, args) => {
+    const ns = { namespace: args.tenantId };
+    const monthStart = getMonthStart();
+
+    const [
+      affiliatesPending,
+      affiliatesActive,
+      affiliatesSuspended,
+      affiliatesRejected,
+      commissionsPendingCount,
+      commissionsPendingValue,
+      totalPaidOut,
+      pendingPayoutTotal,
+      pendingPayoutCount,
+      apiCallsCount,
+      degradationCount,
+      circuitBreakerTrips,
+    ] = await Promise.all([
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["active"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["suspended"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["rejected"] } } as any),
+      commissionByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      commissionByStatusAggregate.sum(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      payoutByStatusAggregate.sum(ctx, { ...ns, bounds: { prefix: ["paid"] } } as any),
+      commissionByStatusAggregate.sum(ctx, { ...ns, bounds: { prefix: ["approved"] } } as any),
+      commissionByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["approved"] } } as any),
+      apiCallsDirect.count(ctx, { ...ns, bounds: { lower: { key: monthStart, inclusive: true }, upper: { key: getNextMonthStart(), inclusive: false } } } as any),
+      degradationDirect.count(ctx, { ...ns, bounds: { prefix: ["degradation"] } } as any),
+      degradationDirect.count(ctx, { ...ns, bounds: { prefix: ["circuitBreaker"] } } as any),
+    ]);
+
+    const [
+      commissionsConfirmedThisMonth,
+      commissionsConfirmedValueThisMonth,
+      declinedCount,
+      declinedValue,
+      reversedCount,
+      reversedValue,
+    ] = await Promise.all([
+      commissionByStatusAggregate.count(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["approved", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["approved", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+      commissionByStatusAggregate.sum(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["approved", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["approved", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+      commissionByStatusAggregate.count(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["declined", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["declined", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+      commissionByStatusAggregate.sum(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["declined", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["declined", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+      commissionByStatusAggregate.count(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["reversed", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["reversed", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+      commissionByStatusAggregate.sum(ctx, {
+        ...ns,
+        bounds: {
+          lower: { key: ["reversed", monthStart] as [string, number], inclusive: true },
+          upper: { key: ["reversed", getNextMonthStart()] as [string, number], inclusive: false },
+        },
+      } as any),
+    ]);
+
+    const commissionsReversedThisMonth = declinedCount + reversedCount;
+    const commissionsReversedValueThisMonth = declinedValue + reversedValue;
+
+    // commissionsFlagged still reads from tenantStats (cannot be derived from aggregate
+    // without a derived isFlagged field on commissions)
     const stats = await ctx.db
       .query("tenantStats")
       .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
       .first();
 
-    const monthStart = getMonthStart();
-    const stale = stats && stats.currentMonthStart < monthStart;
-
     return {
-      affiliatesPending: stats?.affiliatesPending ?? 0,
-      affiliatesActive: stats?.affiliatesActive ?? 0,
-      affiliatesSuspended: stats?.affiliatesSuspended ?? 0,
-      affiliatesRejected: stats?.affiliatesRejected ?? 0,
-      commissionsPendingCount: stats?.commissionsPendingCount ?? 0,
-      commissionsPendingValue: stats?.commissionsPendingValue ?? 0,
-      commissionsConfirmedThisMonth: stale ? 0 : (stats?.commissionsConfirmedThisMonth ?? 0),
-      commissionsConfirmedValueThisMonth: stale ? 0 : (stats?.commissionsConfirmedValueThisMonth ?? 0),
-      commissionsReversedThisMonth: stale ? 0 : (stats?.commissionsReversedThisMonth ?? 0),
-      commissionsReversedValueThisMonth: stale ? 0 : (stats?.commissionsReversedValueThisMonth ?? 0),
+      affiliatesPending,
+      affiliatesActive,
+      affiliatesSuspended,
+      affiliatesRejected,
+      commissionsPendingCount,
+      commissionsPendingValue,
+      commissionsConfirmedThisMonth,
+      commissionsConfirmedValueThisMonth,
+      commissionsReversedThisMonth,
+      commissionsReversedValueThisMonth,
       commissionsFlagged: stats?.commissionsFlagged ?? 0,
-      totalPaidOut: stats?.totalPaidOut ?? 0,
-      pendingPayoutTotal: stats?.pendingPayoutTotal ?? 0,
-      pendingPayoutCount: stats?.pendingPayoutCount ?? 0,
-      apiCallsThisMonth: stale ? 0 : (stats?.apiCallsThisMonth ?? 0),
-      // API Resilience Layer — degradation counters
-      degradationCount: stats?.degradationCount ?? 0,
+      totalPaidOut,
+      pendingPayoutTotal,
+      pendingPayoutCount,
+      apiCallsThisMonth: apiCallsCount,
+      degradationCount,
       lastDegradedAt: stats?.lastDegradedAt,
-      circuitBreakerTrips: stats?.circuitBreakerTrips ?? 0,
+      circuitBreakerTrips,
     };
   },
 });
@@ -157,7 +254,7 @@ export const getStats = query({
 
 /**
  * Get pending action counts for sidebar notification badges.
- * Single read from denormalized tenantStats — O(1), no table scans.
+ * Uses O(log n) aggregate queries.
  */
 export const getSidebarBadgeCounts = query({
   args: {},
@@ -172,16 +269,15 @@ export const getSidebarBadgeCounts = query({
       return { pendingAffiliates: 0, pendingCommissions: 0, pendingPayouts: 0 };
     }
 
-    const stats = await ctx.db
-      .query("tenantStats")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .first();
+    const ns = { namespace: tenantId };
 
-    return {
-      pendingAffiliates: stats?.affiliatesPending ?? 0,
-      pendingCommissions: stats?.commissionsPendingCount ?? 0,
-      pendingPayouts: stats?.pendingPayoutCount ?? 0,
-    };
+    const [pendingAffiliates, pendingCommissions, pendingPayouts] = await Promise.all([
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      commissionByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      commissionByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["approved"] } } as any),
+    ]);
+
+    return { pendingAffiliates, pendingCommissions, pendingPayouts };
   },
 });
 
@@ -424,157 +520,24 @@ export const backfillAllTenants = internalMutation({
 });
 
 // =============================================================================
-// Mutation Hooks — called by other mutations to keep counters in sync
+// Mutation Hooks — replaced by aggregate triggers
 // =============================================================================
-
-/**
- * Called when an affiliate status changes.
- * Updates the affiliate counters atomically.
- */
-export async function updateAffiliateCount(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-  oldStatus: string | undefined,
-  newStatus: string,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  const patch: Record<string, number> = {};
-
-  // Undo old status
-  if (oldStatus === "pending") patch.affiliatesPending = stats.affiliatesPending - 1;
-  if (oldStatus === "active") patch.affiliatesActive = stats.affiliatesActive - 1;
-  if (oldStatus === "suspended") patch.affiliatesSuspended = stats.affiliatesSuspended - 1;
-  if (oldStatus === "rejected") patch.affiliatesRejected = stats.affiliatesRejected - 1;
-
-  // Apply new status
-  if (newStatus === "pending") patch.affiliatesPending = (patch.affiliatesPending ?? stats.affiliatesPending) + 1;
-  if (newStatus === "active") patch.affiliatesActive = (patch.affiliatesActive ?? stats.affiliatesActive) + 1;
-  if (newStatus === "suspended") patch.affiliatesSuspended = (patch.affiliatesSuspended ?? stats.affiliatesSuspended) + 1;
-  if (newStatus === "rejected") patch.affiliatesRejected = (patch.affiliatesRejected ?? stats.affiliatesRejected) + 1;
-
-  if (Object.keys(patch).length > 0) {
-    await ctx.db.patch(stats._id, patch);
-  }
-}
-
-/**
- * Called when a commission is created.
- * Increments pending or confirmed counters based on status.
- */
-export async function onCommissionCreated(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-  amount: number,
-  status: string,
-  hasFraudSignals: boolean = false,
-  isSelfReferral: boolean = false,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  const patch: Record<string, number> = {};
-
-  if (status === "pending") {
-    patch.commissionsPendingCount = stats.commissionsPendingCount + 1;
-    patch.commissionsPendingValue = stats.commissionsPendingValue + amount;
-  } else if (status === "approved") {
-    patch.commissionsConfirmedThisMonth = stats.commissionsConfirmedThisMonth + 1;
-    patch.commissionsConfirmedValueThisMonth = stats.commissionsConfirmedValueThisMonth + amount;
-    // Also track as pending payout (approved = awaiting payment)
-    patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + amount;
-    patch.pendingPayoutCount = (stats.pendingPayoutCount ?? 0) + 1;
-  }
-
-  if (hasFraudSignals || isSelfReferral) {
-    patch.commissionsFlagged = stats.commissionsFlagged + 1;
-  }
-
-  if (Object.keys(patch).length > 0) {
-    await ctx.db.patch(stats._id, patch);
-  }
-}
-
-/**
- * Called when a commission status changes (approve, decline, reverse).
- * Swaps counters between statuses atomically.
- */
-export async function onCommissionStatusChange(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-  amount: number,
-  oldStatus: string,
-  newStatus: string,
-  wasFlagged: boolean = false,
-  isFlagged: boolean = false,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  const patch: Record<string, number> = {};
-
-  // Undo old status
-  if (oldStatus === "pending") {
-    patch.commissionsPendingCount = stats.commissionsPendingCount - 1;
-    patch.commissionsPendingValue = stats.commissionsPendingValue - amount;
-  }
-  if (oldStatus === "approved") {
-    patch.pendingPayoutTotal = (patch.pendingPayoutTotal ?? stats.pendingPayoutTotal ?? 0) - amount;
-    patch.pendingPayoutCount = (patch.pendingPayoutCount ?? stats.pendingPayoutCount ?? 0) - 1;
-  }
-  if (oldStatus === "reversed" || oldStatus === "declined") {
-    patch.commissionsReversedThisMonth = stats.commissionsReversedThisMonth - 1;
-    patch.commissionsReversedValueThisMonth = stats.commissionsReversedValueThisMonth - amount;
-  }
-
-  // Apply new status
-  if (newStatus === "pending") {
-    patch.commissionsPendingCount = (patch.commissionsPendingCount ?? stats.commissionsPendingCount ?? 0) + 1;
-    patch.commissionsPendingValue = (patch.commissionsPendingValue ?? stats.commissionsPendingValue ?? 0) + amount;
-  }
-  if (newStatus === "approved") {
-    patch.commissionsConfirmedThisMonth = (patch.commissionsConfirmedThisMonth ?? stats.commissionsConfirmedThisMonth ?? 0) + 1;
-    patch.commissionsConfirmedValueThisMonth = (patch.commissionsConfirmedValueThisMonth ?? stats.commissionsConfirmedValueThisMonth ?? 0) + amount;
-    // Track as pending payout
-    patch.pendingPayoutTotal = (patch.pendingPayoutTotal ?? stats.pendingPayoutTotal ?? 0) + amount;
-    patch.pendingPayoutCount = (patch.pendingPayoutCount ?? stats.pendingPayoutCount ?? 0) + 1;
-  }
-  if (newStatus === "reversed" || newStatus === "declined") {
-    patch.commissionsReversedThisMonth = (patch.commissionsReversedThisMonth ?? stats.commissionsReversedThisMonth ?? 0) + 1;
-    patch.commissionsReversedValueThisMonth = (patch.commissionsReversedValueThisMonth ?? stats.commissionsReversedValueThisMonth ?? 0) + amount;
-  }
-  // "paid" is a terminal status — no counter bucket for paid commissions
-  // The old status undo (above) handles decrementing the source bucket
-
-  // Handle flagged counter changes
-  if (wasFlagged && !isFlagged) {
-    // Flag cleared (e.g., on approval)
-    patch.commissionsFlagged = stats.commissionsFlagged - 1;
-  } else if (!wasFlagged && isFlagged) {
-    // Flag added
-    patch.commissionsFlagged = stats.commissionsFlagged + 1;
-  }
-
-  if (Object.keys(patch).length > 0) {
-    await ctx.db.patch(stats._id, patch);
-  }
-}
-
-/**
- * Increment totalPaidOut counter for a tenant.
- * Called when payouts are marked as paid.
- */
-export async function incrementTotalPaidOut(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-  amount: number,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  await ctx.db.patch(stats._id, {
-    totalPaidOut: stats.totalPaidOut + amount,
-  });
-}
+// The following hooks were removed:
+// - updateAffiliateCount → affiliateByStatusAggregate trigger
+// - onCommissionCreated → commissionByStatusAggregate trigger
+// - onCommissionStatusChange → commissionByStatusAggregate trigger
+// - onCommissionAmountChanged → commissionByStatusAggregate trigger (via replace)
+// - incrementTotalPaidOut → payoutByStatusAggregate trigger
+// - onOrganicConversionCreated → kept in tenantStats (needs organic filter)
+// - incrementTotalConversions → conversionsAggregate trigger
+// - onLeadCreated → leadByStatusAggregate trigger
+// - onLeadConverted → leadByStatusAggregate trigger
+// - incrementApiCalls → apiCallsDirect (DirectAggregate)
 
 /**
  * Called when an organic conversion is created (no affiliate attribution).
  * Increments organic-specific counters AND totalConversionsThisMonth.
- * Note: NOT idempotent — Convex retries on write conflict could double-count.
- * The weekly backfillStats cron serves as a periodic correction mechanism.
+ * Kept as manual hook because aggregate cannot filter by isOrganic.
  */
 export async function onOrganicConversionCreated(
   ctx: MutationCtx,
@@ -584,170 +547,28 @@ export async function onOrganicConversionCreated(
   await ctx.db.patch(stats._id, {
     organicConversionsThisMonth: (stats.organicConversionsThisMonth ?? 0) + 1,
     organicConversionsLast3Months: (stats.organicConversionsLast3Months ?? 0) + 1,
-    // Fix pre-existing bug: totalConversionsThisMonth was never incremented
     totalConversionsThisMonth: (stats.totalConversionsThisMonth ?? 0) + 1,
   });
 }
 
 /**
- * Increment totalConversionsThisMonth for attributed conversions.
- * Fixes the pre-existing bug where totalConversionsThisMonth was never incremented.
+ * Track pending payout totals — approved commissions not yet assigned to a batch.
+ * Kept as manual hook because aggregate cannot filter by batchId.
+ * Call from commission mutations that create/approve/decline commissions.
  */
-export async function incrementTotalConversions(
+export async function adjustPendingPayoutTotals(
   ctx: MutationCtx,
   tenantId: Id<"tenants">,
+  deltaCount: number,
+  deltaValue: number,
 ) {
+  if (deltaCount === 0 && deltaValue === 0) return;
   const stats = await getOrCreateStats(ctx, tenantId);
   await ctx.db.patch(stats._id, {
-    totalConversionsThisMonth: (stats.totalConversionsThisMonth ?? 0) + 1,
+    pendingPayoutTotal: Math.max(0, (stats.pendingPayoutTotal ?? 0) + deltaValue),
+    pendingPayoutCount: Math.max(0, (stats.pendingPayoutCount ?? 0) + deltaCount),
   });
 }
-
-/**
- * Called when a commission amount changes without a status change.
- * Adjusts the appropriate value counter based on current status.
- */
-export async function onCommissionAmountChanged(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-  oldAmount: number,
-  newAmount: number,
-  status: string,
-) {
-  const delta = newAmount - oldAmount;
-  if (delta === 0) return;
-
-  const stats = await getOrCreateStats(ctx, tenantId);
-  const patch: Record<string, number> = {};
-
-  if (status === "pending") {
-    patch.commissionsPendingValue = stats.commissionsPendingValue + delta;
-  } else if (status === "approved") {
-    patch.pendingPayoutTotal = (stats.pendingPayoutTotal ?? 0) + delta;
-  } else if (status === "reversed" || status === "declined") {
-    patch.commissionsReversedValueThisMonth = stats.commissionsReversedValueThisMonth + delta;
-  }
-
-  if (Object.keys(patch).length > 0) {
-    await ctx.db.patch(stats._id, patch);
-  }
-}
-
-/**
- * Called when a new referral lead is created.
- * Increments leadsCreatedThisMonth counter.
- */
-export async function onLeadCreated(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  await ctx.db.patch(stats._id, {
-    leadsCreatedThisMonth: (stats.leadsCreatedThisMonth ?? 0) + 1,
-  });
-}
-
-/**
- * Called when a referral lead is marked as converted.
- * Increments leadsConvertedThisMonth counter.
- */
-export async function onLeadConverted(
-  ctx: MutationCtx,
-  tenantId: Id<"tenants">,
-) {
-  const stats = await getOrCreateStats(ctx, tenantId);
-  await ctx.db.patch(stats._id, {
-    leadsConvertedThisMonth: (stats.leadsConvertedThisMonth ?? 0) + 1,
-  });
-}
-
-/**
- * Internal mutation: get or create stats (for use in actions).
- */
-export const getOrCreateStatsInternal = internalMutation({
-  args: { tenantId: v.id("tenants") },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const stats = await ctx.db
-      .query("tenantStats")
-      .withIndex("by_tenant", (q: any) => q.eq("tenantId", args.tenantId))
-      .first();
-
-    if (!stats) {
-      await ctx.db.insert("tenantStats", {
-        tenantId: args.tenantId,
-        affiliatesPending: 0,
-        affiliatesActive: 0,
-        affiliatesSuspended: 0,
-        affiliatesRejected: 0,
-        commissionsPendingCount: 0,
-        commissionsPendingValue: 0,
-        commissionsConfirmedThisMonth: 0,
-        commissionsConfirmedValueThisMonth: 0,
-        commissionsReversedThisMonth: 0,
-        commissionsReversedValueThisMonth: 0,
-        commissionsFlagged: 0,
-        totalPaidOut: 0,
-        pendingPayoutTotal: 0,
-        pendingPayoutCount: 0,
-        currentMonthStart: getMonthStart(),
-        apiCallsThisMonth: 0,
-        totalConversionsThisMonth: 0,
-        organicConversionsThisMonth: 0,
-        leadsCreatedThisMonth: 0,
-        leadsConvertedThisMonth: 0,
-      });
-    }
-
-    // Check for month boundary reset
-    const monthStart = getMonthStart();
-    if (stats && stats.currentMonthStart < monthStart) {
-      await ctx.db.patch(stats._id, {
-        // Copy ThisMonth → LastMonth BEFORE zeroing (fixes stale LastMonth gap)
-        commissionsConfirmedLastMonth: stats.commissionsConfirmedThisMonth,
-        commissionsConfirmedValueLastMonth: stats.commissionsConfirmedValueThisMonth,
-        totalClicksLastMonth: stats.totalClicksLastMonth ?? 0,
-        totalConversionsLastMonth: stats.totalConversionsThisMonth ?? 0,
-        organicConversionsLastMonth: stats.organicConversionsThisMonth ?? 0,
-        leadsCreatedLastMonth: stats.leadsCreatedThisMonth ?? 0,
-        // Now zero ThisMonth fields
-        commissionsConfirmedThisMonth: 0,
-        commissionsConfirmedValueThisMonth: 0,
-        commissionsReversedThisMonth: 0,
-        commissionsReversedValueThisMonth: 0,
-        organicConversionsThisMonth: 0,
-        totalConversionsThisMonth: 0,
-        currentMonthStart: monthStart,
-        apiCallsThisMonth: 0,
-        leadsCreatedThisMonth: 0,
-        leadsConvertedThisMonth: 0,
-      });
-    }
-
-    return null;
-  },
-});
-
-// =============================================================================
-// Internal Mutation: Increment API Calls Counter
-// =============================================================================
-
-/**
- * Increment the apiCallsThisMonth counter for a tenant.
- * Called by HTTP action handlers to track API usage against tier limits.
- * Uses getOrCreateStats to handle month boundary resets automatically.
- */
-export const incrementApiCalls = internalMutation({
-  args: { tenantId: v.id("tenants"), count: v.number() },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const stats = await getOrCreateStats(ctx, args.tenantId);
-    await ctx.db.patch(stats._id, {
-      apiCallsThisMonth: (stats.apiCallsThisMonth ?? 0) + args.count,
-    });
-    return null;
-  },
-});
 
 // =============================================================================
 // Public Action: Trigger Backfill (dev convenience)

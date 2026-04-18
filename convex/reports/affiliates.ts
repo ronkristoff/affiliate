@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { getAuthenticatedUser } from "../tenantContext";
 import { dateRangeValidator, sortByValidator, sortOrderValidator } from "./summary";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate, affiliateAggregate } from "../aggregates";
 
 /**
  * Get affiliate performance list with aggregated metrics.
@@ -42,30 +43,10 @@ export const getAffiliatePerformanceList = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // Fetch affiliates (medium-volume, cap at 1000)
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(1000);
-
-    // Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const filteredClicks = allClicks.filter(c =>
@@ -212,10 +193,7 @@ export const getAffiliateSummaryMetrics = query({
     const previousStartDate = startDate - periodLength;
 
     // Fetch affiliates (medium-volume)
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(1000);
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
     const totalAffiliates = allAffiliates.length;
     const activeAffiliates = allAffiliates.filter(a => a.status === "active").length;
@@ -229,23 +207,9 @@ export const getAffiliateSummaryMetrics = query({
     ).length;
 
     // Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const currentClicks = allClicks.filter(c =>
@@ -571,28 +535,10 @@ export const getAffiliateExportData = query({
     commissions: v.number(),
   })),
   handler: async (ctx, args) => {
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(1000);
-
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     const affiliateData = new Map<string, {
       name: string;
@@ -659,3 +605,34 @@ export const getAffiliateExportData = query({
     }));
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

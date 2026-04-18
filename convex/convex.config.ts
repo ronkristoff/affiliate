@@ -7,5 +7,11 @@ const app = defineApp();
 app.use(betterAuth);
 app.use(resend);
 app.use(aggregate);
+app.use(aggregate, { name: "affiliateByStatus" });
+app.use(aggregate, { name: "commissionByStatus" });
+app.use(aggregate, { name: "leadByStatus" });
+app.use(aggregate, { name: "payoutByStatus" });
+app.use(aggregate, { name: "apiCalls" });
+app.use(aggregate, { name: "degradation" });
 
 export default app;

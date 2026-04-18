@@ -1,0 +1,162 @@
+<section class="module" id="module-1">
+  <div class="module-content">
+
+    <header class="module-header">
+      <span class="module-number">01</span>
+      <h1 class="module-title">What is Affiliate Tracking?</h1>
+      <p class="module-subtitle">Understanding how software knows who sent whom</p>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Problem We're Solving</h2>
+      
+      <p>Imagine you run a SaaS business. You want other people to sell your product for you — so you create an <span class="term" data-definition="A person or company who promotes your product in exchange for a commission (a percentage of the sale).">affiliate program</span>.</p>
+      
+      <p>Here's the challenge: when someone signs up through an affiliate's link, how does your software know <em>which</em> affiliate gets credit?</p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-content">
+          <span class="callout-title">Think of it like a referral at a restaurant</span>
+          <p>When your friend refers you to a restaurant and you mention their name, the restaurant knows to give your friend credit (maybe a free drink). Affiliate tracking does the same thing — but automatically, and at scale.</p>
+        </div>
+      </div>
+
+      <p>The affiliate tracking flow answers three questions:</p>
+      
+      <div class="icon-rows">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">1</div>
+          <div>
+            <strong>Who sent this visitor?</strong>
+            <p>Detecting which affiliate's link was clicked</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">2</div>
+          <div>
+            <strong>Did they actually sign up?</strong>
+            <p>Recording when a visitor becomes a customer</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">3</div>
+          <div>
+            <strong>Who gets paid?</strong>
+            <p>Creating commission records and payout batches</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Complete Flow</h2>
+      
+      <p>Here's what happens when an affiliate promotes your product:</p>
+
+      <div class="flow-animation" id="main-flow" data-steps='[
+        {"label": "Affiliate shares link: yoursite.com/ref/CODE123", "highlight": "affiliate"},
+        {"label": "Customer clicks the link", "highlight": "customer"},
+        {"label": "Tracking snippet captures the click, stores affiliate code in cookie", "highlight": "snippet"},
+        {"label": "Customer visits your site, browses around", "highlight": "customer"},
+        {"label": "Customer signs up for your product", "highlight": "customer"},
+        {"label": "Signup form calls Affilio.referral() with customer email", "highlight": "snippet"},
+        {"label": "Your billing provider (Stripe/SaligPay) sends payment webhook", "highlight": "billing"},
+        {"label": "Commission Engine creates commission record", "highlight": "engine"},
+        {"label": "SaaS owner approves → Payout batch created", "highlight": "owner"}
+      ]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-affiliate">
+            <div class="flow-actor-icon">🔗</div>
+            <span>Affiliate</span>
+          </div>
+          <div class="flow-actor" id="flow-customer">
+            <div class="flow-actor-icon">👤</div>
+            <span>Customer</span>
+          </div>
+          <div class="flow-actor" id="flow-snippet">
+            <div class="flow-actor-icon">📝</div>
+            <span>track.js</span>
+          </div>
+          <div class="flow-actor" id="flow-billing">
+            <div class="flow-actor-icon">💳</div>
+            <span>Billing</span>
+          </div>
+          <div class="flow-actor" id="flow-engine">
+            <div class="flow-actor-icon">⚙️</div>
+            <span>Commission Engine</span>
+          </div>
+          <div class="flow-actor" id="flow-owner">
+            <div class="flow-actor-icon">👑</div>
+            <span>SaaS Owner</span>
+          </div>
+        </div>
+        <div class="flow-packet"></div>
+        <div class="flow-step-label">Click "Next Step" to see the affiliate tracking flow</div>
+        <div class="flow-controls">
+          <button class="btn flow-next-btn">Next Step →</button>
+          <button class="btn flow-reset-btn">Reset</button>
+          <span class="flow-progress">Step 0 / 9</span>
+        </div>
+      </div>
+
+      <p>Ready to dive in? Let's start with the first piece: the tracking snippet.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">What You'll Learn</h2>
+      
+      <div class="pattern-cards">
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-accent-light); color: var(--color-accent);">📝</div>
+          <div class="pattern-title">The Tracking Snippet</div>
+          <p class="pattern-desc">How a small JavaScript file captures clicks and stores affiliate codes</p>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-accent-light); color: var(--color-accent);">📧</div>
+          <div class="pattern-title">Commission Tracker</div>
+          <p class="pattern-desc">The 3-line code that connects signup forms to affiliate attribution</p>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-accent-light); color: var(--color-accent);">🔗</div>
+          <div class="pattern-title">Webhooks</div>
+          <p class="pattern-desc">How billing providers notify the system when payments happen</p>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-accent-light); color: var(--color-accent);">⚙️</div>
+          <div class="pattern-title">Commission Engine</div>
+          <p class="pattern-desc">The logic that connects billing events to affiliate commissions</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Knowledge Check</h2>
+      
+      <div class="quiz-container" id="quiz-1">
+        <div class="quiz-question-block" data-correct="b" data-explanation-right="Exactly! The tracking snippet is installed on the SaaS owner's website to capture when visitors click affiliate links." data-explanation-wrong="Not quite. The tracking snippet is installed on the SaaS owner's website (not the affiliate's), and it captures clicks from visitors.">
+          <p class="quiz-question">Where is the tracking snippet installed?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              On the affiliate's social media
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              On the SaaS owner's website
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Inside the affiliate portal
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-1')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-1')">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</section>

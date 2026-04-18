@@ -5,9 +5,9 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { conversionsAggregate, clicksAggregate, commissionsAggregate } from "./aggregates";
-import { onOrganicConversionCreated, incrementTotalConversions } from "./tenantStats";
 import { normalizeEmail } from "./emailNormalization";
 import { requireWriteAccess } from "./tenantContext";
+import { onOrganicConversionCreated } from "./tenantStats";
 
 /**
  * Internal: Get tenant by tracking public key
@@ -464,7 +464,6 @@ export const createOrganicConversion = internalMutation({
       metadata: args.metadata,
     });
 
-    // Increment organic + total conversion counters
     await onOrganicConversionCreated(ctx, args.tenantId);
 
     // Log to audit trail (non-fatal — organic conversion must succeed regardless)
@@ -686,9 +685,6 @@ export const createConversion = internalMutation({
     const conversionId = await ctx.db.insert("conversions", {
       ...args,
     });
-
-    // Increment total conversion counter (fixes pre-existing bug)
-    await incrementTotalConversions(ctx, args.tenantId);
 
     // Log legacy conversion creation to audit trail (non-fatal)
     try {

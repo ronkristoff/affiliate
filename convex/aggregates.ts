@@ -1,4 +1,4 @@
-import { TableAggregate } from "@convex-dev/aggregate";
+import { TableAggregate, DirectAggregate } from "@convex-dev/aggregate";
 import { components, internal } from "./_generated/api";
 import { DataModel, Id, Doc } from "./_generated/dataModel";
 import { action, internalQuery, internalMutation } from "./_generated/server";
@@ -50,6 +50,50 @@ const payoutsAggregate = new TableAggregate(components.aggregate, {
   namespace: (d: any) => d.tenantId,
 } as any);
 
+// =============================================================================
+// Status-partitioned aggregates (replaces tenantStats mutation hooks)
+// =============================================================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const affiliateByStatusAggregate = new TableAggregate(components.affiliateByStatus, {
+  sortKey: (d: any) => [d.status, d._creationTime] as [string, number],
+  namespace: (d: any) => d.tenantId,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const commissionByStatusAggregate = new TableAggregate(components.commissionByStatus, {
+  sortKey: (d: any) => [d.status, d._creationTime] as [string, number],
+  namespace: (d: any) => d.tenantId,
+  sumValue: (d: any) => d.amount as number,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const leadByStatusAggregate = new TableAggregate(components.leadByStatus, {
+  sortKey: (d: any) => [d.status, d._creationTime] as [string, number],
+  namespace: (d: any) => d.tenantId,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const payoutByStatusAggregate = new TableAggregate(components.payoutByStatus, {
+  sortKey: (d: any) => [d.status, d._creationTime] as [string, number],
+  namespace: (d: any) => d.tenantId,
+  sumValue: (d: any) => d.amount as number,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const apiCallsDirect = new DirectAggregate<{
+  Key: number;
+  Id: string;
+  Namespace: Id<"tenants">;
+}>(components.apiCalls);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const degradationDirect = new DirectAggregate<{
+  Key: string;
+  Id: string;
+  Namespace: Id<"tenants">;
+}>(components.degradation);
+
 export {
   affiliateAggregate,
   referralLinksAggregate,
@@ -57,6 +101,12 @@ export {
   conversionsAggregate,
   commissionsAggregate,
   payoutsAggregate,
+  affiliateByStatusAggregate,
+  commissionByStatusAggregate,
+  leadByStatusAggregate,
+  payoutByStatusAggregate,
+  apiCallsDirect,
+  degradationDirect,
 };
 
 export const affiliatesTrigger = affiliateAggregate.trigger();
@@ -65,6 +115,10 @@ export const clicksTrigger = clicksAggregate.trigger();
 export const conversionsTrigger = conversionsAggregate.trigger();
 export const commissionsTrigger = commissionsAggregate.trigger();
 export const payoutsTrigger = payoutsAggregate.trigger();
+export const affiliateByStatusTrigger = affiliateByStatusAggregate.trigger();
+export const commissionByStatusTrigger = commissionByStatusAggregate.trigger();
+export const leadByStatusTrigger = leadByStatusAggregate.trigger();
+export const payoutByStatusTrigger = payoutByStatusAggregate.trigger();
 
 const TABLES_TO_BACKFILL = [
   "affiliates",
@@ -73,6 +127,7 @@ const TABLES_TO_BACKFILL = [
   "conversions",
   "commissions",
   "payouts",
+  "referralLeads",
 ] as const;
 
 const AGGREGATE_MAP: Record<string, TableAggregate<any>> = {
@@ -82,6 +137,7 @@ const AGGREGATE_MAP: Record<string, TableAggregate<any>> = {
   conversions: conversionsAggregate,
   commissions: commissionsAggregate,
   payouts: payoutsAggregate,
+  referralLeads: leadByStatusAggregate,
 };
 
 /**

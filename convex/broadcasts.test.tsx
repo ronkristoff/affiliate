@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@react-email/components";
 import React from "react";
-import BroadcastEmail from "./emails/BroadcastEmail";
+import BroadcastEmail from "../src/email-templates/BroadcastEmail";
 
 // ============================================================================
 // HTML Detection Helper Test

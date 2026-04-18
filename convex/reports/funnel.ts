@@ -3,6 +3,38 @@ import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { getAuthenticatedUser } from "../tenantContext";
 import { dateRangeValidator } from "./summary";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate } from "../aggregates";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}
 
 /**
  * Get conversion funnel metrics — click → conversion → confirmed commission pipeline.
@@ -57,14 +89,8 @@ export const getConversionFunnel = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    const CAP = 5000;
-
-    // 4. Query clicks — capped, post-filter by date range and campaign
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    // 4. Query clicks — paginated aggregate, post-filter by date range and campaign
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
     const filteredClicks = allClicks.filter(c =>
       c._creationTime >= startDate &&
@@ -73,11 +99,7 @@ export const getConversionFunnel = query({
     );
 
     // 5. Query conversions — same pattern
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
     const filteredConversions = allConversions.filter(c =>
       c._creationTime >= startDate &&
@@ -86,11 +108,7 @@ export const getConversionFunnel = query({
     );
 
     // 6. Query commissions — ONLY approved (status equivalence)
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     const filteredCommissions = allCommissions.filter(c =>
       c._creationTime >= startDate &&
@@ -99,7 +117,7 @@ export const getConversionFunnel = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
-    // 10. Compute totalEstimated for truncation warning
+    // 10. Compute totalEstimated — no truncation with aggregate pagination
     const totalClicks = filteredClicks.length;
     const totalConversions = filteredConversions.length;
     const organicConversions = filteredConversions.filter(c => !c.affiliateId || c.attributionSource === "organic").length;
@@ -107,9 +125,7 @@ export const getConversionFunnel = query({
       ? filteredCommissions.reduce((sum, c) => sum + c.amount, 0)
       : 0;
 
-    const totalEstimated = allClicks.length > 0
-      ? Math.round(allClicks.length * (allClicks.length / Math.max(1, filteredClicks.length)))
-      : allClicks.length;
+    const totalEstimated = filteredClicks.length;
 
     // 7. Compute rates
     const clickToConversionRate = totalClicks > 0
@@ -333,14 +349,8 @@ export const getFunnelExportData = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    const CAP = 5000;
-
-    // Query capped data
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    // Query paginated aggregate data
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
     const filteredClicks = allClicks.filter(c =>
       c._creationTime >= startDate &&
@@ -348,11 +358,7 @@ export const getFunnelExportData = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
     const filteredConversions = allConversions.filter(c =>
       c._creationTime >= startDate &&
@@ -360,11 +366,7 @@ export const getFunnelExportData = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     const filteredCommissions = allCommissions.filter(c =>
       c._creationTime >= startDate &&
@@ -373,9 +375,7 @@ export const getFunnelExportData = query({
       (!args.campaignId || c.campaignId === args.campaignId)
     );
 
-    const totalEstimated = allClicks.length > 0
-      ? Math.round(allClicks.length * (allClicks.length / Math.max(1, filteredClicks.length)))
-      : allClicks.length;
+    const totalEstimated = filteredClicks.length;
 
     // Group by affiliate
     const affiliateStats = new Map<string, {

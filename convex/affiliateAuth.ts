@@ -1065,13 +1065,14 @@ export const getAffiliatePortalDashboardStats = query({
     // the long-term fix is denormalized counters in tenantStats.
     const statsWindowStart = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000);
     
-    const clicksQuery = ctx.db
+    const allClicks = await ctx.db
       .query("clicks")
       .withIndex("by_affiliate", (q) =>
         q.eq("affiliateId", args.affiliateId).gte("_creationTime", statsWindowStart)
-      );
-    
-    for await (const click of clicksQuery) {
+      )
+      .take(5000);
+
+    for (const click of allClicks) {
       totalClicks++;
       if (click._creationTime >= thisMonthStart && click._creationTime <= thisMonthEnd) {
         thisMonthClicks++;
@@ -1084,11 +1085,12 @@ export const getAffiliatePortalDashboardStats = query({
     let totalConversions = 0;
     let thisMonthConversions = 0;
     
-    const conversionsQuery = ctx.db
+    const allConversions = await ctx.db
       .query("conversions")
-      .withIndex("by_affiliate_created", (q) => q.eq("affiliateId", args.affiliateId));
-    
-    for await (const conversion of conversionsQuery) {
+      .withIndex("by_affiliate_created", (q) => q.eq("affiliateId", args.affiliateId))
+      .take(5000);
+
+    for (const conversion of allConversions) {
       totalConversions++;
       if (conversion._creationTime >= thisMonthStart && conversion._creationTime <= thisMonthEnd) {
         thisMonthConversions++;
@@ -1102,13 +1104,14 @@ export const getAffiliatePortalDashboardStats = query({
     let thisMonthEarnings = 0;
     let lastMonthEarnings = 0;
     
-    const commissionsQuery = ctx.db
+    const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_affiliate", (q) =>
         q.eq("affiliateId", args.affiliateId).gte("_creationTime", statsWindowStart)
-      );
-    
-    for await (const commission of commissionsQuery) {
+      )
+      .take(5000);
+
+    for (const commission of allCommissions) {
       if (commission.status === "approved") {
         totalCommissions += commission.amount;
       }

@@ -11,13 +11,12 @@ import { render } from "@react-email/components";
 import React from "react";
 
 // Import actual modules for testing
-import * as emailsModule from "./emails";
-import PayoutSentEmail from "./emails/PayoutSentEmail";
-import CommissionConfirmedEmail from "./emails/CommissionConfirmedEmail";
+// NOTE: email template components moved to src/email-templates/ (not Convex modules)
+import PayoutSentEmail from "../src/email-templates/PayoutSentEmail";
+import CommissionConfirmedEmail from "../src/email-templates/CommissionConfirmedEmail";
 
-// Test module setup with actual implementations
 const testModules = {
-  emails: emailsModule,
+  emails: {} as any,
 };
 
 describe("Commission Confirmed Email Tests", () => {
@@ -816,7 +815,7 @@ describe("CommissionConfirmedEmail Template Tests", () => {
 });
 
 // Import NewReferralAlertEmail for testing
-import NewReferralAlertEmail from "./emails/NewReferralAlertEmail";
+import NewReferralAlertEmail from "../src/email-templates/NewReferralAlertEmail";
 
 describe("New Referral Alert Email Tests", () => {
   const t = convexTest(schema, testModules as any);

@@ -8,9 +8,9 @@ import { render } from "@react-email/components";
 import React from "react";
 import { getFromAddress } from "./emailService";
 
-import TeamInvitationEmail from "./emails/TeamInvitation";
-import TeamWelcomeEmail from "./emails/TeamWelcome";
-import TeamAcceptedNotificationEmail from "./emails/TeamAcceptedNotification";
+import TeamInvitationEmail from "../src/email-templates/TeamInvitation";
+import TeamWelcomeEmail from "../src/email-templates/TeamWelcome";
+import TeamAcceptedNotificationEmail from "../src/email-templates/TeamAcceptedNotification";
 
 /**
  * Team Invitation System

@@ -3,6 +3,38 @@ import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { getAuthenticatedUser } from "../tenantContext";
 import { dateRangeValidator } from "./summary";
+import { commissionsAggregate } from "../aggregates";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}
 
 /**
  * Get commission summary metrics for the Commission & Payout Summary page.
@@ -71,7 +103,7 @@ export const getCommissionSummaryMetrics = query({
 
 /**
  * Get commission aging buckets for the aging chart.
- * Uses capped .take(5000) on by_tenant index with post-filter on date range.
+ * Uses paginated aggregate queries on commissions with post-filter on date range.
  * Returns totalEstimated for truncation warning.
  */
 export const getCommissionAgingBuckets = query({
@@ -104,23 +136,15 @@ export const getCommissionAgingBuckets = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    const CAP = 5000;
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(CAP);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const filtered = allCommissions.filter(c =>
       c._creationTime >= startDate && c._creationTime <= endDate
     );
 
-    // Compute totalEstimated for truncation warning
-    const totalEstimated = filtered.length > 0
-      ? Math.round(allCommissions.length * (allCommissions.length / Math.max(1, filtered.length)))
-      : allCommissions.length;
+    // totalEstimated — no truncation with aggregate pagination
+    const totalEstimated = filtered.length;
 
     // Age bucket calculation
     const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -161,7 +185,7 @@ export const getCommissionAgingBuckets = query({
 
 /**
  * Get commission export data for CSV.
- * Capped at 10,000 rows.
+ * Uses paginated aggregate queries — no row cap.
  */
 export const getCommissionExportData = query({
   args: {
@@ -179,11 +203,7 @@ export const getCommissionExportData = query({
     isSelfReferral: v.boolean(),
   })),
   handler: async (ctx, args) => {
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     const filtered = allCommissions.filter(c =>
       c._creationTime >= args.startDate && c._creationTime <= args.endDate
@@ -199,14 +219,14 @@ export const getCommissionExportData = query({
       isSelfReferral: boolean;
     }> = [];
 
-    for (const c of filtered.slice(0, 10000)) {
-      const affiliate = await ctx.db.get(c.affiliateId);
-      const campaign = await ctx.db.get(c.campaignId);
+    for (const c of filtered) {
+      const affiliate = await ctx.db.get(c.affiliateId as Id<"affiliates">);
+      const campaign = await ctx.db.get(c.campaignId as Id<"campaigns">);
 
       results.push({
         commissionId: c._id,
-        affiliateEmail: affiliate?.email ?? "Unknown",
-        campaignName: campaign?.name ?? "Unknown",
+        affiliateEmail: (affiliate as any)?.email ?? "Unknown",
+        campaignName: (campaign as any)?.name ?? "Unknown",
         amount: c.amount,
         status: c.status,
         createdAt: c._creationTime,

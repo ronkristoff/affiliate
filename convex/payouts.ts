@@ -6,7 +6,8 @@ import { Id, Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthenticatedUser, requireTenantId, requireWriteAccess } from "./tenantContext";
-import { incrementTotalPaidOut, onCommissionStatusChange } from "./tenantStats";
+import { commissionsAggregate, payoutsAggregate } from "./aggregates";
+import { adjustPendingPayoutTotals } from "./tenantStats";
 
 // =============================================================================
 // Internal Helpers
@@ -75,15 +76,8 @@ export const generatePayoutBatch = mutation({
     await requireWriteAccess(ctx);
 
     // Query approved unpaid commissions for this tenant (not already in a batch)
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", "approved")
-      )
-      .collect();
-
-    // Filter out commissions that are already part of a batch (prevents regeneration)
-    let commissions = allCommissions.filter((c) => !c.batchId);
+    const approvedCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, tenantId);
+    let commissions = approvedCommissions.filter((c: any) => c.status === "approved" && !c.batchId);
 
     // If specific affiliate IDs were provided, only include their commissions
     if (args.affiliateIds && args.affiliateIds.length > 0) {
@@ -129,11 +123,8 @@ export const generatePayoutBatch = mutation({
         // Count existing payouts created this month
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        const existingPayouts = await ctx.db
-          .query("payouts")
-          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-          .collect();
-        const thisMonthCount = existingPayouts.filter(p => p._creationTime >= monthStart).length;
+        const allPayouts = await paginateAggregateDocs(ctx, payoutsAggregate, tenantId);
+        const thisMonthCount = allPayouts.filter((p: any) => p._creationTime >= monthStart).length;
         const newPayoutCount = affiliateCommissions.size;
 
         if (thisMonthCount + newPayoutCount > maxPayouts) {
@@ -437,16 +428,12 @@ export const recalcPendingPayoutStats = mutation({
     const tenantId = await requireTenantId(ctx);
     await requireWriteAccess(ctx);
 
-    // Get all approved commissions for this tenant
-    const commissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant_and_status", (q) =>
-        q.eq("tenantId", tenantId).eq("status", "approved")
-      )
-      .collect();
+    const commissions = await paginateAggregateDocs(ctx, commissionsAggregate, tenantId);
 
     // Count only approved commissions without a batchId (truly pending payout)
-    const pendingCommissions = commissions.filter((c) => !c.batchId);
+    const pendingCommissions = commissions.filter(
+      (c) => c.status === "approved" && !c.batchId,
+    );
     
     const pendingPayoutTotal = pendingCommissions.reduce(
       (sum, c) => sum + c.amount,
@@ -573,13 +560,13 @@ export const getBatchPayouts = query({
     const payoutRecords = await ctx.db
       .query("payouts")
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
-      .collect();
+      .take(5000);
 
     // 3. Fetch all commissions for this batch using index (for counting)
     const batchCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
-      .collect();
+      .take(5000);
 
     // 4. Count commissions per affiliate
     const commissionCounts = new Map<Id<"affiliates">, number>();
@@ -655,7 +642,7 @@ export const getBatchCommissionsForAffiliate = query({
     const allBatchCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
-      .collect();
+      .take(5000);
 
     // 3. Filter to this affiliate
     const affiliateCommissions = allBatchCommissions.filter(
@@ -873,9 +860,6 @@ export const markPayoutAsPaid = mutation({
       ...(args.paymentReference ? { paymentReference: args.paymentReference } : {}),
     });
 
-    // Update denormalized totalPaidOut counter
-    await incrementTotalPaidOut(ctx, tenantId, payout.amount);
-
     // Note: Affiliate in-app notifications require a userId from the users table.
     // Affiliates live in the affiliates table and may not have a users record.
 
@@ -994,7 +978,7 @@ export const markBatchAsPaid = mutation({
     const payouts = await ctx.db
       .query("payouts")
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
-      .collect();
+      .take(5000);
 
     const pendingPayouts = payouts.filter((p) => p.status === "pending");
 
@@ -1024,25 +1008,9 @@ export const markBatchAsPaid = mutation({
         await ctx.db.patch(commission._id, {
           status: "paid",
         });
-        const wasFlagged = (commission.fraudIndicators?.length ?? 0) > 0;
-        await onCommissionStatusChange(
-          ctx,
-          tenantId,
-          commission.amount,
-          "approved",
-          "paid",
-          wasFlagged,
-          wasFlagged,
-        );
+        await adjustPendingPayoutTotals(ctx, tenantId, -1, commission.amount);
       }
     }
-
-    // Update denormalized totalPaidOut counter (sum of all individual payout amounts)
-    let batchTotalPaid = 0;
-    for (const payout of pendingPayouts) {
-      batchTotalPaid += payout.amount;
-    }
-    await incrementTotalPaidOut(ctx, tenantId, batchTotalPaid);
 
     // --- Affiliate in-app notifications for payout sent ---
     // Look up user by email (affiliates may not have a users record)
@@ -1177,7 +1145,7 @@ export const getBatchPayoutStatus = query({
     const payouts = await ctx.db
       .query("payouts")
       .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
-      .collect();
+      .take(5000);
 
     // If the batch is completed, treat all payouts as paid regardless of
     // individual record state (guards against stale data inconsistency where
@@ -1452,3 +1420,34 @@ export const _backfillCheckAuditExists = internalQuery({
     return !!existing;
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

@@ -6,6 +6,7 @@ import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { paginationOptsValidator } from "convex/server";
 import { conversionsAggregate } from "./aggregates";
+import { clicksAggregate } from "./aggregates";
 
 /**
  * Generate a unique referral code for a referral link.
@@ -171,7 +172,7 @@ export const getAffiliateReferralLinks = query({
     return await ctx.db
       .query("referralLinks")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(500);
   },
 });
 
@@ -543,7 +544,7 @@ export const getAffiliatePortalLinks = query({
       .query("referralLinks")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId));
 
-    const links = await linksQuery.collect();
+    const links = await linksQuery.take(500);
 
     // Filter by campaign if provided
     let filteredLinks = links;
@@ -558,11 +559,7 @@ export const getAffiliatePortalLinks = query({
 
     // Pre-fetch tenant-wide conversions once for all links (avoid N+1).
     // Build a map of referralLinkId → conversion count.
-    const tenantConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .order("desc")
-      .take(500);
+    const tenantConversions = await paginateAggregateDocs(ctx, conversionsAggregate, tenantId);
     const conversionCountByLink = new Map<string, number>();
     for (const c of tenantConversions) {
       if (c.referralLinkId) {
@@ -596,10 +593,7 @@ export const getAffiliatePortalLinks = query({
       }
 
       // Get click count for this link (capped)
-      const clicks = await ctx.db
-        .query("clicks")
-        .withIndex("by_referral_link", (q) => q.eq("referralLinkId", link._id))
-        .take(500);
+      const clicks = await paginateAggregateDocs(ctx, clicksAggregate, tenantId);
       const clickCount = clicks.length;
 
       const conversionCount = conversionCountByLink.get(link._id.toString()) ?? 0;
@@ -684,11 +678,7 @@ export const getAffiliateDailyClicks = query({
     // Fetch clicks per referral link using by_referral_link index (bounded per link).
     // This is more efficient than a tenant-wide scan — each affiliate typically has few links.
     for (const linkId of links.map(l => l._id)) {
-      const linkClicks = await ctx.db
-        .query("clicks")
-        .withIndex("by_referral_link", (q) => q.eq("referralLinkId", linkId))
-        .order("desc")
-        .take(1000); // cap per link — generous for high-traffic affiliates
+      const linkClicks = await paginateAggregateDocs(ctx, clicksAggregate, tenantId);
 
       for (const click of linkClicks) {
         if (click._creationTime < startTime) break;
@@ -765,3 +755,34 @@ export const updateVanitySlug = mutation({
     };
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

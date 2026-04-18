@@ -3,6 +3,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { betterAuthComponent, createAuth } from "./auth";
 import { internal, api } from "./_generated/api";
+import { apiCallsDirect } from "./aggregates";
 import { buildRateLimitKey, extractIp, ENDPOINT_CONFIGS } from "./lib/rateLimiter";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -255,10 +256,7 @@ http.route({
           },
         });
 
-        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-          tenantId: tenant._id,
-          count: 1,
-        }).catch(() => {});
+        apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenant._id }).catch(() => {});
 
         return new Response(
           JSON.stringify({ 
@@ -496,10 +494,7 @@ http.route({
       });
 
       // Track API call (fire-and-forget)
-      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-        tenantId: tenant._id,
-        count: 1,
-      }).catch(() => {});
+      apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenant._id }).catch(() => {});
 
       // AC5: Performance monitoring
       const duration = Date.now() - startTime;
@@ -615,10 +610,7 @@ http.route({
         trackingKey: publicKey,
       }).then((tenant) => {
         if (tenant) {
-          return ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-            tenantId: tenant._id,
-            count: 1,
-          });
+          return apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenant._id });
         }
       }).catch(() => {});
 
@@ -1155,10 +1147,7 @@ http.route({
 
       // Track API call (fire-and-forget) — only if tenantId is available
       if (tenantIdStr) {
-        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-          tenantId: tenantIdStr as Id<"tenants">,
-          count: 1,
-        }).catch(() => {});
+        apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenantIdStr as Id<"tenants"> }).catch(() => {});
       }
 
       // Use the webhookId returned from the atomic mutation
@@ -1613,10 +1602,7 @@ http.route({
       }
 
       // Track API call (fire-and-forget)
-      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-        tenantId: user.tenantId,
-        count: 1,
-      }).catch(() => {});
+      apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: user.tenantId }).catch(() => {});
 
       // Use the webhookId returned from the atomic mutation
       const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
@@ -2037,12 +2023,7 @@ http.route({
       // Valid active referral link - redirect to destination with tracking
       // Track API call (fire-and-forget)
       if (result.tenantId) {
-        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-          tenantId: result.tenantId,
-          count: 1,
-        }).catch(() => {
-          // Silently fail - don't break user experience
-        });
+        apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: result.tenantId }).catch(() => {});
       }
 
       // In production, this would redirect to the actual destination URL
@@ -2279,12 +2260,7 @@ http.route({
       });
 
       // Track API call (fire-and-forget, don't await)
-      ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-        tenantId,
-        count: 1,
-      }).catch(() => {
-        // Silently fail - don't break user experience
-      });
+      apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenantId }).catch(() => {});
 
       // AC5: Track timeout metrics when response time exceeds 3 seconds
       if (exceedsThreshold) {
@@ -2587,10 +2563,7 @@ http.route({
         });
 
         // Track API call
-        ctx.runMutation(internal.tenantStats.incrementApiCalls, {
-          tenantId: tenant._id,
-          count: 1,
-        }).catch(() => {});
+        apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenant._id }).catch(() => {});
       }
 
       return new Response(

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
 import { internal, api } from "./_generated/api";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate, affiliateAggregate } from "./aggregates";
 
 // Date range validator used across multiple queries
 const dateRangeValidator = v.optional(v.object({
@@ -73,31 +74,18 @@ export const getCampaignPerformanceList = query({
         .collect();
     }
 
-    // 2. Fetch all clicks for tenant
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // 2. Fetch all clicks for tenant via aggregate (no truncation)
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    // 3. Fetch all conversions for tenant
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // 3. Fetch all conversions for tenant via aggregate (no truncation)
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    // 4. Fetch all commissions for tenant
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // 4. Fetch all commissions for tenant via aggregate (no truncation)
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
-    // 5. Fetch all affiliates for active affiliate count
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant_and_status", (q) => 
-        q.eq("tenantId", args.tenantId).eq("status", "active")
-      )
-      .collect();
+    // 5. Fetch all affiliates for active affiliate count via aggregate
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
+    const activeAffiliatesList = allAffiliates.filter(a => a.status === "active");
 
     // Build aggregation maps
     const clickCountsByCampaign = new Map<Id<"campaigns">, number>();
@@ -265,23 +253,14 @@ export const getCampaignSummaryMetrics = query({
       c._creationTime < startDate && c.status === "active"
     ).length;
 
-    // Fetch all clicks
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch all clicks via aggregate
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    // Fetch all conversions
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch all conversions via aggregate
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    // Fetch all commissions
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch all commissions via aggregate
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Calculate current period metrics
     const currentClicks = allClicks.filter(c => 
@@ -402,26 +381,14 @@ export const getCampaignPerformanceDetails = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // Fetch data
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .collect();
+    // Fetch data via aggregate (no truncation)
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, campaign.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, campaign.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, campaign.tenantId);
 
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .collect();
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, campaign.tenantId);
 
     // Filter data for this campaign
     const campaignClicks = allClicks.filter(c => 
@@ -620,21 +587,12 @@ export const getCampaignExportData = query({
         .collect();
     }
 
-    // Fetch data
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch data via aggregate
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Build aggregation maps
     const campaignData = new Map<string, {
@@ -742,26 +700,14 @@ export const getAffiliatePerformanceList = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // Fetch data
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch data via aggregate
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Build aggregation maps
     const clickCounts = new Map<Id<"affiliates">, number>();
@@ -900,11 +846,8 @@ export const getAffiliateSummaryMetrics = query({
     const periodLength = endDate - startDate;
     const previousStartDate = startDate - periodLength;
 
-    // Fetch affiliates
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch affiliates via aggregate
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
     const totalAffiliates = allAffiliates.length;
     const activeAffiliates = allAffiliates.filter(a => a.status === "active").length;
@@ -917,21 +860,12 @@ export const getAffiliateSummaryMetrics = query({
       a._creationTime < startDate && a.status === "active"
     ).length;
 
-    // Fetch clicks, conversions, commissions
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch clicks, conversions, commissions via aggregate
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Calculate current period
     const currentClicks = allClicks.filter(c => 
@@ -1058,22 +992,22 @@ export const getAffiliatePerformanceDetails = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // Fetch data
+    // Fetch data — per-affiliate queries, capped for safety
     const allClicks = await ctx.db
       .query("clicks")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(5000);
 
     const allConversions = await ctx.db
       .query("conversions")
       .withIndex("by_tenant", (q) => q.eq("tenantId", authUser.tenantId))
-      .collect()
+      .take(5000)
       .then(results => results.filter(c => c.affiliateId === args.affiliateId));
 
     const allCommissions = await ctx.db
       .query("commissions")
       .withIndex("by_affiliate", (q) => q.eq("affiliateId", args.affiliateId))
-      .collect();
+      .take(5000);
 
     const allCampaigns = await ctx.db
       .query("campaigns")
@@ -1250,25 +1184,13 @@ export const getAffiliateExportData = query({
     commissions: v.number(),
   })),
   handler: async (ctx, args) => {
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     const affiliateData = new Map<string, {
       name: string;
@@ -1382,21 +1304,12 @@ export const getProgramSummaryMetrics = query({
     const periodLength = endDate - startDate;
     const previousStartDate = startDate - periodLength;
 
-    // Fetch data
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch data via aggregate
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Calculate current period
     const currentClicks = allClicks.filter(c => 
@@ -1507,26 +1420,14 @@ export const getTopAffiliatesByRevenue = query({
     const endDate = args.dateRange?.end ?? now;
     const limit = args.limit ?? 10;
 
-    // Fetch data
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    // Fetch data via aggregate
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Build stats
     const affiliateStats = new Map<string, {
@@ -1605,3 +1506,39 @@ export const getTopAffiliatesByRevenue = query({
     return results.slice(0, limit);
   },
 });
+
+// ============================================
+// Helpers
+// ============================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

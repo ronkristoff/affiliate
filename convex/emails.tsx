@@ -4,10 +4,10 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-import FraudAlertEmail from "./emails/FraudAlertEmail";
-import CommissionConfirmedEmail from "./emails/CommissionConfirmedEmail";
-import PayoutSentEmail from "./emails/PayoutSentEmail";
-import NewReferralAlertEmail from "./emails/NewReferralAlertEmail";
+import FraudAlertEmail from "../src/email-templates/FraudAlertEmail";
+import CommissionConfirmedEmail from "../src/email-templates/CommissionConfirmedEmail";
+import PayoutSentEmail from "../src/email-templates/PayoutSentEmail";
+import NewReferralAlertEmail from "../src/email-templates/NewReferralAlertEmail";
 import { renderTemplate } from "./templates";
 import { sendEmail, getFromAddress } from "./emailService";
 

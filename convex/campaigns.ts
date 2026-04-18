@@ -4,6 +4,7 @@ import { paginationOptsValidator } from "convex/server";
 import { Id, Doc } from "./_generated/dataModel";
 import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { internal } from "./_generated/api";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate, affiliateAggregate, referralLinksAggregate } from "./aggregates";
 
 /**
  * Campaign Management Functions
@@ -863,10 +864,7 @@ export const getCampaignStats = query({
 
     if (activeCampaigns.length > 0) {
       // Fetch all referral links for this tenant
-      const allReferralLinks = await ctx.db
-        .query("referralLinks")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-        .collect();
+      const allReferralLinks = await paginateAggregateDocs(ctx, referralLinksAggregate, tenantId);
 
       // Build set of campaign IDs that have at least one referral link
       const campaignsWithAffiliates = new Set<string>();
@@ -1011,19 +1009,10 @@ export const getCampaignCardStats = query({
 
     const tenantId = user.tenantId;
 
-    // Fetch all conversions for tenant
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(500);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, tenantId);
 
-    // Fetch all commissions for tenant
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .take(300);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, tenantId);
 
-    // Fetch all referral links for affiliate counting
     const allReferralLinks = await ctx.db
       .query("referralLinks")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
@@ -1179,24 +1168,14 @@ export const getAffiliatesByCampaign = query({
     // ── Batch fetch all stats in parallel (fixes N+3 query problem) ──
     const [allClicks, allConversions, campaignCommissions, affiliateDocs] =
       await Promise.all([
-        // Clicks — fetch by tenant, filter to this campaign in memory
-        ctx.db
-          .query("clicks")
-          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-          .take(500),
-        // Conversions — fetch by tenant, filter to this campaign in memory
-        ctx.db
-          .query("conversions")
-          .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-          .take(500),
-        // Commissions — filter directly by campaign using index
+        paginateAggregateDocs(ctx, clicksAggregate, tenantId),
+        paginateAggregateDocs(ctx, conversionsAggregate, tenantId),
         ctx.db
           .query("commissions")
           .withIndex("by_campaign", (q) =>
             q.eq("campaignId", args.campaignId)
           )
           .take(300),
-        // Fetch all affiliate docs in one batch
         Promise.all(
           Array.from(affiliateIds).map((id) =>
             ctx.db.get(id as Id<"affiliates">)
@@ -1606,23 +1585,11 @@ export const getCampaignCardStatsInternal = internalQuery({
   handler: async (ctx, args) => {
     const tenantId = args.tenantId;
 
-    // Fetch all conversions for tenant
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, tenantId);
 
-    // Fetch all commissions for tenant
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, tenantId);
 
-    // Fetch all referral links for affiliate counting
-    const allReferralLinks = await ctx.db
-      .query("referralLinks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .collect();
+    const allReferralLinks = await paginateAggregateDocs(ctx, referralLinksAggregate, tenantId);
 
     // Aggregate conversions per campaign
     const conversionsByCampaign = new Map<string, number>();
@@ -1716,3 +1683,34 @@ export const getAttentionCampaigns = query({
     };
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

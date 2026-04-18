@@ -2,6 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser, checkWriteAccess } from "./tenantContext";
 import { Doc, Id } from "./_generated/dataModel";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate } from "./aggregates";
 
 /**
  * Dashboard Queries
@@ -131,21 +132,9 @@ export const getDashboardData = query({
         .query("tenantStats")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
         .first(),
-      ctx.db
-        .query("commissions")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .take(1500),
-      ctx.db
-        .query("conversions")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .take(1500),
-      ctx.db
-        .query("clicks")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-        .order("desc")
-        .take(1500),
+      paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId),
+      paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId),
+      paginateAggregateDocs(ctx, clicksAggregate, args.tenantId),
       ctx.db
         .query("affiliates")
         .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
@@ -390,7 +379,7 @@ export const getDashboardData = query({
     const topCampaignIds = [...campaignStatsMap.entries()]
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 5)
-      .map(([id]) => id);
+      .map(([id]) => id as Id<"campaigns">);
 
     // Fetch campaign docs for top campaigns
     const topCampaignDocs = await Promise.all(topCampaignIds.map((id) => ctx.db.get(id)));
@@ -413,8 +402,8 @@ export const getDashboardData = query({
       .slice(0, recentCommissionsLimit);
 
     // Batch-fetch only referenced entities (reuse conversions already fetched)
-    const affiliateIds = [...new Set(filteredRecentCommissions.map((c) => c.affiliateId))];
-    const campaignIds = [...new Set(filteredRecentCommissions.map((c) => c.campaignId))];
+    const affiliateIds = [...new Set(filteredRecentCommissions.map((c) => c.affiliateId as Id<"affiliates">))];
+    const campaignIds = [...new Set(filteredRecentCommissions.map((c) => c.campaignId as Id<"campaigns">))];
 
     const [affiliateDocs, campaignDocs] = await Promise.all([
       Promise.all(affiliateIds.map((id) => ctx.db.get(id))),
@@ -825,4 +814,34 @@ export const getSetupStatus = query({
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}
 

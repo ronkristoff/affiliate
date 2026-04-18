@@ -6,7 +6,8 @@ import { getAuthenticatedUser, getTenantId, getAffiliateTenantId, requireWriteAc
 import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
-import { onCommissionCreated, onCommissionStatusChange, onCommissionAmountChanged } from "./tenantStats";
+import { adjustPendingPayoutTotals } from "./tenantStats";
+
 
 /**
  * Commission Management Functions
@@ -152,8 +153,9 @@ export const createCommission = mutation({
       eventMetadata: args.eventMetadata,
     });
 
-    // Wire tenantStats counter hook
-    await onCommissionCreated(ctx, tenantId, commissionAmount, commissionStatus, false, false);
+    if (commissionStatus === "approved") {
+      await adjustPendingPayoutTotals(ctx, tenantId, 1, commissionAmount);
+    }
 
     return commissionId;
   },
@@ -342,8 +344,9 @@ export const createCommissionFromConversionInternal = internalMutation({
       eventMetadata: args.eventMetadata,
     });
 
-    // Wire tenantStats counter hook — both hasFraudSignals and isSelfReferral independently flagged
-    await onCommissionCreated(ctx, args.tenantId, commissionAmount, commissionStatus, matchedIndicators.length > 0, isSelfReferral);
+    if (commissionStatus === "approved") {
+      await adjustPendingPayoutTotals(ctx, args.tenantId, 1, commissionAmount);
+    }
 
     // Story 7.8: Log COMMISSION_CREATED audit event
     try {
@@ -908,8 +911,6 @@ export const adjustCommissionAmountInternal = internalMutation({
       amount: args.newAmount,
     });
 
-    // Wire tenantStats counter hook
-    await onCommissionAmountChanged(ctx, commission.tenantId, oldAmount, args.newAmount, commission.status);
     return null;
   },
 });
@@ -995,8 +996,9 @@ export const reverseCommissionInternal = internalMutation({
       reversalReason: args.reversalReason,
     });
     
-    // Wire tenantStats counter hook
-    await onCommissionStatusChange(ctx, commission.tenantId, commission.amount, previousStatus, "reversed", wasFlagged, false);
+    if (previousStatus === "approved") {
+      await adjustPendingPayoutTotals(ctx, commission.tenantId, -1, commission.amount);
+    }
     
     // Story 7.8: Log COMMISSION_REVERSED audit event
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
@@ -1123,9 +1125,8 @@ export const approveCommission = mutation({
       status: "approved",
     });
 
-    // Wire tenantStats counter hook — approval clears flagged status
-    await onCommissionStatusChange(ctx, user.tenantId, commission.amount, previousStatus, "approved", wasFlagged, false);
-    
+    await adjustPendingPayoutTotals(ctx, user.tenantId, 1, commission.amount);
+
     // 6. Log audit trail (Story 7.8 - Task 3)
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {
       tenantId: user.tenantId,
@@ -1332,9 +1333,6 @@ export const declineCommission = mutation({
       reversalReason: args.reason, // Store decline reason (internal only)
     });
 
-    // Wire tenantStats counter hook
-    await onCommissionStatusChange(ctx, user.tenantId, commission.amount, previousStatus, "declined", wasFlagged, false);
-    
     // 6. Log audit trail with reason (Story 7.8 - Task 3)
     // Note: Decline reason is stored internally but NOT exposed to affiliates (AC2)
     await ctx.runMutation(internal.audit.logCommissionAuditEvent, {

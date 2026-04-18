@@ -3,7 +3,6 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
-import { onLeadCreated, onLeadConverted } from "./tenantStats";
 import { normalizeEmail } from "./emailNormalization";
 
 /**
@@ -69,9 +68,6 @@ export const createOrUpdateLead = internalMutation({
       clickId: args.clickId,
       status: "active",
     });
-
-    // Call tenantStats hook on new lead creation
-    await onLeadCreated(ctx, args.tenantId);
 
     return { leadId, isNew: true };
   },
@@ -196,9 +192,6 @@ export const markLeadConverted = internalMutation({
       convertedAt: Date.now(),
       conversionId: args.conversionId,
     });
-
-    // Call tenantStats hook
-    await onLeadConverted(ctx, args.tenantId);
 
     return null;
   },

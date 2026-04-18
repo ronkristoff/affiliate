@@ -1,30 +1,30 @@
 import "./polyfills";
-import VerifyEmail from "./emails/verifyEmail";
-import MagicLinkEmail from "./emails/magicLink";
-import VerifyOTP from "./emails/verifyOTP";
-import UpgradeConfirmationEmail from "./emails/UpgradeConfirmationEmail";
-import DowngradeConfirmationEmail from "./emails/DowngradeConfirmationEmail";
-import CancellationConfirmationEmail from "./emails/CancellationConfirmationEmail";
-import DeletionReminderEmail from "./emails/DeletionReminderEmail";
-import PastDueEmail from "./emails/PastDueEmail";
-import GracePeriodWarningEmail from "./emails/GracePeriodWarningEmail";
-import TrialExpiredEmail from "./emails/TrialExpiredEmail";
-import WelcomeBackEmail from "./emails/WelcomeBackEmail";
-import AccountReactivatedEmail from "./emails/AccountReactivatedEmail";
-import PaymentSuccessEmail from "./emails/PaymentSuccessEmail";
-import AffiliateWelcomeEmail from "./emails/AffiliateWelcomeEmail";
-import NewAffiliateNotificationEmail from "./emails/NewAffiliateNotificationEmail";
-import AffiliateApprovalEmail from "./emails/AffiliateApprovalEmail";
-import AffiliateRejectionEmail from "./emails/AffiliateRejectionEmail";
-import AffiliateSuspensionEmail from "./emails/AffiliateSuspensionEmail";
-import AffiliateReactivationEmail from "./emails/AffiliateReactivationEmail";
-import OwnerWelcomeEmail from "./emails/OwnerWelcomeEmail";
+import VerifyEmail from "../src/email-templates/verifyEmail";
+import MagicLinkEmail from "../src/email-templates/magicLink";
+import VerifyOTP from "../src/email-templates/verifyOTP";
+import UpgradeConfirmationEmail from "../src/email-templates/UpgradeConfirmationEmail";
+import DowngradeConfirmationEmail from "../src/email-templates/DowngradeConfirmationEmail";
+import CancellationConfirmationEmail from "../src/email-templates/CancellationConfirmationEmail";
+import DeletionReminderEmail from "../src/email-templates/DeletionReminderEmail";
+import PastDueEmail from "../src/email-templates/PastDueEmail";
+import GracePeriodWarningEmail from "../src/email-templates/GracePeriodWarningEmail";
+import TrialExpiredEmail from "../src/email-templates/TrialExpiredEmail";
+import WelcomeBackEmail from "../src/email-templates/WelcomeBackEmail";
+import AccountReactivatedEmail from "../src/email-templates/AccountReactivatedEmail";
+import PaymentSuccessEmail from "../src/email-templates/PaymentSuccessEmail";
+import AffiliateWelcomeEmail from "../src/email-templates/AffiliateWelcomeEmail";
+import NewAffiliateNotificationEmail from "../src/email-templates/NewAffiliateNotificationEmail";
+import AffiliateApprovalEmail from "../src/email-templates/AffiliateApprovalEmail";
+import AffiliateRejectionEmail from "../src/email-templates/AffiliateRejectionEmail";
+import AffiliateSuspensionEmail from "../src/email-templates/AffiliateSuspensionEmail";
+import AffiliateReactivationEmail from "../src/email-templates/AffiliateReactivationEmail";
+import OwnerWelcomeEmail from "../src/email-templates/OwnerWelcomeEmail";
 import { type MutationCtx, action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { render } from "@react-email/components";
 import React from "react";
-import ResetPasswordEmail from "./emails/resetPassword";
-import PasswordChangedEmail from "./emails/passwordChanged";
+import ResetPasswordEmail from "../src/email-templates/resetPassword";
+import PasswordChangedEmail from "../src/email-templates/passwordChanged";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { sendEmailFromMutation as _sendEmailFromMutation } from "./emailServiceMutation";
@@ -648,6 +648,84 @@ export const sendAffiliateWelcomeEmail = async (
     }
   }
 };
+
+/**
+ * Action: Send invitation email to affiliate (public action, called via scheduler).
+ * Checks for custom template before sending.
+ */
+export const sendAffiliateInvitationEmail = action({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+    to: v.string(),
+    affiliateName: v.string(),
+    uniqueCode: v.string(),
+    portalName: v.string(),
+    referralUrl: v.string(),
+    brandLogoUrl: v.optional(v.string()),
+    brandPrimaryColor: v.optional(v.string()),
+    portalLoginUrl: v.string(),
+    contactEmail: v.string(),
+  },
+  returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args) => {
+    const defaultSubject = `Welcome to ${args.portalName}! Your application is pending approval`;
+
+    const customTemplate = await ctx.runQuery(
+      internal.templates.getEmailTemplateForSending,
+      { tenantId: args.tenantId, templateType: "affiliate_welcome" }
+    );
+
+    const templateVariables: Record<string, string | number | undefined> = {
+      affiliate_name: args.affiliateName,
+      portal_name: args.portalName,
+      referral_link: args.referralUrl,
+      brand_logo_url: args.brandLogoUrl,
+      brand_primary_color: args.brandPrimaryColor,
+      contact_email: args.contactEmail,
+    };
+
+    let finalSubject = defaultSubject;
+    let html: string;
+
+    if (customTemplate) {
+      finalSubject = renderTemplate(customTemplate.customSubject, templateVariables);
+      html = renderTemplate(customTemplate.customBody, templateVariables);
+    } else {
+      html = await render(
+        <AffiliateWelcomeEmail
+          affiliateName={args.affiliateName}
+          affiliateEmail={args.to}
+          uniqueCode={args.uniqueCode}
+          portalName={args.portalName}
+          referralUrl={args.referralUrl}
+          brandLogoUrl={args.brandLogoUrl}
+          brandPrimaryColor={args.brandPrimaryColor}
+          contactEmail={args.contactEmail}
+        />
+      );
+    }
+
+    try {
+      await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("onboarding"),
+        to: args.to,
+        subject: finalSubject,
+        html,
+        tracking: {
+          tenantId: args.tenantId,
+          type: "affiliate_invitation",
+          affiliateId: args.affiliateId,
+        },
+      });
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("[email] Failed to send affiliate invitation email:", errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  },
+});
 
 /**
  * Action: Send welcome email with retry logic.

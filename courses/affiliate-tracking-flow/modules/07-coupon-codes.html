@@ -1,0 +1,391 @@
+<section class="module" id="module-7">
+  <div class="module-content">
+
+    <header class="module-header">
+      <span class="module-number">07</span>
+      <h1 class="module-title">Vanity Coupon Codes</h1>
+      <p class="module-subtitle">Attribution at checkout time — no cookies needed</p>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Problem with Cookies</h2>
+      
+      <p>Referral links work great — until they don't. Here's when cookies fail:</p>
+
+      <div class="icon-rows">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-error-light); color: var(--color-error);">1</div>
+          <div>
+            <strong>Customer clears cookies</strong>
+            <p>Visitor clicks your link, but clears browser data before signing up</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-error-light); color: var(--color-error);">2</div>
+          <div>
+            <strong>Different device</strong>
+            <p>Visitor clicks on phone, but signs up on desktop</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-error-light); color: var(--color-error);">3</div>
+          <div>
+            <strong>Long research phase</strong>
+            <p>Cookie expires (30 days) before customer decides to buy</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-content">
+          <span class="callout-title">The solution: Coupon codes</span>
+          <p>Instead of relying on a cookie stored weeks ago, coupon codes let customers attribute themselves at checkout. The attribution happens at purchase time — not click time.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">How Coupon Codes Work</h2>
+
+      <p>Each affiliate automatically gets a <span class="term" data-definition="A unique discount code generated for each affiliate. Customers enter it at checkout to give that affiliate credit for the sale.">vanity coupon code</span> when they activate.</p>
+
+      <div class="callout callout-accent">
+        <span class="callout-icon">🏷️</span>
+        <div class="callout-content">
+          <span class="callout-title">Auto-generated</span>
+          <p>No setup required! The system creates the code from the affiliate's name + your business name. Example: "Alex Chen" + "MySaaS" → <code>ALEXCHMYSAA</code></p>
+        </div>
+      </div>
+
+      <p>Here's the complete flow:</p>
+
+      <div class="flow-steps" style="flex-direction: column; align-items: stretch;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Affiliate shares their coupon code</strong>
+            <p>Listed in their portal or promotional materials</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Customer enters code at checkout</strong>
+            <p>They type <code>ALEXCHMYSAA</code> in the coupon field</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Checkout sends code to tracking</strong>
+            <p><code>Affilio.referral({ email, couponCode: "ALEXCHMYSAA" })</code></p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>System validates and creates commission</strong>
+            <p>No cookie needed — attribution happens at purchase time</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Coupon vs Referral Link: Key Differences</h2>
+
+      <div class="pattern-cards">
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-accent-light); color: var(--color-accent);">🔗</div>
+          <div class="pattern-title">Referral Link</div>
+          <p class="pattern-desc">Click-based attribution. Requires tracking snippet + cookies.</p>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-info-light); color: var(--color-info);">🎟️</div>
+          <div class="pattern-title">Coupon Code</div>
+          <p class="pattern-desc">Checkout-based attribution. Works without cookies or tracking snippet.</p>
+        </div>
+      </div>
+
+      <div class="badge-list">
+        <div class="badge-item">
+          <span class="badge-code">Attribution timing</span>
+          <span class="badge-desc">Link = click time | Coupon = purchase time</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">Requires tracking snippet</span>
+          <span class="badge-desc">Link = yes | Coupon = no</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">Requires cookies</span>
+          <span class="badge-desc">Link = yes (30 days) | Coupon = no</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">Works across devices</span>
+          <span class="badge-desc">Link = no | Coupon = yes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Group Chat: Coupon Attribution</h2>
+
+      <p>Here's how a coupon code flows through the system:</p>
+
+      <div class="chat-window" id="coupon-chat">
+        <div class="chat-messages">
+          <div class="chat-message" data-sender="affiliate" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-1);">🤝</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-1);">Affiliate</span>
+              <p>Here's my coupon code: ALEXCHMYSAA — use it at checkout!</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="customer" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-2);">👤</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2);">Customer</span>
+              <p>Great deal! I'll use it at checkout.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="customer" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-2);">👤</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2);">Customer</span>
+              <p>Entering coupon code ALEXCHMYSAA at checkout...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="checkout" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-3);">🛒</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3);">Checkout</span>
+              <p>Processing payment + calling Affilio.referral({ email, couponCode: "ALEXCHMYSAA" })</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="system" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-4);">⚙️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4);">System</span>
+              <p>Coupon code validated! ALEXCHMYSAA → Affiliate "Alex Chen". Commission queued!</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-typing" style="display: none;">
+          <div class="chat-typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="btn chat-next-btn">Next Message</button>
+          <button class="btn chat-all-btn">Show All</button>
+          <button class="btn chat-reset-btn">Reset</button>
+          <span class="chat-progress">0 / 5 messages</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Priority: Coupon vs Referral Link</h2>
+
+      <p>What happens if a customer both clicked a referral link AND uses a coupon code?</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">🏆</span>
+        <div class="callout-content">
+          <span class="callout-title">Coupon codes WIN</span>
+          <p>If a coupon code is present, it always takes priority over cookie-based attribution. This is intentional — the coupon shows active purchase intent at checkout.</p>
+        </div>
+      </div>
+
+      <p><strong>Attribution priority order:</strong></p>
+
+      <div class="flow-steps" style="flex-direction: column; align-items: stretch;">
+        <div class="step-card" style="border-left-color: var(--color-success);">
+          <div class="step-num" style="background: var(--color-success);">1</div>
+          <div class="step-body">
+            <strong>Coupon Code</strong>
+            <p>Highest priority — always wins if present</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Affiliate Code in Request</strong>
+            <p>Sent directly from tracking code</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Cookie (from referral link)</strong>
+            <p>Stored from earlier click</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Email-based Matching</strong>
+            <p>Fallback — looks up email in leads table</p>
+          </div>
+        </div>
+        <div class="step-card" style="border-left-color: var(--color-text-muted);">
+          <div class="step-num" style="background: var(--color-text-muted);">5</div>
+          <div class="step-body">
+            <strong>Organic</strong>
+            <p>No attribution found</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Real-World Example</h2>
+
+      <p>Imagine this scenario:</p>
+
+      <div class="scenario-block">
+        <div class="scenario-context">
+          <span class="scenario-label">Scenario</span>
+          <p>Sarah clicks Alex's referral link and browses your site. She doesn't buy yet. Three weeks later, she sees a discount code from Alex on Twitter. She uses it at checkout.</p>
+        </div>
+      </div>
+
+      <div class="step-cards">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Sarah clicks Alex's link</strong>
+            <p>Cookie stored with Alex's affiliate code. But she doesn't buy.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>25 days pass (cookie expires in 30)</strong>
+            <p>Cookie still valid but Sarah's moved on.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Sarah sees Alex's coupon code on Twitter</strong>
+            <p>Uses it at checkout: <code>ALEXCHMYSAA</code></p>
+          </div>
+        </div>
+        <div class="step-card" style="border-left-color: var(--color-success);">
+          <div class="step-num" style="background: var(--color-success);">4</div>
+          <div class="step-body">
+            <strong>Alex gets the commission!</strong>
+            <p>Coupon code wins over expired cookie. Alex earns commission even though the cookie was about to expire.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">✨</span>
+        <div class="callout-content">
+          <span class="callout-title">Why this matters</span>
+          <p>Coupons capture purchase intent at the moment of buying — not just the initial click. This gives affiliates credit when they influence the actual decision, not just the first visit.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Code: How to Pass Coupon Codes</h2>
+
+      <p>If your checkout form collects a coupon code, pass it to the tracking:</p>
+
+      <div class="translation-block">
+        <div class="translation-code">
+<span class="translation-label">JavaScript</span>
+<pre><span class="code-comment">// At checkout, after collecting coupon code</span>
+<span class="code-keyword">if</span> (<span class="code-property">window</span>.Affilio) {
+  <span class="code-property">Affilio</span>.<span class="code-function">referral</span>({ 
+    email: customerEmail,
+    couponCode: customerEnteredCoupon  <span class="code-comment">// ← Add this!</span>
+  });
+}</pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">What it means</span>
+          <div class="translation-lines">
+            <div class="tl"><strong>email: customerEmail</strong> — The customer's email (required)</div>
+            <div class="tl"><strong>couponCode: customerEnteredCoupon</strong> — The coupon code they entered (optional — system ignores if empty)</div>
+          </div>
+        </div>
+      </div>
+
+      <p>The tracking system automatically handles whether to use the coupon code or fall back to cookie attribution.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Knowledge Check</h2>
+      
+      <div class="quiz-container" id="quiz-7">
+        <div class="quiz-question-block" data-correct="b" data-explanation-right="Exactly! Coupon codes attribute at checkout time — no cookies required. Referral links rely on cookies stored from a click." data-explanation-wrong="Not quite. Coupon codes attribute at checkout time, not click time. They don't need cookies because the customer is actively entering the code at purchase.">
+          <p class="quiz-question">When does coupon code attribution happen?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              When the customer clicks a link
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              When the customer enters the code at checkout
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              When the customer signs up
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question-block" data-correct="a" data-explanation-right="Correct! If a customer both clicked a referral link AND used a coupon code, the coupon wins. This ensures the affiliate who influenced the actual purchase gets credit." data-explanation-wrong="Not quite. Coupon codes always win over referral links. The coupon shows purchase intent at checkout, which takes priority over a stored cookie from an earlier click.">
+          <p class="quiz-question">A customer clicked Affiliate A's link, but used Affiliate B's coupon code at checkout. Who gets the commission?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Affiliate B (coupon wins)
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Affiliate A (first-click wins)
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Both split the commission
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question-block" data-correct="c" data-explanation-right="Correct! Coupon codes don't need any special setup — they're automatically generated when an affiliate is activated." data-explanation-wrong="Not quite. Coupon codes are automatically generated when an affiliate activates. The SaaS owner doesn't need to create them manually.">
+          <p class="quiz-question">Who creates the coupon codes for affiliates?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              The SaaS owner creates them manually
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              The affiliate creates their own code
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              They're automatically generated when an affiliate activates
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-7')">Check Answers</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-7')">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</section>

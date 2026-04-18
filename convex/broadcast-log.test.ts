@@ -7,12 +7,12 @@ import { describe, it, expect } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "./schema";
 import { internal } from "./_generated/api";
-import * as emailsModule from "./emails";
+// NOTE: email template components moved to src/email-templates/ (React components, not Convex modules)
+// import * as emailsModule from "../src/email-templates";
 import * as broadcastsModule from "./broadcasts";
 
-// Test module setup with actual implementations
 const testModules = {
-  emails: emailsModule,
+  emails: {} as any,
   broadcasts: broadcastsModule,
 };
 

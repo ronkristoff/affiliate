@@ -6,7 +6,6 @@ import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticated
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api, internal } from "./_generated/api";
-import { updateAffiliateCount } from "./tenantStats";
 import { affiliateAggregate, clicksAggregate, conversionsAggregate, commissionsAggregate } from "./aggregates";
 
 /**
@@ -1016,8 +1015,8 @@ export const listAffiliatesFiltered = query({
 
 /**
  * Get count of affiliates by status.
- * Uses denormalized tenantStats counters for fast reads.
- * These are maintained by updateAffiliateCount hooks on every status change.
+ * Uses aggregate O(log n) counts via affiliateByStatusAggregate.
+ * Triggers auto-sync on every status change.
  * @security Requires authentication. Results filtered by tenant. Returns zeros if not authenticated.
  */
 export const getAffiliateCountByStatus = query({
@@ -1137,8 +1136,6 @@ export const registerAffiliate = mutation({
       passwordHash: args.passwordHash,
     });
 
-    await updateAffiliateCount(ctx, tenantId, undefined, "pending");
-
     // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
@@ -1226,8 +1223,6 @@ export const inviteAffiliate = mutation({
       status: "active",
       promotionChannel: args.promotionChannel,
     });
-
-    await updateAffiliateCount(ctx, tenantId, undefined, "active");
 
     // Attribution Resilience: Generate coupon code on activation (invited affiliates start as active)
     ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
@@ -1337,8 +1332,6 @@ export const updateAffiliateStatus = mutation({
 
     const previousStatus = affiliate.status;
     await ctx.db.patch(args.affiliateId, { status: args.status });
-
-    await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
 
     // Attribution Resilience: Generate coupon code on activation
     if (args.status === "active" && previousStatus !== "active") {
@@ -1663,8 +1656,6 @@ export const setAffiliateStatus = mutation({
     const previousStatus = affiliate.status;
     await ctx.db.patch(args.affiliateId, { status: args.status });
 
-    await updateAffiliateCount(ctx, tenantId, previousStatus, args.status);
-
     // Add fraud signal if suspended with reason
     if (args.status === "suspended" && args.reason) {
       const fraudSignals = affiliate.fraudSignals || [];
@@ -1752,8 +1743,6 @@ export const suspendAffiliate = mutation({
     // Update status to suspended
     await ctx.db.patch(args.affiliateId, { status: "suspended" });
 
-    await updateAffiliateCount(ctx, tenantId, "active", "suspended");
-
     // Add fraud signal if reason provided
     if (args.reason) {
       const fraudSignals = affiliate.fraudSignals || [];
@@ -1828,7 +1817,7 @@ export const suspendAffiliate = mutation({
         affiliateId: args.affiliateId,
         affiliateEmail: affiliate.email,
         affiliateName: affiliate.name,
-        reason: args.reason,
+        reason: args.reason ?? "No reason provided",
         portalName: tenant?.branding?.portalName || tenant?.name || "Affiliate Portal",
         brandLogoUrl: tenant?.branding?.logoUrl,
         brandPrimaryColor: tenant?.branding?.primaryColor,
@@ -1908,8 +1897,6 @@ export const reactivateAffiliate = mutation({
 
     // Update status to active
     await ctx.db.patch(args.affiliateId, { status: "active" });
-
-    await updateAffiliateCount(ctx, tenantId, "suspended", "active");
 
     // Notify owner and affiliate
     try {
@@ -2084,8 +2071,6 @@ export const approveAffiliate = mutation({
     // Update status to active
     await ctx.db.patch(args.affiliateId, { status: "active" });
 
-    await updateAffiliateCount(ctx, tenantId, "pending", "active");
-
     // Attribution Resilience: Generate coupon code on activation
     ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
       tenantId,
@@ -2236,8 +2221,6 @@ export const rejectAffiliate = mutation({
     // Update status to rejected
     await ctx.db.patch(args.affiliateId, { status: "rejected" });
 
-    await updateAffiliateCount(ctx, tenantId, "pending", "rejected");
-
     // Notify owner
     try {
       await ctx.runMutation(internal.notifications.createNotification, {
@@ -2274,7 +2257,7 @@ export const rejectAffiliate = mutation({
         affiliateId: args.affiliateId,
         affiliateEmail: affiliate.email,
         affiliateName: affiliate.name,
-        reason: args.reason,
+        reason: args.reason ?? "No reason provided",
         portalName: tenant?.branding?.portalName || tenant?.name || "Affiliate Portal",
         brandLogoUrl: tenant?.branding?.logoUrl,
         brandPrimaryColor: tenant?.branding?.primaryColor,
@@ -2363,8 +2346,6 @@ export const bulkApproveAffiliates = mutation({
 
         // Update status to active
         await ctx.db.patch(affiliateId, { status: "active" });
-
-        await updateAffiliateCount(ctx, tenantId, "pending", "active");
 
         // Attribution Resilience: Generate coupon code on activation
         ctx.runMutation(internal.couponCodes.onAffiliateActivated, {
@@ -2497,8 +2478,6 @@ export const bulkRejectAffiliates = mutation({
         // Update status to rejected
         await ctx.db.patch(affiliateId, { status: "rejected" });
 
-        await updateAffiliateCount(ctx, tenantId, "pending", "rejected");
-
         // Create audit log entry
         await ctx.db.insert("auditLogs", {
           tenantId,
@@ -2521,7 +2500,7 @@ export const bulkRejectAffiliates = mutation({
             affiliateId: affiliateId,
             affiliateEmail: affiliate.email,
             affiliateName: affiliate.name,
-            reason: args.reason,
+            reason: args.reason ?? "No reason provided",
             portalName: tenant?.branding?.portalName || tenant?.name || "Affiliate Portal",
             brandLogoUrl: tenant?.branding?.logoUrl,
             brandPrimaryColor: tenant?.branding?.primaryColor,

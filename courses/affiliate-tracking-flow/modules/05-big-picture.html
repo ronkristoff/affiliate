@@ -1,0 +1,256 @@
+<section class="module" id="module-5">
+  <div class="module-content">
+
+    <header class="module-header">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The Big Picture</h1>
+      <p class="module-subtitle">Why disconnecting billing stops commission creation</p>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">Why Disconnecting Stripe Stops Commissions</h2>
+      
+      <p>Now you understand the full flow. Let's answer the original question:</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-content">
+          <span class="callout-title">When you disconnect Stripe</span>
+          <p>The billing webhook endpoint (`/api/webhooks/stripe`) requires an active Stripe connection to verify and process events. Without it, payment notifications stop arriving.</p>
+        </div>
+      </div>
+
+      <p>Here's the chain of events:</p>
+
+      <div class="flow-steps" style="flex-direction: column; align-items: stretch;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Stripe is disconnected</strong>
+            <p>You click "Disconnect Stripe" in Settings → Integrations</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Billing credentials are cleared</strong>
+            <p>The system removes `stripeCredentials`, `stripeAccountId`, and `billingProvider` from your tenant record</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Webhooks stop working</strong>
+            <p>Stripe can no longer send payment notifications to your endpoint</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>No commission triggers</strong>
+            <p>Without webhook events, the Commission Engine has nothing to process</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-content">
+          <span class="callout-title">The key insight</span>
+          <p>Commissions don't auto-create from thin air — they require billing webhook events. Disconnecting billing = no webhook events = no commissions.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Two Paths to the Same Result</h2>
+
+      <p>You can use either Stripe or SaligPay as your billing provider. Both work the same way:</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: #635BFF; color: white;">💳</div>
+          <div class="pattern-title">Stripe Connect</div>
+          <p class="pattern-desc">Connect your existing Stripe account. Payments come from Stripe, webhooks come from Stripe.</p>
+        </div>
+        <div class="pattern-card">
+          <div class="pattern-icon" style="background: var(--color-success-light); color: var(--color-success);">💰</div>
+          <div class="pattern-title">SaligPay</div>
+          <p class="pattern-desc">Built-in payment processing. All billing managed within the platform.</p>
+        </div>
+      </div>
+
+      <p>Either way, you need <em>some</em> billing provider connected for commissions to auto-create.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Complete Architecture</h2>
+
+      <p>Here's the full picture of how everything connects:</p>
+
+      <div class="arch-diagram">
+        <div class="arch-zone">
+          <div class="arch-zone-label">Customer's Browser</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+            <div class="arch-component" data-desc="The tracking code you install on your site. Captures clicks from affiliate links and stores codes in cookies.">
+              <span class="arch-icon">📝</span>
+              <span>track.js</span>
+            </div>
+            <div class="arch-component" data-desc="The 3-line code you add to signup forms. Fires when a customer signs up.">
+              <span class="arch-icon">📧</span>
+              <span>Affilio.referral()</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-zone">
+          <div class="arch-zone-label">Affiliate System (Your Server)</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+            <div class="arch-component" data-desc="Records which affiliate sent which visitor (clicks table).">
+              <span class="arch-icon">🖱️</span>
+              <span>Click Tracker</span>
+            </div>
+            <div class="arch-component" data-desc="Stores leads: email → affiliate mappings from signup events.">
+              <span class="arch-icon">📋</span>
+              <span>Lead Database</span>
+            </div>
+            <div class="arch-component" data-desc="Processes billing webhooks and creates commission records.">
+              <span class="arch-icon">⚙️</span>
+              <span>Commission Engine</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-zone">
+          <div class="arch-zone-label">External Systems</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+            <div class="arch-component" data-desc="Payment processor. Sends webhooks when customers pay.">
+              <span class="arch-icon">💳</span>
+              <span>Stripe/SaligPay</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-description">Click a component above to learn what it does</div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Putting It All Together</h2>
+
+      <p>Now you understand the complete affiliate tracking flow:</p>
+
+      <div class="flow-animation" id="full-flow" data-steps='[
+        {"label": "Affiliate shares link: yoursite.com/ref/CODE123", "highlight": "visitor"},
+        {"label": "track.js captures click, stores cookie", "highlight": "snippet"},
+        {"label": "Customer signs up, Affilio.referral() fires", "highlight": "tracker"},
+        {"label": "Lead created: email → affiliate mapping", "highlight": "leads"},
+        {"label": "Customer pays! Stripe sends webhook", "highlight": "billing"},
+        {"label": "Commission Engine finds affiliate via email", "highlight": "engine"},
+        {"label": "Commission created!", "highlight": "engine"}
+      ]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-visitor">
+            <div class="flow-actor-icon">👤</div>
+            <span>Visitor</span>
+          </div>
+          <div class="flow-actor" id="flow-snippet">
+            <div class="flow-actor-icon">📝</div>
+            <span>track.js</span>
+          </div>
+          <div class="flow-actor" id="flow-tracker">
+            <div class="flow-actor-icon">📧</div>
+            <span>Referral()</span>
+          </div>
+          <div class="flow-actor" id="flow-leads">
+            <div class="flow-actor-icon">📋</div>
+            <span>Leads</span>
+          </div>
+          <div class="flow-actor" id="flow-billing">
+            <div class="flow-actor-icon">💳</div>
+            <span>Billing</span>
+          </div>
+          <div class="flow-actor" id="flow-engine">
+            <div class="flow-actor-icon">⚙️</div>
+            <span>Engine</span>
+          </div>
+        </div>
+        <div class="flow-packet"></div>
+        <div class="flow-step-label">Review the complete flow</div>
+        <div class="flow-controls">
+          <button class="btn flow-next-btn">Next Step →</button>
+          <button class="btn flow-reset-btn">Reset</button>
+          <span class="flow-progress">Step 0 / 7</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Final Knowledge Check</h2>
+      
+      <div class="quiz-container" id="quiz-5">
+        <div class="quiz-question-block" data-correct="b" data-explanation-right="Correct! Without a billing provider connected, Stripe/SaligPay can't send webhook notifications when payments occur. No webhooks = no commission triggers." data-explanation-wrong="Not quite. The issue isn't about affiliate tracking — it's that without a billing provider, the system doesn't know when payments happen. Webhooks are the trigger for commission creation.">
+          <p class="quiz-question">Why won't commissions auto-create after disconnecting Stripe?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              The tracking snippet stops working
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Billing webhooks stop arriving, so the Commission Engine has nothing to process
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              The referral leads are deleted
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-5')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-5')">Reset</button>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Key Takeaways</h2>
+
+      <div class="icon-rows">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">1</div>
+          <div>
+            <strong>Track.js captures clicks</strong>
+            <p>It detects when visitors come via affiliate links and stores the affiliate code in a cookie for 30 days.</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">2</div>
+          <div>
+            <strong>Affilio.referral() captures signups</strong>
+            <p>You add 3 lines to your signup form to record when customers actually sign up, linking them to the stored cookie.</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">3</div>
+          <div>
+            <strong>Webhooks trigger commissions</strong>
+            <p>When customers pay, your billing provider sends a webhook. This is what triggers the Commission Engine to create commission records.</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-accent-light); color: var(--color-accent);">4</div>
+          <div>
+            <strong>Disconnection breaks the chain</strong>
+            <p>If you disconnect billing, webhooks stop → Commission Engine has no input → no commissions auto-create.</p>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top: 2rem; text-align: center; color: var(--color-text-secondary);">
+        Now you understand how affiliate tracking works end-to-end!
+      </p>
+    </div>
+
+  </div>
+</section>

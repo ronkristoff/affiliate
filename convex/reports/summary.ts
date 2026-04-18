@@ -2,6 +2,38 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { getAuthenticatedUser } from "../tenantContext";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate, affiliateAggregate } from "../aggregates";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}
 
 // Date range validator used across multiple queries
 export const dateRangeValidator = v.optional(v.object({
@@ -173,30 +205,15 @@ export const getTopAffiliatesByRevenue = query({
     const endDate = args.dateRange?.end ?? now;
     const limit = args.limit ?? 10;
 
-    // Fetch affiliates — medium-volume table, cap at 1000
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .take(1000);
+    // Fetch affiliates — paginated aggregate
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, args.tenantId);
 
-    // Capped queries on high-volume tables using by_tenant
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    // Paginated aggregate queries on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
 
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const filteredClicks = allClicks.filter(c =>

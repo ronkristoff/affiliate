@@ -3,6 +3,7 @@ import { v, ConvexError } from "convex/values";
 import { Id } from "../_generated/dataModel";
 import { getAuthenticatedUser } from "../tenantContext";
 import { dateRangeValidator, sortByValidator, sortOrderValidator } from "./summary";
+import { clicksAggregate, conversionsAggregate, commissionsAggregate, affiliateAggregate } from "../aggregates";
 
 /**
  * Get campaign performance list with aggregated metrics.
@@ -54,24 +55,10 @@ export const getCampaignPerformanceList = query({
         .collect();
     }
 
-    // 2. Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    // 2. Aggregate paginate on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const filteredClicks = allClicks.filter(c =>
@@ -236,24 +223,10 @@ export const getCampaignSummaryMetrics = query({
       c._creationTime < startDate && c.status === "active"
     ).length;
 
-    // Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    // Aggregate paginate on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Post-filter on date range
     const currentClicks = allClicks.filter(c =>
@@ -368,29 +341,12 @@ export const getCampaignPerformanceDetails = query({
     const startDate = args.dateRange?.start ?? thirtyDaysAgo;
     const endDate = args.dateRange?.end ?? now;
 
-    // Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .order("desc")
-      .take(5000);
+    // Aggregate paginate on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, campaign.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, campaign.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, campaign.tenantId);
 
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allAffiliates = await ctx.db
-      .query("affiliates")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", campaign.tenantId))
-      .collect();
+    const allAffiliates = await paginateAggregateDocs(ctx, affiliateAggregate, campaign.tenantId);
 
     // Post-filter for this campaign and date range
     const campaignClicks = allClicks.filter(c =>
@@ -478,7 +434,7 @@ export const getCampaignPerformanceDetails = query({
       const stats = affiliateStats.get(affiliate._id);
       if (stats && (stats.clicks > 0 || stats.conversions > 0)) {
         topAffiliates.push({
-          _id: affiliate._id,
+          _id: affiliate._id as Id<"affiliates">,
           name: affiliate.name,
           email: affiliate.email,
           clicks: stats.clicks,
@@ -589,24 +545,10 @@ export const getCampaignExportData = query({
         .collect();
     }
 
-    // Capped queries
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(10000);
+    // Aggregate paginate on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Build aggregation maps
     const campaignData = new Map<string, {
@@ -722,24 +664,10 @@ export const getCampaignCostEfficiency = query({
         doc !== null && doc.tenantId === args.tenantId
     );
 
-    // Capped queries on high-volume tables
-    const allClicks = await ctx.db
-      .query("clicks")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allConversions = await ctx.db
-      .query("conversions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
-
-    const allCommissions = await ctx.db
-      .query("commissions")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
-      .order("desc")
-      .take(5000);
+    // Aggregate paginate on high-volume tables
+    const allClicks = await paginateAggregateDocs(ctx, clicksAggregate, args.tenantId);
+    const allConversions = await paginateAggregateDocs(ctx, conversionsAggregate, args.tenantId);
+    const allCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, args.tenantId);
 
     // Build a set of requested campaign IDs for fast lookup
     const campaignIdSet = new Set(args.campaignIds.map(id => id.toString()));
@@ -827,3 +755,34 @@ export const getCampaignCostEfficiency = query({
     });
   },
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paginateAggregateDocs(
+  ctx: any,
+  aggregate: any,
+  namespace: string,
+  pageSize = 500,
+): Promise<any[]> {
+  const docs: any[] = [];
+  let cursor: string | undefined;
+  let done = false;
+
+  while (!done) {
+    const result = await aggregate.paginate(ctx, {
+      namespace,
+      pageSize,
+      cursor,
+      order: "desc",
+    });
+    const fetched = await Promise.all(
+      result.page.map((item: any) => ctx.db.get(item.id))
+    );
+    for (const doc of fetched) {
+      if (doc) docs.push(doc);
+    }
+    cursor = result.isDone ? undefined : result.cursor;
+    done = !cursor;
+  }
+
+  return docs;
+}

@@ -1,0 +1,234 @@
+<section class="module" id="module-4">
+  <div class="module-content">
+
+    <header class="module-header">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Webhooks & Commissions</h1>
+      <p class="module-subtitle">How billing providers trigger commission creation</p>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Gap: From Signup to Payment</h2>
+      
+      <p>So far we've tracked:</p>
+      <ul style="margin-left: 2rem; margin-bottom: 1rem;">
+        <li>Click → Affiliate code stored in cookie ✓</li>
+        <li>Signup → Email + Affiliate code stored as lead ✓</li>
+      </ul>
+      
+      <p>But here's the thing: <strong>signing up isn't the same as paying</strong>. A customer might sign up for a free trial, then convert to a paying customer weeks later.</p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-content">
+          <span class="callout-title">When do commissions actually happen?</span>
+          <p>Commissions are typically paid when money changes hands — when the customer actually pays for your product. Not when they sign up, but when they pay.</p>
+        </div>
+      </div>
+
+      <p>So how does the system know when a payment happens? <span class="term" data-definition="An automated message that one system sends to another when something happens. Think of it like a text notification — when Stripe gets paid, it texts your system to let it know.">Webhooks</span>.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">What is a Webhook?</h2>
+
+      <p>A webhook is like an automated phone call between systems. When something happens in one system (like a payment), it automatically calls another system to tell it about it.</p>
+
+      <div class="callout callout-accent">
+        <span class="callout-icon">📱</span>
+        <div class="callout-content">
+          <span class="callout-title">Webhook vs API</span>
+          <p><strong>API</strong> = You ask for information (like searching Google)<br>
+          <strong>Webhook</strong> = Information comes to you automatically (like a push notification)</p>
+        </div>
+      </div>
+
+      <p>In this system:</p>
+      <div class="icon-rows">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-1); color: white;">💳</div>
+          <div>
+            <strong>Stripe or SaligPay</strong>
+            <p>Detects that a customer paid</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-2); color: white;">→</div>
+          <div>
+            <strong>Sends Webhook</strong>
+            <p>HTTP POST to your system with payment details</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-3); color: white;">⚙️</div>
+          <div>
+            <strong>Commission Engine</strong>
+            <p>Processes the payment and creates commission</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Commission Engine</h2>
+
+      <p>When a payment webhook arrives, the <span class="term" data-definition="The core logic that processes billing events and creates commission records. It connects the billing provider's payment data to the affiliate's commission entitlement.">Commission Engine</span> kicks into action.</p>
+
+      <p>Here's what it does:</p>
+
+      <div class="step-cards">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Receive payment info</strong>
+            <p>Gets the customer's email and payment amount from the webhook</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Find the affiliate</strong>
+            <p>Looks up the customer's email in the leads table to find which affiliate referred them</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Calculate commission</strong>
+            <p>Based on the campaign settings (e.g., 20% commission), calculates how much the affiliate earned</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Create record</strong>
+            <p>Creates a commission record in the database, waiting for approval</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Group Chat: Webhook to Commission</h2>
+
+      <p>Here's how the system components talk to each other when a payment triggers a commission:</p>
+
+      <div class="chat-window" id="webhook-chat">
+        <div class="chat-messages">
+          <div class="chat-message" data-sender="stripe" style="display: none;">
+            <div class="chat-avatar" style="background: #635BFF; color: white;">💳</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: #635BFF;">Stripe</span>
+              <p>Payment received! Customer john@example.com just paid $99 for a subscription.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="engine" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-3);">⚙️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3);">Commission Engine</span>
+              <p>Got the webhook. Let me check who referred john@example.com...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="database" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-4);">🗄️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4);">Database</span>
+              <p>Lead found! john@example.com was referred by affiliate ALEX1234. Campaign pays 20%.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="engine" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-3);">⚙️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3);">Commission Engine</span>
+              <p>20% of $99 = $19.80. Creating commission record...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-sender="engine" style="display: none;">
+            <div class="chat-avatar" style="background: var(--color-actor-3);">⚙️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3);">Commission Engine</span>
+              <p>Commission created! Status: Pending (awaiting approval)</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-typing" style="display: none;">
+          <div class="chat-typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="btn chat-next-btn">Next Message</button>
+          <button class="btn chat-all-btn">Show All</button>
+          <button class="btn chat-reset-btn">Reset</button>
+          <span class="chat-progress">0 / 5 messages</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Recurring Commissions</h2>
+
+      <p>For subscription products, commissions can be <span class="term" data-definition="Commissions that are paid each time a customer renews their subscription, not just on the first payment.">recurring</span> — affiliates earn commission every time a customer renews.</p>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <p>Initial payment</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <p>Commission created</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <p>Customer renews</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          <p>New commission!</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <div class="flow-step-num">5</div>
+          <p>Repeat...</p>
+        </div>
+      </div>
+
+      <p>Each renewal payment triggers another webhook, which triggers another commission calculation. The affiliate keeps earning as long as the customer keeps paying.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Knowledge Check</h2>
+      
+      <div class="quiz-container" id="quiz-4">
+        <div class="quiz-question-block" data-correct="a" data-explanation-right="Correct! A webhook is an automated message sent when something happens (like a payment). Your system doesn't ask for it — the billing provider sends it automatically." data-explanation-wrong="Not quite. A webhook is an automatic notification, not a request. The billing provider sends it to your system without being asked when a payment happens.">
+          <p class="quiz-question">What is a webhook in this context?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              An automatic notification sent when a payment occurs
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              A request your system makes to check payment status
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              The code that tracks clicks
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-4')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-4')">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</section>

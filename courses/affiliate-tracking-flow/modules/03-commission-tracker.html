@@ -1,0 +1,161 @@
+<section class="module" id="module-3">
+  <div class="module-content">
+
+    <header class="module-header">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Commission Tracker</h1>
+      <p class="module-subtitle">Connecting signup forms to affiliate attribution</p>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Missing Piece: Signup Detection</h2>
+      
+      <p>Track.js handles clicks — but there's a gap. How does the system know when a visitor actually <em>signs up</em> for your product?</p>
+
+      <p>That's where the <span class="term" data-definition="A function call that you add to your signup form. It tells the affiliate system 'Hey, someone just signed up!'">commission tracker</span> comes in.</p>
+
+      <div class="callout callout-accent">
+        <span class="callout-icon">🔗</span>
+        <div class="callout-content">
+          <span class="callout-title">Two halves of tracking</span>
+          <p>Track.js = "Who sent this visitor?" (captures clicks)<br>
+          Commission tracker = "Did they actually sign up?" (records conversions)</p>
+        </div>
+      </div>
+
+      <p>You add just 3 lines of code to your signup form. When someone completes signup, it fires off a message saying "New customer! Email: [their email]"</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The 3-Line Code</h2>
+
+      <p>Here's the code you add to your signup form:</p>
+
+      <div class="translation-block">
+        <div class="translation-code">
+<span class="translation-label">JavaScript</span>
+<pre><span class="code-keyword">if</span> (<span class="code-property">window</span>.Affilio) {
+  <span class="code-property">Affilio</span>.<span class="code-function">referral</span>({ 
+    email: customerEmail 
+  });
+}</pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">What it means</span>
+          <div class="translation-lines">
+            <div class="tl"><strong>if (window.Affilio)</strong> — Only run this if track.js is loaded (prevents errors)</div>
+            <div class="tl"><strong>Affilio.referral({email: ...})</strong> — Tell the system "A customer just signed up with this email"</div>
+            <div class="tl"><strong>customerEmail</strong> — The variable containing the customer's email address</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">📍</span>
+        <div class="callout-content">
+          <span class="callout-title">Where to put this code</span>
+          <p>You add this in the same place where your signup form submits — right after the customer's email is collected and before you create their account.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">What Happens When It Fires</h2>
+
+      <p>When <code>Affilio.referral()</code> is called, it does two things:</p>
+
+      <div class="step-cards">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Reads the cookie</strong>
+            <p>Grabs the affiliate code from the cookie that track.js saved earlier. This tells the system which affiliate gets credit.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Sends to the server</strong>
+            <p>Sends both the customer's email AND the affiliate code to the server. The server creates a "lead" record linking email → affiliate.</p>
+          </div>
+        </div>
+      </div>
+
+      <p>This "lead" record is crucial — it bridges the gap between the click (happened earlier) and the signup (happening now).</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The Lead Matching System</h2>
+
+      <p>The server doesn't just store the lead — it organizes it for later use. Here's what gets saved:</p>
+
+      <div class="icon-rows">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-info-light); color: var(--color-info);">📧</div>
+          <div>
+            <strong>Customer Email</strong>
+            <p>The customer's email address (e.g., john@example.com)</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-info-light); color: var(--color-info);">🔗</div>
+          <div>
+            <strong>Affiliate Code</strong>
+            <p>Which affiliate referred this customer (e.g., ALEX1234)</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-info-light); color: var(--color-info);">🆔</div>
+          <div>
+            <strong>Click ID</strong>
+            <p>Reference to the original click record</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-info-light); color: var(--color-info);">📅</div>
+          <div>
+            <strong>Timestamp</strong>
+            <p>When the signup happened</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚡</span>
+        <div class="callout-content">
+          <span class="callout-title">The magic: email matching</span>
+          <p>This lead system has a superpower: even if the customer clears their cookies, when your billing provider sends a payment notification (webhook), the system can match the customer's email to the affiliate who referred them!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Knowledge Check</h2>
+      
+      <div class="quiz-container" id="quiz-3">
+        <div class="quiz-question-block" data-correct="b" data-explanation-right="Exactly! The commission tracker code is added to the signup form, so it fires when someone actually signs up. Track.js fires earlier when they click a link." data-explanation-wrong="Not quite. The commission tracker code goes on your signup form, not track.js. Track.js handles clicks, while the tracker handles signups.">
+          <p class="quiz-question">Where do you add the Affilio.referral() code?</p>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="a" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              Inside track.js
+            </button>
+            <button class="quiz-option" data-value="b" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              On your signup form
+            </button>
+            <button class="quiz-option" data-value="c" onclick="selectOption(this)">
+              <span class="quiz-option-radio"></span>
+              In the affiliate portal
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-3')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-3')">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</section>

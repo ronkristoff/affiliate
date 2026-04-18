@@ -5,7 +5,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { internal, api } from "./_generated/api";
 import { render } from "@react-email/components";
 import React from "react";
-import BroadcastEmail from "./emails/BroadcastEmail";
+import BroadcastEmail from "../src/email-templates/BroadcastEmail";
 import { getAuthenticatedUser, getTenantId, requireTenantId } from "./tenantContext";
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";

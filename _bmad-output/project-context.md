@@ -98,6 +98,16 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
    Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
 
+8. **`ctx.runMutation` vs `ctx.runAction`** — Context types determine which cross-function calls are available:
+   - `MutationCtx` has `runQuery` + `runMutation` — NO `runAction`.
+   - `ActionCtx` has `runQuery` + `runMutation` + `runAction`.
+   - Calling an `internalAction` from a mutation requires scheduling: `ctx.scheduler.runAfter(0, internal.myFile.myAction, args)`.
+   - Calling an `internalMutation` from a mutation: `ctx.runMutation(internal.myFile.myMutation, args)`.
+   - Calling an `internalAction` from an action: `ctx.runAction(internal.myFile.myAction, args)`.
+   - `RegisteredMutation`/`RegisteredAction` types are NOT directly callable as functions — must go through `ctx.run*`.
+
+9. **`"use node"` files can export both Convex functions AND plain helpers** — A file with `"use node"` can export `action`/`internalAction` Convex functions AND regular `async function` helpers. Callers import helpers directly (e.g., `import { sendMagicLink } from "./email"`). Helpers run in Node.js runtime and can use Node.js APIs.
+
 ### Next.js Frontend Rules
 
 1. **Server Components** - Default is Server Components; use `"use client"` only when needed
@@ -156,6 +166,77 @@ _This file contains critical rules and patterns that AI agents must follow when 
 6. **Mutation context** - Use `sendEmailFromMutation` (Resend-only). Postmark throws in mutation context.
 7. **Action context** - Use `ctx.runAction(internal.emailService.sendEmail, ...)` for full provider routing.
 8. **Webhooks** - Resend webhook at `POST /webhooks/resend`, Postmark webhook at `POST /webhooks/postmark`.
+
+#### Email File Architecture
+
+Two separate systems exist — do NOT confuse them:
+
+| Path | Purpose | Runtime |
+|------|---------|---------|
+| `convex/email.ts` | Convex function wrappers (actions + helpers) that orchestrate sending | Node.js (`"use node"`) |
+| `convex/emails/` | 30+ React email components (`.tsx`) for rendering HTML templates | Imported by `email.ts` or frontend |
+| `convex/emailService.ts` | Low-level `sendEmail` internalAction with provider routing + circuit breaker | Node.js (`"use node"`) |
+| `convex/emailServiceMutation.ts` | Low-level `sendEmailFromMutation` internalMutation (Resend-only) | V8 (mutation context) |
+| `convex/templates.ts` | Template variable system: `TEMPLATE_DEFINITIONS`, `renderTemplate()`, validation | Static imports |
+
+#### Email Calling Patterns
+
+**`RegisteredMutation` types are NOT directly callable.** `sendEmailFromMutation` is an `internalMutation` — you cannot call it as `sendEmailFromMutation(ctx, args)`. Must use `ctx.runMutation`:
+
+```typescript
+// ❌ WRONG — RegisteredMutation has no call signatures
+await sendEmailFromMutation(ctx, { from, to, subject, html });
+
+// ✅ CORRECT — call via ctx.runMutation
+await ctx.runMutation(internal.emailServiceMutation.sendEmailFromMutation, {
+  from, to, subject, html, tracking: { tenantId, type: "..." },
+});
+```
+
+**`emailService.sendEmail` is an `internalAction`** — must use `ctx.runAction`, NOT `ctx.runMutation`:
+
+```typescript
+// ❌ WRONG — type mismatch: "action" is not assignable to "mutation"
+await ctx.runMutation(internal.emailService.sendEmail, { ... });
+
+// ✅ CORRECT — actions call actions
+await ctx.runAction(internal.emailService.sendEmail, { ... });
+```
+
+**Better Auth callbacks use dual-path pattern** — `auth.ts` checks `"runAction" in ctx`:
+- Action context → `ctx.runAction(internal.email.sendAuthEmail, { type, to, url/otp })`
+- Mutation context → direct import from `./email` (e.g., `sendMagicLink(ctx, { to, url })`)
+- 2FA OTP callback uses dynamic import to avoid circular deps: `const { sendOTPVerification } = await import("./email")`
+
+**Helper functions in `email.ts`** accept `MutationCtx` and internally call `ctx.runMutation(internal.emailServiceMutation.sendEmailFromMutation, ...)`. Date/amount parameters accept `number` (epoch ms) and format via `new Date(value).toLocaleDateString()` in HTML.
+
+#### Template Variable System
+
+Email templates use `{{variable}}` placeholders defined in `TEMPLATE_DEFINITIONS` (in `templates.ts`):
+
+```typescript
+import { renderTemplate, TEMPLATE_DEFINITIONS } from "./templates";
+
+const definition = TEMPLATE_DEFINITIONS.find((d) => d.type === "affiliate_welcome");
+const subject = renderTemplate(definition.defaultSubject, {
+  affiliate_name: "Jamie",
+  portal_name: "My SaaS",
+  referral_link: "https://example.com/r/JAMIE",
+});
+```
+
+Custom templates (stored in `emailTemplates` table) override defaults. Check via `getEmailTemplateForSending` internal query before falling back to defaults.
+
+#### Aggregate Backfill
+
+When the Convex backend is already running, backfill works WITHOUT `--push`:
+```bash
+# ✅ Works when backend is running — skip push to avoid CanonicalizationConflict
+pnpm convex run aggregates:backfillAll --typecheck=disable '{}'
+
+# ❌ --push may fail with CanonicalizationConflict (pre-existing issue in this codebase)
+pnpm convex run aggregates:backfillAll --typecheck=disable --push
+```
 
 ### Skills to Load
 
