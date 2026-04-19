@@ -142,7 +142,7 @@ const TIER_FIELD_LABELS: Record<string, string> = {
 };
 
 function formatTierValue(field: string, value: unknown): string {
-  if (field === "price" && typeof value === "number") return `$${value.toLocaleString()}`;
+  if (field === "price" && typeof value === "number") return `₱${value.toLocaleString()}`;
   if (field === "features" && typeof value === "object" && value !== null) {
     const entries = Object.entries(value as Record<string, unknown>);
     return entries.map(([k, v]) => `${k}${v ? " \u2713" : " \u2717"}`).join(", ") || "None";

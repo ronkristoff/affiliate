@@ -206,8 +206,8 @@ export function DateCell({
     const days = Math.floor(diff / 86400000);
 
     if (format === "relative-full") {
-      if (minutes < 60) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{minutes} minutes ago</span>;
-      if (hours < 24) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{hours} hours ago</span>;
+      if (minutes < 60) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{minutes} minute{minutes !== 1 ? "s" : ""} ago</span>;
+      if (hours < 24) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{hours} hour{hours !== 1 ? "s" : ""} ago</span>;
       if (days === 1) return <span className={cn("text-[#5a5f7a]", sizeClass)}>1 day ago</span>;
       if (days < 7) return <span className={cn("text-[#5a5f7a]", sizeClass)}>{days} days ago</span>;
       const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
