@@ -17,7 +17,7 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { DataTablePagination, DEFAULT_PAGE_SIZE } from "@/components/ui/DataTablePagination";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { FilterPill, FilterPillBar } from "@/components/ui/FilterPill";
-import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter, AlertTriangle, ArrowRight } from "lucide-react";
+import { FileText, Shield, Wrench, Users, CreditCard, Clock, Filter, AlertTriangle, ArrowRight, Calendar } from "lucide-react";
 import { DateCell } from "@/components/ui/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +129,133 @@ function formatMetadata(metadata: unknown): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Tier Config Diff Renderer
+// ---------------------------------------------------------------------------
+
+const TIER_FIELD_LABELS: Record<string, string> = {
+  price: "Price",
+  maxAffiliates: "Max Affiliates",
+  maxCampaigns: "Max Campaigns",
+  maxTeamMembers: "Max Team Members",
+  maxPayoutsPerMonth: "Max Payouts/Month",
+  maxApiCalls: "Max API Calls",
+};
+
+function formatTierValue(field: string, value: unknown): string {
+  if (field === "price" && typeof value === "number") return `$${value.toLocaleString()}`;
+  if (field === "features" && typeof value === "object" && value !== null) {
+    const entries = Object.entries(value as Record<string, unknown>);
+    return entries.map(([k, v]) => `${k}${v ? " \u2713" : " \u2717"}`).join(", ") || "None";
+  }
+  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value ?? "—");
+}
+
+function TierConfigDiffRenderer({ metadata }: { metadata: Record<string, unknown> }) {
+  const before = metadata.before as Record<string, unknown> | undefined;
+  const after = metadata.after as Record<string, unknown> | undefined;
+  const tier = metadata.tier as string | undefined;
+  const affectedTenants = metadata.affectedTenants as number | undefined;
+  const decreasedLimits = metadata.decreasedLimits as Array<{ field: string; label: string; oldValue: number; newValue: number }> | undefined;
+
+  if (!before && !after) {
+    const config = (metadata.config as Record<string, unknown>) ?? (metadata.deletedConfig as Record<string, unknown>) ?? undefined;
+    if (!config) return null;
+    return (
+      <div className="mt-2 bg-[var(--bg-page)] rounded-lg border border-[var(--border-light)] overflow-hidden">
+        <table className="w-full text-[11px]">
+          <tbody>
+            {Object.entries(config).map(([field, value]) => (
+              <tr key={field} className="border-b border-[var(--border-light)] last:border-b-0">
+                <td className="px-3 py-1.5 text-[var(--text-muted)] font-medium w-36">{TIER_FIELD_LABELS[field] ?? field}</td>
+                <td className="px-3 py-1.5 text-[var(--text-body)]">{formatTierValue(field, value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  const allFields = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]);
+
+  return (
+    <div className="mt-2 space-y-2">
+      {tier && (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tier}</Badge>
+          {affectedTenants !== undefined && affectedTenants > 0 && (
+            <span className="text-[11px] text-[var(--text-muted)]">{affectedTenants} tenant{affectedTenants !== 1 ? "s" : ""} affected</span>
+          )}
+        </div>
+      )}
+
+      <div className="bg-[var(--bg-page)] rounded-lg border border-[var(--border-light)] overflow-hidden">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="border-b border-[var(--border-light)] bg-[var(--bg-page)]">
+              <th className="px-3 py-1.5 text-left text-[var(--text-muted)] font-medium w-36">Field</th>
+              <th className="px-3 py-1.5 text-left text-[var(--text-muted)] font-medium">Before</th>
+              <th className="px-3 py-1.5 text-left text-[var(--text-muted)] font-medium">After</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from(allFields).map((field) => {
+              const oldVal = before?.[field];
+              const newVal = after?.[field];
+              const isChanged = JSON.stringify(oldVal) !== JSON.stringify(newVal);
+              const isDecrease = decreasedLimits?.some((d) => d.field === field);
+
+              return (
+                <tr key={field} className={`border-b border-[var(--border-light)] last:border-b-0 ${isDecrease ? "bg-red-50/50" : ""}`}>
+                  <td className="px-3 py-1.5 text-[var(--text-muted)] font-medium">{TIER_FIELD_LABELS[field] ?? field}</td>
+                  <td className={`px-3 py-1.5 ${isChanged ? "line-through text-[var(--text-muted)]" : "text-[var(--text-body)]"}`}>
+                    {formatTierValue(field, oldVal)}
+                  </td>
+                  <td className={`px-3 py-1.5 font-medium ${isDecrease ? "text-red-600" : isChanged ? "text-emerald-600" : "text-[var(--text-body)]"}`}>
+                    {formatTierValue(field, newVal)}
+                    {isDecrease && " \u2193"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {decreasedLimits && decreasedLimits.length > 0 && (
+        <div className="flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 rounded-md px-2.5 py-1.5">
+          <AlertTriangle className="w-3 h-3 shrink-0" />
+          <span>Decreased limits may affect {affectedTenants ?? 0} tenant{affectedTenants !== 1 ? "s" : ""}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Structured Metadata Renderer
+// ---------------------------------------------------------------------------
+
+function StructuredMetadata({ entry }: { entry: AuditLogEntry }) {
+  const metadata = entry.metadata as Record<string, unknown> | undefined;
+
+  if (entry.entityType === "tier_config" && metadata) {
+    return <TierConfigDiffRenderer metadata={metadata} />;
+  }
+
+  const fallback = formatMetadata(entry.metadata ?? entry.newValue);
+  if (!fallback) return null;
+
+  return (
+    <div className="mt-1.5 text-[11px] text-[var(--text-muted)] font-mono bg-[var(--bg-page)] rounded-md px-2.5 py-1.5 max-w-[600px] truncate">
+      {fallback}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Filter Bar
 // ---------------------------------------------------------------------------
 
@@ -139,9 +266,13 @@ function FilterBar({
   selectedActions,
   selectedEntityTypes,
   selectedActorIds,
+  startDate,
+  endDate,
   onActionsChange,
   onEntityTypesChange,
   onActorIdsChange,
+  onStartDateChange,
+  onEndDateChange,
 }: {
   actionTypes: string[];
   entityTypes: string[];
@@ -149,9 +280,13 @@ function FilterBar({
   selectedActions: string[];
   selectedEntityTypes: string[];
   selectedActorIds: string[];
+  startDate: string;
+  endDate: string;
   onActionsChange: (values: string[]) => void;
   onEntityTypesChange: (values: string[]) => void;
   onActorIdsChange: (values: string[]) => void;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
 }) {
   const actionOptions = actionTypes.map((a) => ({ value: a, label: formatAction(a) }));
   const entityOptions = entityTypes.map((t) => ({ value: t, label: getEntityConfig(t).label }));
@@ -187,6 +322,25 @@ function FilterBar({
         placeholder="All Users"
         popoverWidth="w-52"
       />
+
+      <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
+        <Calendar className="w-3.5 h-3.5" />
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => onStartDateChange(e.target.value)}
+          max={endDate || undefined}
+          className="h-8 rounded-lg border border-[var(--border-light)] bg-white px-2 text-[12px] text-[var(--text-body)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]/40"
+        />
+        <span className="text-[var(--text-muted)]">to</span>
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => onEndDateChange(e.target.value)}
+          min={startDate || undefined}
+          className="h-8 rounded-lg border border-[var(--border-light)] bg-white px-2 text-[12px] text-[var(--text-body)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]/40"
+        />
+      </div>
     </div>
   );
 }
@@ -206,13 +360,11 @@ function FraudRadarSection() {
   const isLoadingFraud = fraudResult === undefined;
   const isFraudEmpty = !isLoadingFraud && fraudTenants.length === 0;
 
-  // Don't render the section if no fraud signals at all and data is loaded
   if (!isLoadingFraud && totalFlagged === 0 && isFraudEmpty) return null;
 
   return (
     <FadeIn delay={30}>
       <div className="bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm">
-        {/* Header */}
         <div className="px-5 py-4 border-b border-[var(--border-light)] bg-gradient-to-r from-red-50/50 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -235,10 +387,8 @@ function FraudRadarSection() {
           </div>
         </div>
 
-        {/* Top gradient */}
         <div className="h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
 
-        {/* Fraud table */}
         {isLoadingFraud ? (
           <div className="divide-y divide-[var(--border-light)]">
             {[...Array(3)].map((_, i) => (
@@ -264,42 +414,30 @@ function FraudRadarSection() {
                 href={`/tenants/${tenant.tenantId}?tab=overview`}
                 className="flex items-center gap-4 px-5 py-3 hover:bg-[var(--brand-light)]/20 transition-colors group"
               >
-                {/* Tenant name */}
                 <span className="text-sm font-medium text-[var(--text-heading)] min-w-0 truncate">
                   {tenant.tenantName}
                 </span>
-
-                {/* Flagged count */}
                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
                   {tenant.commissionsFlagged} flagged
                 </Badge>
-
-                {/* Confirmed */}
                 <span className="text-[12px] text-[var(--text-muted)] shrink-0">
                   {tenant.commissionsConfirmedThisMonth} confirmed
                 </span>
-
-                {/* Pending */}
                 <span className="text-[12px] text-[var(--text-muted)] shrink-0">
                   {tenant.commissionsPendingCount} pending
                 </span>
-
-                {/* Fraud rate */}
                 <Badge
                   variant={tenant.fraudRate > 0.1 ? "destructive" : tenant.fraudRate > 0.05 ? "warning" : "outline"}
                   className="text-[10px] px-1.5 py-0 shrink-0 ml-auto"
                 >
                   {(tenant.fraudRate * 100).toFixed(1)}% rate
                 </Badge>
-
-                {/* Arrow */}
                 <ArrowRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </Link>
             ))}
           </div>
         )}
 
-        {/* Bottom gradient */}
         <div className="h-px bg-gradient-to-r from-transparent via-red-200/20 to-transparent" />
       </div>
     </FadeIn>
@@ -313,19 +451,15 @@ function FraudRadarSection() {
 function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
   const entityConfig = getEntityConfig(entry.entityType);
   const entityIcon = getEntityIcon(entry.entityType);
-  const metadataPreview = formatMetadata(entry.metadata ?? entry.newValue);
 
   return (
     <div className="group px-5 py-3.5 border-b border-[var(--border-light)] last:border-b-0 hover:bg-[var(--brand-light)]/20 transition-colors">
       <div className="flex items-start gap-3.5">
-        {/* Entity icon */}
         <div className="mt-0.5 w-8 h-8 rounded-lg bg-[var(--bg-page)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
           {entityIcon}
         </div>
 
-        {/* Main content */}
         <div className="flex-1 min-w-0">
-          {/* Top row: action + entity badge + actor type badge */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold text-[var(--text-heading)]">
               {formatAction(entry.action)}
@@ -337,7 +471,6 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
             {getActorBadge(entry.actorType)}
           </div>
 
-          {/* Actor name + tenant */}
           <div className="mt-1 text-[12px] text-[var(--text-muted)]">
             {entry.actorName ? (
               <>by <span className="font-medium text-[var(--text-body)]">{entry.actorName}</span></>
@@ -346,27 +479,20 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
             )}
             {entry.tenantName && (
               <>
-                {" · "}
+                {" \u00B7 "}
                 <span className="font-medium text-[var(--text-body)]">{entry.tenantName}</span>
               </>
             )}
           </div>
 
-          {/* Metadata preview */}
-          {metadataPreview && (
-            <div className="mt-1.5 text-[11px] text-[var(--text-muted)] font-mono bg-[var(--bg-page)] rounded-md px-2.5 py-1.5 max-w-[600px] truncate">
-              {metadataPreview}
-            </div>
-          )}
+          <StructuredMetadata entry={entry} />
 
-          {/* Entity ID */}
           <div className="mt-1 text-[10px] text-[var(--text-muted)]/60 flex items-center gap-1">
             ID: {entry.entityId}
-            {entry.targetId && <> · Target: {entry.targetId}</>}
+            {entry.targetId && <> \u00B7 Target: {entry.targetId}</>}
           </div>
         </div>
 
-        {/* Timestamp */}
         <div className="shrink-0 text-right">
           <DateCell value={entry._creationTime} format="relative-full" size="sm" />
         </div>
@@ -380,14 +506,17 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
 // ---------------------------------------------------------------------------
 
 function AuditLogContent() {
-  // ── URL state via nuqs (arrays for multi-select) ──────────────────────
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const [pageSize, setPageSize] = useQueryState("pageSize", parseAsInteger.withDefault(DEFAULT_PAGE_SIZE));
   const [selectedActions, setSelectedActions] = useQueryState("action", parseAsArrayOf(parseAsString).withDefault([]));
   const [selectedEntityTypes, setSelectedEntityTypes] = useQueryState("entity", parseAsArrayOf(parseAsString).withDefault([]));
   const [selectedActorIds, setSelectedActorIds] = useQueryState("actor", parseAsArrayOf(parseAsString).withDefault([]));
+  const [startDateStr, setStartDateStr] = useQueryState("from", parseAsString.withDefault(""));
+  const [endDateStr, setEndDateStr] = useQueryState("to", parseAsString.withDefault(""));
 
-  // ── Queries ───────────────────────────────────────────────────────────
+  const startDate = startDateStr ? new Date(startDateStr + "T00:00:00").getTime() : undefined;
+  const endDate = endDateStr ? new Date(endDateStr + "T23:59:59.999").getTime() + 1 : undefined;
+
   const actionTypes = useQuery(api.admin.audit.getAuditActionTypes, {});
   const entityTypes = useQuery(api.admin.audit.getAuditEntityTypes, {});
   const actors = useQuery(api.admin.audit.getAuditActors, {});
@@ -398,21 +527,22 @@ function AuditLogContent() {
     actionFilter: selectedActions.length > 0 ? selectedActions : undefined,
     entityTypeFilter: selectedEntityTypes.length > 0 ? selectedEntityTypes : undefined,
     actorIdFilter: selectedActorIds.length > 0 ? selectedActorIds : undefined,
+    startDate,
+    endDate,
   });
 
-  // ── Reset page when filters change ────────────────────────────────────
   useEffect(() => {
     setPage(1);
-  }, [selectedActions, selectedEntityTypes, selectedActorIds, setPage]);
+  }, [selectedActions, selectedEntityTypes, selectedActorIds, startDateStr, endDateStr, setPage]);
 
-  // ── Clear all filters ─────────────────────────────────────────────────
   const handleClearAll = useCallback(() => {
     setSelectedActions([]);
     setSelectedEntityTypes([]);
     setSelectedActorIds([]);
-  }, [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds]);
+    setStartDateStr("");
+    setEndDateStr("");
+  }, [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr]);
 
-  // ── Pagination handler ────────────────────────────────────────────────
   const handlePaginationChange = useCallback(
     ({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
       setPage(newPage);
@@ -423,7 +553,6 @@ function AuditLogContent() {
     [page, pageSize, setPage, setPageSize],
   );
 
-  // ── Derived state ─────────────────────────────────────────────────────
   const isLoading = result === undefined;
   const entries = result?.page ?? [];
   const total = result?.total ?? 0;
@@ -431,9 +560,8 @@ function AuditLogContent() {
   const maxPage = isLoading ? Math.max(page, rawMaxPage) : rawMaxPage;
 
   const filtersReady = actionTypes !== undefined && entityTypes !== undefined && actors !== undefined;
-  const hasFilters = selectedActions.length > 0 || selectedEntityTypes.length > 0 || selectedActorIds.length > 0;
+  const hasFilters = selectedActions.length > 0 || selectedEntityTypes.length > 0 || selectedActorIds.length > 0 || startDateStr !== "" || endDateStr !== "";
 
-  // ── Build filter pill entries ────────────────────────────────────────
   const filterPills = (() => {
     const pills: Array<{ key: string; label: string }> = [];
     for (const action of selectedActions) {
@@ -448,33 +576,37 @@ function AuditLogContent() {
         pills.push({ key: `actor:${actorId}`, label: actor.actorName });
       }
     }
+    if (startDateStr) {
+      pills.push({ key: "date:from", label: `From: ${startDateStr}` });
+    }
+    if (endDateStr) {
+      pills.push({ key: "date:to", label: `To: ${endDateStr}` });
+    }
     return pills;
   })();
 
-  // ── Per-pill remove handler ──────────────────────────────────────────
   const handlePillRemove = useCallback(
     (key: string) => {
-      const [type, value] = key.split(":");
+      const [type, value] = key.split(":", 2);
       if (type === "action") setSelectedActions((prev) => prev.filter((v) => v !== value));
       else if (type === "entity") setSelectedEntityTypes((prev) => prev.filter((v) => v !== value));
       else if (type === "actor") setSelectedActorIds((prev) => prev.filter((v) => v !== value));
+      else if (type === "date" && value === "from") setStartDateStr("");
+      else if (type === "date" && value === "to") setEndDateStr("");
     },
-    [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds],
+    [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr],
   );
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      {/* Top Bar */}
       <PageTopbar description="Platform-wide audit trail for all tenant operations">
         <h1 className="text-[17px] font-bold text-[var(--text-heading)]">
           Audit Log
         </h1>
       </PageTopbar>
 
-      {/* Page Content */}
       <div className="px-8 pt-6 pb-8">
         <div className="space-y-5">
-          {/* Summary stats */}
           <FadeIn delay={0}>
             <div className="flex items-center gap-6 text-[12px] text-[var(--text-muted)]">
               <span className="flex items-center gap-1.5">
@@ -490,12 +622,8 @@ function AuditLogContent() {
             </div>
           </FadeIn>
 
-          {/* Fraud Radar Section */}
           <FraudRadarSection />
 
-          {/* Visual separator */}
-
-          {/* Filters */}
           <FadeIn delay={60}>
             {filtersReady ? (
               <FilterBar
@@ -505,9 +633,13 @@ function AuditLogContent() {
                 selectedActions={selectedActions}
                 selectedEntityTypes={selectedEntityTypes}
                 selectedActorIds={selectedActorIds}
+                startDate={startDateStr}
+                endDate={endDateStr}
                 onActionsChange={setSelectedActions}
                 onEntityTypesChange={setSelectedEntityTypes}
                 onActorIdsChange={setSelectedActorIds}
+                onStartDateChange={setStartDateStr}
+                onEndDateChange={setEndDateStr}
               />
             ) : (
               <div className="flex gap-3">
@@ -518,7 +650,6 @@ function AuditLogContent() {
             )}
           </FadeIn>
 
-          {/* Active filter pills */}
           {hasFilters && (
             <FadeIn delay={90}>
               <FilterPillBar
@@ -529,14 +660,11 @@ function AuditLogContent() {
             </FadeIn>
           )}
 
-          {/* Audit log list */}
           <FadeIn delay={120}>
             <div className="bg-white rounded-xl overflow-hidden border border-[var(--border-light)] shadow-sm">
-              {/* Top gradient */}
               <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/20 to-transparent" />
 
               {isLoading ? (
-                /* Loading skeleton */
                 <div className="divide-y divide-[var(--border-light)]">
                   {[...Array(pageSize)].map((_, i) => (
                     <div key={i} className="px-5 py-3.5 flex items-start gap-3.5">
@@ -555,7 +683,6 @@ function AuditLogContent() {
                   ))}
                 </div>
               ) : entries.length === 0 ? (
-                /* Empty state */
                 <div className="flex flex-col items-center justify-center py-16 text-[var(--text-muted)]">
                   <div className="w-12 h-12 rounded-full bg-[var(--brand-light)]/50 flex items-center justify-center mb-3">
                     <FileText className="w-6 h-6" />
@@ -566,7 +693,6 @@ function AuditLogContent() {
                   </p>
                 </div>
               ) : (
-                /* Entries */
                 <div className="divide-y divide-[var(--border-light)]">
                   {entries.map((entry) => (
                     <AuditLogRow key={entry._id} entry={entry} />
@@ -574,7 +700,6 @@ function AuditLogContent() {
                 </div>
               )}
 
-              {/* Pagination */}
               {!isLoading && entries.length > 0 && (
                 <DataTablePagination
                   pagination={{ page, pageSize }}
@@ -584,7 +709,6 @@ function AuditLogContent() {
                 />
               )}
 
-              {/* Bottom gradient */}
               <div className="h-px bg-gradient-to-r from-transparent via-[var(--brand-primary)]/10 to-transparent" />
             </div>
           </FadeIn>

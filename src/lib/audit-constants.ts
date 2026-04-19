@@ -142,6 +142,16 @@ export const INFRASTRUCTURE_ACTIONS = {
 } as const;
 
 // =============================================================================
+// TIER CONFIG AUDIT ACTIONS
+// =============================================================================
+
+export const TIER_CONFIG_ACTIONS = {
+  CREATED: "tier_config_created",
+  UPDATED: "tier_config_updated",
+  DELETED: "tier_config_deleted",
+} as const;
+
+// =============================================================================
 // AUTH AUDIT ACTIONS (Story 15.2)
 // =============================================================================
 
@@ -326,6 +336,11 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   commission_rejected_payment_failed: "Payment Failed",
   commission_rejected_payment_pending: "Payment Pending",
   commission_rejected_payment_unknown: "Payment Status Unknown",
+
+  // ── Tier Config (Platform Admin) ──────────────────────────────────
+  tier_config_created: "Tier Config Created",
+  tier_config_updated: "Tier Config Updated",
+  tier_config_deleted: "Tier Config Deleted",
 };
 
 // =============================================================================
@@ -448,6 +463,11 @@ export const AUDIT_SEVERITY_COLORS: Record<string, AuditSeverity> = {
   impersonated_mutation: "purple",
   self_referral_detected: "purple",
   CIRCUIT_BREAKER_STATE_CHANGE: "purple",
+
+  // Blue — platform admin config changes
+  tier_config_created: "blue",
+  tier_config_updated: "blue",
+  tier_config_deleted: "red",
 };
 
 export function getActionSeverity(action: string): AuditSeverity {

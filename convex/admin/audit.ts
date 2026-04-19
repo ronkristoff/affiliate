@@ -30,6 +30,8 @@ export const listAllAuditLogs = query({
     actionFilter: v.optional(v.array(v.string())),
     entityTypeFilter: v.optional(v.array(v.string())),
     actorIdFilter: v.optional(v.array(v.string())),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
   },
   returns: v.object({
     page: v.array(v.object({
@@ -76,6 +78,16 @@ export const listAllAuditLogs = query({
     if (args.actorIdFilter && args.actorIdFilter.length > 0) {
       queryBuilder = queryBuilder.filter((q) =>
         q.or(...args.actorIdFilter!.map((a) => q.eq(q.field("actorId"), a)))
+      );
+    }
+    if (args.startDate !== undefined) {
+      queryBuilder = queryBuilder.filter((q) =>
+        q.gte(q.field("_creationTime"), args.startDate!)
+      );
+    }
+    if (args.endDate !== undefined) {
+      queryBuilder = queryBuilder.filter((q) =>
+        q.lt(q.field("_creationTime"), args.endDate!)
       );
     }
 

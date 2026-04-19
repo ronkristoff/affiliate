@@ -345,7 +345,7 @@ export const updateTierConfig = mutation({
       // Platform-level change — tenantId is optional, use undefined
       tenantId: undefined,
       action: "tier_config_updated",
-      entityType: "tierConfigs",
+      entityType: "tier_config",
       entityId: existingConfig._id,
       actorId: admin.authId,
       actorType: "admin",
@@ -466,7 +466,7 @@ export const createTierConfig = mutation({
     await ctx.db.insert("auditLogs", {
       tenantId: undefined,
       action: "tier_config_created",
-      entityType: "tierConfigs",
+      entityType: "tier_config",
       entityId: tierConfigId,
       actorId: admin.authId,
       actorType: "admin",
@@ -527,7 +527,7 @@ export const deleteTierConfig = mutation({
     await ctx.db.insert("auditLogs", {
       tenantId: undefined,
       action: "tier_config_deleted",
-      entityType: "tierConfigs",
+      entityType: "tier_config",
       entityId: args.tierConfigId,
       actorId: admin.authId,
       actorType: "admin",
