@@ -191,6 +191,8 @@ export default defineSchema({
     isDefault: v.boolean(),
     displayOrder: v.number(),
     isActive: v.boolean(),
+    stripeProductId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
   }).index("by_tier", ["tier"])
     .index("by_default", ["isDefault"])
     .index("by_display_order", ["displayOrder"]),

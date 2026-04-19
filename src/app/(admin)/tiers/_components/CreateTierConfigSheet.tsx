@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   Sheet,
@@ -56,7 +56,7 @@ export function CreateTierConfigSheet({ onClose }: CreateTierConfigSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const createMutation = useMutation(api.admin.tier_configs.createTierConfig);
+  const createMutation = useAction(api.tierConfigActions.createTierConfigWithStripe);
 
   // Client-side validation
   const validate = useCallback((): boolean => {

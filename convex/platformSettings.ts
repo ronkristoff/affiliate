@@ -224,6 +224,37 @@ export const updatePlatformSettings = mutation({
 // Seed (internal)
 // =============================================================================
 
+export const updateStripePriceId = internalMutation({
+  args: {
+    tier: v.string(),
+    priceId: v.string(),
+    operation: v.union(v.literal("set"), v.literal("remove")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const db = ctx.db as any;
+    const existing = await db
+      .query("platformSettings")
+      .withIndex("by_key", (q: any) => q.eq("key", PLATFORM_KEY))
+      .first();
+
+    if (!existing) return null;
+
+    const current = (existing.stripePriceIds as Record<string, string>) ?? {};
+
+    let updated: Record<string, string>;
+    if (args.operation === "set") {
+      updated = { ...current, [args.tier]: args.priceId };
+    } else {
+      updated = { ...current };
+      delete updated[args.tier];
+    }
+
+    await db.patch(existing._id, { stripePriceIds: updated });
+    return null;
+  },
+});
+
 export const seedPlatformSettings = internalMutation({
   args: {},
   returns: v.null(),

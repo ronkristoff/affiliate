@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   Sheet,
@@ -84,7 +84,7 @@ export function EditTierConfigSheet({ tierConfig, onClose }: EditTierConfigSheet
   } | null>(null);
 
   // Mutations and Queries
-  const updateMutation = useMutation(api.admin.tier_configs.updateTierConfig);
+  const updateMutation = useAction(api.tierConfigActions.updateTierConfigWithStripe);
 
   // Query impact assessment when args are set
   const impactAssessment = useQuery(

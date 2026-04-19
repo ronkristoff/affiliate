@@ -1,7 +1,7 @@
 // Story 11.6: Tier Configuration Management
 // Backend mutations, queries, and internal functions for platform admin tier configuration
 
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAdmin } from "./_helpers";
 
@@ -417,13 +417,11 @@ export const createTierConfig = mutation({
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx);
 
-    // Validate tier name format
     const tierError = validateTierName(args.tier);
     if (tierError) {
       throw new Error(tierError);
     }
 
-    // Check for duplicate tier name
     const existing = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", args.tier))
@@ -433,7 +431,6 @@ export const createTierConfig = mutation({
       throw new Error(`A tier with the name "${args.tier}" already exists`);
     }
 
-    // Validate input values
     const validationErrors = validateTierConfigValues({
       price: args.price,
       maxAffiliates: args.maxAffiliates,
@@ -446,7 +443,6 @@ export const createTierConfig = mutation({
       throw new Error(validationErrors.join("; "));
     }
 
-    // Insert new tier config
     const existingCount = (await ctx.db.query("tierConfigs").collect()).length;
     const tierConfigId = await ctx.db.insert("tierConfigs", {
       tier: args.tier,
@@ -462,7 +458,6 @@ export const createTierConfig = mutation({
       isActive: true,
     });
 
-    // Create audit log
     await ctx.db.insert("auditLogs", {
       tenantId: undefined,
       action: "tier_config_created",
@@ -483,6 +478,61 @@ export const createTierConfig = mutation({
           maxApiCalls: args.maxApiCalls,
           features: args.features,
         },
+      },
+    });
+
+    return { success: true, tierConfigId };
+  },
+});
+
+export const createTierConfigInternal = internalMutation({
+  args: {
+    tier: v.string(),
+    price: v.number(),
+    maxAffiliates: v.number(),
+    maxCampaigns: v.number(),
+    maxTeamMembers: v.number(),
+    maxPayoutsPerMonth: v.number(),
+    maxApiCalls: v.number(),
+    features: featuresValidator,
+    stripeProductId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    tierConfigId: v.id("tierConfigs"),
+  }),
+  handler: async (ctx, args) => {
+    const { stripeProductId, stripePriceId, ...configArgs } = args;
+
+    const existing = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", configArgs.tier))
+      .unique();
+
+    if (existing) {
+      throw new Error(`A tier with the name "${configArgs.tier}" already exists`);
+    }
+
+    const existingCount = (await ctx.db.query("tierConfigs").collect()).length;
+    const tierConfigId = await ctx.db.insert("tierConfigs", {
+      ...configArgs,
+      isDefault: false,
+      displayOrder: existingCount + 1,
+      isActive: true,
+      stripeProductId,
+      stripePriceId,
+    });
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: undefined,
+      action: "tier_config_created",
+      entityType: "tier_config",
+      entityId: tierConfigId,
+      actorType: "system",
+      metadata: {
+        tier: args.tier,
+        stripeSynced: !!stripeProductId,
       },
     });
 
@@ -548,6 +598,25 @@ export const deleteTierConfig = mutation({
     });
 
     return { success: true, affectedTenants: 0 };
+  },
+});
+
+export const updateStripeProductIdInternal = internalMutation({
+  args: {
+    tier: v.string(),
+    stripeProductId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const config = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", args.tier))
+      .unique();
+
+    if (!config) return null;
+
+    await ctx.db.patch(config._id, { stripeProductId: args.stripeProductId });
+    return null;
   },
 });
 
@@ -841,3 +910,253 @@ async function getTenantResourceCount(
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+export const getTierConfigByTierInternal = internalQuery({
+  args: { tier: v.string() },
+  returns: v.union(
+    v.object({
+      _id: v.id("tierConfigs"),
+      tier: v.string(),
+      price: v.number(),
+      stripeProductId: v.optional(v.string()),
+      stripePriceId: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const config = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", args.tier))
+      .unique();
+    if (!config) return null;
+    return {
+      _id: config._id,
+      tier: config.tier,
+      price: config.price,
+      stripeProductId: config.stripeProductId,
+      stripePriceId: config.stripePriceId,
+    };
+  },
+});
+
+export const getUserRoleByEmail = internalQuery({
+  args: { email: v.string() },
+  returns: v.union(
+    v.object({ role: v.string() }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!user) return null;
+    return { role: user.role };
+  },
+});
+
+export const getTierConfigByIdInternal = internalQuery({
+  args: { tierConfigId: v.id("tierConfigs") },
+  returns: v.union(
+    v.object({
+      _id: v.id("tierConfigs"),
+      tier: v.string(),
+      price: v.number(),
+      stripeProductId: v.optional(v.string()),
+      stripePriceId: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const config = await ctx.db.get(args.tierConfigId);
+    if (!config) return null;
+    return {
+      _id: config._id,
+      tier: config.tier,
+      price: config.price,
+      stripeProductId: config.stripeProductId,
+      stripePriceId: config.stripePriceId,
+    };
+  },
+});
+
+export const updateTierConfigInternal = internalMutation({
+  args: {
+    tier: v.string(),
+    price: v.number(),
+    maxAffiliates: v.number(),
+    maxCampaigns: v.number(),
+    maxTeamMembers: v.number(),
+    maxPayoutsPerMonth: v.number(),
+    maxApiCalls: v.number(),
+    features: featuresValidator,
+    forceApply: v.boolean(),
+    stripePriceId: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    impactReport: v.optional(
+      v.object({
+        affectedTenants: v.number(),
+        severity: v.union(v.literal("none"), v.literal("warning"), v.literal("critical")),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const { stripePriceId, ...configArgs } = args;
+
+    const existingConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", configArgs.tier))
+      .unique();
+
+    if (!existingConfig) {
+      throw new Error(`Tier configuration not found for "${configArgs.tier}"`);
+    }
+
+    const decreasedLimits = calculateDecreasedLimits(
+      {
+        maxAffiliates: existingConfig.maxAffiliates,
+        maxCampaigns: existingConfig.maxCampaigns,
+        maxTeamMembers: existingConfig.maxTeamMembers,
+        maxPayoutsPerMonth: existingConfig.maxPayoutsPerMonth,
+        maxApiCalls: existingConfig.maxApiCalls,
+      },
+      {
+        maxAffiliates: configArgs.maxAffiliates,
+        maxCampaigns: configArgs.maxCampaigns,
+        maxTeamMembers: configArgs.maxTeamMembers,
+        maxPayoutsPerMonth: configArgs.maxPayoutsPerMonth,
+        maxApiCalls: configArgs.maxApiCalls,
+      }
+    );
+
+    let affectedTenantIds: string[] = [];
+    if (decreasedLimits.length > 0) {
+      const tenantsOnTier = await ctx.db
+        .query("tenants")
+        .filter((q) => q.eq(q.field("plan"), configArgs.tier))
+        .collect();
+
+      const affectedSet = new Set<string>();
+      for (const limit of decreasedLimits) {
+        if (limit.newValue === -1) continue;
+        for (const tenant of tenantsOnTier) {
+          const currentUsage = await getTenantResourceCount(ctx, tenant._id, limit.field);
+          if (currentUsage > limit.newValue) {
+            affectedSet.add(tenant._id);
+          }
+        }
+      }
+      affectedTenantIds = Array.from(affectedSet);
+    }
+
+    const impactSeverity = determineImpactSeverity(affectedTenantIds.length);
+
+    if (affectedTenantIds.length > 0 && !configArgs.forceApply) {
+      return {
+        success: false,
+        impactReport: {
+          affectedTenants: affectedTenantIds.length,
+          severity: impactSeverity,
+        },
+      };
+    }
+
+    const patchData: Record<string, unknown> = {
+      price: configArgs.price,
+      maxAffiliates: configArgs.maxAffiliates,
+      maxCampaigns: configArgs.maxCampaigns,
+      maxTeamMembers: configArgs.maxTeamMembers,
+      maxPayoutsPerMonth: configArgs.maxPayoutsPerMonth,
+      maxApiCalls: configArgs.maxApiCalls,
+      features: configArgs.features,
+    };
+    if (stripePriceId !== undefined) {
+      patchData.stripePriceId = stripePriceId;
+    }
+
+    await ctx.db.patch(existingConfig._id, patchData);
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: undefined,
+      action: "tier_config_updated",
+      entityType: "tier_config",
+      entityId: existingConfig._id,
+      actorType: "system",
+      metadata: {
+        tier: configArgs.tier,
+        stripeSynced: !!stripePriceId,
+        affectedTenants: affectedTenantIds.length,
+        decreasedLimits: decreasedLimits.map((l) => ({
+          field: l.field,
+          label: l.label,
+          oldValue: l.oldValue,
+          newValue: l.newValue,
+        })),
+      },
+    });
+
+    if (affectedTenantIds.length > 0) {
+      await createTierChangeNotifications(ctx, {
+        tierName: configArgs.tier,
+        decreasedLimits: decreasedLimits.map((l) => ({
+          field: l.field,
+          label: l.label,
+          oldValue: l.oldValue,
+          newValue: l.newValue,
+        })),
+        affectedTenantIds,
+      });
+    }
+
+    return {
+      success: true,
+      impactReport: affectedTenantIds.length > 0
+        ? { affectedTenants: affectedTenantIds.length, severity: impactSeverity }
+        : undefined,
+    };
+  },
+});
+
+export const deleteTierConfigInternal = internalMutation({
+  args: {
+    tierConfigId: v.id("tierConfigs"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    affectedTenants: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const config = await ctx.db.get(args.tierConfigId);
+    if (!config) {
+      throw new Error("Tier configuration not found");
+    }
+
+    const tenantsOnTier = await ctx.db
+      .query("tenants")
+      .filter((q) => q.eq(q.field("plan"), config.tier))
+      .collect();
+
+    if (tenantsOnTier.length > 0) {
+      return { success: false, affectedTenants: tenantsOnTier.length };
+    }
+
+    await ctx.db.delete(args.tierConfigId);
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: undefined,
+      action: "tier_config_deleted",
+      entityType: "tier_config",
+      entityId: args.tierConfigId,
+      actorType: "system",
+      metadata: {
+        tier: config.tier,
+        stripeSynced: !!config.stripeProductId,
+      },
+    });
+
+    return { success: true, affectedTenants: 0 };
+  },
+});
+

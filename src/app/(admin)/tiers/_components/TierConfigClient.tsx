@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -116,7 +116,7 @@ function TierConfigContent() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const tierConfigs = useQuery(api.admin.tier_configs.getAdminTierConfigs);
-  const deleteMutation = useMutation(api.admin.tier_configs.deleteTierConfig);
+  const deleteMutation = useAction(api.tierConfigActions.deleteTierConfigWithStripe);
 
   const isLoading = tierConfigs === undefined;
 
