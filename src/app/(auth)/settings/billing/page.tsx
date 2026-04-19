@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle } from "lucide-react";
+import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 function calculateEstimatedProration(
@@ -48,6 +48,7 @@ export default function BillingSettingsPage() {
   const [showCancellationWarning, setShowCancellationWarning] = useState(false);
   const [showCancellationConfirmation, setShowCancellationConfirmation] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
 
   const [billingCursor, setBillingCursor] = useState<string | null>(null);
   const [billingCursorStack, setBillingCursorStack] = useState<string[]>([]);
@@ -56,6 +57,7 @@ export default function BillingSettingsPage() {
   const upgradeTier = useMutation(api.subscriptions.upgradeTier);
   const downgradeTier = useMutation(api.subscriptions.downgradeTier);
   const cancelSubscription = useMutation(api.subscriptions.cancelSubscription);
+  const reactivateSubscription = useMutation(api.subscriptions.reactivateSubscription);
   const tierConfig = useQuery(api.tierConfig.getMyTierConfig);
   const allTierConfigs = useQuery(api.tierConfig.getAllTierConfigs);
   const tenantId = useQuery(api.auth.getCurrentTenantId);
@@ -98,6 +100,7 @@ export default function BillingSettingsPage() {
   const isOnDefaultPlan = subscription?.plan === defaultPlanName;
   const isOnHighestPlan = nextHigherPlan === null;
   const isOnLowestPlan = nextLowerPlan === null;
+  const isPastDue = subscription?.subscriptionStatus === "past_due";
 
   if (subscription === null) {
     return (
@@ -210,6 +213,24 @@ export default function BillingSettingsPage() {
     }
   };
 
+  const handlePayNow = async () => {
+    setIsReactivating(true);
+    try {
+      if (subscription?.platformPaymentProvider === "stripe") {
+        setSelectedPlan(subscription.plan);
+        setCheckoutOpen(true);
+      } else {
+        await reactivateSubscription({ mockPayment: true });
+        toast.success("Your subscription has been reactivated!");
+        setRefreshKey((k) => k + 1);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Reactivation failed");
+    } finally {
+      setIsReactivating(false);
+    }
+  };
+
   const handleDowngradeClick = () => {
     if (nextLowerPlan) {
       setSelectedDowngradeTarget(nextLowerPlan.tier);
@@ -312,7 +333,36 @@ export default function BillingSettingsPage() {
 
         <SubscriptionStatusCard onUpgradeClick={handleUpgradeClick} />
 
-        {!isOnHighestPlan && subscription?.subscriptionStatus !== "cancelled" && nextHigherPlan && (
+        {isPastDue && (
+          <Card className="border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <CreditCard className="h-5 w-5" />
+                Overdue Payment
+              </CardTitle>
+              <CardDescription className="text-amber-600 dark:text-amber-500">
+                Your subscription payment is overdue. Write operations are restricted until payment is updated.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  Pay now to reactivate your <span className="font-semibold capitalize">{subscription.plan}</span> plan and restore full access.
+                </p>
+                <Button onClick={handlePayNow} size="lg" disabled={isReactivating} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                  {isReactivating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  {isReactivating ? "Processing..." : "Pay Now"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isPastDue && !isOnHighestPlan && subscription?.subscriptionStatus !== "cancelled" && nextHigherPlan && (
           <UpgradeCTACard
             currentPlan={subscription.plan ?? ""}
             nextPlan={nextHigherPlan}
@@ -407,6 +457,7 @@ export default function BillingSettingsPage() {
           }}
           onSuccess={handleCheckoutSuccess}
           isTrialConversion={subscription?.isTrial === true}
+          isPastDuePayment={isPastDue}
         />
 
         {showUpgradeConfirmation && selectedPlan && subscription?.plan && tierConfig && nextHigherPlan && (

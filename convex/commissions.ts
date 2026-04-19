@@ -7,6 +7,7 @@ import { api, internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { betterAuthComponent } from "./auth";
 import { adjustPendingPayoutTotals } from "./tenantStats";
+import { commissionArrayValidator, commissionValidator, commissionEnrichedArrayValidator } from "./lib/validators";
 
 
 /**
@@ -481,27 +482,7 @@ export const listCommissions = query({
     campaignId: v.optional(v.id("campaigns")),
     status: v.optional(v.string()),
   },
-  returns: v.array(
-    v.object({
-      _id: v.id("commissions"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
-      campaignId: v.id("campaigns"),
-      conversionId: v.optional(v.id("conversions")),
-      amount: v.number(),
-      status: v.string(),
-      eventMetadata: v.optional(v.object({
-        source: v.string(),
-        transactionId: v.optional(v.string()),
-        timestamp: v.number(),
-      })),
-      reversalReason: v.optional(v.string()),
-      // Self-referral fraud detection fields (Story 5.6)
-      isSelfReferral: v.optional(v.boolean()),
-      fraudIndicators: v.optional(v.array(v.string())),
-    })
-  ),
+  returns: commissionArrayValidator,
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
@@ -542,28 +523,7 @@ export const getCommission = query({
   args: {
     commissionId: v.id("commissions"),
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("commissions"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
-      campaignId: v.id("campaigns"),
-      conversionId: v.optional(v.id("conversions")),
-      amount: v.number(),
-      status: v.string(),
-      eventMetadata: v.optional(v.object({
-        source: v.string(),
-        transactionId: v.optional(v.string()),
-        timestamp: v.number(),
-      })),
-      reversalReason: v.optional(v.string()),
-      // Self-referral fraud detection fields (Story 5.6)
-      isSelfReferral: v.optional(v.boolean()),
-      fraudIndicators: v.optional(v.array(v.string())),
-    }),
-    v.null()
-  ),
+  returns: v.union(commissionValidator, v.null()),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
@@ -1578,34 +1538,7 @@ function formatEventType(source: string | undefined): string {
  */
 export const listCommissionsEnriched = query({
   args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("commissions"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      affiliateId: v.id("affiliates"),
-      campaignId: v.id("campaigns"),
-      conversionId: v.optional(v.id("conversions")),
-      amount: v.number(),
-      status: v.string(),
-      eventMetadata: v.optional(v.object({
-        source: v.string(),
-        transactionId: v.optional(v.string()),
-        timestamp: v.number(),
-        subscriptionId: v.optional(v.string()),
-      })),
-      reversalReason: v.optional(v.string()),
-      transactionId: v.optional(v.string()),
-      batchId: v.optional(v.id("payoutBatches")),
-      isSelfReferral: v.optional(v.boolean()),
-      fraudIndicators: v.optional(v.array(v.string())),
-      affiliateName: v.string(),
-      affiliateEmail: v.string(),
-      campaignName: v.string(),
-      customerEmail: v.optional(v.string()),
-      planEvent: v.string(),
-    })
-  ),
+  returns: commissionEnrichedArrayValidator,
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
     if (!user) {
@@ -1733,34 +1666,7 @@ export const listCommissionsPaginated = query({
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   returns: v.object({
-    page: v.array(
-      v.object({
-        _id: v.id("commissions"),
-        _creationTime: v.number(),
-        tenantId: v.id("tenants"),
-        affiliateId: v.id("affiliates"),
-        campaignId: v.id("campaigns"),
-        conversionId: v.optional(v.id("conversions")),
-        amount: v.number(),
-        status: v.string(),
-        eventMetadata: v.optional(v.object({
-          source: v.string(),
-          transactionId: v.optional(v.string()),
-          timestamp: v.number(),
-          subscriptionId: v.optional(v.string()),
-        })),
-        reversalReason: v.optional(v.string()),
-        transactionId: v.optional(v.string()),
-        batchId: v.optional(v.id("payoutBatches")),
-        isSelfReferral: v.optional(v.boolean()),
-        fraudIndicators: v.optional(v.array(v.string())),
-        affiliateName: v.string(),
-        affiliateEmail: v.string(),
-        campaignName: v.string(),
-        customerEmail: v.optional(v.string()),
-        planEvent: v.string(),
-      })
-    ),
+    page: commissionEnrichedArrayValidator,
     total: v.number(),
     hasMore: v.boolean(),
   }),

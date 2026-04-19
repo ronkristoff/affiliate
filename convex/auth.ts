@@ -16,6 +16,7 @@ import {
   sendPasswordChanged,
 } from "./email"; // Relative path within convex/
 import authConfig from "./auth.config";
+import { userFields, tenantPublicFields } from "./lib/validators";
 
 // ── Auth audit logging helper (Story 15.2) ──
 // Non-blocking: never throws, never blocks auth operations.
@@ -540,20 +541,21 @@ export const getCurrentUser = query({
   args: {},
   returns: v.union(
     v.object({
-      _id: v.id("users"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      email: v.string(),
-      name: v.optional(v.string()),
-      role: v.string(),
+      _id: userFields._id,
+      _creationTime: userFields._creationTime,
+      tenantId: userFields.tenantId,
+      email: userFields.email,
+      name: userFields.name,
+      role: userFields.role,
+      notificationUnreadCount: userFields.notificationUnreadCount,
       tenant: v.object({
-        _id: v.id("tenants"),
-        _creationTime: v.number(),
-        name: v.string(),
-        slug: v.string(),
-        plan: v.string(),
-        status: v.string(),
-        trackingVerifiedAt: v.optional(v.number()),
+        _id: tenantPublicFields._id,
+        _creationTime: tenantPublicFields._creationTime,
+        name: tenantPublicFields.name,
+        slug: tenantPublicFields.slug,
+        plan: tenantPublicFields.plan,
+        status: tenantPublicFields.status,
+        trackingVerifiedAt: tenantPublicFields.trackingVerifiedAt,
       }),
     }),
     v.null()

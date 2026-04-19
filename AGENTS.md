@@ -358,6 +358,21 @@ const result = await q.paginate(opts);
 return { page: result.page, continueCursor: result.continueCursor, isDone: result.isDone };
 ```
 
+### Schema Change Checklist
+
+**When adding/removing/rename a field from any table in `convex/schema.ts`, you MUST also update `convex/lib/validators.ts`.** All queries that return full documents from that table import their validators from that single file.
+
+Steps:
+1. **Update the validator** in `convex/lib/validators.ts` (add/remove/rename the field)
+2. **Check queries with partial projections** — some queries intentionally return a subset of fields (e.g., `_getOwnersByTenantInternal` returns only `_id, email, name, role`). These use inline validators and should be updated only if they need the new field.
+3. **Verify** with `grep -r "v.id(\"tableName\")" convex/` to find any remaining inline validators for that table.
+4. **Test** — run the affected queries with a document that has the new field populated to confirm no `ReturnsValidationError`.
+
+```bash
+# Quick check: find all inline validators for a table (after updating shared validators)
+grep -rn 'v\.id("users")' convex/ --include="*.ts"
+```
+
 ### ⚠️ Critical: Dynamic Module Imports
 
 **Dynamic imports (`await import()`) are NOT supported in queries/mutations.** They only work in `actions` and `httpAction` (Node.js runtime). Queries/mutations run in V8 which doesn't support dynamic module loading.

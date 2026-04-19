@@ -48,7 +48,7 @@ export const createPlatformCheckout = action({
       throw new Error("Tenant not found");
     }
 
-    if (tenant.plan === args.plan) {
+    if (tenant.plan === args.plan && tenant.subscriptionStatus !== "past_due") {
       throw new Error(`You are already on the ${args.plan} plan`);
     }
 

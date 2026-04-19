@@ -21,6 +21,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   isTrialConversion?: boolean;
+  isPastDuePayment?: boolean;
 }
 
 const PROVIDER_DISPLAY: Record<PlatformProvider, { label: string; icon: string }> = {
@@ -34,6 +35,7 @@ export function CheckoutModal({
   onClose,
   onSuccess,
   isTrialConversion = false,
+  isPastDuePayment = false,
 }: CheckoutModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -76,14 +78,24 @@ export function CheckoutModal({
     return null;
   }
 
+  const title = isPastDuePayment
+    ? "Reactivate Your Plan"
+    : isTrialConversion
+      ? "Convert from Trial"
+      : "Upgrade to " + selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1);
+
+  const description = isPastDuePayment
+    ? `Update your payment method to restore your ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} subscription.`
+    : isTrialConversion
+      ? "Choose a payment method to convert your trial to a paid plan."
+      : "Choose a payment method to complete your upgrade.";
+
   if (availableProviders.length === 0) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {isTrialConversion ? "Convert from Trial" : "Complete Payment"}
-            </DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
               No payment methods are currently available. Please contact support.
             </DialogDescription>
@@ -108,14 +120,8 @@ export function CheckoutModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isTrialConversion ? "Convert from Trial" : "Upgrade to " + selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}
-          </DialogTitle>
-          <DialogDescription>
-            {isTrialConversion
-              ? "Choose a payment method to convert your trial to a paid plan."
-              : "Choose a payment method to complete your upgrade."}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {isRedirecting ? (

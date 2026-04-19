@@ -844,3 +844,75 @@ export const downgradeTier = mutation({
     };
   },
 });
+
+export const reactivateSubscription = mutation({
+  args: {
+    mockPayment: v.boolean(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    transactionId: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    if (tenant.subscriptionStatus !== "past_due") {
+      throw new Error("Only past-due subscriptions can be reactivated this way.");
+    }
+
+    const currentPlan = tenant.plan || "starter";
+    const tierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", currentPlan))
+      .unique();
+
+    const price = tierConfig?.price ?? 0;
+    const transactionId = args.mockPayment
+      ? `mock_reactivate_${Date.now()}`
+      : `reactivate_${Date.now()}`;
+
+    const now = Date.now();
+    await ctx.db.patch(authUser.tenantId, {
+      subscriptionStatus: "active",
+      pastDueSince: undefined,
+      billingStartDate: now,
+      billingEndDate: now + BILLING_CYCLE_DAYS * 24 * 60 * 60 * 1000,
+      subscriptionId: transactionId,
+    });
+
+    await ctx.db.insert("billingHistory", {
+      tenantId: authUser.tenantId,
+      event: "reactivation",
+      plan: currentPlan,
+      amount: price,
+      transactionId,
+      timestamp: now,
+    });
+
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.reactivated",
+        title: "Subscription Reactivated",
+        message: `Your ${currentPlan} plan has been reactivated. All features are now available.`,
+        severity: "success",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing",
+      });
+    } catch {}
+
+    return {
+      success: true,
+      transactionId,
+    };
+  },
+});

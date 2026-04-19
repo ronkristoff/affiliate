@@ -8,6 +8,7 @@ import { render } from "@react-email/components";
 import React from "react";
 import { sendEmail, getFromAddress } from "./emailService";
 import { readDefaultTrialDays } from "./platformSettings";
+import { userArrayValidator } from "./lib/validators";
 
 /** Milliseconds in one day. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -525,26 +526,7 @@ export const removeTeamMember = mutation({
  */
 export const getUsersByTenant = query({
   args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("users"),
-      _creationTime: v.number(),
-      tenantId: v.id("tenants"),
-      email: v.string(),
-      name: v.optional(v.string()),
-      role: v.string(),
-      status: v.optional(v.string()),
-      removedAt: v.optional(v.number()),
-      removedBy: v.optional(v.string()),
-      emailVerified: v.optional(v.boolean()),
-      permissionOverrides: v.optional(v.object({
-        canManageAffiliates: v.boolean(),
-        canManageCampaigns: v.boolean(),
-        canViewCommissions: v.boolean(),
-      })),
-      authId: v.optional(v.string()),
-    })
-  ),
+  returns: userArrayValidator,
   handler: async (ctx, _args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser) {
@@ -592,6 +574,7 @@ export const getCurrentUserProfile = query({
         name: v.optional(v.string()),
         role: v.string(),
         emailVerified: v.optional(v.boolean()),
+        notificationUnreadCount: v.optional(v.number()),
       }),
       tenant: v.object({
         _id: v.id("tenants"),

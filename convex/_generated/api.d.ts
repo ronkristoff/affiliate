@@ -59,6 +59,7 @@ import type * as lib_circuitBreaker from "../lib/circuitBreaker.js";
 import type * as lib_errorClassification from "../lib/errorClassification.js";
 import type * as lib_gracefulDegradation from "../lib/gracefulDegradation.js";
 import type * as lib_rateLimiter from "../lib/rateLimiter.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as payouts from "../payouts.js";
@@ -162,6 +163,7 @@ declare const fullApi: ApiFromModules<{
   "lib/errorClassification": typeof lib_errorClassification;
   "lib/gracefulDegradation": typeof lib_gracefulDegradation;
   "lib/rateLimiter": typeof lib_rateLimiter;
+  "lib/validators": typeof lib_validators;
   migrations: typeof migrations;
   notifications: typeof notifications;
   payouts: typeof payouts;
