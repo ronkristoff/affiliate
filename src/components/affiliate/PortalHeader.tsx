@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
 interface PortalHeaderProps {
@@ -19,15 +19,12 @@ export function PortalHeader({
   pageTitle,
   pageDescription,
 }: PortalHeaderProps) {
-  // Read primary color from CSS custom property if not explicitly provided
   const color = primaryColor || "var(--portal-primary)";
 
   const handleLogout = async () => {
     try {
       await authClient.signOut();
     } catch (error) {
-      // authClient.signOut() may fail if the Convex site sign-out handler
-      // errors out — attempt a direct fetch as fallback to clear cookies.
       console.warn("authClient.signOut() failed, attempting direct fetch:", error);
       try {
         await fetch("/api/auth/sign-out", {
@@ -40,25 +37,19 @@ export function PortalHeader({
         console.error("Direct sign-out fetch also failed:", fallbackError);
       }
     }
-    // Hard navigation to flush Convex query caches and stale session state
     window.location.href = "/portal/login";
   };
 
   return (
     <header
-      className="bg-white border-b px-4 md:px-6 h-14 flex items-center justify-between"
-      style={{
-        borderBottomColor: color,
-        borderBottomWidth: "2px",
-      }}
+      className="bg-white border-b border-slate-200 px-4 md:px-6 h-14 flex items-center justify-between shadow-sm"
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-3">
         {logoUrl ? (
           <img
             src={logoUrl}
             alt={`${portalName} logo`}
-            className="w-8 h-8 object-contain rounded"
-            style={{ backgroundColor: color }}
+            className="h-7 w-auto object-contain"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = "none";
@@ -69,33 +60,39 @@ export function PortalHeader({
           />
         ) : null}
         <div
-          className={`logo-fallback w-8 h-8 rounded flex items-center justify-center font-bold text-white text-sm ${logoUrl ? "hidden" : ""}`}
+          className={`logo-fallback h-7 px-2.5 rounded flex items-center justify-center font-bold text-white text-xs ${
+            logoUrl ? "hidden" : ""
+          }`}
           style={{ backgroundColor: color }}
         >
           {portalName.charAt(0).toUpperCase()}
         </div>
-        <div className="hidden sm:block">
-          <span className="text-sm font-bold text-gray-900">{portalName}</span>
-        </div>
+        <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+        <span className="hidden sm:block text-sm font-medium text-slate-700">
+          {portalName}
+        </span>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="hidden sm:block text-right">
-          <span className="text-sm text-gray-600 block">{pageTitle}</span>
+      <div className="flex items-center gap-3">
+        <div className="hidden md:block text-right">
+          <span className="text-sm font-medium text-slate-800 block">
+            {pageTitle}
+          </span>
           {pageDescription && (
-            <span className="text-[11px] text-gray-400 block leading-tight">
+            <span className="text-[11px] text-slate-500 block leading-tight">
               {pageDescription}
             </span>
           )}
         </div>
+        <div className="h-5 w-px bg-slate-200 hidden md:block" />
         <Button
           variant="ghost"
           size="sm"
           onClick={handleLogout}
-          className="text-gray-600 hover:text-gray-900"
+          className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
         >
-          <LogOut className="h-4 w-4 mr-1" />
-          <span className="hidden sm:inline">Sign Out</span>
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline ml-1.5">Sign Out</span>
         </Button>
       </div>
     </header>

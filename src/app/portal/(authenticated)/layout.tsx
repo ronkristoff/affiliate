@@ -32,32 +32,36 @@ function AuthenticatedLayoutContent({
 
   const affiliate = useQuery(api.affiliateAuth.getCurrentAffiliate);
 
-  // Still loading
   if (affiliate === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "color-mix(in srgb, var(--portal-primary, #1c2260) 5%, #f8fafc)" }}
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
       </div>
     );
   }
 
-  // Session expired or not authenticated
   if (affiliate === null) {
     const callbackUrl = encodeURIComponent(pathname);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-muted-foreground" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "color-mix(in srgb, var(--portal-primary, #1c2260) 5%, #f8fafc)" }}
+      >
+        <div className="text-center space-y-4 max-w-sm p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className="mx-auto w-14 h-14 rounded-xl flex items-center justify-center bg-slate-100">
+            <Loader2 className="w-7 h-7 text-slate-500" />
           </div>
-          <h1 className="text-lg font-bold text-gray-900">Session Expired</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-lg font-semibold text-slate-800">Session Expired</h1>
+          <p className="text-sm text-slate-500">
             Your session has expired. Please sign in again to continue.
           </p>
           <Button
             onClick={() => router.push(`/portal/login?callbackUrl=${callbackUrl}`)}
-            variant="outline"
             size="sm"
+            className="w-full bg-[var(--portal-primary)] hover:opacity-90"
           >
             Sign in again
           </Button>
@@ -65,6 +69,8 @@ function AuthenticatedLayoutContent({
       </div>
     );
   }
+
+  const primaryColor = affiliate.tenant?.branding?.primaryColor || "#1c2260";
 
   // Derive branding from affiliate's tenant
   const portalName =
@@ -78,7 +84,10 @@ function AuthenticatedLayoutContent({
   const pageDescription = getPageDescription(pathname);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor: "color-mix(in srgb, var(--portal-primary, #1c2260) 5%, #f8fafc)" }}
+    >
       <PortalHeader
         logoUrl={logoUrl}
         portalName={portalName}
@@ -88,7 +97,7 @@ function AuthenticatedLayoutContent({
 
       <div className="flex">
         <PortalSidebar portalName={portalName} />
-        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-8">
           {children}
         </main>
       </div>

@@ -40,7 +40,7 @@ function EarningsPageContent() {
   }
 
   return (
-    <div className="max-w-[640px] md:max-w-[720px] mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <PayoutBanner
         confirmedBalance={earningsSummary?.confirmedBalance || 0}
         nextPayoutDate={tenantPayoutSchedule?.nextPayoutDate}
@@ -75,7 +75,7 @@ function EarningsPageContent() {
 
 function EarningsSkeleton() {
   return (
-    <div className="max-w-[640px] md:max-w-[720px] mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <Skeleton className="h-16 w-full rounded-xl" />
       <Skeleton className="h-36 w-full rounded-2xl" />
       <Skeleton className="h-16 w-full rounded-lg" />

@@ -34,12 +34,11 @@ interface PortalBottomNavProps {
 export function PortalBottomNav({ items = DEFAULT_NAV_ITEMS }: PortalBottomNavProps) {
   const currentPath = usePathname();
 
-  // Show first 5 items inline, rest in "More..." popover
   const visibleItems = items.slice(0, 5);
   const overflowItems = items.slice(5);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--portal-primary)] border-t-2 h-16 md:hidden z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 md:hidden z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
       <div className="flex justify-around items-center h-full px-1">
         {visibleItems.map((item) => {
           const isActive = currentPath === item.href;
@@ -48,13 +47,15 @@ export function PortalBottomNav({ items = DEFAULT_NAV_ITEMS }: PortalBottomNavPr
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 h-full ${
-                isActive ? "" : "text-gray-500"
-              }`}
-              style={isActive ? { color: "var(--portal-primary)" } : undefined}
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 h-full transition-colors",
+                isActive 
+                  ? "text-[var(--portal-primary)]" 
+                  : "text-slate-500 hover:text-slate-700"
+              )}
             >
               <Icon className="h-5 w-5" />
-              <span className="text-[10px] mt-0.5 leading-tight">{item.name}</span>
+              <span className="text-[10px] mt-0.5 font-medium">{item.name}</span>
             </Link>
           );
         })}
@@ -73,21 +74,18 @@ function OverflowMenu({ items, currentPath }: { items: NavItem[]; currentPath: s
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" asChild>
-          <button
-            className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full",
-              items.some((i) => i.href === currentPath) ? "" : "text-gray-500"
-            )}
-            style={
-              items.some((i) => i.href === currentPath)
-                ? { color: "var(--portal-primary)" }
-                : undefined
-            }
-          >
-            <MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] mt-0.5 leading-tight">More</span>
-          </button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className={cn(
+            "flex flex-col items-center justify-center flex-1 h-full -mt-1",
+            items.some((i) => i.href === currentPath) 
+              ? "text-[var(--portal-primary)]" 
+              : "text-slate-500"
+          )}
+        >
+          <MoreHorizontal className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5 font-medium">More</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent side="top" align="end" className="w-48 p-2 mb-2">
@@ -100,11 +98,12 @@ function OverflowMenu({ items, currentPath }: { items: NavItem[]; currentPath: s
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
                     ? "bg-[var(--portal-primary)]/10 text-[var(--portal-primary)]"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                    : "text-slate-600 hover:bg-slate-100"
+                )}
               >
                 <Icon className="h-4 w-4" />
                 {item.name}

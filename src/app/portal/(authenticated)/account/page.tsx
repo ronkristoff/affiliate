@@ -33,10 +33,9 @@ function AccountPageContent() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      {/* Page Title */}
       <div>
-        <h1 className="text-xl font-extrabold text-gray-900">Account Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-xl font-bold text-slate-800">Account Settings</h1>
+        <p className="text-sm text-slate-500 mt-1">
           View and manage your affiliate account information
         </p>
       </div>

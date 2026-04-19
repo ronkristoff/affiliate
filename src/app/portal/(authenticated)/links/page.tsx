@@ -40,9 +40,8 @@ function LinksPageContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Page Title */}
-      <h1 className="text-xl font-extrabold text-gray-900">Links</h1>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <h1 className="text-xl font-bold text-slate-800">Links</h1>
 
       {/* Referral Link Card */}
       {affiliateLinks && affiliateLinks.length > 0 ? (
