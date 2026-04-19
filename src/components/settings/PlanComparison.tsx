@@ -10,38 +10,11 @@ import { ArrowRight, ArrowUp, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PlanComparisonProps {
-  currentPlan: "starter" | "growth" | "scale";
-  targetPlan: "growth" | "scale";
+  currentPlan: string;
+  targetPlan: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
-
-const PLAN_FEATURES = {
-  starter: {
-    affiliates: 100,
-    campaigns: 3,
-    teamMembers: 5,
-    analytics: "basic",
-    advancedAnalytics: false,
-    prioritySupport: false,
-  },
-  growth: {
-    affiliates: 5000,
-    campaigns: 10,
-    teamMembers: 20,
-    analytics: "advanced",
-    advancedAnalytics: true,
-    prioritySupport: false,
-  },
-  scale: {
-    affiliates: "Unlimited",
-    campaigns: "Unlimited",
-    teamMembers: "Unlimited",
-    analytics: "enterprise",
-    advancedAnalytics: true,
-    prioritySupport: true,
-  },
-};
 
 const FEATURE_LABELS = {
   affiliates: "Affiliates",
@@ -52,7 +25,26 @@ const FEATURE_LABELS = {
   prioritySupport: "Priority Support",
 };
 
-type FeatureKey = keyof typeof PLAN_FEATURES.starter;
+type FeatureKey = keyof typeof FEATURE_LABELS;
+
+function getTierFeatureValue(tier: any, feature: FeatureKey): string | number | boolean {
+  switch (feature) {
+    case "affiliates":
+      return tier.maxAffiliates === -1 ? "Unlimited" : tier.maxAffiliates;
+    case "campaigns":
+      return tier.maxCampaigns === -1 ? "Unlimited" : tier.maxCampaigns;
+    case "teamMembers":
+      return tier.maxTeamMembers === -1 ? "Unlimited" : tier.maxTeamMembers;
+    case "analytics":
+      return tier.features?.advancedAnalytics ? "advanced" : "basic";
+    case "advancedAnalytics":
+      return tier.features?.advancedAnalytics ?? false;
+    case "prioritySupport":
+      return tier.features?.prioritySupport ?? false;
+    default:
+      return false;
+  }
+}
 
 export function PlanComparison({
   currentPlan,
@@ -91,9 +83,9 @@ export function PlanComparison({
 
   const renderFeatureValue = (
     feature: FeatureKey,
-    plan: "starter" | "growth" | "scale"
+    tier: any
   ) => {
-    const value = PLAN_FEATURES[plan][feature];
+    const value = getTierFeatureValue(tier, feature);
 
     if (typeof value === "boolean") {
       return value ? (
@@ -107,23 +99,23 @@ export function PlanComparison({
   };
 
   const isUpgrade = (feature: FeatureKey) => {
-    const current = PLAN_FEATURES[currentPlan][feature];
-    const target = PLAN_FEATURES[targetPlan][feature];
+    const currentValue = getTierFeatureValue(currentTier, feature);
+    const targetValue = getTierFeatureValue(targetTier, feature);
 
-    if (typeof current === "boolean" && typeof target === "boolean") {
-      return target && !current;
+    if (typeof currentValue === "boolean" && typeof targetValue === "boolean") {
+      return targetValue && !currentValue;
     }
 
-    if (typeof current === "string" && typeof target === "string") {
+    if (typeof currentValue === "string" && typeof targetValue === "string") {
       const tiers = ["basic", "advanced", "enterprise"];
-      return tiers.indexOf(target) > tiers.indexOf(current);
+      return tiers.indexOf(targetValue) > tiers.indexOf(currentValue);
     }
 
-    if (typeof current === "number" && typeof target === "number") {
-      return target > current;
+    if (typeof currentValue === "number" && typeof targetValue === "number") {
+      return targetValue > currentValue;
     }
 
-    return target === "Unlimited" && current !== "Unlimited";
+    return targetValue === "Unlimited" && currentValue !== "Unlimited";
   };
 
   const features: FeatureKey[] = [
@@ -176,7 +168,7 @@ export function PlanComparison({
                   <span className="text-muted-foreground">
                     {FEATURE_LABELS[feature]}
                   </span>
-                  {renderFeatureValue(feature, currentPlan)}
+                  {renderFeatureValue(feature, currentTier)}
                 </li>
               ))}
             </ul>
@@ -209,7 +201,7 @@ export function PlanComparison({
                     {FEATURE_LABELS[feature]}
                   </span>
                   <div className="flex items-center gap-1">
-                    {renderFeatureValue(feature, targetPlan)}
+                    {renderFeatureValue(feature, targetTier)}
                     {isUpgrade(feature) && (
                       <ArrowUp className="h-3 w-3 text-green-600" />
                     )}

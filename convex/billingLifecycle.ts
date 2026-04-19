@@ -174,11 +174,13 @@ export const enforceBillingLifecycle = internalMutation({
 
       // ─── Check 2: Past due detection ─────────────────────────────
       // active → past_due when billingEndDate passes
+      // SKIP for Stripe-backed subscriptions — Stripe manages its own billing cycles
       if (
         subStatus === "active" &&
         billingEnd &&
         billingEnd < now &&
-        (!trialEnd || trialEnd < now)
+        (!trialEnd || trialEnd < now) &&
+        !freshTenant.platformPaymentProvider
       ) {
         await ctx.db.patch(freshTenant._id, {
           subscriptionStatus: "past_due",
@@ -225,10 +227,12 @@ export const enforceBillingLifecycle = internalMutation({
 
       // ─── Check 3: Grace period expiry ────────────────────────────
       // past_due → cancelled when 7-day grace expires
+      // SKIP for Stripe-backed subscriptions
       if (
         subStatus === "past_due" &&
         pastDueSince &&
-        (now - pastDueSince) > GRACE_PERIOD_MS
+        (now - pastDueSince) > GRACE_PERIOD_MS &&
+        !freshTenant.platformPaymentProvider
       ) {
         await ctx.db.patch(freshTenant._id, {
           subscriptionStatus: "cancelled",

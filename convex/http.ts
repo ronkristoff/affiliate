@@ -2,16 +2,126 @@ import "./polyfills";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { betterAuthComponent, createAuth } from "./auth";
-import { internal, api } from "./_generated/api";
+import { internal, api, components } from "./_generated/api";
 import { apiCallsDirect } from "./aggregates";
 import { buildRateLimitKey, extractIp, ENDPOINT_CONFIGS } from "./lib/rateLimiter";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { normalizeToBillingEvent, normalizeStripeToBillingEvent } from "./webhooks";
+import { registerRoutes } from "@convex-dev/stripe";
 
 const http = httpRouter();
 
 betterAuthComponent.registerRoutes(http, createAuth as any);
+
+registerRoutes(http, components.stripe, {
+  webhookPath: "/stripe/webhook",
+  events: {
+    "customer.subscription.updated": async (ctx, event) => {
+      const sub = event.data.object as any;
+      const userId = sub.metadata?.userId;
+      const plan = sub.metadata?.plan;
+      const tenantId = sub.metadata?.tenantId;
+
+      if (!userId || !tenantId) return;
+
+      await ctx.runMutation(internal.platformBillingInternal.syncStripeSubscriptionToTenant, {
+        stripeSubscriptionId: sub.id,
+        status: sub.status,
+        priceId: typeof sub.items?.data?.[0]?.price?.id === "string" ? sub.items.data[0].price.id : undefined,
+        currentPeriodEnd: sub.current_period_end ? sub.current_period_end * 1000 : undefined,
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+        userId,
+        plan,
+        tenantId,
+      });
+
+      if (sub.status === "canceled") {
+        try {
+          await ctx.runMutation(
+            internal.billingLifecycle.pauseAllActiveCampaignsForTenant,
+            { tenantId: tenantId as any }
+          );
+        } catch (err) {
+          console.error(`[Stripe Webhook] Failed to pause campaigns for tenant ${tenantId}:`, err);
+        }
+      }
+    },
+    "customer.subscription.deleted": async (ctx, event) => {
+      const sub = event.data.object as any;
+      const userId = sub.metadata?.userId;
+      const plan = sub.metadata?.plan;
+      const tenantId = sub.metadata?.tenantId;
+
+      if (!userId || !tenantId) return;
+
+      await ctx.runMutation(internal.platformBillingInternal.syncStripeSubscriptionToTenant, {
+        stripeSubscriptionId: sub.id,
+        status: "canceled",
+        userId,
+        plan,
+        tenantId,
+      });
+
+      await ctx.runMutation(
+        internal.billingLifecycle.pauseAllActiveCampaignsForTenant,
+        { tenantId: tenantId as any }
+      );
+    },
+    "checkout.session.completed": async (ctx, event) => {
+      const session = event.data.object as any;
+      const metadata = session.metadata;
+      const tenantId = metadata?.tenantId;
+      const plan = metadata?.plan;
+      const isPlatformBilling = metadata?.isPlatformBilling === "true";
+
+      if (!isPlatformBilling || !tenantId || !plan) return;
+
+      const userId = metadata?.userId;
+      if (!userId) return;
+
+      const subId = typeof session.subscription === "string"
+        ? session.subscription
+        : session.subscription?.id;
+
+      if (!subId) return;
+
+      await ctx.runMutation(internal.platformBillingInternal.syncStripeSubscriptionToTenant, {
+        stripeSubscriptionId: subId,
+        status: "active",
+        plan,
+        userId,
+        tenantId,
+      });
+    },
+    "invoice.paid": async (ctx, event) => {
+      const invoice = event.data.object as any;
+      const subId = typeof invoice.subscription === "string"
+        ? invoice.subscription
+        : invoice.subscription?.id;
+
+      if (!subId) return;
+
+      const subIdStr = subId as string;
+
+      const tenant = await ctx.runQuery(
+        internal.platformBillingInternal.getTenantByStripeSubscriptionId,
+        { stripeSubscriptionId: subIdStr }
+      );
+
+      if (!tenant) return;
+
+      await ctx.runMutation(internal.platformBillingInternal.syncStripeSubscriptionToTenant, {
+        stripeSubscriptionId: subIdStr,
+        status: "active",
+        currentPeriodEnd: invoice.period_end ? invoice.period_end * 1000 : undefined,
+        userId: tenant._id,
+        tenantId: tenant._id,
+        plan: tenant.plan,
+      });
+    },
+  },
+});
 
 // CORS headers for webhook endpoints
 const webhookCorsHeaders = {

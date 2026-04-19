@@ -79,12 +79,21 @@ export default defineSchema({
     // Onboarding state
     onboardingCompleted: v.optional(v.boolean()), // true once user finishes the onboarding wizard
     onboardingCompletedAt: v.optional(v.number()), // timestamp of completion
+    // Platform billing provider (how tenant pays the salig-affiliate platform)
+    // Distinct from billingProvider which is merchant Connect (how tenants receive payments)
+    platformPaymentProvider: v.optional(v.union(
+      v.literal("stripe"),
+      v.literal("saligpay"),
+    )),
+    stripeSubscriptionId: v.optional(v.string()), // Stripe subscription ID for platform billing
+    stripeCustomerId: v.optional(v.string()),      // Stripe customer ID for platform billing
   }).index("by_slug", ["slug"])
     .index("by_domain", ["domain"])
     .index("by_tracking_key", ["trackingPublicKey"])
     .index("by_status", ["status"])
     .index("by_plan", ["plan"])
-    .index("by_stripe_account_id", ["stripeAccountId"]),
+    .index("by_stripe_account_id", ["stripeAccountId"])
+    .index("by_stripeSubscriptionId", ["stripeSubscriptionId"]),
 
   // Brand Asset Library table (Story 8.6)
   // Stores marketing assets uploaded by SaaS Owner for affiliates to access
@@ -179,7 +188,12 @@ export default defineSchema({
       advancedAnalytics: v.boolean(),
       prioritySupport: v.boolean(),
     }),
-  }).index("by_tier", ["tier"]),
+    isDefault: v.boolean(),
+    displayOrder: v.number(),
+    isActive: v.boolean(),
+  }).index("by_tier", ["tier"])
+    .index("by_default", ["isDefault"])
+    .index("by_display_order", ["displayOrder"]),
 
   // Task 3: Campaign & Affiliate Tables
   campaigns: defineTable({
@@ -811,7 +825,11 @@ export default defineSchema({
   platformSettings: defineTable({
     key: v.string(),                  // Singleton key: "platform"
     defaultTrialDays: v.number(),     // Free trial duration in days (default: 14)
-    // Future settings can be added here (e.g., defaultGracePeriodDays, maxTrialExtensionDays)
+    enabledPlatformProviders: v.optional(v.array(v.union(
+      v.literal("stripe"),
+      v.literal("saligpay"),
+    ))),
+    stripePriceIds: v.optional(v.record(v.string(), v.string())), // plan name → Stripe Price ID
   }).index("by_key", ["key"]),
 
   // Materialized tenant leaderboard for platform analytics.

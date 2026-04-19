@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SubscriptionStatusCard } from "@/components/settings/SubscriptionStatusCard";
 import { UsageStatsCard } from "@/components/settings/UsageStatsCard";
 import { BillingHistoryTable } from "@/components/settings/BillingHistoryTable";
 import { PlanSelectionCard } from "@/components/settings/PlanSelectionCard";
-import { MockCheckoutModal } from "@/components/settings/MockCheckoutModal";
+import { CheckoutModal } from "@/components/settings/CheckoutModal";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { UpgradeConfirmationDialog } from "@/components/settings/UpgradeConfirmationDialog";
 import { DowngradeWarningDialog } from "@/components/settings/DowngradeWarningDialog";
@@ -22,57 +22,33 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Id } from "@/convex/_generated/dataModel";
 
-// Helper to get tier price (₱ PHP)
-function getTierPrice(plan: "growth" | "scale", currentConfig: { tier: string; price: number } | null): number {
-  // Use actual tier config price if available, otherwise use defaults
-  if (currentConfig) {
-    // Look up the target plan price from all configs
-    // Fall through to defaults below if not found
-  }
-  
-  const prices: Record<string, number> = {
-    starter: 0,
-    growth: 2499,
-    scale: 4999,
-  };
-  return prices[plan] || 0;
-}
-
-// Calculate estimated proration for display in confirmation dialog
 function calculateEstimatedProration(
   currentPrice: number,
-  targetPlan: "growth" | "scale",
-  currentConfig: { tier: string; price: number } | null
+  targetPrice: number
 ): number {
-  const targetPrice = getTierPrice(targetPlan, currentConfig);
   const priceDiff = targetPrice - currentPrice;
-  // Assume mid-cycle (15 days remaining) for estimation
   const dailyRate = priceDiff / 30;
   return Math.ceil(dailyRate * 15);
 }
 
 export default function BillingSettingsPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"growth" | "scale" | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPlanComparison, setShowPlanComparison] = useState(false);
   const [showUpgradeConfirmation, setShowUpgradeConfirmation] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Downgrade state
   const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
   const [showDowngradeConfirmation, setShowDowngradeConfirmation] = useState(false);
-  const [selectedDowngradeTarget, setSelectedDowngradeTarget] = useState<"growth" | "starter" | null>(null);
+  const [selectedDowngradeTarget, setSelectedDowngradeTarget] = useState<string | null>(null);
   const [isDowngrading, setIsDowngrading] = useState(false);
 
-  // Cancellation state
   const [showCancellationWarning, setShowCancellationWarning] = useState(false);
   const [showCancellationConfirmation, setShowCancellationConfirmation] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Billing history pagination - maintain cursor stack for proper navigation
   const [billingCursor, setBillingCursor] = useState<string | null>(null);
   const [billingCursorStack, setBillingCursorStack] = useState<string[]>([]);
 
@@ -81,16 +57,48 @@ export default function BillingSettingsPage() {
   const downgradeTier = useMutation(api.subscriptions.downgradeTier);
   const cancelSubscription = useMutation(api.subscriptions.cancelSubscription);
   const tierConfig = useQuery(api.tierConfig.getMyTierConfig);
+  const allTierConfigs = useQuery(api.tierConfig.getAllTierConfigs);
   const tenantId = useQuery(api.auth.getCurrentTenantId);
   const usage = useQuery(api.subscriptions.getUsageStats);
   const billingHistory = useQuery(api.subscriptions.getBillingHistory, {
     paginationOpts: { numItems: 10, cursor: billingCursor },
   });
 
-  // Combined loading state - wait for all required data
   const isLoading = subscription === undefined || tierConfig === undefined || usage === undefined || billingHistory === undefined;
 
-  // Handle error state
+  const defaultPlanName = useMemo(() => {
+    if (!allTierConfigs) return "starter";
+    const defaultTier = allTierConfigs.find((t) => t.isDefault);
+    return defaultTier?.tier ?? allTierConfigs[0]?.tier ?? "starter";
+  }, [allTierConfigs]);
+
+  const paidPlans = useMemo(() => {
+    if (!allTierConfigs) return [];
+    return allTierConfigs.filter((t) => !t.isDefault && t.isActive);
+  }, [allTierConfigs]);
+
+  const nextHigherPlan = useMemo(() => {
+    if (!tierConfig || !paidPlans.length) return null;
+    const currentPrice = tierConfig.price;
+    const higherPlans = paidPlans.filter((p) => p.price > currentPrice);
+    if (higherPlans.length === 0) return null;
+    higherPlans.sort((a, b) => a.price - b.price);
+    return higherPlans[0];
+  }, [tierConfig, paidPlans]);
+
+  const nextLowerPlan = useMemo(() => {
+    if (!tierConfig || !allTierConfigs) return null;
+    const currentPrice = tierConfig.price;
+    const lowerPlans = allTierConfigs.filter((p) => p.isActive && p.price < currentPrice);
+    if (lowerPlans.length === 0) return null;
+    lowerPlans.sort((a, b) => b.price - a.price);
+    return lowerPlans[0];
+  }, [tierConfig, allTierConfigs]);
+
+  const isOnDefaultPlan = subscription?.plan === defaultPlanName;
+  const isOnHighestPlan = nextHigherPlan === null;
+  const isOnLowestPlan = nextLowerPlan === null;
+
   if (subscription === null) {
     return (
       <div className="animate-fade-in">
@@ -105,8 +113,8 @@ export default function BillingSettingsPage() {
               Unable to load your subscription information. Please try refreshing the page or contact support if the problem persists.
             </AlertDescription>
           </Alert>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             variant="outline"
           >
             Refresh Page
@@ -132,42 +140,35 @@ export default function BillingSettingsPage() {
   }
 
   const handleUpgradeClick = () => {
-    // For Starter plan, show plan selection first
-    // For Growth plan, directly show comparison to Scale
-    if (subscription?.plan === "starter") {
-      setSelectedPlan("growth");
-      setShowPlanComparison(true);
-    } else if (subscription?.plan === "growth") {
-      setSelectedPlan("scale");
+    if (nextHigherPlan) {
+      setSelectedPlan(nextHigherPlan.tier);
       setShowPlanComparison(true);
     }
   };
 
   const handleTrialConversionClick = () => {
-    setSelectedPlan("growth");
-    setCheckoutOpen(true);
+    if (paidPlans.length > 0) {
+      setSelectedPlan(paidPlans[0].tier);
+      setCheckoutOpen(true);
+    }
   };
 
-  const handleSelectPlan = (plan: "growth" | "scale") => {
+  const handleSelectPlan = (plan: string) => {
     setSelectedPlan(plan);
     setShowPlanComparison(true);
   };
 
   const handleCheckoutSuccess = () => {
-    // Trigger a refresh of the subscription data
     setRefreshKey((k) => k + 1);
   };
 
   const handlePlanComparisonConfirm = () => {
-    // For upgrades from paid plans, show confirmation dialog first
-    if (subscription?.plan && subscription?.plan !== "starter") {
-      // Already on a paid plan - show confirmation dialog
-      setShowPlanComparison(false);
-      setShowUpgradeConfirmation(true);
-    } else {
-      // Starter plan - proceed to checkout for new subscription
+    if (isOnDefaultPlan) {
       setShowPlanComparison(false);
       setCheckoutOpen(true);
+    } else {
+      setShowPlanComparison(false);
+      setShowUpgradeConfirmation(true);
     }
   };
 
@@ -191,16 +192,14 @@ export default function BillingSettingsPage() {
 
     setIsUpgrading(true);
     try {
-      const result = await upgradeTier({
-        targetPlan: selectedPlan,
-        mockPayment: true,
-      });
-
-      if (result.success) {
-        toast.success(
-          `Successfully upgraded to ${selectedPlan}! Prorated charge: ₱${result.proratedAmount}`
-        );
-        setCheckoutOpen(false);
+      if (subscription?.platformPaymentProvider === "stripe") {
+        setCheckoutOpen(true);
+      } else {
+        await upgradeTier({
+          targetPlan: selectedPlan,
+          mockPayment: true,
+        });
+        toast.success(`Successfully upgraded to ${selectedPlan}!`);
         setSelectedPlan(null);
         setRefreshKey((k) => k + 1);
       }
@@ -211,12 +210,11 @@ export default function BillingSettingsPage() {
     }
   };
 
-  // Downgrade handlers
   const handleDowngradeClick = () => {
-    // Determine target plan (one tier down)
-    const targetPlan = subscription?.plan === "scale" ? "growth" : "starter";
-    setSelectedDowngradeTarget(targetPlan);
-    setShowDowngradeWarning(true);
+    if (nextLowerPlan) {
+      setSelectedDowngradeTarget(nextLowerPlan.tier);
+      setShowDowngradeWarning(true);
+    }
   };
 
   const handleDowngradeWarningConfirm = () => {
@@ -258,7 +256,6 @@ export default function BillingSettingsPage() {
     setSelectedDowngradeTarget(null);
   };
 
-  // Cancellation handlers
   const handleCancellationClick = () => {
     setShowCancellationWarning(true);
   };
@@ -278,9 +275,7 @@ export default function BillingSettingsPage() {
       const result = await cancelSubscription({});
 
       if (result.success) {
-        toast.success(
-          "Your subscription has been cancelled. You will receive a confirmation email shortly."
-        );
+        toast.success("Your subscription has been cancelled. You will receive a confirmation email shortly.");
         setShowCancellationConfirmation(false);
         setRefreshKey((k) => k + 1);
       }
@@ -295,10 +290,9 @@ export default function BillingSettingsPage() {
     setShowCancellationConfirmation(false);
   };
 
-  // Determine if we should show trial warning
   const showTrialWarning = subscription?.isTrial && subscription?.trialEndsAt;
-  const trialStatus = showTrialWarning && subscription.trialEndsAt 
-    ? getTrialStatus(subscription.trialEndsAt) 
+  const trialStatus = showTrialWarning && subscription.trialEndsAt
+    ? getTrialStatus(subscription.trialEndsAt)
     : "normal";
   const showWarningBanner = showTrialWarning && (trialStatus === "warning" || trialStatus === "urgent");
 
@@ -309,218 +303,192 @@ export default function BillingSettingsPage() {
       </PageTopbar>
       <div className="px-8 py-6 space-y-6">
 
-      {/* Trial Warning Banner - shown when trial is ending soon */}
-      {showWarningBanner && subscription.trialEndsAt && (
-        <TrialWarningBanner
-          trialEndsAt={subscription.trialEndsAt}
-          onConvertToPaid={handleTrialConversionClick}
-        />
-      )}
+        {showWarningBanner && subscription.trialEndsAt && (
+          <TrialWarningBanner
+            trialEndsAt={subscription.trialEndsAt}
+            onConvertToPaid={handleTrialConversionClick}
+          />
+        )}
 
-      {/* Subscription Status */}
-      <SubscriptionStatusCard onUpgradeClick={handleUpgradeClick} />
+        <SubscriptionStatusCard onUpgradeClick={handleUpgradeClick} />
 
-      {/* Upgrade CTA Card - show for starter and growth plans */}
-      {subscription?.plan !== "scale" && subscription?.subscriptionStatus !== "cancelled" && (
-        <UpgradeCTACard
-          currentPlan={subscription.plan as "starter" | "growth"}
-          onUpgrade={handleUpgradeClick}
-        />
-      )}
+        {!isOnHighestPlan && subscription?.subscriptionStatus !== "cancelled" && nextHigherPlan && (
+          <UpgradeCTACard
+            currentPlan={subscription.plan ?? ""}
+            nextPlan={nextHigherPlan}
+            onUpgrade={handleUpgradeClick}
+          />
+        )}
 
-      {/* Downgrade CTA Card - show for growth and scale plans */}
-      {subscription?.plan !== "starter" && subscription?.subscriptionStatus === "active" && (
-        <DowngradeCTACard
-          currentPlan={subscription.plan as "growth" | "scale"}
-          onDowngrade={handleDowngradeClick}
-        />
-      )}
+        {!isOnLowestPlan && subscription?.subscriptionStatus === "active" && nextLowerPlan && (
+          <DowngradeCTACard
+            currentPlanPrice={tierConfig?.price ?? 0}
+            nextLowerPlan={nextLowerPlan}
+            onDowngrade={handleDowngradeClick}
+          />
+        )}
 
-      {/* Cancel CTA Card - show only for active subscriptions (not cancelled, not trial) */}
-      {subscription?.subscriptionStatus === "active" && subscription?.plan !== "starter" && (
-        <CancelCTACard
-          currentPlan={subscription.plan as "growth" | "scale"}
-          onCancel={handleCancellationClick}
-        />
-      )}
+        {subscription?.subscriptionStatus === "active" && !isOnDefaultPlan && (
+          <CancelCTACard
+            currentPlan={subscription.plan ?? ""}
+            onCancel={handleCancellationClick}
+          />
+        )}
 
-      {/* Cancellation Retention Card - show for cancelled subscriptions */}
-      {subscription?.subscriptionStatus === "cancelled" && subscription.billingEndDate && subscription.cancellationDate && (
-        <CancellationRetentionCard
-          billingEndDate={subscription.billingEndDate}
-          cancellationDate={subscription.cancellationDate}
-          deletionScheduledDate={subscription.deletionScheduledDate || (subscription.billingEndDate + 30 * 24 * 60 * 60 * 1000)}
-        />
-      )}
+        {subscription?.subscriptionStatus === "cancelled" && subscription.billingEndDate && subscription.cancellationDate && (
+          <CancellationRetentionCard
+            billingEndDate={subscription.billingEndDate}
+            cancellationDate={subscription.cancellationDate}
+            deletionScheduledDate={subscription.deletionScheduledDate || (subscription.billingEndDate + 30 * 24 * 60 * 60 * 1000)}
+          />
+        )}
 
-      {/* Plan Selection - only show for starter plan */}
-      {subscription?.plan === "starter" && (
-        <PlanSelectionCard
-          currentPlan={subscription.plan}
-          onSelectPlan={handleSelectPlan}
-        />
-      )}
+        {isOnDefaultPlan && (
+          <PlanSelectionCard
+            currentPlan={subscription.plan ?? ""}
+            onSelectPlan={handleSelectPlan}
+          />
+        )}
 
-      {/* Usage Statistics - AC3 */}
-      {usage && tierConfig && (
-        <UsageStatsCard
-          usage={usage}
-          limits={{
-            maxAffiliates: tierConfig.maxAffiliates,
-            maxCampaigns: tierConfig.maxCampaigns,
-            maxTeamMembers: tierConfig.maxTeamMembers,
+        {usage && tierConfig && (
+          <UsageStatsCard
+            usage={usage}
+            limits={{
+              maxAffiliates: tierConfig.maxAffiliates,
+              maxCampaigns: tierConfig.maxCampaigns,
+              maxTeamMembers: tierConfig.maxTeamMembers,
+            }}
+            onUpgrade={!isOnHighestPlan && subscription?.subscriptionStatus !== "cancelled" ? handleUpgradeClick : undefined}
+          />
+        )}
+
+        {billingHistory && (
+          <BillingHistoryTable
+            events={billingHistory.page as any}
+            isLoading={billingHistory === undefined}
+            hasMore={!billingHistory.isDone && !!billingHistory.continueCursor}
+            hasPrevious={billingCursorStack.length > 0}
+            onNext={() => {
+              if (billingHistory.continueCursor) {
+                setBillingCursorStack(prev => [...prev, billingCursor].filter(Boolean) as string[]);
+                setBillingCursor(billingHistory.continueCursor);
+              }
+            }}
+            onPrevious={() => {
+              if (billingCursorStack.length > 0) {
+                const newStack = [...billingCursorStack];
+                const prevCursor = newStack.pop();
+                setBillingCursorStack(newStack);
+                setBillingCursor(prevCursor || null);
+              }
+            }}
+          />
+        )}
+
+        {showPlanComparison && selectedPlan && subscription?.plan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <PlanComparison
+                currentPlan={subscription.plan}
+                targetPlan={selectedPlan}
+                onConfirm={handlePlanComparisonConfirm}
+                onCancel={handlePlanComparisonCancel}
+              />
+            </div>
+          </div>
+        )}
+
+        <CheckoutModal
+          isOpen={checkoutOpen && selectedPlan !== null}
+          selectedPlan={selectedPlan}
+          onClose={() => {
+            setCheckoutOpen(false);
+            setSelectedPlan(null);
           }}
-          onUpgrade={subscription?.plan !== "scale" && subscription?.subscriptionStatus !== "cancelled" ? handleUpgradeClick : undefined}
+          onSuccess={handleCheckoutSuccess}
+          isTrialConversion={subscription?.isTrial === true}
         />
-      )}
 
-      {/* Billing History - AC4 */}
-      {billingHistory && (
-        <BillingHistoryTable
-          events={billingHistory.page as any}
-          isLoading={billingHistory === undefined}
-          hasMore={!billingHistory.isDone && !!billingHistory.continueCursor}
-          hasPrevious={billingCursorStack.length > 0}
-          onNext={() => {
-            if (billingHistory.continueCursor) {
-              // Push current cursor to stack before advancing
-              setBillingCursorStack(prev => [...prev, billingCursor].filter(Boolean) as string[]);
-              setBillingCursor(billingHistory.continueCursor);
-            }
-          }}
-          onPrevious={() => {
-            // Pop previous cursor from stack
-            if (billingCursorStack.length > 0) {
-              const newStack = [...billingCursorStack];
-              const prevCursor = newStack.pop();
-              setBillingCursorStack(newStack);
-              setBillingCursor(prevCursor || null);
-            }
-          }}
-        />
-      )}
+        {showUpgradeConfirmation && selectedPlan && subscription?.plan && tierConfig && nextHigherPlan && (
+          <UpgradeConfirmationDialog
+            isOpen={showUpgradeConfirmation}
+            currentPlan={subscription.plan}
+            targetPlan={selectedPlan}
+            proratedAmount={calculateEstimatedProration(tierConfig.price, nextHigherPlan.price)}
+            newMonthlyAmount={nextHigherPlan.price}
+            onConfirm={handleUpgradeConfirmationConfirm}
+            onCancel={handleUpgradeConfirmationCancel}
+            isLoading={isUpgrading}
+          />
+        )}
 
-      {/* Plan Comparison Modal */}
-      {showPlanComparison && selectedPlan && subscription?.plan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-            <PlanComparison
-              currentPlan={subscription.plan as "starter" | "growth" | "scale"}
-              targetPlan={selectedPlan}
-              onConfirm={handlePlanComparisonConfirm}
-              onCancel={handlePlanComparisonCancel}
-            />
+        {showDowngradeWarning && selectedDowngradeTarget && subscription?.plan && tenantId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <DowngradeWarningDialog
+                currentPlan={subscription.plan}
+                targetPlan={selectedDowngradeTarget}
+                effectiveDate={subscription.billingEndDate || Date.now()}
+                tenantId={tenantId}
+                onConfirm={handleDowngradeWarningConfirm}
+                onCancel={handleDowngradeWarningCancel}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Mock Checkout Modal - for new subscriptions from starter or trial conversions */}
-      <MockCheckoutModal
-        isOpen={checkoutOpen && selectedPlan !== null}
-        selectedPlan={selectedPlan}
-        onClose={() => {
-          setCheckoutOpen(false);
-          setSelectedPlan(null);
-        }}
-        onSuccess={handleCheckoutSuccess}
-        // Show as trial conversion only if user is actually on trial
-        isTrialConversion={subscription?.isTrial === true}
-      />
-
-      {/* Upgrade Confirmation Dialog */}
-      {showUpgradeConfirmation && selectedPlan && subscription?.plan && tierConfig && (
-        <UpgradeConfirmationDialog
-          isOpen={showUpgradeConfirmation}
-          currentPlan={subscription.plan}
-          targetPlan={selectedPlan}
-          proratedAmount={calculateEstimatedProration(
-            tierConfig.price,
-            selectedPlan,
-            tierConfig
-          )}
-          newMonthlyAmount={getTierPrice(selectedPlan, tierConfig)}
-          onConfirm={handleUpgradeConfirmationConfirm}
-          onCancel={handleUpgradeConfirmationCancel}
-          isLoading={isUpgrading}
-        />
-      )}
-
-      {/* Downgrade Warning Dialog */}
-      {showDowngradeWarning && selectedDowngradeTarget && subscription?.plan && tenantId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-            <DowngradeWarningDialog
-              currentPlan={subscription.plan as "scale" | "growth"}
-              targetPlan={selectedDowngradeTarget}
-              effectiveDate={subscription.billingEndDate || Date.now()}
-              tenantId={tenantId}
-              onConfirm={handleDowngradeWarningConfirm}
-              onCancel={handleDowngradeWarningCancel}
-            />
+        {showDowngradeConfirmation && selectedDowngradeTarget && subscription?.plan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <DowngradeConfirmationDialog
+                currentPlan={subscription.plan}
+                targetPlan={selectedDowngradeTarget}
+                effectiveDate={subscription.billingEndDate || Date.now()}
+                onConfirm={handleDowngradeConfirmationConfirm}
+                onCancel={handleDowngradeConfirmationCancel}
+                isLoading={isDowngrading}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Downgrade Confirmation Dialog */}
-      {showDowngradeConfirmation && selectedDowngradeTarget && subscription?.plan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-            <DowngradeConfirmationDialog
-              currentPlan={subscription.plan as "scale" | "growth"}
-              targetPlan={selectedDowngradeTarget}
-              effectiveDate={subscription.billingEndDate || Date.now()}
-              onConfirm={handleDowngradeConfirmationConfirm}
-              onCancel={handleDowngradeConfirmationCancel}
-              isLoading={isDowngrading}
-            />
+        {showCancellationWarning && subscription?.plan && subscription?.billingEndDate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <CancellationWarningDialog
+                currentPlan={subscription.plan}
+                billingEndDate={subscription.billingEndDate}
+                onConfirm={handleCancellationWarningConfirm}
+                onCancel={handleCancellationWarningCancel}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Cancellation Warning Dialog */}
-      {showCancellationWarning && subscription?.plan && subscription?.billingEndDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-            <CancellationWarningDialog
-              currentPlan={subscription.plan as "starter" | "growth" | "scale"}
-              billingEndDate={subscription.billingEndDate}
-              onConfirm={handleCancellationWarningConfirm}
-              onCancel={handleCancellationWarningCancel}
-            />
+        {showCancellationConfirmation && subscription?.plan && subscription?.billingEndDate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <CancellationConfirmationDialog
+                currentPlan={subscription.plan}
+                billingEndDate={subscription.billingEndDate}
+                onConfirm={handleCancellationConfirmationConfirm}
+                onCancel={handleCancellationConfirmationCancel}
+              />
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Cancellation Confirmation Dialog */}
-      {showCancellationConfirmation && subscription?.plan && subscription?.billingEndDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
-            <CancellationConfirmationDialog
-              currentPlan={subscription.plan as "starter" | "growth" | "scale"}
-              billingEndDate={subscription.billingEndDate}
-              onConfirm={handleCancellationConfirmationConfirm}
-              onCancel={handleCancellationConfirmationCancel}
-            />
-          </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
 }
 
 interface UpgradeCTACardProps {
-  currentPlan: "starter" | "growth";
+  currentPlan: string;
+  nextPlan: { tier: string; price: number; maxAffiliates: number; maxCampaigns: number; features: { advancedAnalytics: boolean; prioritySupport: boolean; customDomain: boolean } };
   onUpgrade: () => void;
 }
 
-function UpgradeCTACard({ currentPlan, onUpgrade }: UpgradeCTACardProps) {
-  const nextTier = currentPlan === "starter" ? "growth" : "scale";
-  const features =
-    currentPlan === "starter"
-      ? ["Up to 5,000 affiliates", "10 campaigns", "Advanced analytics"]
-      : ["Unlimited affiliates", "Unlimited campaigns", "Priority support"];
-
+function UpgradeCTACard({ currentPlan, nextPlan, onUpgrade }: UpgradeCTACardProps) {
   return (
     <Card>
       <CardHeader>
@@ -536,20 +504,43 @@ function UpgradeCTACard({ currentPlan, onUpgrade }: UpgradeCTACardProps) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Next tier</p>
-            <p className="text-lg font-semibold capitalize">{nextTier}</p>
+            <p className="text-lg font-semibold capitalize">{nextPlan.tier}</p>
+            <p className="mt-1 text-sm font-medium">₱{nextPlan.price.toLocaleString()}/month</p>
             <ul className="mt-2 space-y-1">
-              {features.map((feature, i) => (
-                <li
-                  key={i}
-                  className="text-sm text-muted-foreground flex items-center gap-2"
-                >
-                  <span className="text-green-500">✓</span> {feature}
+              {nextPlan.maxAffiliates === -1 && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Unlimited affiliates
                 </li>
-              ))}
+              )}
+              {nextPlan.maxAffiliates !== -1 && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Up to {nextPlan.maxAffiliates.toLocaleString()} affiliates
+                </li>
+              )}
+              {nextPlan.maxCampaigns === -1 && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Unlimited campaigns
+                </li>
+              )}
+              {nextPlan.maxCampaigns !== -1 && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Up to {nextPlan.maxCampaigns} campaigns
+                </li>
+              )}
+              {nextPlan.features.advancedAnalytics && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Advanced analytics
+                </li>
+              )}
+              {nextPlan.features.prioritySupport && (
+                <li className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="text-green-500">✓</span> Priority support
+                </li>
+              )}
             </ul>
           </div>
           <Button onClick={onUpgrade} size="lg">
-            Upgrade to {nextTier}
+            Upgrade to {nextPlan.tier}
           </Button>
         </div>
       </CardContent>
@@ -558,13 +549,13 @@ function UpgradeCTACard({ currentPlan, onUpgrade }: UpgradeCTACardProps) {
 }
 
 interface DowngradeCTACardProps {
-  currentPlan: "growth" | "scale";
+  currentPlanPrice: number;
+  nextLowerPlan: { tier: string; price: number };
   onDowngrade: () => void;
 }
 
-function DowngradeCTACard({ currentPlan, onDowngrade }: DowngradeCTACardProps) {
-  const lowerTier = currentPlan === "scale" ? "growth" : "starter";
-  const savings = currentPlan === "scale" ? 2500 : 2499;
+function DowngradeCTACard({ currentPlanPrice, nextLowerPlan, onDowngrade }: DowngradeCTACardProps) {
+  const savings = currentPlanPrice - nextLowerPlan.price;
 
   return (
     <Card>
@@ -581,13 +572,13 @@ function DowngradeCTACard({ currentPlan, onDowngrade }: DowngradeCTACardProps) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Next lower tier</p>
-            <p className="text-lg font-semibold capitalize">{lowerTier}</p>
+            <p className="text-lg font-semibold capitalize">{nextLowerPlan.tier}</p>
             <p className="mt-2 text-sm text-green-600">
               Save ₱{savings.toLocaleString()}/month
             </p>
           </div>
           <Button onClick={onDowngrade} variant="outline" size="lg">
-            Downgrade to {lowerTier}
+            Downgrade to {nextLowerPlan.tier}
           </Button>
         </div>
       </CardContent>
@@ -596,7 +587,7 @@ function DowngradeCTACard({ currentPlan, onDowngrade }: DowngradeCTACardProps) {
 }
 
 interface CancelCTACardProps {
-  currentPlan: "growth" | "scale";
+  currentPlan: string;
   onCancel: () => void;
 }
 

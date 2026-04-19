@@ -316,7 +316,7 @@ function ExecutionRow({ execution }: { execution: CronExecution }) {
 }
 
 function CronJobsContent() {
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"success" | "failed" | "running" | null>(null);
   const [jobNameFilter, setJobNameFilter] = useState<string | null>(null);
   const [togglingJob, setTogglingJob] = useState<string | null>(null);
   const [accumulatedExecutions, setAccumulatedExecutions] = useState<CronExecution[]>([]);
@@ -499,7 +499,7 @@ function CronJobsContent() {
                 <Select
                   value={statusFilter ?? "all"}
                   onValueChange={(v) =>
-                    setStatusFilter(v === "all" ? null : v)
+                    setStatusFilter(v === "all" ? null : (v as "success" | "failed" | "running"))
                   }
                 >
                   <SelectTrigger className="text-[12px] h-7 w-[160px]">

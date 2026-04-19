@@ -11,31 +11,55 @@ import { format } from "date-fns";
 import { Id } from "@/convex/_generated/dataModel";
 
 interface DowngradeWarningDialogProps {
-  currentPlan: "scale" | "growth";
-  targetPlan: "growth" | "starter";
+  currentPlan: string;
+  targetPlan: string;
   effectiveDate: number;
   tenantId: Id<"tenants">;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-const LOST_FEATURES = {
-  scale_to_growth: [
-    "Unlimited affiliates → 5,000 affiliates limit",
-    "Unlimited campaigns → 10 campaigns limit",
-    "Priority support → Standard support",
-    "Unlimited team members → 20 team members limit",
-    "Unlimited payouts → 100 payouts per month limit",
-  ],
-  growth_to_starter: [
-    "5,000 affiliates → 100 affiliates limit",
-    "10 campaigns → 3 campaigns limit",
-    "Custom domain support removed",
-    "Advanced analytics → Basic analytics only",
-    "20 team members → 5 team members limit",
-    "100 payouts per month → 10 payouts per month limit",
-  ],
+const LIMIT_LABELS: Record<string, string> = {
+  maxAffiliates: "affiliates",
+  maxCampaigns: "campaigns",
+  maxTeamMembers: "team members",
+  maxPayoutsPerMonth: "payouts per month",
+  maxApiCalls: "API calls per month",
 };
+
+const FEATURE_LABELS: Record<string, string> = {
+  advancedAnalytics: "Advanced analytics",
+  prioritySupport: "Priority support",
+  customDomain: "Custom domain support",
+};
+
+function formatLimit(value: number): string {
+  return value === -1 ? "Unlimited" : value.toLocaleString();
+}
+
+function buildLostFeatures(current: any, target: any): string[] {
+  const features: string[] = [];
+
+  const limitFields = ["maxAffiliates", "maxCampaigns", "maxTeamMembers", "maxPayoutsPerMonth", "maxApiCalls"];
+  for (const field of limitFields) {
+    const currentVal = current[field] ?? -1;
+    const targetVal = target[field] ?? -1;
+    if (currentVal !== targetVal) {
+      features.push(`${formatLimit(currentVal)} ${LIMIT_LABELS[field]} → ${formatLimit(targetVal)} limit`);
+    }
+  }
+
+  const boolFields = ["advancedAnalytics", "prioritySupport", "customDomain"];
+  for (const field of boolFields) {
+    const currentVal = current.features?.[field] ?? false;
+    const targetVal = target.features?.[field] ?? false;
+    if (currentVal && !targetVal) {
+      features.push(`${FEATURE_LABELS[field]} removed`);
+    }
+  }
+
+  return features;
+}
 
 interface UsageData {
   affiliates: { current: number; limit: number };
@@ -55,11 +79,12 @@ export function DowngradeWarningDialog({
   const tierLimits = useQuery(api.tierConfig.getAllTierConfigs);
   const allLimits = useQuery(api.tierConfig.getAllLimits, { tenantId });
 
-  const lostFeaturesKey = `${currentPlan}_to_${targetPlan}` as keyof typeof LOST_FEATURES;
-  const lostFeatures = LOST_FEATURES[lostFeaturesKey] || [];
-
-  // Get target tier limits
+  const currentTierConfig = tierLimits?.find((t) => t.tier === currentPlan);
   const targetTierConfig = tierLimits?.find((t) => t.tier === targetPlan);
+
+  const lostFeatures = currentTierConfig && targetTierConfig
+    ? buildLostFeatures(currentTierConfig, targetTierConfig)
+    : [];
 
   // Check which resources would exceed new limits
   const exceededResources: string[] = [];
@@ -111,11 +136,12 @@ export function DowngradeWarningDialog({
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Warning: You will lose features</AlertTitle>
         <AlertDescription>
-          Downgrading to {targetPlan} will remove access to the following
-          features:
+          Downgrading to <span className="capitalize">{targetPlan}</span> will reduce your
+          resource limits.
         </AlertDescription>
       </Alert>
 
+      {lostFeatures.length > 0 && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Features Being Removed</CardTitle>
@@ -131,6 +157,7 @@ export function DowngradeWarningDialog({
           </ul>
         </CardContent>
       </Card>
+      )}
 
       {/* Usage vs Limits Comparison */}
       {allLimits && targetTierConfig && (

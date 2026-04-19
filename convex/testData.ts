@@ -1987,12 +1987,38 @@ export const seedAllTestData = internalMutation({
       errors.push(`Error creating platform admin: ${error instanceof Error ? error.message : String(error)}`);
     }
 
+    try {
+      await ctx.runMutation(internal.tierConfig.seedTierConfigs, {});
+    } catch (error) {
+      errors.push(`Error seeding tier configs: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     return {
       success: errors.length === 0,
       credentials,
       stats,
       errors,
     };
+  },
+});
+
+/**
+ * Seeds tier configurations (starter, growth, scale) from DEFAULT_TIER_CONFIGS.
+ * Run after seedAllTestData to populate the tierConfigs table.
+ */
+export const seedTierConfigsStandalone = internalMutation({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx) => {
+    try {
+      await ctx.runMutation(internal.tierConfig.seedTierConfigs, {});
+      return { success: true, message: "Tier configs seeded successfully" };
+    } catch (error) {
+      return { success: false, message: `Error: ${error instanceof Error ? error.message : String(error)}` };
+    }
   },
 });
 

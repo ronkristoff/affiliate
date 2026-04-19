@@ -64,6 +64,8 @@ import type * as notifications from "../notifications.js";
 import type * as payouts from "../payouts.js";
 import type * as performance from "../performance.js";
 import type * as permissions from "../permissions.js";
+import type * as platformBilling from "../platformBilling.js";
+import type * as platformBillingInternal from "../platformBillingInternal.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as queryBuilder from "../queryBuilder.js";
 import type * as queryBuilder__utils from "../queryBuilder/_utils.js";
@@ -165,6 +167,8 @@ declare const fullApi: ApiFromModules<{
   payouts: typeof payouts;
   performance: typeof performance;
   permissions: typeof permissions;
+  platformBilling: typeof platformBilling;
+  platformBillingInternal: typeof platformBillingInternal;
   platformSettings: typeof platformSettings;
   queryBuilder: typeof queryBuilder;
   "queryBuilder/_utils": typeof queryBuilder__utils;
@@ -233,6 +237,7 @@ export declare const internal: FilterApi<
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  stripe: import("@convex-dev/stripe/_generated/component.js").ComponentApi<"stripe">;
   aggregate: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregate">;
   affiliateByStatus: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"affiliateByStatus">;
   commissionByStatus: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"commissionByStatus">;

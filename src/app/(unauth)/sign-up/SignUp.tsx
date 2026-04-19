@@ -29,7 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { cn } from "@/lib/utils";
 
-type PlanKey = "starter" | "growth" | "scale";
+type PlanKey = string;
 
 interface PlanInfo {
   name: string;
@@ -133,7 +133,7 @@ export default function SignUp() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const completeSignUpMutation = useMutation(api.users.completeSignUp);
 
-  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("growth");
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("starter");
   const [isAnnual, setIsAnnual] = useState(false);
 
   const form = useForm<SignUpFormValues>({
@@ -151,6 +151,14 @@ export default function SignUp() {
   });
 
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
+
+  const defaultTier = allTiers?.find((t: any) => t.isDefault) ?? allTiers?.[0];
+
+  useEffect(() => {
+    if (allTiers && allTiers.length > 0 && !allTiers.some((t: any) => t.tier === selectedPlan)) {
+      setSelectedPlan(defaultTier?.tier ?? "starter");
+    }
+  }, [allTiers, defaultTier, selectedPlan]);
 
   const password = form.watch("password");
   const emailValue = form.watch("email");
@@ -312,11 +320,11 @@ export default function SignUp() {
   };
 
   const tierByName = allTiers.reduce((acc, tier) => {
-    acc[tier.tier as PlanKey] = getPlanInfo(tier);
+    acc[tier.tier] = getPlanInfo(tier);
     return acc;
-  }, {} as Record<PlanKey, PlanInfo>);
+  }, {} as Record<string, PlanInfo>);
 
-  const plans: Record<PlanKey, PlanInfo> = tierByName;
+  const plans = tierByName;
 
   const currentPlan = plans[selectedPlan];
 
@@ -604,10 +612,10 @@ export default function SignUp() {
 
             {/* Plan Cards */}
             <div className="grid grid-cols-3 gap-2.5">
-              {(Object.keys(plans) as PlanKey[]).map((planKey) => {
+              {(Object.keys(plans) as string[]).map((planKey) => {
                 const plan = plans[planKey]!;
                 const isSelected = selectedPlan === planKey;
-                const isPopular = planKey === "growth";
+                const isDefault = allTiers.find(t => t.tier === planKey)?.isDefault ?? false;
 
                 return (
                   <button
@@ -620,7 +628,7 @@ export default function SignUp() {
                         : "border-[#e5e7eb] bg-white hover:border-[#c7d5f0] hover:bg-[#fafbff]"
                     }`}
                   >
-                    {isPopular && (
+                    {isDefault && (
                       <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#1c2260] text-white text-[9px] font-bold uppercase tracking-wider rounded-full px-2.5 py-[2px] whitespace-nowrap leading-tight">
                         Popular
                       </div>

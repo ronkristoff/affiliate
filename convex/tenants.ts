@@ -73,11 +73,15 @@ export const createTenant = internalMutation({
     const defaultTrialDays: number = await readDefaultTrialDays(ctx);
     const trialEndsAt: number = Date.now() + defaultTrialDays * MS_PER_DAY;
 
+    const defaultPlanName = await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return (dt && dt.isActive) ? dt.tier : "starter";
+    })();
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,
       slug: args.slug,
       domain: args.domain,
-      plan: "starter",
+      plan: defaultPlanName,
       trialEndsAt,
       status: "active",
       branding: {
@@ -85,14 +89,13 @@ export const createTenant = internalMutation({
       },
     });
 
-    // Create audit log entry
     await ctx.db.insert("auditLogs", {
       tenantId,
       action: "tenant_created",
       entityType: "tenant",
       entityId: tenantId,
       actorType: "system",
-      newValue: { name: args.name, slug: args.slug, domain: args.domain, plan: "starter" },
+      newValue: { name: args.name, slug: args.slug, domain: args.domain, plan: defaultPlanName },
     });
 
     // Seed denormalized tenantStats counters

@@ -166,11 +166,13 @@ export const getPlatformRevenueMetrics = query({
     cancelledCount: v.number(),
     churnedMRR: v.number(),
     trialConversionRate: v.number(),
-    starterCount: v.number(),
-    growthCount: v.number(),
-    scaleCount: v.number(),
-    growthMRR: v.number(),
-    scaleMRR: v.number(),
+    defaultPlanCount: v.number(),
+    paidPlanCount: v.number(),
+    paidPlanMRR: v.number(),
+    planDistribution: v.record(v.string(), v.object({
+      count: v.number(),
+      mrr: v.number(),
+    })),
   }),
   handler: async (ctx) => {
     await requireAdmin(ctx);
@@ -201,22 +203,25 @@ export const getPlatformRevenueMetrics = query({
     let activeCount = 0;
     let pastDueCount = 0;
     let cancelledCount = 0;
-    let starterCount = 0;
-    let growthCount = 0;
-    let scaleCount = 0;
-    let growthMRR = 0;
-    let scaleMRR = 0;
+    let defaultPlanCount = 0;
+    let paidPlanCount = 0;
+    let paidPlanMRR = 0;
+    const planDistribution = new Map<string, { count: number; mrr: number }>();
     let trialConvertedCount = 0;
     let payingFromTrial = 0;
 
     const now = Date.now();
 
+    // Get default plan name for isDefaultPlan checks
+    const defaultTierDoc = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+      .first();
+    const defaultPlanName = (defaultTierDoc && defaultTierDoc.isActive) ? defaultTierDoc.tier : "starter";
+
     for (const tenant of allTenants) {
       const price = tierPriceMap.get(tenant.plan) ?? 0;
 
-      // Derive effective subscription status — mirrors the logic in
-      // subscriptions.ts (getSubscriptionStatus) so that tenants whose
-      // subscriptionStatus is still undefined in the DB are still counted.
       let status: "trial" | "active" | "past_due" | "cancelled" | undefined;
       const isTrial = tenant.trialEndsAt ? tenant.trialEndsAt > now : false;
       if (isTrial) {
@@ -227,7 +232,7 @@ export const getPlatformRevenueMetrics = query({
         tenant.subscriptionStatus === "past_due"
       ) {
         status = tenant.subscriptionStatus as "active" | "cancelled" | "past_due";
-      } else if (tenant.plan !== "starter") {
+      } else if (tenant.plan !== defaultPlanName) {
         status = "active";
       }
 
@@ -244,19 +249,24 @@ export const getPlatformRevenueMetrics = query({
         churnedMRR += price;
       }
 
-      // Plan distribution
-      if (tenant.plan === "starter") starterCount++;
-      else if (tenant.plan === "growth") {
-        growthCount++;
-        if (status === "active" || status === "past_due") growthMRR += price;
-      } else if (tenant.plan === "scale") {
-        scaleCount++;
-        if (status === "active" || status === "past_due") scaleMRR += price;
+      // Dynamic plan distribution
+      const existing = planDistribution.get(tenant.plan) ?? { count: 0, mrr: 0 };
+      existing.count++;
+      if ((status === "active" || status === "past_due") && tenant.plan !== defaultPlanName) {
+        existing.mrr += price;
+      }
+      planDistribution.set(tenant.plan, existing);
+
+      if (tenant.plan === defaultPlanName) {
+        defaultPlanCount++;
+      } else {
+        paidPlanCount++;
+        if (status === "active" || status === "past_due") paidPlanMRR += price;
       }
 
-      // Track trial conversion: tenant was on trial (has past trial end) and is now paying
+      // Track trial conversion
       const wasOnTrial = tenant.trialEndsAt !== undefined && tenant.trialEndsAt <= now;
-      const isNowPaying = (status === "active" || status === "past_due") && tenant.plan !== "starter";
+      const isNowPaying = (status === "active" || status === "past_due") && tenant.plan !== defaultPlanName;
       if (wasOnTrial) {
         trialConvertedCount++;
         if (isNowPaying) {
@@ -267,7 +277,6 @@ export const getPlatformRevenueMetrics = query({
 
     totalMRR = activeMRR + pastDueMRR;
 
-    // Trial conversion rate: percentage of expired-trial tenants that converted to paid
     const trialConversionRate = trialConvertedCount > 0
       ? Math.round((payingFromTrial / trialConvertedCount) * 100)
       : 0;
@@ -282,11 +291,10 @@ export const getPlatformRevenueMetrics = query({
       cancelledCount,
       churnedMRR,
       trialConversionRate,
-      starterCount,
-      growthCount,
-      scaleCount,
-      growthMRR,
-      scaleMRR,
+      defaultPlanCount,
+      paidPlanCount,
+      paidPlanMRR,
+      planDistribution: Object.fromEntries(planDistribution),
     };
   },
 });
@@ -384,11 +392,7 @@ export const getRecentSubscriptionActivity = query({
 export const adminChangePlan = mutation({
   args: {
     tenantId: v.id("tenants"),
-    targetPlan: v.union(
-      v.literal("starter"),
-      v.literal("growth"),
-      v.literal("scale")
-    ),
+    targetPlan: v.string(),
     reason: v.string(),
   },
   returns: v.object({
@@ -408,24 +412,30 @@ export const adminChangePlan = mutation({
       throw new Error("Target plan is the same as current plan");
     }
 
+    const targetTierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", args.targetPlan))
+      .unique();
+
+    if (!targetTierConfig) {
+      throw new Error(`Plan "${args.targetPlan}" not found in tierConfigs`);
+    }
+
     const previousPlan = tenant.plan;
     const now = Date.now();
     const billingEndDate = now + 30 * 24 * 60 * 60 * 1000;
+    const amount = targetTierConfig.price;
 
-    // Determine new subscriptionStatus
+    const defaultPlanName = await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return (dt && dt.isActive) ? dt.tier : "starter";
+    })();
+    const isDefaultPlan = args.targetPlan === defaultPlanName;
+
     let newSubscriptionStatus = tenant.subscriptionStatus;
-    if (tenant.subscriptionStatus === "trial" && args.targetPlan !== "starter") {
+    if (tenant.subscriptionStatus === "trial" && !isDefaultPlan) {
       newSubscriptionStatus = "active";
     }
-
-    // Get target plan price
-    const targetTierConfig = await ctx.db
-      .query("tierConfigs")
-      .withIndex("by_tier", (q: any) => q.eq("tier", args.targetPlan))
-      .first();
-    const amount = targetTierConfig?.price
-      ?? DEFAULT_TIER_CONFIGS[args.targetPlan as keyof typeof DEFAULT_TIER_CONFIGS]?.price
-      ?? 0;
 
     // Generate mock transaction ID
     const subscriptionId = `admin_plan_change_${Date.now()}`;
@@ -438,13 +448,13 @@ export const adminChangePlan = mutation({
     };
 
     // Set billing dates only for paid plans
-    if (args.targetPlan !== "starter") {
+    if (!isDefaultPlan) {
       patchFields.billingStartDate = now;
       patchFields.billingEndDate = billingEndDate;
     }
 
     // If upgrading from trial, clear trialEndsAt
-    if (tenant.subscriptionStatus === "trial" && args.targetPlan !== "starter") {
+    if (tenant.subscriptionStatus === "trial" && !isDefaultPlan) {
       patchFields.trialEndsAt = undefined;
     }
 
@@ -710,8 +720,12 @@ export const adminReactivateSubscription = mutation({
       cancelledReason: undefined,
     };
 
-    // Set billing dates only for paid plans (starter is free — no billing cycle)
-    if (tenant.plan !== "starter") {
+    // Set billing dates only for paid plans (non-default tier — free plans have no billing cycle)
+    const isDefaultPlan = (await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return (dt && dt.isActive) ? dt.tier : "starter";
+    })());
+    if (tenant.plan !== isDefaultPlan) {
       patchFields.billingStartDate = now;
       patchFields.billingEndDate = now + 30 * 24 * 60 * 60 * 1000;
     }

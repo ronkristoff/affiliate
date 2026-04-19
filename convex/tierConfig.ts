@@ -4,18 +4,26 @@ import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { getAuthenticatedUser } from "./tenantContext";
 
+async function resolveDefaultPlanName(ctx: QueryCtx): Promise<string> {
+  const defaultTier = await ctx.db
+    .query("tierConfigs")
+    .withIndex("by_default", (q) => q.eq("isDefault", true))
+    .first();
+  if (defaultTier && defaultTier.isActive) return defaultTier.tier;
+  const fallback = Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault && c.isActive);
+  return fallback?.tier ?? "starter";
+}
+
 /**
  * Tier Configuration Service
- * 
+ *
  * Provides centralized tier limit management for the platform.
- * All tier enforcement uses this service for consistency.
+ * Plans are fully dynamic — defined in the tierConfigs database table.
+ * DEFAULT_TIER_CONFIGS is used only for seeding.
  */
 
-/** Constant representing unlimited resource allowance */
 export const UNLIMITED = -1;
 
-// Default tier configurations (used for seeding and fallback)
-// Prices in Philippine Pesos (₱)
 export const DEFAULT_TIER_CONFIGS = {
   starter: {
     tier: "starter",
@@ -30,6 +38,9 @@ export const DEFAULT_TIER_CONFIGS = {
       advancedAnalytics: false,
       prioritySupport: false,
     },
+    isDefault: true,
+    displayOrder: 1,
+    isActive: true,
   },
   growth: {
     tier: "growth",
@@ -44,6 +55,9 @@ export const DEFAULT_TIER_CONFIGS = {
       advancedAnalytics: true,
       prioritySupport: false,
     },
+    isDefault: false,
+    displayOrder: 2,
+    isActive: true,
   },
   scale: {
     tier: "scale",
@@ -58,22 +72,21 @@ export const DEFAULT_TIER_CONFIGS = {
       advancedAnalytics: true,
       prioritySupport: true,
     },
+    isDefault: false,
+    displayOrder: 3,
+    isActive: true,
   },
 } as const;
 
-export type TierName = keyof typeof DEFAULT_TIER_CONFIGS;
-
-// Limit status type for checkLimit responses
 export const LIMIT_STATUS = {
   OK: "ok",
-  WARNING: "warning",    // 80% threshold
-  CRITICAL: "critical",  // 95% threshold
-  BLOCKED: "blocked",    // 100% threshold
+  WARNING: "warning",
+  CRITICAL: "critical",
+  BLOCKED: "blocked",
 } as const;
 
 export type LimitStatus = typeof LIMIT_STATUS[keyof typeof LIMIT_STATUS];
 
-// Resource types that can be checked
 export const RESOURCE_TYPES = {
   AFFILIATES: "affiliates",
   CAMPAIGNS: "campaigns",
@@ -84,8 +97,9 @@ export const RESOURCE_TYPES = {
 
 export type ResourceType = typeof RESOURCE_TYPES[keyof typeof RESOURCE_TYPES];
 
-// Map resource types to tier config fields
-const RESOURCE_TO_LIMIT_FIELD: Record<ResourceType, keyof typeof DEFAULT_TIER_CONFIGS.starter> = {
+type TierLimitField = "maxAffiliates" | "maxCampaigns" | "maxTeamMembers" | "maxPayoutsPerMonth" | "maxApiCalls";
+
+const RESOURCE_TO_LIMIT_FIELD: Record<ResourceType, TierLimitField> = {
   affiliates: "maxAffiliates",
   campaigns: "maxCampaigns",
   teamMembers: "maxTeamMembers",
@@ -93,7 +107,6 @@ const RESOURCE_TO_LIMIT_FIELD: Record<ResourceType, keyof typeof DEFAULT_TIER_CO
   apiCalls: "maxApiCalls",
 };
 
-// Validator for tier config response
 const tierConfigResponseValidator = v.object({
   tier: v.string(),
   price: v.number(),
@@ -107,9 +120,11 @@ const tierConfigResponseValidator = v.object({
     advancedAnalytics: v.boolean(),
     prioritySupport: v.boolean(),
   }),
+  isDefault: v.boolean(),
+  displayOrder: v.number(),
+  isActive: v.boolean(),
 });
 
-// Validator for limit check result
 const limitCheckResultValidator = v.object({
   status: v.union(
     v.literal("ok"),
@@ -124,7 +139,6 @@ const limitCheckResultValidator = v.object({
   upgradePrompt: v.boolean(),
 });
 
-// Validator for resource type
 const resourceTypeValidator = v.union(
   v.literal("affiliates"),
   v.literal("campaigns"),
@@ -133,24 +147,7 @@ const resourceTypeValidator = v.union(
   v.literal("apiCalls")
 );
 
-/**
- * Helper function to build a tier config response object.
- * Ensures consistent structure across all functions.
- */
-function buildTierConfigResponse(config: {
-  tier: string;
-  price: number;
-  maxAffiliates: number;
-  maxCampaigns: number;
-  maxTeamMembers: number;
-  maxPayoutsPerMonth: number;
-  maxApiCalls: number;
-  features: {
-    customDomain: boolean;
-    advancedAnalytics: boolean;
-    prioritySupport: boolean;
-  };
-}) {
+function buildTierConfigResponse(config: Doc<"tierConfigs">) {
   return {
     tier: config.tier,
     price: config.price,
@@ -160,14 +157,55 @@ function buildTierConfigResponse(config: {
     maxPayoutsPerMonth: config.maxPayoutsPerMonth,
     maxApiCalls: config.maxApiCalls,
     features: config.features,
+    isDefault: config.isDefault,
+    displayOrder: config.displayOrder,
+    isActive: config.isActive,
   };
 }
 
 /**
- * Get tier configuration for a tenant.
- * Returns the complete tier configuration including limits and features.
- * AC1, AC2, AC3: Returns correct limits for Starter, Growth, and Scale plans.
+ * Get the name of the default (free) plan from the database.
+ * Falls back to the first DEFAULT_TIER_CONFIG with isDefault=true.
  */
+export const getDefaultPlanName = query({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const defaultTier = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .first();
+
+    if (defaultTier && defaultTier.isActive) {
+      return defaultTier.tier;
+    }
+
+    const fallback = Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault && c.isActive);
+    return fallback?.tier ?? "starter";
+  },
+});
+
+/**
+ * Internal query to get default plan name (for use in mutations).
+ */
+export const getDefaultPlanNameInternal = internalQuery({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const defaultTier = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .first();
+
+    if (defaultTier && defaultTier.isActive) {
+      return defaultTier.tier;
+    }
+
+    const fallback = Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault && c.isActive);
+    return fallback?.tier ?? "starter";
+  },
+});
+
 export const getTierConfig = query({
   args: {
     tenantId: v.id("tenants"),
@@ -179,29 +217,23 @@ export const getTierConfig = query({
       throw new Error("Tenant not found");
     }
 
-    // Get tier from tenant, default to starter
-    const tierName = (tenant.plan || "starter") as TierName;
-    
-    // Look up tier configuration from database
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
+
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    // Return database config or fall back to defaults
     if (tierConfig) {
       return buildTierConfigResponse(tierConfig);
     }
 
-    // Fallback to default configuration if not in database
-    const defaultConfig = DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
-    return buildTierConfigResponse(defaultConfig);
+    const defaultConfig = Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName)
+      || Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault)!;
+    return buildTierConfigResponse(defaultConfig as any);
   },
 });
 
-/**
- * Get tier configuration for the current authenticated user's tenant.
- */
 export const getMyTierConfig = query({
   args: {},
   returns: v.union(tierConfigResponseValidator, v.null()),
@@ -216,8 +248,8 @@ export const getMyTierConfig = query({
       return null;
     }
 
-    const tierName = (tenant.plan || "starter") as TierName;
-    
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
+
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
@@ -227,19 +259,12 @@ export const getMyTierConfig = query({
       return buildTierConfigResponse(tierConfig);
     }
 
-    const defaultConfig = DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
-    return buildTierConfigResponse(defaultConfig);
+    const defaultConfig = Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName)
+      || Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault)!;
+    return buildTierConfigResponse(defaultConfig as any);
   },
 });
 
-/**
- * Helper to get current resource count for a tenant.
- * @param ctx - Query context from Convex
- * @param tenantId - The tenant to check resources for
- * @param resourceType - The type of resource to count
- * @returns The current count of the resource type
- * @throws Error if resourceType is "apiCalls" (not yet implemented)
- */
 async function getResourceCount(
   ctx: QueryCtx,
   tenantId: Id<"tenants">,
@@ -265,14 +290,12 @@ async function getResourceCount(
         .collect();
       return users.length;
     case "payouts":
-      // Payouts are counted per month - for simplicity, count all pending/approved payouts
       const payouts = await ctx.db
         .query("payouts")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
         .collect();
       return payouts.length;
     case "apiCalls":
-      // Read from denormalized tenantStats counter (O(1) lookup)
       const apiCallsStats = await ctx.db
         .query("tenantStats")
         .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
@@ -283,18 +306,11 @@ async function getResourceCount(
   }
 }
 
-/**
- * Calculate limit status based on percentage.
- * @param current - Current resource count
- * @param limit - Maximum allowed (UNLIMITED for no limit)
- * @returns Status object with percentage and upgrade prompt flag
- */
 function calculateLimitStatus(current: number, limit: number): {
   status: LimitStatus;
   percentage: number;
   upgradePrompt: boolean;
 } {
-  // Unlimited
   if (limit === UNLIMITED) {
     return { status: LIMIT_STATUS.OK, percentage: 0, upgradePrompt: false };
   }
@@ -312,12 +328,6 @@ function calculateLimitStatus(current: number, limit: number): {
   }
 }
 
-/**
- * Check limit status for a resource type.
- * AC4: Soft limit warning at 80%
- * AC5: Hard limit warning at 95%
- * AC6: Hard limit blocking at 100%
- */
 export const checkLimit = query({
   args: {
     tenantId: v.id("tenants"),
@@ -330,23 +340,20 @@ export const checkLimit = query({
       throw new Error("Tenant not found");
     }
 
-    // Get tier configuration
-    const tierName = (tenant.plan || "starter") as TierName;
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    const config = tierConfig || DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
-    
-    // Get the limit for this resource type
+    const config = tierConfig
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName) as any)
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault) as any);
+
     const limitField = RESOURCE_TO_LIMIT_FIELD[args.resourceType];
     const limit = config[limitField] as number;
 
-    // Get current count based on resource type
     const current = await getResourceCount(ctx, args.tenantId, args.resourceType);
-
-    // Calculate status
     const { status, percentage, upgradePrompt } = calculateLimitStatus(current, limit);
 
     return {
@@ -360,11 +367,6 @@ export const checkLimit = query({
   },
 });
 
-/**
- * Check if a resource creation would exceed tier limits.
- * Returns true if the action is allowed, false if blocked.
- * AC6: Blocks creation at 100% limit.
- */
 export const canCreateResource = query({
   args: {
     tenantId: v.id("tenants"),
@@ -382,25 +384,25 @@ export const canCreateResource = query({
       return { allowed: false, reason: "Tenant not found", current: 0, limit: 0 };
     }
 
-    const tierName = (tenant.plan || "starter") as TierName;
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    const config = tierConfig || DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
+    const config = tierConfig
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName) as any)
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault) as any);
+
     const limitField = RESOURCE_TO_LIMIT_FIELD[args.resourceType];
     const limit = config[limitField] as number;
 
-    // Unlimited
     if (limit === UNLIMITED) {
       return { allowed: true, current: 0, limit };
     }
 
-    // Get current count
     const current = await getResourceCount(ctx, args.tenantId, args.resourceType);
 
-    // Check if at or over limit
     if (current >= limit) {
       return {
         allowed: false,
@@ -414,11 +416,6 @@ export const canCreateResource = query({
   },
 });
 
-/**
- * Mutation to check and enforce limit before resource creation.
- * Use this in mutations that create resources to enforce tier limits.
- * Throws an error if limit is exceeded.
- */
 export const enforceLimit = mutation({
   args: {
     tenantId: v.id("tenants"),
@@ -435,7 +432,6 @@ export const enforceLimit = mutation({
       throw new Error("Unauthorized: Authentication required");
     }
 
-    // Verify tenant access
     if (authUser.tenantId !== args.tenantId) {
       throw new Error("Access denied: Cannot access this tenant's resources");
     }
@@ -445,27 +441,26 @@ export const enforceLimit = mutation({
       throw new Error("Tenant not found");
     }
 
-    const tierName = (tenant.plan || "starter") as TierName;
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    const config = tierConfig || DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
+    const config = tierConfig
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName) as any)
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault) as any);
+
     const limitField = RESOURCE_TO_LIMIT_FIELD[args.resourceType];
     const limit = config[limitField] as number;
 
-    // Unlimited
     if (limit === UNLIMITED) {
       return { allowed: true, current: 0, limit: UNLIMITED };
     }
 
-    // Get current count
     const current = await getResourceCount(ctx, args.tenantId, args.resourceType);
 
-    // Check if at or over limit
     if (current >= limit) {
-      // Log the blocked attempt
       await ctx.db.insert("auditLogs", {
         tenantId: args.tenantId,
         action: "limit_exceeded",
@@ -487,10 +482,6 @@ export const enforceLimit = mutation({
   },
 });
 
-/**
- * Get all limit statuses for a tenant.
- * Useful for dashboard display.
- */
 export const getAllLimits = query({
   args: {
     tenantId: v.id("tenants"),
@@ -534,15 +525,16 @@ export const getAllLimits = query({
       throw new Error("Tenant not found");
     }
 
-    const tierName = (tenant.plan || "starter") as TierName;
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
     const tierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    const config = tierConfig || DEFAULT_TIER_CONFIGS[tierName] || DEFAULT_TIER_CONFIGS.starter;
+    const config = tierConfig
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName) as any)
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault) as any);
 
-    // Get counts for each resource type
     const [affiliatesCount, campaignsCount, teamMembersCount, payoutsCount, apiCallsCount] = await Promise.all([
       getResourceCount(ctx, args.tenantId, "affiliates"),
       getResourceCount(ctx, args.tenantId, "campaigns"),
@@ -551,7 +543,6 @@ export const getAllLimits = query({
       getResourceCount(ctx, args.tenantId, "apiCalls"),
     ]);
 
-    // Calculate status for each resource
     const affiliatesStatus = calculateLimitStatus(affiliatesCount, config.maxAffiliates);
     const campaignsStatus = calculateLimitStatus(campaignsCount, config.maxCampaigns);
     const teamMembersStatus = calculateLimitStatus(teamMembersCount, config.maxTeamMembers);
@@ -594,11 +585,6 @@ export const getAllLimits = query({
   },
 });
 
-/**
- * Internal mutation to seed default tier configurations.
- * Upserts: updates existing configs to match defaults, inserts new ones.
- * Should be called during initial setup or when defaults change.
- */
 export const seedTierConfigs = internalMutation({
   args: {},
   returns: v.null(),
@@ -610,7 +596,6 @@ export const seedTierConfigs = internalMutation({
         .unique();
 
       if (existing) {
-        // Update existing config to match defaults
         await ctx.db.patch(existing._id, {
           price: config.price,
           maxAffiliates: config.maxAffiliates,
@@ -619,6 +604,8 @@ export const seedTierConfigs = internalMutation({
           maxPayoutsPerMonth: config.maxPayoutsPerMonth,
           maxApiCalls: config.maxApiCalls,
           features: config.features,
+          displayOrder: config.displayOrder,
+          isActive: config.isActive,
         });
       } else {
         await ctx.db.insert("tierConfigs", {
@@ -630,6 +617,9 @@ export const seedTierConfigs = internalMutation({
           maxPayoutsPerMonth: config.maxPayoutsPerMonth,
           maxApiCalls: config.maxApiCalls,
           features: config.features,
+          isDefault: config.isDefault,
+          displayOrder: config.displayOrder,
+          isActive: config.isActive,
         });
       }
     }
@@ -638,45 +628,58 @@ export const seedTierConfigs = internalMutation({
 });
 
 /**
- * Get all available tier configurations (for Pricing Display, etc).
+ * Get all active tier configurations ordered by displayOrder.
+ * Used for pricing pages and upgrade flows.
  */
 export const getAllTierConfigs = query({
   args: {},
   returns: v.array(tierConfigResponseValidator),
   handler: async (ctx, _args) => {
-    const configs = await ctx.db.query("tierConfigs").collect();
+    const configs = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_display_order")
+      .order("asc")
+      .collect();
 
-    if (configs.length === 0) {
-      // Return defaults if no configs in database
-      return Object.values(DEFAULT_TIER_CONFIGS).map((config) => ({
-        tier: config.tier,
-        price: config.price,
-        maxAffiliates: config.maxAffiliates,
-        maxCampaigns: config.maxCampaigns,
-        maxTeamMembers: config.maxTeamMembers,
-        maxPayoutsPerMonth: config.maxPayoutsPerMonth,
-        maxApiCalls: config.maxApiCalls,
-        features: config.features,
-      }));
+    const activeConfigs = configs.filter((c) => c.isActive);
+
+    if (activeConfigs.length === 0) {
+      return Object.values(DEFAULT_TIER_CONFIGS)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map((config) => buildTierConfigResponse(config as any));
     }
 
-    return configs.map((c) => ({
-      tier: c.tier,
-      price: c.price,
-      maxAffiliates: c.maxAffiliates,
-      maxCampaigns: c.maxCampaigns,
-      maxTeamMembers: c.maxTeamMembers,
-      maxPayoutsPerMonth: c.maxPayoutsPerMonth,
-      maxApiCalls: c.maxApiCalls,
-      features: c.features,
-    }));
+    return activeConfigs.map((c) => buildTierConfigResponse(c));
   },
 });
 
 /**
- * Internal function to check campaign limit
- * Can be called from other Convex modules (like campaigns.ts)
+ * Get all non-default (paid) tier configurations.
+ * Used for upgrade/checkout flows.
  */
+export const getPaidTierConfigs = query({
+  args: {},
+  returns: v.array(tierConfigResponseValidator),
+  handler: async (ctx, _args) => {
+    const configs = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_display_order")
+      .order("asc")
+      .collect();
+
+    const paidConfigs = configs.filter((c) => c.isActive && !c.isDefault);
+
+    if (paidConfigs.length === 0) {
+      return Object.values(DEFAULT_TIER_CONFIGS)
+        .filter((c) => !c.isDefault)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map((config) => buildTierConfigResponse(config as any));
+    }
+
+    return paidConfigs.map((c) => buildTierConfigResponse(c));
+  },
+});
+
 export const checkCampaignLimitInternal = internalQuery({
   args: {
     tenantId: v.id("tenants"),
@@ -690,7 +693,6 @@ export const checkCampaignLimitInternal = internalQuery({
     status: v.union(v.literal("ok"), v.literal("warning"), v.literal("critical"), v.literal("blocked")),
   }),
   handler: async (ctx, args) => {
-    // Get tenant to find plan
     const tenant = await ctx.db.get(args.tenantId);
     if (!tenant) {
       return {
@@ -703,7 +705,6 @@ export const checkCampaignLimitInternal = internalQuery({
       };
     }
 
-    // Get current campaign count
     const campaigns = await ctx.db
       .query("campaigns")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
@@ -711,17 +712,18 @@ export const checkCampaignLimitInternal = internalQuery({
 
     const current = campaigns.length;
 
-    // Get tier limits from tierConfigs
+    const tierName = tenant.plan || await resolveDefaultPlanName(ctx);
     const tierConfig = await ctx.db
       .query("tierConfigs")
-      .withIndex("by_tier", (q) => q.eq("tier", tenant.plan || "starter"))
+      .withIndex("by_tier", (q) => q.eq("tier", tierName))
       .unique();
 
-    // Use default limits if not in database
-    const tierName = (tenant.plan || "starter") as TierName;
-    const limit = tierConfig?.maxCampaigns ?? DEFAULT_TIER_CONFIGS[tierName].maxCampaigns;
+    const config = tierConfig
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.tier === tierName) as any)
+      || (Object.values(DEFAULT_TIER_CONFIGS).find((c) => c.isDefault) as any);
 
-    // Unlimited
+    const limit = config?.maxCampaigns ?? 3;
+
     if (limit === UNLIMITED) {
       return {
         allowed: true,
@@ -734,7 +736,6 @@ export const checkCampaignLimitInternal = internalQuery({
 
     const percentage = limit > 0 ? Math.round((current / limit) * 100) : 0;
 
-    // Determine status
     let status: "ok" | "warning" | "critical" | "blocked" = "ok";
     if (percentage >= 100) {
       status = "blocked";
@@ -744,7 +745,6 @@ export const checkCampaignLimitInternal = internalQuery({
       status = "warning";
     }
 
-    // Check if at or over limit
     if (current >= limit) {
       return {
         allowed: false,

@@ -29,7 +29,7 @@ interface AdminSubscriptionActionsProps {
   tenant: Pick<TenantDetail, "plan" | "subscriptionStatus" | "trialEndsAt">;
 }
 
-type PlanOption = "starter" | "growth" | "scale";
+type PlanOption = string;
 
 const PLAN_OPTIONS: { value: PlanOption; label: string; price: string }[] = [
   { value: "starter", label: "Starter", price: "Free" },

@@ -237,7 +237,7 @@ export function ProfileSettingsForm({ user, tenant }: ProfileSettingsFormProps) 
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-heading">{formatPlan(tenant.plan)}</p>
                 <Badge variant="outline" className="text-[10px]">
-                  {tenant.plan === "starter" ? "Free" : tenant.plan === "growth" ? "₱2,499/mo" : "₱4,999/mo"}
+                  {formatPlan(tenant.plan)}
                 </Badge>
               </div>
             </div>

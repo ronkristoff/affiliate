@@ -167,7 +167,7 @@ export const completeSignUp = mutation({
 
     const companyName = args.companyName.trim();
     const slug = await generateUniqueSlug(ctx, companyName);
-    const plan = args.plan || "starter";
+    const plan = args.plan || await ctx.runQuery(internal.tierConfig.getDefaultPlanNameInternal);
 
     // Create tenant for this user (they are the owner)
     // Read trial duration from platform settings (admin-configurable)
@@ -312,11 +312,12 @@ export const syncUserCreation = internalMutation({
     const defaultTrialDays: number = await readDefaultTrialDays(ctx);
     const trialEndsAt: number = Date.now() + defaultTrialDays * MS_PER_DAY;
 
+    const defaultPlanName = await ctx.runQuery(internal.tierConfig.getDefaultPlanNameInternal);
     const tenantId: Id<"tenants"> = await ctx.db.insert("tenants", {
       name: companyName,
       slug,
       domain: cleanedDomain,
-      plan: "starter",
+      plan: defaultPlanName,
       trialEndsAt,
       status: "active",
       branding: {
@@ -324,14 +325,13 @@ export const syncUserCreation = internalMutation({
       },
     });
 
-    // Create audit log entry for tenant creation
     await ctx.db.insert("auditLogs", {
       tenantId,
       action: "tenant_created",
       entityType: "tenant",
       entityId: tenantId,
       actorType: "system",
-      newValue: { name: companyName, slug, plan: "starter" },
+      newValue: { name: companyName, slug, plan: defaultPlanName },
     });
 
     // Seed denormalized tenantStats counters

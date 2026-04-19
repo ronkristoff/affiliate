@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface CancellationConfirmationDialogProps {
-  currentPlan: "starter" | "growth" | "scale";
+  currentPlan: string;
   billingEndDate: number;
   onConfirm: () => void;
   onCancel: () => void;

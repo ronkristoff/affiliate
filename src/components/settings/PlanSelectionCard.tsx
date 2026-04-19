@@ -8,18 +8,19 @@ import { Check, Zap, Rocket } from "lucide-react";
 
 interface PlanSelectionCardProps {
   currentPlan: string;
-  onSelectPlan: (plan: "growth" | "scale") => void;
+  onSelectPlan: (plan: string) => void;
 }
 
 export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCardProps) {
   const allTiers = useQuery(api.tierConfig.getAllTierConfigs);
+  const defaultPlan = useQuery(api.tierConfig.getDefaultPlanName);
 
   if (!allTiers) {
     return null;
   }
 
-  // Filter out starter plan
-  const paidTiers = allTiers.filter(t => t.tier !== "starter");
+  const defaultPlanName = defaultPlan ?? "starter";
+  const paidTiers = allTiers.filter(t => t.tier !== defaultPlanName);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -28,15 +29,9 @@ export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCa
     }).format(price);
   };
 
-  const getIcon = (tier: string) => {
-    switch (tier) {
-      case "growth":
-        return <Zap className="h-5 w-5" />;
-      case "scale":
-        return <Rocket className="h-5 w-5" />;
-      default:
-        return null;
-    }
+  const getIcon = (tier: string, index: number) => {
+    const icons = [<Zap className="h-5 w-5" />, <Rocket className="h-5 w-5" />];
+    return icons[index % icons.length] ?? null;
   };
 
   const formatLimit = (limit: number) => {
@@ -56,7 +51,8 @@ export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCa
         <div className="grid gap-4 md:grid-cols-2">
           {paidTiers.map((tier) => {
             const isCurrentPlan = currentPlan === tier.tier;
-            const isUpgrade = tier.tier === "growth" || (tier.tier === "scale" && currentPlan === "growth");
+            const currentTierConfig = allTiers.find(t => t.tier === currentPlan);
+            const isUpgrade = !isCurrentPlan && (currentTierConfig ? tier.price > currentTierConfig.price : true);
 
             return (
               <div
@@ -70,7 +66,7 @@ export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCa
                 {/* Plan Header */}
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-primary">
-                    {getIcon(tier.tier)}
+                    {getIcon(tier.tier, paidTiers.indexOf(tier))}
                   </span>
                   <h3 className="font-semibold capitalize">{tier.tier}</h3>
                   {isCurrentPlan && (
@@ -117,7 +113,7 @@ export function PlanSelectionCard({ currentPlan, onSelectPlan }: PlanSelectionCa
                 {/* Action Button */}
                 {!isCurrentPlan && (
                   <Button
-                    onClick={() => onSelectPlan(tier.tier as "growth" | "scale")}
+                    onClick={() => onSelectPlan(tier.tier)}
                     className="w-full"
                     variant={isUpgrade ? "default" : "outline"}
                   >

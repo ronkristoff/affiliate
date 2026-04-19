@@ -39,11 +39,10 @@ interface RevenueMetrics {
   cancelledCount: number;
   churnedMRR: number;
   trialConversionRate: number;
-  starterCount: number;
-  growthCount: number;
-  scaleCount: number;
-  growthMRR: number;
-  scaleMRR: number;
+  defaultPlanCount: number;
+  paidPlanCount: number;
+  paidPlanMRR: number;
+  planDistribution: Record<string, { count: number; mrr: number }>;
 }
 
 interface RecentActivity {
@@ -316,58 +315,48 @@ export function RevenueDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Starter */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-gray-400" />
-                  <span className="text-sm text-[#374151]">Starter</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-semibold text-[#111827]">
-                    {metrics.starterCount}
-                  </span>
-                  <span className="ml-2 text-xs text-[#6b7280]">Free</span>
-                </div>
-              </div>
+              {metrics && Object.entries(metrics.planDistribution).map(([planName, data]) => {
+                const planColorClasses: Record<string, string> = {
+                  gray: "bg-gray-400",
+                  blue: "bg-blue-500",
+                  purple: "bg-purple-500",
+                  green: "bg-green-500",
+                  orange: "bg-orange-500",
+                };
+                const colors = Object.values(planColorClasses);
+                const planKeys = Object.keys(metrics.planDistribution);
+                const colorIndex = planKeys.indexOf(planName) % colors.length;
+                const dotColor = colors[colorIndex];
 
-              {/* Growth */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                  <span className="text-sm text-[#374151]">Growth</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-semibold text-[#111827]">
-                    {metrics.growthCount}
-                  </span>
-                  <span className="ml-2 text-xs text-[#6b7280]">
-                    {formatCurrency(metrics.growthMRR)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Scale */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-                  <span className="text-sm text-[#374151]">Scale</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-semibold text-[#111827]">
-                    {metrics.scaleCount}
-                  </span>
-                  <span className="ml-2 text-xs text-[#6b7280]">
-                    {formatCurrency(metrics.scaleMRR)}
-                  </span>
-                </div>
-              </div>
+                return (
+                  <div key={planName} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+                      <span className="text-sm text-[#374151] capitalize">{planName}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-[#111827]">
+                        {data.count}
+                      </span>
+                      {data.mrr > 0 && (
+                        <span className="ml-2 text-xs text-[#6b7280]">
+                          {formatCurrency(data.mrr)}
+                        </span>
+                      )}
+                      {data.mrr === 0 && (
+                        <span className="ml-2 text-xs text-[#6b7280]">Free</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Total paying */}
               <div className="pt-3 border-t border-[#e5e7eb]">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#9ca3af]">Total Paying</span>
                   <span className="text-sm font-semibold text-[#1c2260]">
-                    {metrics.growthCount + metrics.scaleCount}
+                    {metrics?.paidPlanCount ?? 0}
                   </span>
                 </div>
               </div>

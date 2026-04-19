@@ -447,6 +447,7 @@ export const createTierConfig = mutation({
     }
 
     // Insert new tier config
+    const existingCount = (await ctx.db.query("tierConfigs").collect()).length;
     const tierConfigId = await ctx.db.insert("tierConfigs", {
       tier: args.tier,
       price: args.price,
@@ -456,6 +457,9 @@ export const createTierConfig = mutation({
       maxPayoutsPerMonth: args.maxPayoutsPerMonth,
       maxApiCalls: args.maxApiCalls,
       features: args.features,
+      isDefault: false,
+      displayOrder: existingCount + 1,
+      isActive: true,
     });
 
     // Create audit log

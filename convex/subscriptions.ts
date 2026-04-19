@@ -1,10 +1,9 @@
 /**
  * Subscription Management Module
- * 
+ *
  * Provides subscription upgrade, downgrade, and status management.
- * Supports mock payment processing for testing.
- * 
- * @see Story 3.1: Mock Subscription Checkout
+ * Plans are fully dynamic — validated against tierConfigs table.
+ * Platform billing is handled via platformBilling.ts (Stripe/SaligPay).
  */
 
 import { query, mutation, internalMutation } from "./_generated/server";
@@ -14,19 +13,10 @@ import { getAuthenticatedUser } from "./tenantContext";
 import { sendUpgradeConfirmation, sendDowngradeConfirmation, sendCancellationConfirmation, sendPaymentSuccessEmail } from "./email";
 import { internal } from "./_generated/api";
 
-/**
- * Billing cycle duration in days
- */
 const BILLING_CYCLE_DAYS = 30;
 
 /**
- * Plan type for subscriptions
- */
-export type PlanType = "starter" | "growth" | "scale";
-
-/**
  * Get current subscription status for the authenticated user's tenant.
- * Returns subscription details including plan, trial status, and billing dates.
  */
 export const getCurrentSubscription = query({
   args: {},
@@ -53,6 +43,10 @@ export const getCurrentSubscription = query({
         v.literal("owner_cancelled"),
       )),
       deletionScheduledDate: v.optional(v.number()),
+      platformPaymentProvider: v.optional(v.union(
+        v.literal("stripe"),
+        v.literal("saligpay"),
+      )),
     }),
     v.null()
   ),
@@ -73,14 +67,19 @@ export const getCurrentSubscription = query({
       ? Math.ceil((tenant.trialEndsAt - now) / (24 * 60 * 60 * 1000))
       : undefined;
 
-    // Determine subscription status
     let subscriptionStatus: "trial" | "active" | "cancelled" | "past_due" | undefined;
     if (isTrial) {
       subscriptionStatus = "trial";
     } else if (tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "cancelled" || tenant.subscriptionStatus === "past_due") {
       subscriptionStatus = tenant.subscriptionStatus;
-    } else if (tenant.plan !== "starter") {
-      subscriptionStatus = "active";
+    } else {
+      const defaultPlanName = await (async () => {
+        const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+        return (dt && dt.isActive) ? dt.tier : "starter";
+      })();
+      if (tenant.plan && tenant.plan !== defaultPlanName) {
+        subscriptionStatus = "active";
+      }
     }
 
     return {
@@ -95,14 +94,11 @@ export const getCurrentSubscription = query({
       cancellationDate: tenant.cancellationDate,
       cancelledReason: tenant.cancelledReason as "grace_expired" | "trial_expired" | "admin_cancelled" | "owner_cancelled" | undefined,
       deletionScheduledDate: undefined,
+      platformPaymentProvider: tenant.platformPaymentProvider ?? undefined,
     };
   },
 });
 
-/**
- * Get billing history for the authenticated user's tenant.
- * Returns paginated results for the billing history table.
- */
 export const getBillingHistory = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -142,11 +138,6 @@ export const getBillingHistory = query({
   },
 });
 
-/**
- * Get usage statistics for the authenticated user's tenant.
- * Returns current counts of affiliates, campaigns, and team members.
- * AC3: Plan Limits and Usage
- */
 export const getUsageStats = query({
   args: {},
   returns: v.object({
@@ -160,7 +151,6 @@ export const getUsageStats = query({
       return { affiliates: 0, campaigns: 0, teamMembers: 0 };
     }
 
-    // Run all queries in parallel for better performance
     const [affiliates, campaigns, users] = await Promise.all([
       ctx.db
         .query("affiliates")
@@ -185,15 +175,12 @@ export const getUsageStats = query({
 });
 
 /**
- * Upgrade subscription to a paid plan (Growth or Scale).
- * Supports mock payment for testing purposes.
- * 
- * @param plan - The plan to upgrade to (growth or scale)
- * @param mockPayment - Whether to use mock payment processing
+ * Upgrade subscription to a paid plan.
+ * Validates that the plan exists in tierConfigs.
  */
 export const upgradeSubscription = mutation({
   args: {
-    plan: v.union(v.literal("growth"), v.literal("scale")),
+    plan: v.string(),
     mockPayment: v.boolean(),
   },
   returns: v.object({
@@ -211,62 +198,53 @@ export const upgradeSubscription = mutation({
       throw new Error("Tenant not found");
     }
 
-    // Store previous plan for audit
     const previousPlan = tenant.plan;
 
-    // Validate plan is valid
-    if (args.plan !== "growth" && args.plan !== "scale") {
-      throw new Error("Invalid plan selected");
-    }
-
-    // Prevent upgrading to the same plan
-    if (tenant.plan === args.plan) {
-      throw new Error(`You are already on the ${args.plan} plan`);
-    }
-
-    // Get tier config for pricing
-    const tierConfig = await ctx.db
+    const targetTierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", args.plan))
       .unique();
 
-    if (!tierConfig) {
-      throw new Error("Tier configuration not found");
+    if (!targetTierConfig) {
+      throw new Error(`Plan "${args.plan}" not found`);
     }
 
-    // Calculate billing dates
+    if (!targetTierConfig.isActive) {
+      throw new Error(`Plan "${args.plan}" is not available`);
+    }
+
+    if (tenant.plan === args.plan) {
+      throw new Error(`You are already on the ${args.plan} plan`);
+    }
+
     const billingStartDate = Date.now();
     const billingEndDate = billingStartDate + (BILLING_CYCLE_DAYS * 24 * 60 * 60 * 1000);
 
-    // Generate mock transaction ID
-    const transactionId = args.mockPayment 
+    const transactionId = args.mockPayment
       ? `mock_sub_${Date.now()}`
       : `sub_${Date.now()}`;
 
-    // Update tenant subscription
     await ctx.db.patch(authUser.tenantId, {
       plan: args.plan,
-      trialEndsAt: undefined, // Remove trial
+      trialEndsAt: undefined,
       billingStartDate,
       billingEndDate,
       subscriptionStatus: "active",
       subscriptionId: transactionId,
     });
 
-    // Log to billing history
     await ctx.db.insert("billingHistory", {
       tenantId: authUser.tenantId,
       event: "upgrade",
       previousPlan,
       newPlan: args.plan,
-      amount: tierConfig.price,
+      amount: targetTierConfig.price,
       transactionId,
       mockTransaction: args.mockPayment,
       timestamp: Date.now(),
       actorId: authUser.userId,
     });
 
-    // Log to audit
     await ctx.db.insert("auditLogs", {
       tenantId: authUser.tenantId,
       action: "SUBSCRIPTION_UPGRADE",
@@ -275,9 +253,9 @@ export const upgradeSubscription = mutation({
       actorId: authUser.userId,
       actorType: "user",
       previousValue: { plan: previousPlan },
-      newValue: { 
-        plan: args.plan, 
-        billingStartDate, 
+      newValue: {
+        plan: args.plan,
+        billingStartDate,
         billingEndDate,
         transactionId,
         mockTransaction: args.mockPayment,
@@ -303,13 +281,14 @@ export const upgradeSubscription = mutation({
 
 /**
  * Cancel subscription - ends billing but allows access until billing cycle ends.
- * Data is deleted 30 days after the billing cycle ends.
+ * For Stripe-backed subscriptions, use cancelPlatformSubscriptionAndSyncTenant action instead.
  */
 export const cancelSubscription = mutation({
   args: {},
   returns: v.object({
     success: v.boolean(),
     accessEndDate: v.number(),
+    stripeCancelled: v.boolean(),
   }),
   handler: async (ctx, _args) => {
     const authUser = await getAuthenticatedUser(ctx);
@@ -322,27 +301,32 @@ export const cancelSubscription = mutation({
       throw new Error("Tenant not found");
     }
 
-    const currentPlan = (tenant.plan || "starter") as "starter" | "growth" | "scale";
+    if (tenant.platformPaymentProvider === "stripe" && tenant.stripeSubscriptionId) {
+      throw new Error(
+        "Use cancelPlatformSubscriptionAndSyncTenant action for Stripe subscriptions."
+      );
+    }
+
+    const currentPlan = tenant.plan || await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return dt?.tier ?? "starter";
+    })();
     const currentStatus = tenant.subscriptionStatus || "active";
 
-    // Validate subscription is active (not already cancelled)
     if (currentStatus !== "active") {
       throw new Error(`Cannot cancel subscription with status: ${currentStatus}`);
     }
 
-    // Get access end date (current billing cycle end)
     const accessEndDate = tenant.billingEndDate || Date.now();
 
-    // Update tenant subscription - keep plan but mark as cancelled
-    // billingEndDate remains unchanged - access until cycle ends
+    let stripeCancelled = false;
+
     await ctx.db.patch(authUser.tenantId, {
       subscriptionStatus: "cancelled",
       cancellationDate: Date.now(),
       cancelledReason: "owner_cancelled" as const,
-      // Plan remains unchanged - access continues until billingEndDate
     });
 
-    // Log to billing history
     await ctx.db.insert("billingHistory", {
       tenantId: authUser.tenantId,
       event: "cancel",
@@ -353,7 +337,6 @@ export const cancelSubscription = mutation({
       actorId: authUser.userId,
     });
 
-    // Log to audit trail
     await ctx.db.insert("auditLogs", {
       tenantId: authUser.tenantId,
       action: "SUBSCRIPTION_CANCELLATION",
@@ -369,10 +352,10 @@ export const cancelSubscription = mutation({
         subscriptionStatus: "cancelled",
         cancelledReason: "owner_cancelled",
         accessEndDate,
+        stripeCancelled,
       },
     });
 
-    // Send confirmation email
     const user = await ctx.db.get(authUser.userId);
     if (user?.email) {
       await sendCancellationConfirmation(ctx, {
@@ -383,35 +366,34 @@ export const cancelSubscription = mutation({
       });
     }
 
-    // Send in-app notification
-    await ctx.runMutation(internal.notifications.createNotification, {
-      tenantId: authUser.tenantId,
-      userId: authUser.userId,
-      type: "billing.cancelled",
-      title: "Subscription Cancelled",
-      message: "Your subscription has been cancelled. Your account is now read-only.",
-      severity: "warning",
-      actionUrl: "/settings/billing",
-      actionLabel: "View Billing Settings",
-    });
+    try {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        tenantId: authUser.tenantId,
+        userId: authUser.userId,
+        type: "billing.cancelled",
+        title: "Subscription Cancelled",
+        message: "Your subscription has been cancelled. Your account is now read-only.",
+        severity: "warning",
+        actionUrl: "/settings/billing",
+        actionLabel: "View Billing Settings",
+      });
+    } catch {}
 
     return {
       success: true,
       accessEndDate,
+      stripeCancelled,
     };
   },
 });
 
 /**
- * Convert trial subscription to a paid plan (Growth or Scale).
- * Called when a trial user upgrades to a paid plan.
- * 
- * @param plan - The plan to convert to (growth or scale)
- * @param mockPayment - Whether to use mock payment processing
+ * Convert trial subscription to a paid plan.
+ * Validates that the plan exists in tierConfigs.
  */
 export const convertTrialToPaid = mutation({
   args: {
-    plan: v.union(v.literal("growth"), v.literal("scale")),
+    plan: v.string(),
     mockPayment: v.boolean(),
   },
   returns: v.object({
@@ -429,71 +411,64 @@ export const convertTrialToPaid = mutation({
       throw new Error("Tenant not found");
     }
 
-    // Verify tenant is on trial (check both subscriptionStatus and trialEndsAt)
     const now = Date.now();
     const isTrialActive = tenant.trialEndsAt ? tenant.trialEndsAt > now : false;
     const isTrialStatus = tenant.subscriptionStatus === "trial";
-    
+
     if (!isTrialActive && !isTrialStatus) {
       throw new Error("Tenant is not on an active trial");
     }
 
-    // Validate plan
-    if (args.plan !== "growth" && args.plan !== "scale") {
-      throw new Error("Invalid plan selected. Only 'growth' or 'scale' plans are valid for trial conversion.");
-    }
-
-    // Prevent converting to the same plan
-    if (tenant.plan === args.plan) {
-      throw new Error(`You are already on the ${args.plan} plan`);
-    }
-
-    // Store previous plan for audit
-    const previousPlan = tenant.plan || "starter";
-
-    // Get tier config for pricing
-    const tierConfig = await ctx.db
+    const targetTierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", args.plan))
       .unique();
 
-    if (!tierConfig) {
-      throw new Error("Tier configuration not found");
+    if (!targetTierConfig) {
+      throw new Error(`Plan "${args.plan}" not found`);
     }
 
-    // Calculate billing dates
+    if (!targetTierConfig.isActive) {
+      throw new Error(`Plan "${args.plan}" is not available`);
+    }
+
+    if (tenant.plan === args.plan) {
+      throw new Error(`You are already on the ${args.plan} plan`);
+    }
+
+    const previousPlan = tenant.plan || await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return dt?.tier ?? "starter";
+    })();
+
     const billingStartDate = Date.now();
     const billingEndDate = billingStartDate + (BILLING_CYCLE_DAYS * 24 * 60 * 60 * 1000);
 
-    // Generate mock transaction ID
     const transactionId = args.mockPayment
       ? `mock_trial_${Date.now()}`
       : `trial_${Date.now()}`;
 
-    // Update tenant subscription from trial to active
     await ctx.db.patch(authUser.tenantId, {
       plan: args.plan,
-      trialEndsAt: undefined, // Clear trial end date
+      trialEndsAt: undefined,
       billingStartDate,
       billingEndDate,
       subscriptionStatus: "active",
       subscriptionId: transactionId,
     });
 
-    // Log to billing history as trial_conversion
     await ctx.db.insert("billingHistory", {
       tenantId: authUser.tenantId,
       event: "trial_conversion",
       previousPlan,
       newPlan: args.plan,
-      amount: tierConfig.price,
+      amount: targetTierConfig.price,
       transactionId,
       mockTransaction: args.mockPayment,
       timestamp: Date.now(),
       actorId: authUser.userId,
     });
 
-    // Log to audit trail with conversion metadata
     await ctx.db.insert("auditLogs", {
       tenantId: authUser.tenantId,
       action: "TRIAL_CONVERSION",
@@ -528,14 +503,13 @@ export const convertTrialToPaid = mutation({
       });
     } catch {}
 
-    // Send payment success confirmation email
     const ownerUser = await ctx.db.get(authUser.userId);
     if (ownerUser?.email) {
       await sendPaymentSuccessEmail(ctx, {
         to: ownerUser.email,
         tenantName: tenant.name,
         plan: args.plan,
-        amount: tierConfig.price,
+        amount: targetTierConfig.price,
         billingStartDate,
         billingEndDate,
         transactionId,
@@ -547,15 +521,6 @@ export const convertTrialToPaid = mutation({
   },
 });
 
-/**
- * Calculate prorated upgrade amount and new billing dates.
- *
- * @param oldPrice - Current plan price
- * @param newPrice - Target plan price
- * @param billingStartDate - Current billing cycle start timestamp
- * @param billingEndDate - Current billing cycle end timestamp
- * @returns Object with prorated amount and new billing dates
- */
 function calculateProratedUpgrade(
   oldPrice: number,
   newPrice: number,
@@ -567,12 +532,10 @@ function calculateProratedUpgrade(
   const remainingMs = billingEndDate - now;
   const remainingDays = Math.max(0, remainingMs / (1000 * 60 * 60 * 24));
 
-  // Calculate prorated difference: (newPrice - oldPrice) * (daysRemaining / 30)
   const monthlyDifference = newPrice - oldPrice;
   const dailyDifference = monthlyDifference / 30;
   const proratedAmount = Math.ceil(dailyDifference * remainingDays);
 
-  // New billing cycle starts now
   const newBillingStart = now;
   const newBillingEnd = now + (30 * 24 * 60 * 60 * 1000);
 
@@ -581,14 +544,11 @@ function calculateProratedUpgrade(
 
 /**
  * Upgrade subscription tier with prorated billing.
- * Supports upgrading from Starter→Growth, Starter→Scale, or Growth→Scale.
- *
- * @param targetPlan - The plan to upgrade to (growth or scale)
- * @param mockPayment - Whether to use mock payment processing
+ * Validates that target plan exists in tierConfigs and is more expensive than current.
  */
 export const upgradeTier = mutation({
   args: {
-    targetPlan: v.union(v.literal("growth"), v.literal("scale")),
+    targetPlan: v.string(),
     mockPayment: v.boolean(),
   },
   returns: v.object({
@@ -608,30 +568,11 @@ export const upgradeTier = mutation({
       throw new Error("Tenant not found");
     }
 
-    const currentPlan = (tenant.plan || "starter") as "starter" | "growth" | "scale";
+    const currentPlan = tenant.plan || await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return dt?.tier ?? "starter";
+    })();
 
-    // Validate upgrade path
-    const upgradePaths: Record<string, string[]> = {
-      starter: ["growth", "scale"],
-      growth: ["scale"],
-      scale: [],
-    };
-
-    if (!upgradePaths[currentPlan]?.includes(args.targetPlan)) {
-      throw new Error(`Cannot upgrade from ${currentPlan} to ${args.targetPlan}`);
-    }
-
-    // Prevent upgrading to same plan
-    if (currentPlan === args.targetPlan) {
-      throw new Error(`You are already on the ${args.targetPlan} plan`);
-    }
-
-    // Prevent upgrades on cancelled subscriptions
-    if (tenant.subscriptionStatus === "cancelled") {
-      throw new Error("Cannot upgrade a cancelled subscription. Please reactivate first.");
-    }
-
-    // Get tier configs for pricing
     const currentTierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", currentPlan))
@@ -643,12 +584,28 @@ export const upgradeTier = mutation({
       .unique();
 
     if (!targetTierConfig) {
-      throw new Error("Target tier configuration not found");
+      throw new Error(`Plan "${args.targetPlan}" not found`);
     }
 
-    // Calculate prorated amount
+    if (!targetTierConfig.isActive) {
+      throw new Error(`Plan "${args.targetPlan}" is not available`);
+    }
+
+    if (currentPlan === args.targetPlan) {
+      throw new Error(`You are already on the ${args.targetPlan} plan`);
+    }
+
+    if (tenant.subscriptionStatus === "cancelled") {
+      throw new Error("Cannot upgrade a cancelled subscription. Please reactivate first.");
+    }
+
     const oldPrice = currentTierConfig?.price || 0;
     const newPrice = targetTierConfig.price;
+
+    if (newPrice <= oldPrice) {
+      throw new Error("Cannot upgrade to a plan that costs the same or less. Use the downgrade flow instead.");
+    }
+
     const billingStart = tenant.billingStartDate || Date.now();
     const billingEnd = tenant.billingEndDate || (Date.now() + 30 * 24 * 60 * 60 * 1000);
 
@@ -659,12 +616,10 @@ export const upgradeTier = mutation({
       billingEnd
     );
 
-    // Generate transaction ID
     const transactionId = args.mockPayment
       ? `mock_upgrade_${Date.now()}`
       : `upgrade_${Date.now()}`;
 
-    // Update tenant subscription
     await ctx.db.patch(authUser.tenantId, {
       plan: args.targetPlan,
       billingStartDate: newBillingStart,
@@ -673,7 +628,6 @@ export const upgradeTier = mutation({
       subscriptionId: transactionId,
     });
 
-    // Log to billing history with prorated amount
     await ctx.db.insert("billingHistory", {
       tenantId: authUser.tenantId,
       event: "upgrade",
@@ -687,7 +641,6 @@ export const upgradeTier = mutation({
       actorId: authUser.userId,
     });
 
-    // Log to audit trail
     await ctx.db.insert("auditLogs", {
       tenantId: authUser.tenantId,
       action: "SUBSCRIPTION_UPGRADE",
@@ -709,8 +662,6 @@ export const upgradeTier = mutation({
       },
     });
 
-    // Send confirmation email
-    // Get the user's email for the notification
     const user = await ctx.db.get(authUser.userId);
     if (user?.email) {
       await sendUpgradeConfirmation(ctx, {
@@ -723,7 +674,6 @@ export const upgradeTier = mutation({
         tenantId: authUser.tenantId,
       });
 
-      // Send payment success confirmation email
       await sendPaymentSuccessEmail(ctx, {
         to: user.email,
         tenantName: tenant.name,
@@ -760,14 +710,12 @@ export const upgradeTier = mutation({
 
 /**
  * Downgrade subscription tier.
- * Supports downgrading from Scale→Growth, Scale→Starter, or Growth→Starter.
+ * Validates that target plan exists in tierConfigs and is less expensive than current.
  * Downgrades take effect immediately but billing changes at next cycle (no proration).
- *
- * @param targetPlan - The plan to downgrade to (growth or starter)
  */
 export const downgradeTier = mutation({
   args: {
-    targetPlan: v.union(v.literal("growth"), v.literal("starter")),
+    targetPlan: v.string(),
   },
   returns: v.object({
     success: v.boolean(),
@@ -786,55 +734,53 @@ export const downgradeTier = mutation({
       throw new Error("Tenant not found");
     }
 
-    const currentPlan = (tenant.plan || "starter") as "starter" | "growth" | "scale";
+    const currentPlan = tenant.plan || await (async () => {
+      const dt = await ctx.db.query("tierConfigs").withIndex("by_default", (q: any) => q.eq("isDefault", true)).first();
+      return dt?.tier ?? "starter";
+    })();
 
-    // Validate downgrade path
-    const downgradePaths: Record<string, string[]> = {
-      scale: ["growth", "starter"],
-      growth: ["starter"],
-      starter: [],
-    };
+    const currentTierConfig = await ctx.db
+      .query("tierConfigs")
+      .withIndex("by_tier", (q) => q.eq("tier", currentPlan))
+      .unique();
 
-    if (!downgradePaths[currentPlan]?.includes(args.targetPlan)) {
-      throw new Error(`Cannot downgrade from ${currentPlan} to ${args.targetPlan}`);
-    }
-
-    // Prevent downgrading to same plan
-    if (currentPlan === args.targetPlan) {
-      throw new Error(`You are already on the ${args.targetPlan} plan`);
-    }
-
-    // Prevent downgrades on cancelled subscriptions
-    if (tenant.subscriptionStatus === "cancelled") {
-      throw new Error("Cannot downgrade a cancelled subscription");
-    }
-
-    // Get tier configs for pricing
     const targetTierConfig = await ctx.db
       .query("tierConfigs")
       .withIndex("by_tier", (q) => q.eq("tier", args.targetPlan))
       .unique();
 
     if (!targetTierConfig) {
-      throw new Error("Target tier configuration not found");
+      throw new Error(`Plan "${args.targetPlan}" not found`);
     }
 
-    // Downgrade takes effect immediately but billing changes at next cycle
-    const effectiveDate = tenant.billingEndDate || Date.now();
+    if (!targetTierConfig.isActive) {
+      throw new Error(`Plan "${args.targetPlan}" is not available`);
+    }
 
-    // Generate transaction ID
+    if (currentPlan === args.targetPlan) {
+      throw new Error(`You are already on the ${args.targetPlan} plan`);
+    }
+
+    if (tenant.subscriptionStatus === "cancelled") {
+      throw new Error("Cannot downgrade a cancelled subscription");
+    }
+
+    const currentPrice = currentTierConfig?.price || 0;
+    const targetPrice = targetTierConfig.price;
+
+    if (targetPrice >= currentPrice) {
+      throw new Error("Cannot downgrade to a plan that costs the same or more. Use the upgrade flow instead.");
+    }
+
+    const effectiveDate = tenant.billingEndDate || Date.now();
     const transactionId = `downgrade_${Date.now()}`;
 
-    // Update tenant subscription
     await ctx.db.patch(authUser.tenantId, {
       plan: args.targetPlan,
-      // billingStartDate and billingEndDate remain unchanged
-      // New rate takes effect at next billing cycle
       subscriptionStatus: "active",
       subscriptionId: transactionId,
     });
 
-    // Log to billing history (no prorated amount for downgrades)
     await ctx.db.insert("billingHistory", {
       tenantId: authUser.tenantId,
       event: "downgrade",
@@ -847,7 +793,6 @@ export const downgradeTier = mutation({
       actorId: authUser.userId,
     });
 
-    // Log to audit trail
     await ctx.db.insert("auditLogs", {
       tenantId: authUser.tenantId,
       action: "SUBSCRIPTION_DOWNGRADE",
@@ -866,7 +811,6 @@ export const downgradeTier = mutation({
       },
     });
 
-    // Send confirmation email
     const user = await ctx.db.get(authUser.userId);
     if (user?.email) {
       await sendDowngradeConfirmation(ctx, {

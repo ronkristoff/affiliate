@@ -21,6 +21,9 @@ interface SubscriptionStatusCardProps {
 export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCardProps) {
   const subscription = useQuery(api.subscriptions.getCurrentSubscription);
   const tierConfig = useQuery(api.tierConfig.getMyTierConfig);
+  const defaultPlan = useQuery(api.tierConfig.getDefaultPlanName);
+
+  const defaultPlanName = defaultPlan ?? "starter";
 
   if (subscription === undefined) {
     return (
@@ -55,16 +58,7 @@ export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCar
   };
 
   const getPlanDisplayName = (plan: string) => {
-    switch (plan) {
-      case "starter":
-        return "Starter";
-      case "growth":
-        return "Growth";
-      case "scale":
-        return "Scale";
-      default:
-        return plan.charAt(0).toUpperCase() + plan.slice(1);
-    }
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
   };
 
   const getStatusBadge = () => {
@@ -86,7 +80,7 @@ export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCar
     let status: "trial" | "active" | "cancelled" | "past_due" = "trial";
     if (subscription.subscriptionStatus) {
       status = subscription.subscriptionStatus;
-    } else if (!subscription.isTrial && subscription.plan !== "starter") {
+    } else if (!subscription.isTrial && subscription.plan !== defaultPlanName) {
       status = "active";
     }
 
@@ -101,7 +95,7 @@ export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCar
     );
   };
 
-  const isPaidPlan = subscription.plan === "growth" || subscription.plan === "scale";
+  const isPaidPlan = subscription.plan !== defaultPlanName;
   const showBillingDates = isPaidPlan || subscription.isTrial;
 
   // Determine the end date to display
@@ -142,7 +136,7 @@ export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCar
                 ₱{tierConfig.price.toLocaleString()}/month
               </p>
             )}
-            {subscription.plan === "starter" && (
+            {subscription.plan === defaultPlanName && (
               <p className="text-sm text-muted-foreground">Free</p>
             )}
           </div>
@@ -190,12 +184,12 @@ export function SubscriptionStatusCard({ onUpgradeClick }: SubscriptionStatusCar
           </div>
         )}
 
-        {/* Upgrade Button (if on starter or growth plan and not cancelled) */}
-        {(subscription.plan === "starter" || subscription.plan === "growth") && 
+        {/* Upgrade Button (if on default/low plan and not cancelled) */}
+        {subscription.plan === defaultPlanName && 
          subscription.subscriptionStatus !== "cancelled" && (
           <div className="border-t pt-4 mt-4">
             <Button onClick={onUpgradeClick} className="w-full">
-              {subscription.plan === "starter" ? "Upgrade to Growth" : "Upgrade to Scale"}
+              Upgrade Plan
             </Button>
           </div>
         )}

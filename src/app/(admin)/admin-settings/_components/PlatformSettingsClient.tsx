@@ -6,15 +6,27 @@ import { api } from "@/convex/_generated/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Clock, Info, Check } from "lucide-react";
+import { Loader2, Save, Clock, Info, Check, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// =============================================================================
-// Content component (hooks inside, wrapped by Suspense)
-// =============================================================================
+type PlatformProvider = "stripe" | "saligpay";
+
+const PROVIDER_CONFIG: Record<PlatformProvider, { label: string; description: string; badge: string }> = {
+  stripe: {
+    label: "Stripe",
+    description: "Accept credit/debit card payments via Stripe Checkout",
+    badge: "Cards",
+  },
+  saligpay: {
+    label: "SaligPay",
+    description: "Philippine digital payments (GCash, Maya, bank transfer)",
+    badge: "Coming Soon",
+  },
+};
 
 function PlatformSettingsContent() {
   const settings = useQuery(api.platformSettings.getPlatformSettings);
@@ -24,10 +36,18 @@ function PlatformSettingsContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Sync input when settings load
   const currentTrialDays = settings?.defaultTrialDays ?? 14;
+  const currentProviders = settings?.enabledPlatformProviders ?? [];
 
-  const handleSave = async () => {
+  const [syncedProviders, setSyncedProviders] = useState<PlatformProvider[] | null>(null);
+
+  if (settings && syncedProviders === null) {
+    setSyncedProviders(currentProviders);
+  }
+
+  const enabledProviders = syncedProviders ?? currentProviders;
+
+  const handleSaveTrial = async () => {
     const parsed = parseInt(trialDays, 10);
 
     if (isNaN(parsed) || parsed < 1 || parsed > 365) {
@@ -55,13 +75,31 @@ function PlatformSettingsContent() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleSave();
+      handleSaveTrial();
+    }
+  };
+
+  const handleProviderToggle = async (provider: PlatformProvider, enabled: boolean) => {
+    const next = enabled
+      ? [...enabledProviders, provider]
+      : enabledProviders.filter((p) => p !== provider);
+
+    setSyncedProviders(next);
+
+    setIsSaving(true);
+    try {
+      await updateSettings({ defaultTrialDays: currentTrialDays, enabledPlatformProviders: next });
+      toast.success(`${PROVIDER_CONFIG[provider].label} ${enabled ? "enabled" : "disabled"}`);
+    } catch (err) {
+      setSyncedProviders(currentProviders);
+      toast.error(err instanceof Error ? err.message : "Failed to update provider");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Trial Duration Card */}
       <Card className="border-[var(--border-light)] shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-3">
@@ -83,7 +121,6 @@ function PlatformSettingsContent() {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-4">
-            {/* Input row */}
             <div className="flex items-center gap-3">
               <div className="relative flex-1 max-w-[200px]">
                 <Input
@@ -104,7 +141,7 @@ function PlatformSettingsContent() {
 
               <Button
                 size="sm"
-                onClick={handleSave}
+                onClick={handleSaveTrial}
                 disabled={isSaving || trialDays === "" || parseInt(trialDays, 10) === currentTrialDays}
                 className="h-10"
               >
@@ -127,7 +164,6 @@ function PlatformSettingsContent() {
               </Button>
             </div>
 
-            {/* Info box */}
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--bg-muted)] border border-[var(--border-light)]">
               <Info className="w-4 h-4 text-[var(--text-muted)] mt-0.5 shrink-0" />
               <div className="text-[12.5px] text-[var(--text-muted)] leading-relaxed space-y-1">
@@ -144,38 +180,85 @@ function PlatformSettingsContent() {
         </CardContent>
       </Card>
 
-      {/* Future Settings Placeholder */}
-      <Card className="border-[var(--border-light)] shadow-sm opacity-60">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-[var(--text-muted)]">
-            More Settings Coming Soon
-          </CardTitle>
+      <Card className="border-[var(--border-light)] shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-light)] flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-[var(--brand-primary)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base font-semibold text-[var(--text-primary)]">
+                Platform Payment Providers
+              </CardTitle>
+              <CardDescription className="text-[13px] text-[var(--text-muted)] mt-0.5">
+                Which payment methods SaaS Owners can use to pay for their subscription
+              </CardDescription>
+            </div>
+            {enabledProviders.length > 0 && (
+              <Badge variant="secondary" className="shrink-0 text-xs font-medium bg-[var(--brand-light)] text-[var(--brand-primary)] border-[var(--brand-secondary)]/20">
+                {enabledProviders.length} active
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              "Default grace period (days)",
-              "Max trial extension (days)",
-              "Auto-cancellation threshold",
-            ].map((label) => (
-              <div
-                key={label}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-dashed border-[var(--border-light)]"
-              >
-                <div className="w-2 h-2 rounded-full bg-[var(--text-muted)]/30" />
-                <span className="text-[13px] text-[var(--text-muted)]">{label}</span>
+          <div className="space-y-4">
+            {(Object.entries(PROVIDER_CONFIG) as [PlatformProvider, typeof PROVIDER_CONFIG[PlatformProvider]][]).map(
+              ([key, config]) => (
+                <div
+                  key={key}
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-lg border transition-colors",
+                    enabledProviders.includes(key)
+                      ? "border-[var(--brand-primary)]/20 bg-[var(--brand-light)]/30"
+                      : "border-[var(--border-light)]"
+                  )}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Switch
+                      checked={enabledProviders.includes(key)}
+                      onCheckedChange={(checked) => handleProviderToggle(key, checked)}
+                      disabled={isSaving || key === "saligpay"}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">
+                          {config.label}
+                        </span>
+                        {key === "saligpay" && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            Soon
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[12.5px] text-[var(--text-muted)] mt-0.5">
+                        {config.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[var(--bg-muted)] border border-[var(--border-light)]">
+              <Info className="w-4 h-4 text-[var(--text-muted)] mt-0.5 shrink-0" />
+              <div className="text-[12.5px] text-[var(--text-muted)] leading-relaxed space-y-1">
+                <p>
+                  At least one provider must be enabled for tenants to upgrade.
+                  When multiple providers are active, tenants can choose at checkout.
+                </p>
+                <p>
+                  Stripe requires <code className="text-[11px] bg-[var(--bg-muted)] px-1 rounded">STRIPE_SECRET_KEY</code> and{" "}
+                  <code className="text-[11px] bg-[var(--bg-muted)] px-1 rounded">STRIPE_WEBHOOK_SECRET</code> environment variables.
+                </p>
               </div>
-            ))}
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-// =============================================================================
-// Skeleton fallback
-// =============================================================================
 
 function PlatformSettingsSkeleton() {
   return (
@@ -199,13 +282,24 @@ function PlatformSettingsSkeleton() {
           <Skeleton className="h-16 w-full mt-4 rounded-lg" />
         </CardContent>
       </Card>
+      <Card className="border-[var(--border-light)] shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full mt-3 rounded-lg" />
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-// =============================================================================
-// Exported wrapper with Suspense
-// =============================================================================
 
 export function PlatformSettingsClient() {
   return (

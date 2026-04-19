@@ -9,8 +9,8 @@ import { api } from "@/convex/_generated/api";
 import { format } from "date-fns";
 
 interface DowngradeConfirmationDialogProps {
-  currentPlan: "scale" | "growth";
-  targetPlan: "growth" | "starter";
+  currentPlan: string;
+  targetPlan: string;
   effectiveDate: number;
   onConfirm: () => void;
   onCancel: () => void;
