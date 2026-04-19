@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -347,11 +347,8 @@ function AffiliatesContent() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
 
-  // ── Page reset on search / filter / sort change ─────────────────────────
-  useEffect(() => {
-    setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statuses, campaigns, sortBy, sortOrder, referralMin, referralMax, clickMin, clickMax, earningsMin, earningsMax, joinedAfter, joinedBefore]);
+  // ── Page reset on search / filter / sort change (called in handlers, not useEffect) ─
+  const resetPage = useCallback(() => setPage(1), [setPage]);
 
   // ── Reset page to 1 when page size changes ───────────────────────────────
   const handlePageSizeChange = (newPageSize: number) => {
@@ -454,6 +451,8 @@ function AffiliatesContent() {
     for (const filter of filters) {
       applyFilter(filter);
     }
+
+    setPage(1);
   };
 
   const applyFilter = (filter: ColumnFilter) => {
@@ -775,7 +774,7 @@ function AffiliatesContent() {
 
             <AffiliateToolbar
               searchQuery={search}
-              onSearchChange={setSearch}
+              onSearchChange={(v) => { resetPage(); setSearch(v); }}
               onExport={handleExportCSV}
               isExporting={isExporting}
               onInvite={() => setIsInviteSheetOpen(true)}
@@ -798,6 +797,7 @@ function AffiliatesContent() {
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(field, order) => {
+                resetPage();
                 setSortBy(field);
                 setSortOrder(order);
               }}
@@ -834,7 +834,7 @@ function AffiliatesContent() {
 
             <AffiliateToolbar
               searchQuery={search}
-              onSearchChange={setSearch}
+              onSearchChange={(v) => { resetPage(); setSearch(v); }}
               onExport={handleExportCSV}
               isExporting={isExporting}
               onInvite={() => setIsInviteSheetOpen(true)}
@@ -863,6 +863,7 @@ function AffiliatesContent() {
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(field, order) => {
+                resetPage();
                 setSortBy(field);
                 setSortOrder(order);
               }}
@@ -894,7 +895,7 @@ function AffiliatesContent() {
 
             <AffiliateToolbar
               searchQuery={search}
-              onSearchChange={setSearch}
+              onSearchChange={(v) => { resetPage(); setSearch(v); }}
               onExport={handleExportCSV}
               isExporting={isExporting}
               onInvite={() => setIsInviteSheetOpen(true)}
@@ -917,6 +918,7 @@ function AffiliatesContent() {
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(field, order) => {
+                resetPage();
                 setSortBy(field);
                 setSortOrder(order);
               }}

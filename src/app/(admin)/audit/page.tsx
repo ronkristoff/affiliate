@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -531,17 +531,16 @@ function AuditLogContent() {
     endDate,
   });
 
-  useEffect(() => {
-    setPage(1);
-  }, [selectedActions, selectedEntityTypes, selectedActorIds, startDateStr, endDateStr, setPage]);
+  const resetPage = useCallback(() => setPage(1), [setPage]);
 
   const handleClearAll = useCallback(() => {
+    setPage(1);
     setSelectedActions([]);
     setSelectedEntityTypes([]);
     setSelectedActorIds([]);
     setStartDateStr("");
     setEndDateStr("");
-  }, [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr]);
+  }, [setPage, setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr]);
 
   const handlePaginationChange = useCallback(
     ({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
@@ -587,6 +586,7 @@ function AuditLogContent() {
 
   const handlePillRemove = useCallback(
     (key: string) => {
+      setPage(1);
       const [type, value] = key.split(":", 2);
       if (type === "action") setSelectedActions((prev) => prev.filter((v) => v !== value));
       else if (type === "entity") setSelectedEntityTypes((prev) => prev.filter((v) => v !== value));
@@ -594,7 +594,7 @@ function AuditLogContent() {
       else if (type === "date" && value === "from") setStartDateStr("");
       else if (type === "date" && value === "to") setEndDateStr("");
     },
-    [setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr],
+    [setPage, setSelectedActions, setSelectedEntityTypes, setSelectedActorIds, setStartDateStr, setEndDateStr],
   );
 
   return (
@@ -635,11 +635,11 @@ function AuditLogContent() {
                 selectedActorIds={selectedActorIds}
                 startDate={startDateStr}
                 endDate={endDateStr}
-                onActionsChange={setSelectedActions}
-                onEntityTypesChange={setSelectedEntityTypes}
-                onActorIdsChange={setSelectedActorIds}
-                onStartDateChange={setStartDateStr}
-                onEndDateChange={setEndDateStr}
+                onActionsChange={(v) => { resetPage(); setSelectedActions(v); }}
+                onEntityTypesChange={(v) => { resetPage(); setSelectedEntityTypes(v); }}
+                onActorIdsChange={(v) => { resetPage(); setSelectedActorIds(v); }}
+                onStartDateChange={(v) => { resetPage(); setStartDateStr(v); }}
+                onEndDateChange={(v) => { resetPage(); setEndDateStr(v); }}
               />
             ) : (
               <div className="flex gap-3">
