@@ -7,6 +7,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -26,6 +27,7 @@ import {
   Pause,
   ChevronDown,
   TriangleAlert,
+  Settings2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -90,7 +92,7 @@ function estimateNextRun(
   return formatDistanceToNow(nextMs, { addSuffix: false }) + " from now";
 }
 
-const INTERVAL_OPTIONS = [1, 2, 4, 6, 8, 12, 24, 48, 72, 168];
+const INTERVAL_OPTIONS = [1, 6, 12, 24, 48, 168] as const;
 
 function CronConfigCard({
   config,
@@ -104,6 +106,10 @@ function CronConfigCard({
   isToggling: boolean;
 }) {
   const [showIntervalPicker, setShowIntervalPicker] = useState(false);
+  const [pendingInterval, setPendingInterval] = useState<number | null>(null);
+  const [isCustom, setIsCustom] = useState(false);
+  const [customInput, setCustomInput] = useState("");
+  const [customUnit, setCustomUnit] = useState<"hours" | "days">("hours");
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -205,7 +211,7 @@ function CronConfigCard({
               <AlertDialogCancel className="text-[12px]">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => onToggle(config.name, !config.enabled)}
-                className={config.enabled ? "text-[12px]" : "text-[12px]"}
+                className="text-[12px]"
               >
                 {config.enabled ? "Disable Job" : "Enable Job"}
               </AlertDialogAction>
@@ -213,40 +219,180 @@ function CronConfigCard({
           </AlertDialogContent>
         </AlertDialog>
 
-        <div className="relative" ref={pickerRef}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowIntervalPicker((p) => !p)}
-            className="text-[12px] h-7 px-3"
-          >
-            <Clock className="w-3 h-3 mr-1" />
-            {formatInterval(config.intervalHours)}
-            <ChevronDown className="w-3 h-3 ml-1" />
-          </Button>
-          {showIntervalPicker && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-[var(--border-light)] rounded-lg shadow-lg z-50 py-1 min-w-[140px]">
-              {INTERVAL_OPTIONS.map((h) => (
+        <AlertDialog
+          open={pendingInterval !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingInterval(null);
+              setIsCustom(false);
+              setCustomInput("");
+              setCustomUnit("hours");
+            }
+          }}
+        >
+          <div className="relative" ref={pickerRef}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowIntervalPicker((p) => !p)}
+              className="text-[12px] h-7 px-3"
+            >
+              <Clock className="w-3 h-3 mr-1" />
+              {formatInterval(config.intervalHours)}
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </Button>
+            {showIntervalPicker && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[var(--border-light)] rounded-lg shadow-lg z-50 py-1 min-w-[140px]">
+                {INTERVAL_OPTIONS.map((h) => (
+                  <Button
+                    key={h}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-[12px] h-7 px-3 font-normal",
+                      h === config.intervalHours &&
+                        "text-[var(--brand-primary)] font-medium bg-[var(--brand-light)]/30 hover:bg-[var(--brand-light)]/40"
+                    )}
+                    onClick={() => {
+                      if (h === config.intervalHours) {
+                        setShowIntervalPicker(false);
+                        return;
+                      }
+                      setPendingInterval(h);
+                      setIsCustom(false);
+                      setShowIntervalPicker(false);
+                    }}
+                  >
+                    {formatInterval(h)}
+                  </Button>
+                ))}
+                <div className="border-t border-[var(--border-light)] my-1" />
                 <Button
-                  key={h}
                   variant="ghost"
                   size="sm"
-                  className={cn(
-                    "w-full justify-start text-[12px] h-7 px-3 font-normal",
-                    h === config.intervalHours &&
-                      "text-[var(--brand-primary)] font-medium bg-[var(--brand-light)]/30 hover:bg-[var(--brand-light)]/40"
-                  )}
+                  className="w-full justify-start text-[12px] h-7 px-3 font-normal"
                   onClick={() => {
-                    onIntervalChange(config.name, h);
+                    setPendingInterval(-1);
+                    setIsCustom(true);
+                    setCustomInput(String(config.intervalHours));
                     setShowIntervalPicker(false);
                   }}
                 >
-                  {formatInterval(h)}
+                  <Settings2 className="w-3 h-3 mr-1.5" />
+                  Custom...
                 </Button>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <TriangleAlert className="w-4 h-4 text-amber-500" />
+                Change interval for "{config.name}"?
+              </AlertDialogTitle>
+              {isCustom ? (
+                <div className="py-2">
+                  <label className="text-[13px] font-medium text-[var(--text-body)] mb-1.5 block">
+                    Custom interval
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={customUnit === "hours" ? 8760 : 365}
+                      step={1}
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      placeholder={customUnit === "hours" ? "e.g. 3, 18, 96" : "e.g. 5, 14, 30"}
+                      className="h-8 text-[13px] flex-1"
+                      autoFocus
+                    />
+                    <div className="flex rounded-md border border-[var(--border-light)] overflow-hidden shrink-0">
+                      {(["hours", "days"] as const).map((unit) => (
+                        <button
+                          key={unit}
+                          type="button"
+                          onClick={() => setCustomUnit(unit)}
+                          className={cn(
+                            "px-3 text-[12px] font-medium transition-colors",
+                            customUnit === unit
+                              ? "bg-[var(--brand-primary)] text-white"
+                              : "bg-white text-[var(--text-muted)] hover:text-[var(--text-body)]"
+                          )}
+                        >
+                          {unit === "hours" ? "Hours" : "Days"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {customInput !== "" && Number.isInteger(Number(customInput)) && Number(customInput) >= 1 && (
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1.5">
+                      Current: {formatInterval(config.intervalHours)}
+                      {" → New: "}
+                      {formatInterval(
+                        customUnit === "hours"
+                          ? Number(customInput)
+                          : Number(customInput) * 24
+                      )}
+                    </p>
+                  )}
+                  {customInput !== "" && (Number(customInput) < 1 || !Number.isInteger(Number(customInput))) && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      Must be a whole number, minimum 1
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <AlertDialogDescription>
+                  The schedule will change from{" "}
+                  <span className="font-medium text-[var(--text-body)]">
+                    {formatInterval(config.intervalHours)}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium text-[var(--text-body)]">
+                    {formatInterval(pendingInterval!)}
+                  </span>
+                  . The next run will be rescheduled based on the new interval.
+                </AlertDialogDescription>
+              )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[12px]">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={
+                  isCustom &&
+                  (customInput === "" ||
+                    !Number.isInteger(Number(customInput)) ||
+                    Number(customInput) < 1 ||
+                    (customUnit === "hours" && Number(customInput) > 8760) ||
+                    (customUnit === "days" && Number(customInput) > 365) ||
+                    (customUnit === "hours"
+                      ? Number(customInput) === config.intervalHours
+                      : Number(customInput) * 24 === config.intervalHours))
+                }
+                onClick={() => {
+                  if (isCustom) {
+                    const val = Number(customInput);
+                    const hours = customUnit === "hours" ? val : val * 24;
+                    if (Number.isInteger(val) && val >= 1) {
+                      onIntervalChange(config.name, hours);
+                      setPendingInterval(null);
+                      setIsCustom(false);
+                      setCustomInput("");
+                      setCustomUnit("hours");
+                    }
+                  } else if (pendingInterval !== null && pendingInterval > 0) {
+                    onIntervalChange(config.name, pendingInterval);
+                    setPendingInterval(null);
+                  }
+                }}
+                className="text-[12px]"
+              >
+                Change Interval
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
