@@ -70,6 +70,14 @@ const CRON_JOB_DEFINITIONS = [
     description: "Purge audit log entries older than 12 months",
     extraArgs: {},
   },
+  {
+    name: "error-log-cleanup",
+    handlerRef: "internal.errorLogs.cleanupOldErrorLogs",
+    enabled: true,
+    intervalHours: 24,
+    description: "Purge resolved error logs older than 90 days",
+    extraArgs: {},
+  },
 ] as const;
 
 export const runDispatcher = internalAction({
@@ -316,6 +324,9 @@ async function executeHandler(
 
     case "internal.audit.runAuditLogRetention":
       return ctx.runAction(internal.audit.runAuditLogRetention, {});
+
+    case "internal.errorLogs.cleanupOldErrorLogs":
+      return ctx.runMutation(internal.errorLogs.cleanupOldErrorLogs, {});
 
     default:
       throw new Error(`Unknown handlerRef: ${handlerRef}`);

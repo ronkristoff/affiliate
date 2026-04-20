@@ -2,6 +2,8 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import { v } from "convex/values";
 import { requireAdmin } from "./admin/_helpers";
 
+const ERROR_LOG_RETENTION_DAYS = 90;
+
 export const logError = internalMutation({
   args: {
     severity: v.union(v.literal("error"), v.literal("warning"), v.literal("info")),
@@ -73,7 +75,7 @@ export const getErrorLogs = query({
       q = q.filter((q) => q.eq(q.field("resolved"), args.resolved));
     }
 
-    const limit = args.limit ?? 100;
+    const limit = Math.min(args.limit ?? 100, 500);
     return await q.take(limit);
   },
 });
@@ -104,6 +106,30 @@ export const getErrorLogById = query({
   },
 });
 
+export const resolveErrorLog = mutation({
+  args: {
+    errorLogId: v.id("errorLogs"),
+    resolvedBy: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const log = await ctx.db.get(args.errorLogId);
+    if (!log) {
+      throw new Error("Error log not found");
+    }
+    if (log.resolved) {
+      return null;
+    }
+    await ctx.db.patch(args.errorLogId, {
+      resolved: true,
+      resolvedAt: Date.now(),
+      resolvedBy: args.resolvedBy,
+    });
+    return null;
+  },
+});
+
 export const getErrorStats = query({
   args: {},
   returns: v.object({
@@ -115,7 +141,7 @@ export const getErrorStats = query({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const allLogs = await ctx.db.query("errorLogs").collect();
+    const allLogs = await ctx.db.query("errorLogs").order("desc").take(1000);
 
     const bySeverity: Record<string, number> = { error: 0, warning: 0, info: 0 };
     const bySource: Record<string, number> = {};
@@ -134,5 +160,39 @@ export const getErrorStats = query({
       bySeverity,
       bySource,
     };
+  },
+});
+
+export const cleanupOldErrorLogs = internalMutation({
+  args: {},
+  returns: v.object({
+    deletedCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    const cutoffTime = Date.now() - ERROR_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+
+    const oldLogs = await ctx.db
+      .query("errorLogs")
+      .order("asc")
+      .filter((q) => q.lt(q.field("_creationTime"), cutoffTime))
+      .take(100);
+
+    for (const log of oldLogs) {
+      try {
+        await ctx.db.delete(log._id);
+        deletedCount++;
+      } catch {
+        // Already deleted or race condition — skip
+      }
+    }
+
+    if (deletedCount > 0) {
+      console.log(
+        `[ErrorLogsCleanup] Deleted ${deletedCount} entries older than ${ERROR_LOG_RETENTION_DAYS} days`,
+      );
+    }
+
+    return { deletedCount };
   },
 });
