@@ -62,6 +62,8 @@ export const logBillingEventInternal = internalMutation({
     tenantId: v.id("tenants"),
     event: v.string(),
     plan: v.optional(v.string()),
+    newPlan: v.optional(v.string()),
+    amount: v.optional(v.number()),
     actorId: v.optional(v.id("users")),
   },
   returns: v.null(),
@@ -70,6 +72,8 @@ export const logBillingEventInternal = internalMutation({
       tenantId: args.tenantId,
       event: args.event,
       plan: args.plan,
+      newPlan: args.newPlan,
+      amount: args.amount,
       timestamp: Date.now(),
       actorId: args.actorId,
     });
@@ -223,6 +227,9 @@ export const syncStripeSubscriptionToTenant = internalMutation({
       tenantId: args.tenantId as any,
       event: "stripe_webhook",
       plan: patchData.plan ?? (tenant as any).plan,
+      newPlan: patchData.plan ?? (tenant as any).plan,
+      previousPlan: (tenant as any).plan,
+      amount: args.amount != null ? args.amount / 100 : undefined,
       timestamp: Date.now(),
       actorId: undefined,
     });

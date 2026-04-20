@@ -140,6 +140,7 @@ export const createPlatformCheckout = action({
         tenantId: authUser.tenantId,
         event: "checkout_initiated",
         plan: args.plan,
+        newPlan: args.plan,
         actorId: authUser._id,
       });
     } catch (logErr) {

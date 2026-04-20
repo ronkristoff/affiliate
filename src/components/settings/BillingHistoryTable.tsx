@@ -15,8 +15,9 @@ interface BillingHistoryEvent {
   _id: Id<"billingHistory">;
   _creationTime: number;
   event: string;
+  plan?: string;
   previousPlan?: string;
-  newPlan: string;
+  newPlan?: string;
   amount?: number;
   proratedAmount?: number;
   timestamp: number;
@@ -37,6 +38,12 @@ const eventLabels: Record<string, string> = {
   cancel: "Cancelled",
   renew: "Renewed",
   trial_conversion: "Trial Converted",
+  stripe_webhook: "Stripe Update",
+  checkout_initiated: "Checkout Started",
+  subscription_cancel_requested: "Cancel Requested",
+  trial_expired: "Trial Expired",
+  past_due: "Past Due",
+  grace_expired: "Grace Expired",
 };
 
 const eventColors: Record<string, { bg: string; text: string }> = {
@@ -45,6 +52,12 @@ const eventColors: Record<string, { bg: string; text: string }> = {
   cancel: { bg: "#fee2e2", text: "#991b1b" },
   renew: { bg: "#dbeafe", text: "#1e40af" },
   trial_conversion: { bg: "#f3e8ff", text: "#6b21a8" },
+  stripe_webhook: { bg: "#e0e7ff", text: "#3730a3" },
+  checkout_initiated: { bg: "#e0f2fe", text: "#075985" },
+  subscription_cancel_requested: { bg: "#fef3c7", text: "#92400e" },
+  trial_expired: { bg: "#fee2e2", text: "#991b1b" },
+  past_due: { bg: "#fef3c7", text: "#92400e" },
+  grace_expired: { bg: "#fee2e2", text: "#991b1b" },
 };
 
 export function BillingHistoryTable({
@@ -89,16 +102,19 @@ export function BillingHistoryTable({
     {
       key: "plan",
       header: "Plan",
-      cell: (row) => (
-        <span>
-          {row.previousPlan && (
-            <span className="text-[#6b7280]">
-              {getPlanDisplayName(row.previousPlan)} →{" "}
-            </span>
-          )}
-          <span className="text-[#333]">{getPlanDisplayName(row.newPlan)}</span>
-        </span>
-      ),
+      cell: (row) => {
+        const displayPlan = row.newPlan || row.plan;
+        return (
+          <span>
+            {row.previousPlan && (
+              <span className="text-[#6b7280]">
+                {getPlanDisplayName(row.previousPlan)} →{" "}
+              </span>
+            )}
+            <span className="text-[#333]">{getPlanDisplayName(displayPlan)}</span>
+          </span>
+        );
+      },
     },
     {
       key: "amount",
