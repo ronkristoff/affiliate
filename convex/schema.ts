@@ -468,6 +468,20 @@ export default defineSchema({
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_status", ["tenantId", "status"]),
 
+  // Error/Exception Logging Table (Platform-wide)
+  errorLogs: defineTable({
+    severity: v.union(v.literal("error"), v.literal("warning"), v.literal("info")),
+    source: v.string(), // e.g., "platformBilling", "stripeWebhook", "auth", "conversion"
+    message: v.string(),
+    stackTrace: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Additional context: tenantId, userId, requestId, etc.
+    resolved: v.optional(v.boolean()), // Marked as resolved by admin
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.string()),
+  }).index("by_severity", ["severity"])
+    .index("by_source", ["source"])
+    .index("by_resolved", ["resolved"]),
+
   // Task 6: System Tables
   auditLogs: defineTable({
     tenantId: v.optional(v.id("tenants")),

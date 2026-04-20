@@ -10,6 +10,12 @@ const publicRoutes = [
   "/forgot-password",
 ];
 
+// Webhook routes - must be publicly accessible
+const webhookRoutes = [
+  "/api/webhooks/",
+  "/api/stripe/",
+];
+
 // Marketing/public pages
 const marketingRoutes = ["/", "/about", "/pricing", "/features"];
 
@@ -52,6 +58,13 @@ function isAffiliateRoute(pathname: string): boolean {
  */
 export default async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // ALLOW WEBHOOK ROUTES FIRST - before any auth checks
+  // Webhook routes must be publicly accessible (Stripe, SaligPay)
+  const isWebhookRoute = webhookRoutes.some(route => pathname.startsWith(route));
+  if (isWebhookRoute) {
+    return NextResponse.next();
+  }
 
   // Both owners and affiliates authenticate through Better Auth.
   // Role-based access (owner vs affiliate) is enforced at the Convex layer.
@@ -139,6 +152,8 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run middleware on all routes except static assets and api routes
-  matcher: ["/((?!.*\\..*|_next|api/auth).*)", "/", "/trpc(.*)"],
+  // Run middleware on all routes
+  matcher: [
+    "/(.*)",
+  ],
 };

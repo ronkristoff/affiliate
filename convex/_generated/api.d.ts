@@ -50,6 +50,7 @@ import type * as emailService from "../emailService.js";
 import type * as emailServiceMutation from "../emailServiceMutation.js";
 import type * as emails from "../emails.js";
 import type * as encryption from "../encryption.js";
+import type * as errorLogs from "../errorLogs.js";
 import type * as fraudDetection from "../fraudDetection.js";
 import type * as fraudDetectionMigration from "../fraudDetectionMigration.js";
 import type * as fraudDetectionMigrationAction from "../fraudDetectionMigrationAction.js";
@@ -156,6 +157,7 @@ declare const fullApi: ApiFromModules<{
   emailServiceMutation: typeof emailServiceMutation;
   emails: typeof emails;
   encryption: typeof encryption;
+  errorLogs: typeof errorLogs;
   fraudDetection: typeof fraudDetection;
   fraudDetectionMigration: typeof fraudDetectionMigration;
   fraudDetectionMigrationAction: typeof fraudDetectionMigrationAction;

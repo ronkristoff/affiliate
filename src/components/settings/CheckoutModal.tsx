@@ -63,7 +63,10 @@ export function CheckoutModal({
         throw new Error("Could not create checkout session. No URL returned.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create checkout session");
+      const message = err instanceof Error ? err.message : "Failed to create checkout session";
+      // Clean up error message - strip stack trace if included
+      const cleanMessage = message.split("\n")[0].replace(/^Uncaught Error: /, "");
+      setError(cleanMessage);
       setIsRedirecting(false);
     }
   };

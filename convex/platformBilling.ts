@@ -15,6 +15,8 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
 
 function getStripeClient(): any {
   const { StripeSubscriptions } = require("@convex-dev/stripe") as any;
@@ -33,10 +35,17 @@ export const createPlatformCheckout = action({
   }),
   handler: async (ctx, args) => {
     const internal = (require("./_generated/api") as any).internal;
-    const { getAuthenticatedUser } = require("./tenantContext") as any;
-    const authUser = await getAuthenticatedUser(ctx);
-    if (!authUser) {
+    const betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    if (!betterAuthUser) {
       throw new Error("Unauthorized: Authentication required");
+    }
+
+    type AppUser = { _id: Id<"users">; tenantId: Id<"tenants">; email: string; name?: string; role: string };
+    const authUser: AppUser | null = await ctx.runQuery(internal.users._getUserByEmailInternal, {
+      email: betterAuthUser.email,
+    });
+    if (!authUser) {
+      throw new Error("User not found. Please complete sign-up first.");
     }
 
     if (args.provider === "saligpay") {
@@ -48,8 +57,35 @@ export const createPlatformCheckout = action({
       throw new Error("Tenant not found");
     }
 
-    if (tenant.plan === args.plan && tenant.subscriptionStatus !== "past_due") {
-      throw new Error(`You are already on the ${args.plan} plan`);
+    // Log upgrade attempt
+    try {
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: authUser.tenantId,
+        action: "PLATFORM_SUBSCRIPTION_UPGRADE_ATTEMPT",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser._id,
+        actorType: "user",
+        metadata: {
+          requestedPlan: args.plan,
+          currentPlan: tenant.plan,
+          provider: args.provider,
+        },
+      });
+    } catch (logErr) {
+      console.error("[Audit] Failed to log upgrade attempt:", logErr);
+    }
+
+    // Check if user is already on an active/paid subscription for this plan
+    const isActiveSubscription = tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "trialing";
+    const isSamePlan = tenant.plan === args.plan;
+
+    if (isSamePlan && isActiveSubscription) {
+      // Allow trial users to convert to paid, but block if already on paid active
+      if (tenant.subscriptionStatus === "active") {
+        throw new Error(`You are already on the ${args.plan} plan`);
+      }
+      // Trial users can proceed to convert to paid subscription
     }
 
     const settings = await ctx.runQuery(internal.platformSettings.getPlatformSettingsInternal);
@@ -65,13 +101,13 @@ export const createPlatformCheckout = action({
       );
     }
 
-    const user = await ctx.runQuery(internal.platformBillingInternal.getUserBasic, { userId: authUser.userId });
+    const user = await ctx.runQuery(internal.platformBillingInternal.getUserBasic, { userId: authUser._id });
 
     const client = getStripeClient();
     const customer = await client.getOrCreateCustomer(ctx, {
-      userId: authUser.userId,
-      email: user?.email,
-      name: user?.name,
+      userId: authUser._id,
+      email: user?.email ?? betterAuthUser.email,
+      name: user?.name ?? betterAuthUser.name,
     });
 
     const baseUrl = process.env.SITE_URL || "http://localhost:3000";
@@ -95,6 +131,18 @@ export const createPlatformCheckout = action({
       },
     });
 
+    // Log to billing history via mutation
+    try {
+      await ctx.runMutation(internal.billingHistory.logBillingEventInternal, {
+        tenantId: authUser.tenantId,
+        event: "checkout_initiated",
+        plan: args.plan,
+        actorId: authUser._id,
+      });
+    } catch (logErr) {
+      console.error("[Billing] Failed to log checkout initiation:", logErr);
+    }
+
     return {
       url: result.url,
       sessionId: result.sessionId,
@@ -109,10 +157,17 @@ export const cancelPlatformSubscriptionAndSyncTenant = action({
   }),
   handler: async (ctx, _args) => {
     const internal = (require("./_generated/api") as any).internal;
-    const { getAuthenticatedUser } = require("./tenantContext") as any;
-    const authUser = await getAuthenticatedUser(ctx);
-    if (!authUser) {
+    const betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+    if (!betterAuthUser) {
       throw new Error("Unauthorized: Authentication required");
+    }
+
+    type AppUser = { _id: Id<"users">; tenantId: Id<"tenants">; email: string; name?: string; role: string };
+    const authUser: AppUser | null = await ctx.runQuery(internal.users._getUserByEmailInternal, {
+      email: betterAuthUser.email,
+    });
+    if (!authUser) {
+      throw new Error("User not found. Please complete sign-up first.");
     }
 
     const tenant = await ctx.runQuery(internal.platformBillingInternal.getTenantById, { tenantId: authUser.tenantId });
@@ -120,7 +175,7 @@ export const cancelPlatformSubscriptionAndSyncTenant = action({
       throw new Error("Tenant not found");
     }
 
-    if (!tenant.platformPaymentProvider || !tenant.stripeSubscriptionId) {
+    if (!tenant.stripeSubscriptionId) {
       throw new Error("No active platform subscription to cancel");
     }
 
@@ -130,6 +185,19 @@ export const cancelPlatformSubscriptionAndSyncTenant = action({
     await ctx.runMutation(internal.platformBillingInternal.markTenantCancelled, {
       tenantId: authUser.tenantId,
     });
+
+    // Log cancellation to billing history
+    try {
+      await ctx.db.insert("billingHistory", {
+        tenantId: authUser.tenantId,
+        event: "subscription_cancel_requested",
+        plan: tenant.plan,
+        timestamp: Date.now(),
+        actorId: authUser._id,
+      });
+    } catch (logErr) {
+      console.error("[Billing] Failed to log cancellation:", logErr);
+    }
 
     return { success: true };
   },

@@ -20,7 +20,16 @@ export const getTenantById = internalQuery({
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.tenantId);
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) return null;
+    return {
+      _id: tenant._id,
+      _creationTime: tenant._creationTime,
+      plan: tenant.plan,
+      platformPaymentProvider: tenant.platformPaymentProvider,
+      stripeSubscriptionId: tenant.stripeSubscriptionId,
+      billingStartDate: tenant.billingStartDate,
+    };
   },
 });
 
@@ -36,7 +45,34 @@ export const getUserBasic = internalQuery({
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      tenantId: user.tenantId,
+    };
+  },
+});
+
+export const logBillingEventInternal = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    event: v.string(),
+    plan: v.optional(v.string()),
+    actorId: v.optional(v.id("users")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.insert("billingHistory", {
+      tenantId: args.tenantId,
+      event: args.event,
+      plan: args.plan,
+      timestamp: Date.now(),
+      actorId: args.actorId,
+    });
+    return null;
   },
 });
 
@@ -179,6 +215,27 @@ export const syncStripeSubscriptionToTenant = internalMutation({
       timestamp: Date.now(),
       actorId: undefined,
     });
+
+    // Log platform subscription change for admin audit trail
+    try {
+      const internal = (require("./_generated/api") as any).internal;
+      await ctx.runMutation(internal.audit.logAuditEventInternal, {
+        tenantId: args.tenantId as any,
+        action: `PLATFORM_SUBSCRIPTION_${args.status.toUpperCase()}`,
+        entityType: "tenant",
+        entityId: args.tenantId as any,
+        actorId: undefined,
+        actorType: "system",
+        metadata: {
+          stripeSubscriptionId: args.stripeSubscriptionId,
+          plan: args.plan,
+          priceId: args.priceId,
+          reason: "stripe_webhook",
+        },
+      });
+    } catch (logErr) {
+      console.error("[Audit] Failed to log subscription change:", logErr);
+    }
 
     return null;
   },

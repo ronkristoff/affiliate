@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SubscriptionStatusCard } from "@/components/settings/SubscriptionStatusCard";
@@ -33,6 +34,19 @@ function calculateEstimatedProration(
 }
 
 export default function BillingSettingsPage() {
+  const searchParams = useSearchParams();
+  const checkoutStatus = searchParams.get("checkout");
+
+  useEffect(() => {
+    if (checkoutStatus === "success") {
+      toast.success("Payment successful! Your subscription is now active.");
+      // Force refresh subscription data
+      setRefreshKey((k) => k + 1);
+    } else if (checkoutStatus === "cancelled") {
+      toast.info("Checkout was cancelled. You can try again anytime.");
+    }
+  }, [checkoutStatus]);
+
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPlanComparison, setShowPlanComparison] = useState(false);

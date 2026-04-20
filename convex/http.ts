@@ -1394,32 +1394,55 @@ http.route({
         });
       }
 
-      // 4. Extract Stripe account ID from payload (for tenant resolution)
-      // In Stripe Connect, this is payload.account
-      const stripeAccountId = payload.account;
+      // 4. Resolve tenant - check metadata first (platform billing), then payload.account (Connect)
+      const dataObject = payload.data?.object;
+      const metadata = dataObject?.metadata || dataObject?.subscription?.metadata || {};
+      const isPlatformBilling = metadata?.isPlatformBilling === "true";
+      const tenantIdFromMetadata = metadata?.tenantId;
 
-      if (!stripeAccountId) {
-        console.error("[Stripe Webhook] No Stripe account ID in payload");
-        return new Response(JSON.stringify({ received: true, error: "No account ID" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+      let tenant: any = null;
+
+      // Platform billing: resolve tenant from metadata.tenantId
+      if (isPlatformBilling && tenantIdFromMetadata) {
+        console.log(`[Stripe Webhook] Looking for tenant: ${tenantIdFromMetadata}`);
+        tenant = await ctx.runQuery(internal.clicks.getTenantByIdInternal, {
+          tenantId: tenantIdFromMetadata,
         });
+        if (tenant) {
+          console.log(`[Stripe Webhook] Platform billing: resolved tenant ${tenant._id} from metadata`);
+        } else {
+          console.log(`[Stripe Webhook] Tenant not found for ID: ${tenantIdFromMetadata}`);
+        }
       }
 
-      // 5. Resolve tenant by stripeAccountId
-      const tenant = await ctx.runQuery(internal.tenants.getTenantByStripeAccountId, {
-        stripeAccountId,
-      });
+      // If not platform billing or no tenant found, try Stripe Connect (payload.account)
+      if (!tenant) {
+        const stripeAccountId = payload.account;
+        if (stripeAccountId) {
+          tenant = await ctx.runQuery(internal.tenants.getTenantByStripeAccountId, {
+            stripeAccountId,
+          });
+        }
+      }
 
       if (!tenant) {
-        console.warn(`[Stripe Webhook] No tenant found for Stripe account: ${stripeAccountId}`);
+        // For test mode events, don't fail - just acknowledge receipt
+        const isTestMode = rawBody.includes("test_") || payload.id?.startsWith("evt_test");
+        if (isTestMode) {
+          console.log(`[Stripe Webhook] Test mode event, skipping: ${payload.type}`);
+          return new Response(JSON.stringify({ received: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+          });
+        }
+        console.warn(`[Stripe Webhook] No tenant found for Stripe webhook`);
         return new Response(JSON.stringify({ received: true, error: "Tenant not found" }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
         });
       }
 
-      // 6. Signature verification
+      // 5. Signature verification
       // For OAuth connections: use platform webhook secret (STRIPE_WEBHOOK_SECRET env var)
       // For manual connections: use per-tenant signing secret (backwards compat)
       if (signature) {
@@ -1454,9 +1477,10 @@ http.route({
         }
       }
 
-      // 7. Test mode check
-      if (payload.livemode === false) {
-        console.log(`[Stripe Webhook] Test mode event, skipping: ${payload.type}`);
+      // 7. Test mode check - allow platform billing events even in test mode
+      const isPlatformEvent = metadata?.isPlatformBilling === "true";
+      if (payload.livemode === false && !isPlatformEvent) {
+        console.log(`[Stripe Webhook] Test mode event (non-platform), skipping: ${payload.type}`);
         return new Response(JSON.stringify({ received: true, testMode: true }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
@@ -2950,6 +2974,44 @@ http.route({
     } catch (err: any) {
       console.error("[Stripe Connect] Deauthorize error:", err);
       return new Response(JSON.stringify({ error: "Failed to disconnect Stripe" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
+// POST /api/client-error — Log client-side errors from the frontend app
+http.route({
+  path: "/api/client-error",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    try {
+      const body = await req.json();
+      const { severity, source, message, stackTrace, metadata } = body;
+
+      if (!severity || !source || !message) {
+        return new Response(JSON.stringify({ error: "Missing required fields" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const errorLogId = await ctx.runMutation(internal.errorLogs.logError, {
+        severity,
+        source,
+        message,
+        stackTrace,
+        metadata,
+      });
+
+      return new Response(JSON.stringify({ success: true, errorLogId }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      console.error("[Client Error] Failed to log error:", err);
+      return new Response(JSON.stringify({ error: "Failed to log error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
