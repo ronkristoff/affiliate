@@ -17,7 +17,6 @@ function AccountPageContent() {
 
   // Mutations
   const updateProfile = useMutation(api.affiliateAuth.updateMyAffiliateProfile);
-  const changePassword = useMutation(api.affiliateAuth.changeAffiliatePassword);
 
   if (!isAuthenticated || affiliate === undefined) {
     return null;
@@ -25,10 +24,6 @@ function AccountPageContent() {
 
   const handleUpdatePayoutMethod = async (payoutMethod: { type: string; details: string }) => {
     return await updateProfile({ payoutMethod });
-  };
-
-  const handleChangePassword = async (affiliateId: string, currentPassword: string, newPassword: string) => {
-    return await changePassword({ affiliateId: affiliateId as Id<"affiliates">, currentPassword, newPassword });
   };
 
   return (
@@ -58,10 +53,7 @@ function AccountPageContent() {
       />
 
       {/* Password */}
-      <PasswordSection
-        affiliateId={affiliate._id}
-        onChangePassword={handleChangePassword}
-      />
+      <PasswordSection />
 
       {/* Help / Contact */}
       <Card>
@@ -74,8 +66,6 @@ function AccountPageContent() {
     </div>
   );
 }
-
-import { Id } from "@/convex/_generated/dataModel";
 
 function AccountSkeleton() {
   return (

@@ -6,13 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Loader2, Eye, EyeOff, Check } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 
-interface PasswordSectionProps {
-  affiliateId: string;
-  onChangePassword: (affiliateId: string, currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
-}
-
-export function PasswordSection({ affiliateId, onChangePassword }: PasswordSectionProps) {
+export function PasswordSection() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -58,17 +54,20 @@ export function PasswordSection({ affiliateId, onChangePassword }: PasswordSecti
     setIsSaving(true);
 
     try {
-      const result = await onChangePassword(affiliateId, currentPassword, newPassword);
-      if (result.success) {
-        setSuccess(true);
-        setIsEditing(false);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => setSuccess(false), 3000);
-      } else {
-        setError(result.error || 'Failed to change password');
+      const { error } = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+      });
+      if (error) {
+        setError(error.message || 'Failed to change password');
+        return;
       }
+      setSuccess(true);
+      setIsEditing(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccess(false), 3000);
     } catch {
       setError('An unexpected error occurred');
     } finally {

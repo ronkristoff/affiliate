@@ -459,9 +459,25 @@ const createOptions = (ctx: GenericCtx) =>
           const currentPassword: string | undefined = ctx.body?.currentPassword;
           if (!currentPassword) return;
 
-          // Stash email for hooks.after (from session)
-          if (ctx.context.session?.user?.email) {
-            (ctx.context as any).__passwordChangeEmail = ctx.context.session.user.email;
+          // Stash email for hooks.after
+          // ctx.context.session may not be populated yet (before Better Auth
+          // validates the session), so try multiple fallback strategies.
+          const stashedEmail = (ctx.context as any).__passwordChangeEmail as string | undefined;
+          if (!stashedEmail) {
+            if (ctx.context.session?.user?.email) {
+              (ctx.context as any).__passwordChangeEmail = ctx.context.session.user.email;
+            } else if (ctx.context.session?.user?.id) {
+              try {
+                const user = await ctx.context.internalAdapter.findUserById(ctx.context.session.user.id);
+                if (user?.email) {
+                  (ctx.context as any).__passwordChangeEmail = user.email;
+                }
+              } catch (err) {
+                console.error("[Auth] Failed to look up user email for change-password notification (non-fatal):", err);
+              }
+            } else {
+              console.log("[Auth] /change-password: ctx.context.session is not available. Will retry in after hook.");
+            }
           }
 
           if (newPassword === currentPassword) {
@@ -476,10 +492,37 @@ const createOptions = (ctx: GenericCtx) =>
       // Reads the email stashed by hooks.before — by this point the reset
       // token has already been consumed, so a fresh lookup would fail.
       after: createAuthMiddleware(async (afterCtx) => {
-        const email = (afterCtx.context as any).__passwordChangeEmail as string | undefined;
-        if (!email) {
-          return; // Not a password-changing request, or before-hook didn't resolve it
+        let email = (afterCtx.context as any).__passwordChangeEmail as string | undefined;
+        const path: string = (afterCtx as any).path ?? "";
+
+        if (!email && path === "/change-password") {
+          // The before hook couldn't resolve the email from ctx.context.session
+          // (session may not be populated before Better Auth processes the request).
+          // In the after hook, Better Auth has already validated the session and
+          // the response may contain user info, or we can look it up from the
+          // returned body or internal adapter.
+          try {
+            const returnedEmail = (afterCtx as any).returned?.user?.email
+              || (afterCtx as any).response?.user?.email;
+            if (returnedEmail) {
+              email = returnedEmail;
+            } else if (afterCtx.context?.session?.user?.email) {
+              email = afterCtx.context.session.user.email;
+            } else if (afterCtx.context?.session?.user?.id) {
+              const user = await afterCtx.context.internalAdapter.findUserById(afterCtx.context.session.user.id);
+              if (user?.email) email = user.email;
+            }
+          } catch (err) {
+            console.error("[Auth] hooks.after: fallback email lookup failed (non-fatal):", err);
+          }
+
+          if (!email) {
+            console.error(`[Auth] hooks.after: could not resolve email for /change-password notification.`);
+            return;
+          }
         }
+
+        if (!email) return;
 
         try {
           // Send the notification email using the outer Convex ctx (GenericCtx)
@@ -502,7 +545,6 @@ const createOptions = (ctx: GenericCtx) =>
 
         // Audit: password changed or reset completed
         // Determine which action based on the middleware path
-        const path = (afterCtx as any).path ?? "";
         const isReset = path.includes("reset-password");
         await logAuthEvent(ctx, {
           action: isReset ? "AUTH_PASSWORD_RESET_COMPLETED" : "AUTH_PASSWORD_CHANGED",
