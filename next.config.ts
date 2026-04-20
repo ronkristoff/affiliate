@@ -1,11 +1,28 @@
 import type { NextConfig } from "next";
 
+const convexHttpUrl = (process.env.NEXT_PUBLIC_CONVEX_URL || "http://127.0.0.1:3210").replace(/:\d+$/, ":3211");
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   reactCompiler: true,
-  poweredByHeader: false, // Remove X-Powered-By header for security and performance
-  compress: true, // Enable gzip compression
-  /* config options here */
+  poweredByHeader: false,
+  compress: true,
+  async rewrites() {
+    return [
+      {
+        source: "/api/stripe/:path*",
+        destination: `${convexHttpUrl}/api/stripe/:path*`,
+      },
+      {
+        source: "/api/webhooks/:path*",
+        destination: `${convexHttpUrl}/api/webhooks/:path*`,
+      },
+      {
+        source: "/api/mock/:path*",
+        destination: `${convexHttpUrl}/api/mock/:path*`,
+      },
+    ];
+  },
   images: {
     dangerouslyAllowSVG: true, // This allows SVG usage
     remotePatterns: [

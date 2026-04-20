@@ -62,7 +62,7 @@ type RecordSuccessRef = FunctionReference<"mutation", "internal", { serviceId: s
 type TryAcquireProbeRef = FunctionReference<"mutation", "internal", { serviceId: string }, boolean>;
 type ForceHalfOpenRef = FunctionReference<"mutation", "internal", { serviceId: string }, void>;
 
-interface CircuitBreakerInternalRefs {
+export interface CircuitBreakerInternalRefs {
   getServiceState: GetServiceStateRef;
   recordFailure: RecordFailureRef;
   recordSuccess: RecordSuccessRef;

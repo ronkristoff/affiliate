@@ -58,6 +58,7 @@ export default defineSchema({
       livemode: v.optional(v.boolean()),    // Whether OAuth connection is in live mode
       accessToken: v.optional(v.string()),  // OAuth access token (obfuscated)
       refreshToken: v.optional(v.string()), // OAuth refresh token (obfuscated)
+      webhookEndpointId: v.optional(v.string()), // Stripe webhook endpoint ID (for lifecycle management)
     })),
     branding: v.optional(v.object({
       logoUrl: v.optional(v.string()),

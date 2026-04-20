@@ -1128,6 +1128,26 @@ export const completeStripeOAuth = internalMutation({
   },
 });
 
+export const setStripeWebhookEndpointId = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    webhookEndpointId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant || !tenant.stripeCredentials) return null;
+
+    await ctx.db.patch(args.tenantId, {
+      stripeCredentials: {
+        ...tenant.stripeCredentials,
+        webhookEndpointId: args.webhookEndpointId,
+      },
+    });
+    return null;
+  },
+});
+
 /**
  * Disconnect Stripe integration.
  * For OAuth connections, the caller should also call Stripe's deauthorize endpoint
@@ -1298,6 +1318,7 @@ export const getStripeConnectionStatus = query({
       connectedAt: v.optional(v.number()),
       connectedVia: v.optional(v.string()),
       livemode: v.optional(v.boolean()),
+      hasWebhook: v.boolean(),
     }),
     v.object({
       isConnected: v.literal(false),
@@ -1316,6 +1337,7 @@ export const getStripeConnectionStatus = query({
       connectedAt: tenant.stripeCredentials.connectedAt,
       connectedVia: tenant.stripeCredentials.connectedVia,
       livemode: tenant.stripeCredentials.livemode,
+      hasWebhook: !!tenant.stripeCredentials.webhookEndpointId,
     };
   },
 });
@@ -1338,6 +1360,7 @@ export const getTenantByStripeAccountId = internalQuery({
         connectedAt: v.optional(v.number()),
         connectedVia: v.optional(v.string()),
         livemode: v.optional(v.boolean()),
+        webhookEndpointId: v.optional(v.string()),
       })),
     })
   ),
@@ -1375,6 +1398,7 @@ export const getTenantInternal = internalQuery({
       stripeCredentials: v.optional(v.object({
         connectedVia: v.optional(v.string()),
         accessToken: v.optional(v.string()),
+        webhookEndpointId: v.optional(v.string()),
       })),
       branding: v.optional(v.object({
         logoUrl: v.optional(v.string()),
@@ -1400,6 +1424,7 @@ export const getTenantInternal = internalQuery({
       stripeCredentials: tenant.stripeCredentials ? {
         connectedVia: tenant.stripeCredentials.connectedVia,
         accessToken: tenant.stripeCredentials.accessToken,
+        webhookEndpointId: tenant.stripeCredentials.webhookEndpointId,
       } : undefined,
       branding: tenant.branding,
     };

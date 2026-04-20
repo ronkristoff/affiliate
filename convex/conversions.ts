@@ -755,6 +755,13 @@ export const findAffiliateByCodeInternal = internalQuery({
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
+      tenantId: v.id("tenants"),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      couponCode: v.optional(v.string()),
+      couponAttributionEnabled: v.optional(v.boolean()),
+      passwordHash: v.optional(v.string()),
+      promotionChannel: v.optional(v.string()),
     }),
     v.null()
   ),

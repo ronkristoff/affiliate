@@ -268,13 +268,39 @@ export function IntegrationsSettingsContent() {
                       Connected: {new Date(stripeStatus.connectedAt).toLocaleDateString()}
                     </p>
                   )}
-                  <Badge variant="outline" className="text-xs">
-                    {stripeStatus.livemode === false ? "Test Mode" : "Live"}
-                  </Badge>
-                  {stripeStatus.connectedVia === "oauth" && (
+                  <div className="flex flex-wrap gap-1.5">
                     <Badge variant="outline" className="text-xs">
-                      OAuth
+                      {stripeStatus.livemode === false ? "Test Mode" : "Live"}
                     </Badge>
+                    {stripeStatus.connectedVia === "oauth" && (
+                      <Badge variant="outline" className="text-xs">
+                        OAuth
+                      </Badge>
+                    )}
+                    {stripeStatus.hasWebhook ? (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Webhooks Active
+                      </Badge>
+                    ) : stripeStatus.connectedVia === "oauth" && typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? (
+                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+                        <Info className="w-3 h-3 mr-1" />
+                        Local Dev Mode
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Webhooks Not Configured
+                      </Badge>
+                    )}
+                  </div>
+                  {!stripeStatus.hasWebhook && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      {stripeStatus.connectedVia === "oauth" && typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+                        ? <>Use <code className="bg-muted px-1 rounded">stripe listen --forward-to localhost:3000/api/webhooks/stripe</code> to test webhooks locally.</>
+                        : <>Webhook events won&apos;t be received until you reconnect Stripe or manually configure webhooks in your Stripe Dashboard.</>
+                      }
+                    </p>
                   )}
                 </div>
                 {!saligPayStatus?.isConnected && (

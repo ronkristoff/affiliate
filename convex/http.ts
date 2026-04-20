@@ -1525,51 +1525,44 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     try {
-      // AC #5.4: Validate tenant ownership before triggering
-      // First check authentication
       const identity = await ctx.auth.getUserIdentity();
-      if (!identity) {
-        // AC #6: Always return 200, indicate auth error in body
-        console.error("Mock trigger: Authentication required");
-        return new Response(
-          JSON.stringify({ received: true, success: false, error: "Authentication required" }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+      let tenantId: string | undefined;
+      let userId: string | undefined;
+
+      if (identity) {
+        const user = await ctx.runQuery(internal.webhooks.getUserByAuthIdInternal, {
+          authId: identity.subject,
+        });
+        if (user) {
+          tenantId = user.tenantId;
+          userId = user._id as string;
+        }
       }
 
-      // Get user's tenant from users table using internal query
-      const user = await ctx.runQuery(internal.webhooks.getUserByAuthIdInternal, {
-        authId: identity.subject,
-      });
-
-      if (!user) {
-        // AC #6: Always return 200, indicate user error in body
-        console.error("Mock trigger: User not found");
-        return new Response(
-          JSON.stringify({ received: true, success: false, error: "User not found" }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // AC #5.2: Accept payment simulation parameters
       let body;
       try {
         body = await req.json();
       } catch {
-        // AC #6: Always return 200, indicate parse error in body
         console.error("Mock trigger: Invalid JSON body");
         return new Response(
           JSON.stringify({ received: true, success: false, error: "Invalid JSON body" }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!tenantId && body.tenantId) {
+        const tenant = await ctx.runQuery(internal.tenants._getTenantById, { tenantId: body.tenantId });
+        if (tenant) {
+          tenantId = body.tenantId;
+          userId = "mock-user";
+        }
+      }
+
+      if (!tenantId) {
+        console.error("Mock trigger: Authentication required or tenantId must be provided");
+        return new Response(
+          JSON.stringify({ received: true, success: false, error: "Authentication required or provide tenantId in body" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
 
@@ -1592,13 +1585,11 @@ http.route({
 
       // Build metadata with attribution data
       const metadata: Record<string, string> = {
-        _affilio_tenant: user.tenantId,
+        _affilio_tenant: tenantId,
       };
 
       if (affiliateCode) {
         metadata._affilio_ref = affiliateCode;
-        // Optionally add a click ID for testing
-        metadata._affilio_click_id = `click_mock_${Date.now()}`;
       }
 
       // Build mock payload - use any type for flexibility with subscription events
@@ -1644,7 +1635,7 @@ http.route({
         eventType,
         rawPayload: JSON.stringify(mockPayload),
         signatureValid: true,
-        tenantId: user.tenantId,
+        tenantId: tenantId as Id<"tenants">,
       });
 
       if (dedupResult.isDuplicate) {
@@ -1660,7 +1651,7 @@ http.route({
       }
 
       // Track API call (fire-and-forget)
-      apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: user.tenantId }).catch(() => {});
+      apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenantId as Id<"tenants"> }).catch(() => {});
 
       // Use the webhookId returned from the atomic mutation
       const rawWebhookId = dedupResult.webhookId!; // Non-null after isDuplicate check
@@ -2662,7 +2653,8 @@ async function generateOAuthState(tenantId: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .slice(0, 16);
-  return Buffer.from(`${hmac}.${tenantId}`).toString("base64url");
+  const raw = `${hmac}.${tenantId}`;
+  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -2673,7 +2665,9 @@ async function verifyOAuthState(state: string): Promise<string | null> {
   try {
     const secret = process.env.BETTER_AUTH_SECRET || "fallback-secret";
     const encoder = new TextEncoder();
-    const decoded = Buffer.from(state, "base64url").toString("utf-8");
+    const base64 = state.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const decoded = atob(padded);
     const [hmac, tenantId] = decoded.split(".", 2);
     if (!hmac || !tenantId) return null;
 
@@ -2788,6 +2782,7 @@ http.route({
         body: new URLSearchParams({
           grant_type: "authorization_code",
           client_id: process.env.STRIPE_CLIENT_ID || "",
+          client_secret: secretKey,
           code,
         }),
       });
@@ -2815,6 +2810,26 @@ http.route({
         refreshToken: tokenData.refresh_token || "",
         livemode: tokenData.livemode === true,
       });
+
+      // Auto-create Connect webhook endpoint on platform account (non-blocking)
+      // Connect webhooks receive events from ALL connected accounts
+      try {
+        const webhookResult = await ctx.runAction(internal.stripeWebhookManagement.ensureConnectWebhookEndpoint, {
+          tenantId: tenantId as any,
+        });
+
+        if (webhookResult.webhookEndpointId) {
+          await ctx.runMutation(internal.tenants.setStripeWebhookEndpointId, {
+            tenantId: tenantId as any,
+            webhookEndpointId: webhookResult.webhookEndpointId,
+          });
+          console.log(`[Stripe Connect] Connect webhook endpoint ${webhookResult.webhookEndpointId} ready for tenant ${tenantId}`);
+        } else {
+          console.warn(`[Stripe Connect] Connect webhook creation skipped for tenant ${tenantId}`);
+        }
+      } catch (webhookErr: any) {
+        console.error(`[Stripe Connect] Connect webhook creation failed (non-blocking):`, webhookErr.message);
+      }
 
       console.log(`[Stripe Connect] Successfully connected account ${tokenData.stripe_user_id} for tenant ${tenantId} (livemode: ${tokenData.livemode})`);
 
@@ -2885,6 +2900,10 @@ http.route({
         console.error("[Stripe Connect] Deauthorize failed:", deauthResponse.status, errorBody);
         // Still clear local credentials even if deauthorize API call fails
       }
+
+      // Connect webhook endpoint is shared across all connected accounts —
+      // do NOT delete it on disconnect. It stays on the platform account.
+      // Only delete if this was the last connected account (future enhancement).
 
       // Clear local credentials
       await ctx.runMutation(internal.tenants.clearStripeCredentialsInternal, {

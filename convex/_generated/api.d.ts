@@ -94,6 +94,7 @@ import type * as seedBulkData from "../seedBulkData.js";
 import type * as seedTechFlowComprehensive from "../seedTechFlowComprehensive.js";
 import type * as sessions from "../sessions.js";
 import type * as stripeTierSync from "../stripeTierSync.js";
+import type * as stripeWebhookManagement from "../stripeWebhookManagement.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as teamInvitations from "../teamInvitations.js";
 import type * as templates from "../templates.js";
@@ -203,6 +204,7 @@ declare const fullApi: ApiFromModules<{
   seedTechFlowComprehensive: typeof seedTechFlowComprehensive;
   sessions: typeof sessions;
   stripeTierSync: typeof stripeTierSync;
+  stripeWebhookManagement: typeof stripeWebhookManagement;
   subscriptions: typeof subscriptions;
   teamInvitations: typeof teamInvitations;
   templates: typeof templates;
