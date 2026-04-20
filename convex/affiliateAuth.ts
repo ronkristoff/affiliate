@@ -3,7 +3,7 @@ import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { sendAffiliateWelcomeEmail, sendNewAffiliateNotificationEmail } from "./email";
+import { sendNewAffiliateNotificationEmail } from "./email";
 import { getAuthenticatedUser } from "./tenantContext";
 import { betterAuthComponent } from "./auth";
 
@@ -368,19 +368,8 @@ export const createAffiliateAccountInternal = internalMutation({
       return { success: false, error: "Failed to generate unique referral code" };
     }
 
-    // Generate referral link code (separate from affiliate uniqueCode)
-    const referralCode = generateSecureCode();
-    let referralAttempts = 0;
-    let finalReferralCode = referralCode;
-    while (referralAttempts < 10) {
-      const existingLink = await ctx.db
-        .query("referralLinks")
-        .withIndex("by_code", (q) => q.eq("code", finalReferralCode))
-        .first();
-      if (!existingLink) break;
-      finalReferralCode = generateSecureCode();
-      referralAttempts++;
-    }
+    // Use the affiliate's uniqueCode as the referral link code (must match)
+    const finalReferralCode = args.uniqueCode;
 
     const fullName = `${args.firstName} ${args.lastName}`.trim();
 
@@ -434,34 +423,24 @@ export const createAffiliateAccountInternal = internalMutation({
       },
     });
 
-    // Send welcome email to affiliate (async, don't fail registration if email fails)
-    // Uses retry logic with exponential backoff and automatic error logging
-    let welcomeEmailSent = false;
-    let welcomeEmailError: string | undefined;
-    try {
-      // Construct referral URL from tenant domain
-      const portalDomain = tenant.domain;
-      const referralUrl = `https://${portalDomain}/ref/${finalReferralCode}`;
-
-      await sendAffiliateWelcomeEmail(ctx, {
-        to: args.email,
-        affiliateName: fullName,
-        affiliateEmail: args.email,
-        uniqueCode,
-        portalName: tenant.branding?.portalName || tenant.name,
-        referralUrl,
-        brandLogoUrl: tenant.branding?.logoUrl,
-        brandPrimaryColor: tenant.branding?.primaryColor,
-        approvalTimeframe: "1-2 business days",
-        contactEmail: undefined, // Could be extended to store in tenant settings
-        maxRetries: 3,
-        tenantId: tenant._id,
-      });
-      welcomeEmailSent = true;
-    } catch (emailError) {
-      welcomeEmailError = emailError instanceof Error ? emailError.message : String(emailError);
-      console.error("Failed to send welcome email:", emailError);
-    }
+    // Send welcome email to affiliate via scheduled action (retry with backoff requires setTimeout, which is only available in actions)
+    const portalDomain = tenant.domain;
+    const referralUrl = `https://${portalDomain}/ref/${finalReferralCode}`;
+    ctx.scheduler.runAfter(0, internal.email.sendAffiliateWelcomeEmailWithRetry, {
+      tenantId: tenant._id,
+      affiliateId,
+      to: args.email,
+      affiliateName: fullName,
+      affiliateEmail: args.email,
+      uniqueCode,
+      portalName: tenant.branding?.portalName || tenant.name,
+      referralUrl,
+      brandLogoUrl: tenant.branding?.logoUrl,
+      brandPrimaryColor: tenant.branding?.primaryColor,
+      approvalTimeframe: "1-2 business days",
+      contactEmail: undefined,
+      maxRetries: 3,
+    });
 
     // Send notification to SaaS Owner (async, don't fail registration if email fails)
     let ownerNotificationSent = false;
@@ -513,7 +492,7 @@ export const createAffiliateAccountInternal = internalMutation({
       success: true,
       affiliateId,
       uniqueCode: args.uniqueCode,
-      referralCode: finalReferralCode,
+      referralCode: args.uniqueCode,
       status: "pending",
     };
   },

@@ -1351,7 +1351,8 @@ export const updateAffiliateStatus = mutation({
         .first();
 
       if (!existingLinks) {
-        const referralCode = await generateUniqueReferralCode(ctx);
+        const affiliate = await ctx.db.get(args.affiliateId);
+        const referralCode = affiliate?.uniqueCode || await generateUniqueReferralCode(ctx);
         await ctx.db.insert("referralLinks", {
           tenantId,
           affiliateId: args.affiliateId,
@@ -2625,8 +2626,11 @@ export const getAffiliateAuditLog = query({
       actorType: v.string(),
       entityId: v.string(),
       entityType: v.string(),
+      targetId: v.optional(v.string()),
       previousValue: v.optional(v.any()),
       newValue: v.optional(v.any()),
+      metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
     })
   ),
   handler: async (ctx, args) => {
@@ -2675,10 +2679,13 @@ export const getRecentAffiliateActivity = query({
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
       actorId: v.optional(v.string()),
       actorType: v.string(),
       previousValue: v.optional(v.any()),
       newValue: v.optional(v.any()),
+      metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
     })
   ),
   handler: async (ctx, args) => {

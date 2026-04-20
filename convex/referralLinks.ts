@@ -291,26 +291,17 @@ export const generateReferralLink = mutation({
       }
     }
 
-    // Generate unique referral code with collision handling
-    let code = generateUniqueReferralCode();
-    let attempts = 0;
-    const maxAttempts = 10;
+    // Use the affiliate's uniqueCode for the referral link (must match affiliate code)
+    const code = affiliate.uniqueCode;
 
-    while (attempts < maxAttempts) {
-      const existing = await ctx.db
-        .query("referralLinks")
-        .withIndex("by_code", (q) => q.eq("code", code))
-        .first();
+    // Check if a link with this code already exists
+    const existingLink = await ctx.db
+      .query("referralLinks")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
 
-      if (!existing) {
-        break;
-      }
-      code = generateUniqueReferralCode();
-      attempts++;
-    }
-
-    if (attempts >= maxAttempts) {
-      throw new Error("Failed to generate unique referral code. Please try again.");
+    if (existingLink) {
+      throw new Error("A referral link with this affiliate's code already exists");
     }
 
     // Create the referral link

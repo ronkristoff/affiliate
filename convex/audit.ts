@@ -534,7 +534,11 @@ export const getCommissionAuditLog = query({
   returns: v.array(v.object({
     _id: v.id("auditLogs"),
     _creationTime: v.number(),
+    tenantId: v.optional(v.id("tenants")),
     action: v.string(),
+    entityType: v.string(),
+    entityId: v.string(),
+    targetId: v.optional(v.string()),
     actorId: v.optional(v.string()),
     actorType: v.string(),
     previousValue: v.optional(v.any()),
@@ -551,7 +555,7 @@ export const getCommissionAuditLog = query({
     // Verify commission belongs to user's tenant
     const commission = await ctx.db.get(args.commissionId);
     if (!commission || commission.tenantId !== user.tenantId) {
-      return []; // Return empty for cross-tenant access
+      return [];
     }
     
     const logs = await ctx.db
@@ -559,10 +563,9 @@ export const getCommissionAuditLog = query({
       .withIndex("by_entity", (q) => 
         q.eq("entityType", "commission").eq("entityId", args.commissionId)
       )
-      .order("asc") // Chronological order
+      .order("asc")
       .collect();
     
-    // Filter by tenant (additional safety)
     return logs.filter(log => log.tenantId === user.tenantId);
   },
 });
@@ -583,8 +586,11 @@ export const listCommissionAuditLogs = query({
     page: v.array(v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
+      entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
       actorId: v.optional(v.string()),
       actorType: v.string(),
       previousValue: v.optional(v.any()),
@@ -655,11 +661,14 @@ export const listPayoutAuditLogs = query({
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
       actorId: v.optional(v.string()),
       actorName: v.optional(v.string()),
       actorType: v.string(),
-      targetId: v.optional(v.string()),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
       metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
     })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),
@@ -1032,15 +1041,18 @@ export const getEntityStory = query({
     entries: v.array(v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
       actorId: v.optional(v.string()),
       actorName: v.optional(v.string()),
       actorType: v.string(),
       previousValue: v.optional(v.any()),
       newValue: v.optional(v.any()),
       metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
     })),
     chain: v.optional(v.array(v.object({
       entityType: v.string(),
@@ -1456,12 +1468,18 @@ export const getAffiliateActivityTimeline = query({
     page: v.array(v.object({
       _id: v.id("auditLogs"),
       _creationTime: v.number(),
+      tenantId: v.optional(v.id("tenants")),
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
+      actorId: v.optional(v.string()),
       actorName: v.optional(v.string()),
       actorType: v.string(),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
       metadata: v.optional(v.any()),
+      affiliateId: v.optional(v.id("affiliates")),
     })),
     isDone: v.boolean(),
     continueCursor: v.union(v.string(), v.null()),

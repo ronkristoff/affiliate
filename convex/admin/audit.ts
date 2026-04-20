@@ -572,6 +572,7 @@ export const getUserTimeline = query({
       action: v.string(),
       entityType: v.string(),
       entityId: v.string(),
+      targetId: v.optional(v.string()),
       actorId: v.optional(v.string()),
       actorType: v.string(),
       previousValue: v.optional(v.any()),
