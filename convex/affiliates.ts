@@ -6,7 +6,7 @@ import { getTenantId, requireTenantId, validateTenantOwnership, getAuthenticated
 import { hasPermission } from "./permissions";
 import type { Role } from "./permissions";
 import { api, internal } from "./_generated/api";
-import { affiliateAggregate, clicksAggregate, conversionsAggregate, commissionsAggregate } from "./aggregates";
+import { affiliateAggregate, affiliateByStatusAggregate, clicksAggregate, conversionsAggregate, commissionsAggregate } from "./aggregates";
 
 /**
  * Constant-time string comparison safe for V8 runtime.
@@ -1020,14 +1020,7 @@ export const listAffiliatesFiltered = query({
  * @security Requires authentication. Results filtered by tenant. Returns zeros if not authenticated.
  */
 export const getAffiliateCountByStatus = query({
-  args: {
-    status: v.optional(v.union(
-      v.literal("pending"),
-      v.literal("active"),
-      v.literal("suspended"),
-      v.literal("rejected")
-    )),
-  },
+  args: {},
   returns: v.object({
     pending: v.number(),
     active: v.number(),
@@ -1035,7 +1028,7 @@ export const getAffiliateCountByStatus = query({
     rejected: v.number(),
     total: v.number(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const tenantId = await getTenantId(ctx);
 
     if (!tenantId) {
@@ -1048,15 +1041,14 @@ export const getAffiliateCountByStatus = query({
       };
     }
 
-    const stats = await ctx.db
-      .query("tenantStats")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
-      .first();
+    const ns = { namespace: tenantId };
 
-    const pending = stats?.affiliatesPending ?? 0;
-    const active = stats?.affiliatesActive ?? 0;
-    const suspended = stats?.affiliatesSuspended ?? 0;
-    const rejected = stats?.affiliatesRejected ?? 0;
+    const [pending, active, suspended, rejected] = await Promise.all([
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["pending"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["active"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["suspended"] } } as any),
+      affiliateByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["rejected"] } } as any),
+    ]);
 
     return { pending, active, suspended, rejected, total: pending + active + suspended + rejected };
   },
