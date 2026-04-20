@@ -161,6 +161,7 @@ export default defineSchema({
     notificationUnreadCount: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
+    .index("by_tenant_and_role", ["tenantId", "role"])
     .index("by_email", ["email"])
     .index("by_auth_id", ["authId"]),
 
@@ -606,6 +607,16 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_tenant_and_type", ["tenantId", "templateType"]),
+
+  // Platform email template customization (admin-only)
+  // Stores custom subject/body per template type for platform billing emails sent to SaaS owners
+  platformEmailTemplates: defineTable({
+    templateType: v.string(),
+    customSubject: v.string(),
+    customBody: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_template_type", ["templateType"]),
 
   // Rate limiting for failed login attempts
   loginAttempts: defineTable({

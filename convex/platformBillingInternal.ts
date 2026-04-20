@@ -5,6 +5,7 @@
 
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 export const getTenantById = internalQuery({
   args: { tenantId: v.id("tenants") },
@@ -148,10 +149,13 @@ export const syncStripeSubscriptionToTenant = internalMutation({
     userId: v.optional(v.string()),
     plan: v.optional(v.string()),
     tenantId: v.optional(v.string()),
+    amount: v.optional(v.number()),
+    transactionId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    if (!args.userId || !args.tenantId) {
+    if (!args.tenantId) {
+      console.warn("[syncStripeSubscriptionToTenant] Skipping: no tenantId provided");
       return null;
     }
 
@@ -184,12 +188,14 @@ export const syncStripeSubscriptionToTenant = internalMutation({
     }
 
     if (args.cancelAtPeriodEnd && (args.status === "active" || args.status === "trialing")) {
-      patchData.subscriptionStatus = "cancelled";
       patchData.cancellationDate = Date.now();
       patchData.cancelledReason = "owner_cancelled" as const;
     }
 
     if (args.status === "canceled" || args.status === "incomplete_expired") {
+      if (!args.cancelAtPeriodEnd) {
+        patchData.subscriptionStatus = "cancelled";
+      }
       patchData.cancellationDate = Date.now();
       patchData.cancelledReason = "owner_cancelled" as const;
     }
@@ -199,11 +205,16 @@ export const syncStripeSubscriptionToTenant = internalMutation({
     }
 
     const isActiveSubscription = args.status === "active" || args.status === "trialing";
-    if (isActiveSubscription && (tenant as any).trialEndsAt) {
-      patchData.trialEndsAt = undefined;
+    const hasPayment = args.amount != null && args.amount > 0;
+    if (isActiveSubscription && hasPayment && (tenant as any).trialEndsAt) {
+      patchData.trialEndsAt = 0;
       if (!(tenant as any).billingStartDate) {
         patchData.billingStartDate = Date.now();
       }
+    }
+
+    if (args.currentPeriodEnd) {
+      patchData.billingEndDate = args.currentPeriodEnd;
     }
 
     await ctx.db.patch(args.tenantId as any, patchData);
@@ -235,6 +246,114 @@ export const syncStripeSubscriptionToTenant = internalMutation({
       });
     } catch (logErr) {
       console.error("[Audit] Failed to log subscription change:", logErr);
+    }
+
+    // Send platform billing email on key subscription transitions
+    try {
+      const wasTrial = !!(tenant as any).trialEndsAt;
+      const oldStatus = (tenant as any).subscriptionStatus;
+      const newPlan = (patchData.plan ?? (tenant as any).plan) as string;
+      const newStatus = patchData.subscriptionStatus as string | undefined;
+      const internal = (require("./_generated/api") as any).internal;
+
+      // Find tenant owner to get email/name
+      const ownerUser = await ctx.db
+        .query("users")
+        .withIndex("by_tenant_and_role", (q: any) =>
+          q.eq("tenantId", args.tenantId as any).eq("role", "owner")
+        )
+        .first();
+
+      if (ownerUser?.email) {
+        const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+        const platformName = "Salig Affiliate";
+        const supportEmail = "support@affilio.com";
+
+        const formatTimestamp = (ts: number) =>
+          new Date(ts).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+        let templateType: string | null = null;
+        let emailVariables: Record<string, string | number> = {};
+
+        const effectiveBillingEnd = args.currentPeriodEnd ?? (tenant as any).billingEndDate ?? (patchData.billingEndDate as number);
+        const effectiveBillingStart = (patchData.billingStartDate as number) ?? (tenant as any).billingStartDate;
+
+        if (isActiveSubscription && wasTrial && hasPayment) {
+          templateType = "platform_payment_success";
+          const formattedAmount = args.amount != null && args.amount > 0
+            ? new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(args.amount / 100)
+            : "0.00";
+          emailVariables = {
+            owner_name: ownerUser.name ?? "User",
+            plan: newPlan,
+            amount: formattedAmount,
+            currency: "PHP",
+            transaction_id: args.transactionId ?? "",
+            billing_start: effectiveBillingStart ? formatTimestamp(effectiveBillingStart) : "N/A",
+            billing_end: effectiveBillingEnd ? formatTimestamp(effectiveBillingEnd) : "N/A",
+            dashboard_url: `${siteUrl}/dashboard`,
+            platform_name: platformName,
+            support_email: supportEmail,
+          };
+        } else if (isActiveSubscription && oldStatus === "past_due") {
+          templateType = "platform_subscription_active";
+          emailVariables = {
+            owner_name: ownerUser.name ?? "User",
+            plan: newPlan,
+            billing_start: effectiveBillingStart ? formatTimestamp(effectiveBillingStart) : "N/A",
+            billing_end: effectiveBillingEnd ? formatTimestamp(effectiveBillingEnd) : "N/A",
+            dashboard_url: `${siteUrl}/dashboard`,
+            platform_name: platformName,
+            support_email: supportEmail,
+          };
+        } else if (args.status === "active" && !wasTrial && oldStatus !== "past_due" && oldStatus !== "active") {
+          templateType = "platform_subscription_active";
+          emailVariables = {
+            owner_name: ownerUser.name ?? "User",
+            plan: newPlan,
+            billing_start: effectiveBillingStart ? formatTimestamp(effectiveBillingStart) : "N/A",
+            billing_end: effectiveBillingEnd ? formatTimestamp(effectiveBillingEnd) : "N/A",
+            dashboard_url: `${siteUrl}/dashboard`,
+            platform_name: platformName,
+            support_email: supportEmail,
+          };
+        } else if (args.status === "past_due" && oldStatus !== "past_due") {
+          templateType = "platform_past_due";
+          const formattedAmount = args.amount != null
+            ? new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(args.amount / 100)
+            : "";
+          emailVariables = {
+            owner_name: ownerUser.name ?? "User",
+            plan: newPlan,
+            amount: formattedAmount,
+            currency: "PHP",
+            dashboard_url: `${siteUrl}/settings/billing`,
+            platform_name: platformName,
+            support_email: supportEmail,
+          };
+        } else if ((newStatus === "cancelled" || args.cancelAtPeriodEnd) && oldStatus !== "cancelled") {
+          templateType = "platform_subscription_cancelled";
+          emailVariables = {
+            owner_name: ownerUser.name ?? "User",
+            plan: newPlan,
+            access_end_date: effectiveBillingEnd ? formatTimestamp(effectiveBillingEnd) : "N/A",
+            dashboard_url: `${siteUrl}/settings/billing`,
+            platform_name: platformName,
+            support_email: supportEmail,
+          };
+        }
+
+        if (templateType) {
+          await ctx.scheduler.runAfter(0, internal.platformBilling.sendPlatformBillingEmail, {
+            templateType,
+            to: ownerUser.email,
+            variables: emailVariables,
+            tenantId: args.tenantId as any,
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error("[PlatformEmail] Failed to schedule billing email:", emailErr);
     }
 
     return null;

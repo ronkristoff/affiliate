@@ -13,10 +13,13 @@
  * type inference, since _generated/api references exports from this file.
  */
 
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
+import { render } from "@react-email/components";
+import { sendEmail, getFromAddress } from "./emailService";
+import { renderPlatformTemplate } from "./platformTemplates";
 
 function getStripeClient(): any {
   const { StripeSubscriptions } = require("@convex-dev/stripe") as any;
@@ -121,7 +124,7 @@ export const createPlatformCheckout = action({
       quantity: 1,
       subscriptionMetadata: {
         tenantId: authUser.tenantId,
-        userId: authUser.userId,
+        userId: authUser._id,
         plan: args.plan,
       },
       metadata: {
@@ -133,7 +136,7 @@ export const createPlatformCheckout = action({
 
     // Log to billing history via mutation
     try {
-      await ctx.runMutation(internal.billingHistory.logBillingEventInternal, {
+      await ctx.runMutation(internal.platformBillingInternal.logBillingEventInternal, {
         tenantId: authUser.tenantId,
         event: "checkout_initiated",
         plan: args.plan,
@@ -188,11 +191,10 @@ export const cancelPlatformSubscriptionAndSyncTenant = action({
 
     // Log cancellation to billing history
     try {
-      await ctx.db.insert("billingHistory", {
+      await ctx.runMutation(internal.platformBillingInternal.logBillingEventInternal, {
         tenantId: authUser.tenantId,
         event: "subscription_cancel_requested",
         plan: tenant.plan,
-        timestamp: Date.now(),
         actorId: authUser._id,
       });
     } catch (logErr) {
@@ -200,5 +202,51 @@ export const cancelPlatformSubscriptionAndSyncTenant = action({
     }
 
     return { success: true };
+  },
+});
+
+export const sendPlatformBillingEmail = internalAction({
+  args: {
+    templateType: v.string(),
+    to: v.string(),
+    variables: v.record(v.string(), v.union(v.string(), v.number())),
+    tenantId: v.id("tenants"),
+  },
+  returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const internal = (require("./_generated/api") as any).internal;
+
+      const customTemplate = await ctx.runQuery(internal.platformTemplates.getPlatformTemplateForSending, {
+        templateType: args.templateType,
+      });
+
+      const defaultTemplate = await ctx.runQuery(internal.platformTemplates.getPlatformTemplateDefault, {
+        templateType: args.templateType,
+      });
+
+      const subjectTemplate = customTemplate?.customSubject ?? defaultTemplate?.defaultSubject ?? "";
+      const bodyTemplate = customTemplate?.customBody ?? defaultTemplate?.defaultBody ?? "";
+
+      const subject = renderPlatformTemplate(subjectTemplate, args.variables);
+      const html = renderPlatformTemplate(bodyTemplate, args.variables);
+
+      if (!subject || !html) {
+        return { success: false, error: `No template found for type: ${args.templateType}` };
+      }
+
+      await ctx.runAction(internal.emailService.sendEmail, {
+        from: getFromAddress("billing"),
+        to: args.to,
+        subject,
+        html,
+      });
+
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[PlatformEmail] Failed to send ${args.templateType}:`, errorMessage);
+      return { success: false, error: errorMessage };
+    }
   },
 });

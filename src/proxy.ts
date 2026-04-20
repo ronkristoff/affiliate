@@ -14,6 +14,7 @@ const publicRoutes = [
 const webhookRoutes = [
   "/api/webhooks/",
   "/api/stripe/",
+  "/api/auth/",
 ];
 
 // Marketing/public pages
@@ -152,8 +153,7 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run middleware on all routes
   matcher: [
-    "/(.*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)).*)",
   ],
 };
