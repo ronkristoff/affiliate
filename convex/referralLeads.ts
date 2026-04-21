@@ -1,9 +1,13 @@
-import { internalQuery, internalMutation, query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
+import { internalMutation } from "./triggers";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { normalizeEmail } from "./emailNormalization";
+import { getAuthenticatedUser } from "./tenantContext";
+import { referralLeadsAggregate, leadByStatusAggregate } from "./aggregates";
+import { getTenantId } from "./tenantContext";
 
 /**
  * Referral Leads Management
@@ -386,5 +390,185 @@ export const resolveLeadAttribution = internalQuery({
       campaignId: lead.campaignId ?? undefined,
       affiliateId: lead.affiliateId,
     };
+  },
+});
+
+/**
+ * Query: Get leads for the authenticated tenant
+ * Owner dashboard view of all referral leads
+ * Supports: status filter, search, date range, affiliate filter, sorting
+ */
+export const getLeadsByTenant = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    status: v.optional(v.union(v.literal("active"), v.literal("converted"), v.literal("expired"))),
+    statuses: v.optional(v.array(v.union(v.literal("active"), v.literal("converted"), v.literal("expired")))),
+    search: v.optional(v.string()),
+    affiliateId: v.optional(v.id("affiliates")),
+    campaignIds: v.optional(v.array(v.id("campaigns"))),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    sortBy: v.optional(v.string()),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("referralLeads"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      email: v.string(),
+      uid: v.optional(v.string()),
+      affiliateId: v.id("affiliates"),
+      affiliateName: v.optional(v.string()),
+      referralLinkId: v.optional(v.id("referralLinks")),
+      campaignId: v.optional(v.id("campaigns")),
+      campaignName: v.optional(v.string()),
+      clickId: v.optional(v.id("clicks")),
+      status: v.union(v.literal("active"), v.literal("converted"), v.literal("expired")),
+      convertedAt: v.optional(v.number()),
+      conversionId: v.optional(v.id("conversions")),
+    })),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+    const numItems = args.paginationOpts.numItems ?? 20;
+    const order = args.sortOrder === "asc" ? "asc" : "desc";
+
+    // Build filter predicate
+    const matches = (lead: Doc<"referralLeads">) => {
+      if (args.status && lead.status !== args.status) return false;
+      if (args.statuses && args.statuses.length > 0 && !args.statuses.includes(lead.status)) return false;
+      if (args.search && !lead.email.toLowerCase().includes(args.search.toLowerCase())) return false;
+      if (args.affiliateId && lead.affiliateId !== args.affiliateId) return false;
+      if (args.campaignIds && args.campaignIds.length > 0 && (!lead.campaignId || !args.campaignIds.includes(lead.campaignId))) return false;
+      if (args.startDate && lead._creationTime < args.startDate) return false;
+      if (args.endDate && lead._creationTime > args.endDate) return false;
+      return true;
+    };
+
+    // Overscan loop: keep fetching aggregate pages until we have enough matches
+    let cursor: string | undefined = args.paginationOpts.cursor ?? undefined;
+    const matched: Doc<"referralLeads">[] = [];
+    let lastCursor = "";
+    let isDone = true;
+
+    while (matched.length < numItems) {
+      const aggResult = await referralLeadsAggregate.paginate(ctx, {
+        namespace: tenantId,
+        pageSize: numItems + 50,
+        cursor,
+        order,
+      });
+
+      const leadDocs = await Promise.all(
+        aggResult.page.map((item: any) => ctx.db.get(item.id as Id<"referralLeads">))
+      );
+      const page = leadDocs.filter((doc): doc is NonNullable<typeof doc> => doc !== null);
+
+      for (const lead of page) {
+        if (matches(lead)) {
+          matched.push(lead);
+          if (matched.length >= numItems) break;
+        }
+      }
+
+      lastCursor = aggResult.cursor;
+      isDone = aggResult.isDone;
+      cursor = aggResult.isDone ? undefined : aggResult.cursor;
+
+      if (aggResult.isDone) break;
+    }
+
+    // Client-side sort fallback (when sort is not _creationTime)
+    if (args.sortBy && args.sortBy !== "_creationTime") {
+      const dir = args.sortOrder === "asc" ? 1 : -1;
+      matched.sort((a, b) => {
+        if (args.sortBy === "email") {
+          return a.email.localeCompare(b.email) * dir;
+        }
+        if (args.sortBy === "status") {
+          return a.status.localeCompare(b.status) * dir;
+        }
+        return 0;
+      });
+    }
+
+    const page = matched.slice(0, numItems);
+
+    // Enrich with affiliate and campaign names
+    const affiliateIds = [...new Set(page.map(l => l.affiliateId))];
+    const affiliateMap: Record<string, { name: string }> = {};
+    for (const id of affiliateIds) {
+      const affiliate = await ctx.db.get(id);
+      if (affiliate) {
+        affiliateMap[id] = { name: affiliate.name };
+      }
+    }
+
+    const campaignIds = [...new Set(
+      page.map(l => l.campaignId).filter((id): id is Id<"campaigns"> => !!id)
+    )];
+    const campaignMap: Record<string, { name: string }> = {};
+    for (const id of campaignIds) {
+      const campaign = await ctx.db.get(id);
+      if (campaign) {
+        campaignMap[id] = { name: campaign.name };
+      }
+    }
+
+    const enrichedPage = page.map(lead => ({
+      ...lead,
+      affiliateName: affiliateMap[lead.affiliateId]?.name,
+      campaignName: lead.campaignId ? campaignMap[lead.campaignId]?.name : undefined,
+    }));
+
+    return {
+      page: enrichedPage,
+      isDone: isDone && matched.length <= numItems,
+      continueCursor: lastCursor,
+      pageStatus: undefined,
+      splitCursor: undefined,
+    };
+  },
+});
+
+/**
+ * Query: Get lead counts by status using O(log n) aggregate counts.
+ * Uses leadByStatusAggregate for exact counts regardless of dataset size.
+ * @security Requires authentication. Results filtered by tenant. Returns zeros if not authenticated.
+ */
+export const getLeadCountByStatus = query({
+  args: {},
+  returns: v.object({
+    total: v.number(),
+    active: v.number(),
+    converted: v.number(),
+    expired: v.number(),
+  }),
+  handler: async (ctx) => {
+    const tenantId = await getTenantId(ctx);
+
+    if (!tenantId) {
+      return { total: 0, active: 0, converted: 0, expired: 0 };
+    }
+
+    const ns = { namespace: tenantId };
+
+    const [active, converted, expired] = await Promise.all([
+      leadByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["active"] } } as any),
+      leadByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["converted"] } } as any),
+      leadByStatusAggregate.count(ctx, { ...ns, bounds: { prefix: ["expired"] } } as any),
+    ]);
+
+    return { total: active + converted + expired, active, converted, expired };
   },
 });

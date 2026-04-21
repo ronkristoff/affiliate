@@ -8,6 +8,7 @@ import { Triggers } from "convex-helpers/server/triggers";
 import {
   affiliateAggregate,
   clicksAggregate,
+  referralLeadsAggregate,
   conversionsAggregate,
   commissionsAggregate,
   referralLinksAggregate,
@@ -26,6 +27,7 @@ const triggers = new Triggers<DataModel>();
 triggers.register("affiliates", affiliateAggregate.trigger());
 triggers.register("referralLinks", referralLinksAggregate.trigger());
 triggers.register("clicks", clicksAggregate.trigger());
+triggers.register("referralLeads", referralLeadsAggregate.trigger());
 triggers.register("conversions", conversionsAggregate.trigger());
 triggers.register("commissions", commissionsAggregate.trigger());
 triggers.register("payouts", payoutsAggregate.trigger());

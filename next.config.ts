@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
         source: "/api/mock/:path*",
         destination: `${convexHttpUrl}/api/mock/:path*`,
       },
+      // Proxy tracking endpoints to Convex (needed for localhost snippet testing)
+      {
+        source: "/api/tracking/:path*",
+        destination: `${convexHttpUrl}/api/tracking/:path*`,
+      },
+      {
+        source: "/track/:path*",
+        destination: `${convexHttpUrl}/track/:path*`,
+      },
     ];
   },
   images: {

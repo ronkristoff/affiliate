@@ -271,24 +271,62 @@ export const getAffiliatesByTenant = query({
       _creationTime: v.number(),
       tenantId: v.id("tenants"),
       email: v.string(),
+      firstName: v.string(),
+      lastName: v.string(),
       name: v.string(),
       uniqueCode: v.string(),
       status: v.string(),
       vanitySlug: v.optional(v.string()),
       promotionChannel: v.optional(v.string()),
+      note: v.optional(v.string()),
       payoutMethod: v.optional(v.object({
         type: v.string(),
         details: v.string(),
       })),
+      lastLoginIp: v.optional(v.string()),
+      lastDeviceFingerprint: v.optional(v.string()),
+      payoutMethodLastDigits: v.optional(v.string()),
+      payoutMethodProcessorId: v.optional(v.string()),
+      fraudSignals: v.optional(v.array(v.object({
+        type: v.string(),
+        severity: v.string(),
+        timestamp: v.number(),
+        details: v.optional(v.string()),
+        reviewedAt: v.optional(v.number()),
+        reviewedBy: v.optional(v.string()),
+        reviewNote: v.optional(v.string()),
+        commissionId: v.optional(v.id("commissions")),
+        signalId: v.optional(v.string()),
+      }))),
+      commissionOverrides: v.optional(v.array(v.object({
+        campaignId: v.id("campaigns"),
+        rate: v.number(),
+        status: v.optional(v.union(v.literal("active"), v.literal("paused"))),
+      }))),
+      couponCode: v.optional(v.string()),
+      couponAttributionEnabled: v.optional(v.boolean()),
+      defaultCouponCampaignId: v.optional(v.id("campaigns")),
+      payoutProviderType: v.optional(v.string()),
+      payoutProviderAccountId: v.optional(v.string()),
+      payoutProviderEnabled: v.optional(v.boolean()),
+      payoutProviderStatus: v.optional(v.string()),
+      payoutProviderStatusDetails: v.optional(v.any()),
     })
   ),
   handler: async (ctx) => {
     const tenantId = await requireTenantId(ctx);
 
-    return await ctx.db
+    const affiliates = await ctx.db
       .query("affiliates")
       .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
       .take(500);
+
+    // Strip sensitive credential fields before returning to client
+    return affiliates.map((a) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passwordHash: _, ...rest } = a as any;
+      return rest;
+    });
   },
 });
 

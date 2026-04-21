@@ -104,6 +104,41 @@ export function decodeCsvContent(base64Data: string): string {
   return atob(base64Data);
 }
 
+/**
+ * Generate a base64-encoded CSV string from an array of plain objects.
+ * Keys become headers; values are automatically escaped and quoted.
+ *
+ * @param rows - Array of row objects (e.g. [{ Email: "a@b.com", Status: "active" }])
+ * @returns Base64-encoded CSV content ready for downloadCsv()
+ */
+export function generateCsv(rows: Record<string, string | number | boolean | undefined>[]): string {
+  if (rows.length === 0) return "";
+
+  const headers = Object.keys(rows[0]);
+  const escape = (val: unknown) => {
+    let str = String(val ?? "");
+    // Sanitize formula-triggering characters to prevent CSV injection
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const lines = [
+    headers.map(escape).join(","),
+    ...rows.map((row) => headers.map((h) => escape(row[h])).join(",")),
+  ];
+
+  const csv = lines.join("\n");
+  // Unicode-safe base64 encode for compatibility with downloadCsv
+  const bytes = new TextEncoder().encode(csv);
+  const binString = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+  return btoa(binString);
+}
+
 // ============================================
 // Error Handling Utilities
 // ============================================

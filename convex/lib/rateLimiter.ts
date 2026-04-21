@@ -33,6 +33,10 @@ export const ENDPOINT_CONFIGS: Record<string, RateLimitConfig> = {
   bulk: { limit: 50, windowDurationMs: 60_000 },            // 50/min per tenant
   export: { limit: 3, windowDurationMs: 60_000 },           // 3/min per tenant
   dns: { limit: 5, windowDurationMs: 60_000 },              // 5/min per tenant
+  tracking: { limit: 120, windowDurationMs: 60_000 },       // 120/min per tenant (ping endpoint)
+  "tracking:global": { limit: 300, windowDurationMs: 60_000 }, // 300/min per IP
+  referral: { limit: 120, windowDurationMs: 60_000 },       // 120/min per tenant (referral tracking)
+  "referral:global": { limit: 300, windowDurationMs: 60_000 }, // 300/min per IP
 };
 
 /**

@@ -259,8 +259,11 @@ export const recordTrackingPing = mutation({
     const normalizedPingDomain = args.domain.toLowerCase().replace(/^www\./, '');
     const normalizedTenantDomain = (fullTenant.domain || '').toLowerCase().replace(/^www\./, '');
 
-    // Validate domain match
-    if (normalizedPingDomain !== normalizedTenantDomain) {
+    // Allow localhost for development testing
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(normalizedPingDomain);
+
+    // Validate domain match (skip for localhost during development)
+    if (!isLocalhost && normalizedPingDomain !== normalizedTenantDomain) {
       return { 
         success: false, 
         message: "Domain mismatch",
@@ -378,6 +381,7 @@ export const recordPingInternal = internalMutation({
     url: v.optional(v.string()),
     referrer: v.optional(v.string()),
     userAgent: v.optional(v.string()),
+    allowLocalhost: v.optional(v.boolean()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -404,8 +408,11 @@ export const recordPingInternal = internalMutation({
     const normalizedPingDomain = args.domain.toLowerCase().replace(/^www\./, '');
     const normalizedTenantDomain = (fullTenant.domain || '').toLowerCase().replace(/^www\./, '');
 
-    // Validate domain match
-    if (normalizedPingDomain !== normalizedTenantDomain) {
+    // Allow localhost only when explicitly permitted (development environment)
+    const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(normalizedPingDomain);
+
+    // Validate domain match (skip for localhost only when allowLocalhost is true)
+    if (!(isLocalhost && args.allowLocalhost) && normalizedPingDomain !== normalizedTenantDomain) {
       return { 
         success: false, 
         message: "Domain mismatch",

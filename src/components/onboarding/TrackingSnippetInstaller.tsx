@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FilterTabs, type FilterTabItem } from "@/components/ui/FilterTabs";
-import { Copy, Check, RefreshCw, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Copy, Check, RefreshCw, Loader2, AlertCircle, CheckCircle2, Info, ExternalLink, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 
 interface TrackingSnippetInstallerProps {
@@ -96,6 +96,7 @@ export function TrackingSnippetInstaller({ onComplete, onSkip }: TrackingSnippet
 
   // Mutations
   const resetVerification = useMutation(api.tracking.resetTrackingVerification);
+  const markTrackingVerified = useMutation(api.tracking.markTrackingVerified);
 
   // Load config on mount
   useEffect(() => {
@@ -176,6 +177,19 @@ if (window.Affilio) {
     try {
       await resetVerification({});
       toast.success("Verification reset. Install the snippet and check again.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Manually mark tracking as verified
+  const handleMarkVerified = async () => {
+    setIsVerifying(true);
+    try {
+      await markTrackingVerified({});
+      toast.success("Tracking marked as verified.");
+    } catch (err) {
+      toast.error("Failed to mark as verified");
     } finally {
       setIsVerifying(false);
     }
@@ -392,9 +406,53 @@ if (window.Affilio) {
             )}
           </div>
 
-          {/* Troubleshooting Tips */}
+          {/* Localhost Testing & Manual Verify */}
           {!isVerified && (
-            <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+            <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800 space-y-4">
+              {/* Test on localhost */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <FlaskConical className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Test on localhost
+                    </h5>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Not ready to deploy? Test the snippet locally first. We&apos;ll accept pings from localhost so you can verify everything works before going live.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button variant="outline" size="sm" asChild className="bg-white dark:bg-transparent">
+                        <a href="/test-tracking" target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Open Test Lab
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Manual verify */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-slate-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      Already installed?
+                    </h5>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">
+                      If you&apos;ve confirmed the snippet is on your site but verification hasn&apos;t detected it yet, you can mark it as verified manually.
+                    </p>
+                    <div className="mt-2">
+                      <Button variant="outline" size="sm" onClick={handleMarkVerified} disabled={isVerifying} className="bg-white dark:bg-transparent">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Mark as Verified
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <h5 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
                 Troubleshooting
               </h5>

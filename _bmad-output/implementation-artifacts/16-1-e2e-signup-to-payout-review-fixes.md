@@ -285,3 +285,36 @@ After the initial 14 bug fixes, a focused code review on `.take(N)` usage found 
 
 **Deferred (7 items):**
 - D1-D7: Low-priority improvements (batch-enriched queries, click dedup index, etc.) deferred to future stories
+
+### Review Findings (2026-04-22)
+
+**Code review performed on uncommitted changes (master branch). Diff: 13 modified files + 3 new files, ~2,315 lines.**
+
+**decision-needed**
+- [x] [Review][Decision] Current diff is off-spec — User confirmed: ignore this. Current work is acceptable as-is.
+- [x] [Review][Decision] Localhost domain bypass — **FIXED**: Added `process.env.NODE_ENV !== "production"` guard in HTTP action. `recordPingInternal` now accepts `allowLocalhost` boolean; only true in development.
+- [x] [Review][Decision] Public HTTP tracking endpoints rate limiting — **FIXED**: Added `tracking`/`referral` endpoint configs to `ENDPOINT_CONFIGS` and integrated two-tier rate limiting (`remaining <= 0` check + `incrementRateLimit`) into `/api/tracking/ping`, `/track/referral`, and `/api/tracking/referral-ping`.
+
+**patch**
+- [x] [Review][Patch] Missing `leadByStatusAggregate` — **DISMISSED**: Already defined in `aggregates.ts`, exported, registered in `convex.config.ts`, and used correctly. False positive.
+- [x] [Review][Patch] `passwordHash` leaked to frontend — **FIXED**: Removed `passwordHash` field from `getAffiliatesByTenant` return validator.
+- [x] [Review][Patch] `getConversions` return validator missing spread fields — **FIXED**: Added `ipAddress`, `deviceFingerprint`, `paymentMethodLastDigits`, `paymentMethodProcessorId`, `couponCode` to return validator.
+- [x] [Review][Patch] `generateCsv` crashes on Unicode — **FIXED**: Replaced `btoa(csv)` with `TextEncoder()` → `btoa(binString)` for Unicode-safe base64 encoding.
+- [x] [Review][Patch] CSV formula injection vulnerability — **FIXED**: Added prefix sanitization in `generateCsv` — prepends `'` to values starting with `=`, `+`, `-`, `@`.
+- [x] [Review][Patch] Leads/Conversions pagination never advances — **FIXED**: Added cursor state (`useState`) with cursor history map. Backend returns `continueCursor`; frontend passes it for page > 1.
+- [x] [Review][Patch] Server pagination before client-side filtering — **FIXED**: Rewrote `getLeadsByTenant` and `getConversions` with overscan loop — keeps fetching aggregate pages until `numItems` matches are found or aggregate is exhausted.
+- [x] [Review][Patch] `isDone` incorrect after filtering — **FIXED**: Overscan loop computes `isDone = aggResult.isDone && matched.length <= numItems`, ensuring no false positives when last page is fully filtered.
+- [x] [Review][Patch] Export only exports visible window — **PARTIALLY FIXED**: Still exports visible slice (proper architecture requires server-side export action). Added toast showing exact count exported so users know.
+- [x] [Review][Patch] Campaign/status column filters never reach backend — **FIXED**: Added `campaignIds` and `statuses` args to both backend queries; frontend now passes them via `useQuery`.
+- [x] [Review][Patch] Pagination `total` uses unfiltered count — **FIXED**: Frontend now uses tab-specific count (`counts.active`, `counts.converted`, etc.) for `total` prop.
+- [x] [Review][Patch] Optional chaining trap — **FIXED**: Changed `snippetConfig?.publicKey.slice(0, 16)` to `snippetConfig?.publicKey?.slice(0, 16)`.
+
+**defer**
+- [x] [Review][Defer] AC1-AC7 task fixes not in diff [spec tasks 1-14, P1-P8] — The actual bug fixes specified in story 16.1 (commissions.ts notifications, payouts.ts premature paid, commissionEngine.ts/webhooks.ts coupon attribution, users.ts authId, referralLinks.ts unbounded queries, affiliates.ts timingSafeEqual, fraudDetection.ts consolidation) do not appear in this diff. This is off-spec work. — deferred, pre-existing
+- [x] [Review][Defer] `getConversionsByTenant` and `getConversionsByAffiliate` same missing-field validator bug [convex/conversions.ts:898-917, 1012-1033] — These existing queries also return spread conversion documents without `ipAddress`, `deviceFingerprint`, etc. in validators. Pre-existing issue not caused by current diff. — deferred, pre-existing
+
+**dismissed as noise**
+- maxPage calculation flash during loading (intentional pattern from affiliates page)
+- Skeleton array index keys (static skeletons, acceptable)
+- handleMarkVerified repeated clicks (idempotent mutation, minor UX)
+- Campaign filter chip raw ID display (cosmetic)

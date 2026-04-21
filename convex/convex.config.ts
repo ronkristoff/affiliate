@@ -18,6 +18,7 @@ app.use(aggregate, { name: "degradation" });
 app.use(aggregate, { name: "affiliates" });
 app.use(aggregate, { name: "referralLinks" });
 app.use(aggregate, { name: "clicks" });
+app.use(aggregate, { name: "referralLeads" });
 app.use(aggregate, { name: "conversions" });
 app.use(aggregate, { name: "commissions" });
 app.use(aggregate, { name: "payouts" });

@@ -6,6 +6,7 @@ import {
   affiliateAggregate,
   referralLinksAggregate,
   clicksAggregate,
+  referralLeadsAggregate,
   conversionsAggregate,
   commissionsAggregate,
   payoutsAggregate,
@@ -28,6 +29,7 @@ const ALL_AGGREGATES: Array<{ name: string; agg: any }> = [
   { name: "affiliateAggregate", agg: affiliateAggregate },
   { name: "referralLinksAggregate", agg: referralLinksAggregate },
   { name: "clicksAggregate", agg: clicksAggregate },
+  { name: "referralLeadsAggregate", agg: referralLeadsAggregate },
   { name: "conversionsAggregate", agg: conversionsAggregate },
   { name: "commissionsAggregate", agg: commissionsAggregate },
   { name: "payoutsAggregate", agg: payoutsAggregate },
@@ -80,6 +82,7 @@ export const backfillReindex = internalMutation({
       await payoutsAggregate.insertIfDoesNotExist(ctx, doc);
       await payoutByStatusAggregate.insertIfDoesNotExist(ctx, doc);
     } else if (tableName === "referralLeads") {
+      await referralLeadsAggregate.insertIfDoesNotExist(ctx, doc);
       await leadByStatusAggregate.insertIfDoesNotExist(ctx, doc);
     } else if (tableName === "notifications") {
       await notificationsByReadAggregate.insertIfDoesNotExist(ctx, doc);

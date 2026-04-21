@@ -1,12 +1,13 @@
 import { query, internalQuery } from "./_generated/server";
 import { mutation, internalMutation } from "./triggers";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import { conversionsAggregate, clicksAggregate, commissionsAggregate } from "./aggregates";
+import { getTenantId } from "./tenantContext";
 import { normalizeEmail } from "./emailNormalization";
-import { requireWriteAccess } from "./tenantContext";
+import { getAuthenticatedUser, requireWriteAccess } from "./tenantContext";
 import { onOrganicConversionCreated } from "./tenantStats";
 
 /**
@@ -1445,5 +1446,203 @@ export const getOrganicConversions = query({
       });
 
     return organic.slice(0, limit);
+  },
+});
+
+/**
+ * Query: Get conversions for the authenticated tenant
+ * Owner dashboard view — supports: status filter, search, date range, affiliate filter, sorting
+ */
+export const getConversions = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    status: v.optional(v.union(v.literal("pending"), v.literal("completed"), v.literal("refunded"))),
+    statuses: v.optional(v.array(v.union(v.literal("pending"), v.literal("completed"), v.literal("refunded")))),
+    search: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    affiliateId: v.optional(v.id("affiliates")),
+    campaignIds: v.optional(v.array(v.id("campaigns"))),
+    sortBy: v.optional(v.string()),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  },
+  returns: v.object({
+    page: v.array(v.object({
+      _id: v.id("conversions"),
+      _creationTime: v.number(),
+      tenantId: v.id("tenants"),
+      affiliateId: v.optional(v.id("affiliates")),
+      affiliateName: v.optional(v.string()),
+      referralLinkId: v.optional(v.id("referralLinks")),
+      clickId: v.optional(v.id("clicks")),
+      campaignId: v.optional(v.id("campaigns")),
+      campaignName: v.optional(v.string()),
+      customerEmail: v.optional(v.string()),
+      amount: v.number(),
+      status: v.optional(v.string()),
+      ipAddress: v.optional(v.string()),
+      deviceFingerprint: v.optional(v.string()),
+      paymentMethodLastDigits: v.optional(v.string()),
+      paymentMethodProcessorId: v.optional(v.string()),
+      attributionSource: v.optional(v.string()),
+      couponCode: v.optional(v.string()),
+      isSelfReferral: v.optional(v.boolean()),
+      metadata: v.optional(v.any()),
+    })),
+    continueCursor: v.optional(v.string()),
+    pageStatus: v.optional(v.union(v.string(), v.null())),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+    isDone: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    const tenantId = user.tenantId;
+    const numItems = args.paginationOpts.numItems ?? 20;
+    const order = args.sortOrder === "asc" ? "asc" : "desc";
+
+    // Build filter predicate
+    const matches = (conv: Doc<"conversions">) => {
+      if (args.status && conv.status !== args.status) return false;
+      if (args.statuses && args.statuses.length > 0 && !args.statuses.includes(conv.status as "pending" | "completed" | "refunded")) return false;
+      if (args.search && !(conv.customerEmail && conv.customerEmail.toLowerCase().includes(args.search.toLowerCase()))) return false;
+      if (args.startDate && conv._creationTime < args.startDate) return false;
+      if (args.endDate && conv._creationTime > args.endDate) return false;
+      if (args.affiliateId && conv.affiliateId !== args.affiliateId) return false;
+      if (args.campaignIds && args.campaignIds.length > 0 && (!conv.campaignId || !args.campaignIds.includes(conv.campaignId))) return false;
+      return true;
+    };
+
+    // Overscan loop: keep fetching aggregate pages until we have enough matches
+    let cursor: string | undefined = args.paginationOpts.cursor ?? undefined;
+    const matched: Doc<"conversions">[] = [];
+    let lastCursor = "";
+    let isDone = true;
+
+    while (matched.length < numItems) {
+      const aggResult = await conversionsAggregate.paginate(ctx, {
+        namespace: tenantId,
+        pageSize: numItems + 50,
+        cursor,
+        order,
+      });
+
+      const convDocs = await Promise.all(
+        aggResult.page.map((item: any) => ctx.db.get(item.id as Id<"conversions">))
+      );
+      const page = convDocs.filter((doc): doc is NonNullable<typeof doc> => doc !== null);
+
+      for (const conv of page) {
+        if (matches(conv)) {
+          matched.push(conv);
+          if (matched.length >= numItems) break;
+        }
+      }
+
+      lastCursor = aggResult.cursor;
+      isDone = aggResult.isDone;
+      cursor = aggResult.isDone ? undefined : aggResult.cursor;
+
+      if (aggResult.isDone) break;
+    }
+
+    // Client-side sort fallback
+    if (args.sortBy && args.sortBy !== "_creationTime") {
+      const dir = args.sortOrder === "asc" ? 1 : -1;
+      matched.sort((a, b) => {
+        if (args.sortBy === "amount") {
+          return (a.amount - b.amount) * dir;
+        }
+        if (args.sortBy === "status") {
+          return (a.status || "").localeCompare(b.status || "") * dir;
+        }
+        return 0;
+      });
+    }
+
+    const page = matched.slice(0, numItems);
+
+    // Enrich with affiliate and campaign names
+    const affiliateIds = [...new Set(page.map(c => c.affiliateId).filter((id): id is Id<"affiliates"> => !!id))];
+    const affiliateMap: Record<string, { name: string }> = {};
+    for (const id of affiliateIds) {
+      const affiliate = await ctx.db.get(id);
+      if (affiliate && "name" in affiliate) {
+        affiliateMap[id] = { name: affiliate.name as string };
+      }
+    }
+
+    const campaignIds = [...new Set(
+      page
+        .map(c => c.campaignId)
+        .filter((id): id is Id<"campaigns"> => !!id)
+    )];
+    const campaignMap: Record<string, { name: string }> = {};
+    for (const id of campaignIds) {
+      const campaign = await ctx.db.get(id);
+      if (campaign) {
+        campaignMap[id] = { name: campaign.name };
+      }
+    }
+
+    const enrichedPage = page.map(conv => ({
+      ...conv,
+      affiliateName: conv.affiliateId ? affiliateMap[conv.affiliateId]?.name : undefined,
+      campaignName: conv.campaignId ? campaignMap[conv.campaignId]?.name : undefined,
+    }));
+
+    return {
+      page: enrichedPage,
+      continueCursor: lastCursor,
+      pageStatus: undefined,
+      splitCursor: undefined,
+      isDone: isDone && matched.length <= numItems,
+    };
+  },
+});
+
+/**
+ * Query: Get conversion counts by status.
+ * Total uses O(log n) conversionsAggregate.count().
+ * Status breakdowns use a capped .take(500) scan — accurate for datasets under 500 conversions.
+ * For O(log n) status breakdowns at scale, add a conversionByStatusAggregate component.
+ * @security Requires authentication. Results filtered by tenant. Returns zeros if not authenticated.
+ */
+export const getConversionCountByStatus = query({
+  args: {},
+  returns: v.object({
+    total: v.number(),
+    pending: v.number(),
+    completed: v.number(),
+    refunded: v.number(),
+  }),
+  handler: async (ctx) => {
+    const tenantId = await getTenantId(ctx);
+
+    if (!tenantId) {
+      return { total: 0, pending: 0, completed: 0, refunded: 0 };
+    }
+
+    const total = await conversionsAggregate.count(ctx, { namespace: tenantId });
+
+    // Capped scan for status breakdowns (acceptable for tab counts on moderate datasets)
+    const conversions = await ctx.db
+      .query("conversions")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenantId))
+      .take(500);
+
+    let pending = 0;
+    let completed = 0;
+    let refunded = 0;
+    for (const c of conversions) {
+      if (c.status === "pending") pending++;
+      else if (c.status === "completed") completed++;
+      else if (c.status === "refunded") refunded++;
+    }
+
+    return { total, pending, completed, refunded };
   },
 });

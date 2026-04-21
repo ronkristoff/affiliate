@@ -276,6 +276,7 @@ export declare const components: {
   affiliates: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"affiliates">;
   referralLinks: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"referralLinks">;
   clicks: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"clicks">;
+  referralLeads: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"referralLeads">;
   conversions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"conversions">;
   commissions: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"commissions">;
   payouts: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"payouts">;

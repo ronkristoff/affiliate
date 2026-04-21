@@ -588,6 +588,18 @@ http.route({
   }),
 });
 
+// OPTIONS handler for tracking ping (CORS preflight)
+http.route({
+  path: "/api/tracking/ping",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, _req) => {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }),
+});
+
 // Public tracking ping endpoint
 // AC7: Snippet Configuration API - Public endpoint for snippet to send pings
 http.route({
@@ -630,14 +642,38 @@ http.route({
         }
       }
 
+      // Rate limiting — per-publicKey cap
+      const clientIp = extractIp(req);
+      const pingRateLimitKey = buildRateLimitKey("tracking", publicKey);
+      const pingStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: pingRateLimitKey, limit: ENDPOINT_CONFIGS.tracking.limit,
+      });
+      if (pingStatus.remaining <= 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Rate limit exceeded", resetsAt: pingStatus.resetsAt }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       // Use internal mutation to record the ping and update tenant
+      const isDevelopment = process.env.NODE_ENV !== "production";
       const result = await ctx.runMutation(internal.tracking.recordPingInternal, {
         publicKey,
         domain: sanitizedDomain,
         url: sanitizedUrl,
         referrer,
         userAgent,
+        allowLocalhost: isDevelopment,
       });
+
+      // Increment rate limits (fire-and-forget)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: pingRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.tracking.windowDurationMs,
+      }).catch(() => {});
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: buildRateLimitKey("tracking:global", clientIp),
+        windowDurationMs: ENDPOINT_CONFIGS["tracking:global"].windowDurationMs,
+      }).catch(() => {});
 
       // Track API call (fire-and-forget) — resolve tenantId from publicKey
       ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
@@ -2472,6 +2508,28 @@ http.route({
         );
       }
 
+      // Rate limiting — per-tenant cap
+      const clientIp = extractIp(req);
+      const referralRateLimitKey = buildRateLimitKey("referral", tenantId);
+      const referralStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: referralRateLimitKey, limit: ENDPOINT_CONFIGS.referral.limit,
+      });
+      if (referralStatus.remaining <= 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Rate limit exceeded", resetsAt: referralStatus.resetsAt }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Increment rate limits (fire-and-forget)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: referralRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.referral.windowDurationMs,
+      }).catch(() => {});
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: buildRateLimitKey("referral:global", clientIp),
+        windowDurationMs: ENDPOINT_CONFIGS["referral:global"].windowDurationMs,
+      }).catch(() => {});
+
       // Resolve affiliate code — from body, or from _affilio cookie
       let effectiveCode = affiliateCode || null;
 
@@ -2593,16 +2651,25 @@ http.route({
         .replace(/\/.*$/, '')
         .replace(/[^a-z0-9.-]/g, '');
 
+      // Rate limiting — two-tier: per-publicKey + per-IP global
+      const clientIp = extractIp(req);
+      const pingRateLimitKey = buildRateLimitKey("tracking", publicKey);
+      const pingStatus = await ctx.runQuery(internal.rateLimits.getRateLimitStatus, {
+        key: pingRateLimitKey, limit: ENDPOINT_CONFIGS.tracking.limit,
+      });
+      if (pingStatus.remaining <= 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Rate limit exceeded", resetsAt: pingStatus.resetsAt }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       // Record referral ping in referralPings table
       const tenant = await ctx.runQuery(internal.conversions.getTenantByTrackingKeyInternal, {
         trackingKey: publicKey,
       });
 
       if (tenant) {
-        // Get client IP
-        const forwardedFor = req.headers.get("X-Forwarded-For");
-        const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : undefined;
-
         await ctx.runMutation(internal.tracking.recordReferralPingInternal, {
           tenantId: tenant._id,
           trackingKey: publicKey,
@@ -2615,6 +2682,15 @@ http.route({
         // Track API call
         apiCallsDirect.insert(ctx, { key: Date.now(), id: `api-${Date.now()}-${Math.random().toString(36).slice(2)}`, namespace: tenant._id }).catch(() => {});
       }
+
+      // Increment rate limits (fire-and-forget)
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: pingRateLimitKey, windowDurationMs: ENDPOINT_CONFIGS.tracking.windowDurationMs,
+      }).catch(() => {});
+      ctx.runMutation(internal.rateLimits.incrementRateLimit, {
+        key: buildRateLimitKey("tracking:global", clientIp),
+        windowDurationMs: ENDPOINT_CONFIGS["tracking:global"].windowDurationMs,
+      }).catch(() => {});
 
       return new Response(
         JSON.stringify({ success: true, message: "Referral ping recorded" }),

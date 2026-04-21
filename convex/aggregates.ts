@@ -53,6 +53,12 @@ const clicksAggregate = new TableAggregate(components.clicks, {
 } as any);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const referralLeadsAggregate = new TableAggregate(components.referralLeads, {
+  sortKey: (d: any) => d._creationTime,
+  namespace: (d: any) => d.tenantId,
+} as any);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const conversionsAggregate = new TableAggregate(components.conversions, {
   sortKey: (d: any) => d._creationTime,
   namespace: (d: any) => d.tenantId,
@@ -138,6 +144,7 @@ export {
   affiliateAggregate,
   referralLinksAggregate,
   clicksAggregate,
+  referralLeadsAggregate,
   conversionsAggregate,
   commissionsAggregate,
   payoutsAggregate,
@@ -155,6 +162,7 @@ export {
 export const affiliatesTrigger = affiliateAggregate.trigger();
 export const referralLinksTrigger = referralLinksAggregate.trigger();
 export const clicksTrigger = clicksAggregate.trigger();
+export const referralLeadsTrigger = referralLeadsAggregate.trigger();
 export const conversionsTrigger = conversionsAggregate.trigger();
 export const commissionsTrigger = commissionsAggregate.trigger();
 export const payoutsTrigger = payoutsAggregate.trigger();
@@ -170,6 +178,7 @@ const TABLES_TO_BACKFILL = [
   "affiliates",
   "referralLinks",
   "clicks",
+  "referralLeads",
   "conversions",
   "commissions",
   "payouts",
