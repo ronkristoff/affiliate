@@ -158,6 +158,11 @@ export const affiliateFields = {
   couponCode: v.optional(v.string()),
   couponAttributionEnabled: v.optional(v.boolean()),
   defaultCouponCampaignId: v.optional(v.id("campaigns")),
+  payoutProviderType: v.optional(v.string()),
+  payoutProviderAccountId: v.optional(v.string()),
+  payoutProviderEnabled: v.optional(v.boolean()),
+  payoutProviderStatus: v.optional(v.string()),
+  payoutProviderStatusDetails: v.optional(v.any()),
 } as const;
 
 export const affiliateValidator = v.object(affiliateFields);

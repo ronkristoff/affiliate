@@ -638,6 +638,91 @@ export const updateTenantBranding = mutation({
   },
 });
 
+export const updatePayoutSchedule = mutation({
+  args: {
+    payoutSchedule: v.object({
+      payoutDayOfMonth: v.optional(v.number()),
+      minimumPayoutAmount: v.optional(v.number()),
+      payoutProcessingDays: v.optional(v.number()),
+      payoutScheduleNote: v.optional(v.string()),
+    }),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const authUser = await getAuthenticatedUser(ctx);
+    if (!authUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    await requireWriteAccess(ctx);
+
+    const role = authUser.role as Role;
+    if (!hasPermission(role, "settings:*") && !hasPermission(role, "settings:manage") && !hasPermission(role, "manage:*")) {
+      await ctx.db.insert("auditLogs", {
+        tenantId: authUser.tenantId,
+        action: "permission_denied",
+        entityType: "tenant",
+        entityId: authUser.tenantId,
+        actorId: authUser.userId,
+        actorType: "user",
+        metadata: {
+          securityEvent: true,
+          additionalInfo: `attemptedPermission=settings:manage, attemptedAction=updatePayoutSchedule`,
+        },
+      });
+      throw new Error("Access denied: You require 'settings:manage' permission to update payout settings");
+    }
+
+    const tenant = await ctx.db.get(authUser.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+
+    if (args.payoutSchedule.payoutDayOfMonth !== undefined) {
+      const day = args.payoutSchedule.payoutDayOfMonth;
+      if (!Number.isInteger(day) || day < 1 || day > 28) {
+        throw new Error("Payout day must be an integer between 1 and 28");
+      }
+    }
+
+    if (args.payoutSchedule.minimumPayoutAmount !== undefined) {
+      const minAmount = args.payoutSchedule.minimumPayoutAmount;
+      if (typeof minAmount !== "number" || minAmount < 0) {
+        throw new Error("Minimum payout amount must be a non-negative number");
+      }
+    }
+
+    if (args.payoutSchedule.payoutProcessingDays !== undefined) {
+      const days = args.payoutSchedule.payoutProcessingDays;
+      if (!Number.isInteger(days) || days < 0 || days > 90) {
+        throw new Error("Processing days must be an integer between 0 and 90");
+      }
+    }
+
+    const currentSchedule = tenant.payoutSchedule ?? {};
+    const updatedSchedule = {
+      ...currentSchedule,
+      ...args.payoutSchedule,
+    };
+
+    await ctx.db.patch(authUser.tenantId, {
+      payoutSchedule: updatedSchedule,
+    });
+
+    await ctx.db.insert("auditLogs", {
+      tenantId: authUser.tenantId,
+      action: "payout_schedule_updated",
+      entityType: "tenant",
+      entityId: authUser.tenantId,
+      actorId: authUser.userId,
+      actorType: "user",
+      previousValue: tenant.payoutSchedule,
+      newValue: updatedSchedule,
+    });
+
+    return null;
+  },
+});
+
 /**
  * Reset tenant branding to defaults.
  * @security Requires 'settings:manage', 'settings:*', or 'manage:*' permission.

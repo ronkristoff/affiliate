@@ -270,3 +270,31 @@ development_status:
   epic-16: in-progress
   16-1-e2e-signup-to-payout-review-fixes: review
   epic-16-retrospective: optional
+
+  # ========================================
+  # EPIC 17: Payout Provider Integration (Stripe Connect)
+  # 5 epics (17.1-17.5), 21 stories | Provider-agnostic design
+  # Source: epics-stripe-connect.md
+  # ========================================
+  epic-17: done
+  17-1-schema-migration-provider-agnostic-payout-fields: done
+  17-2-payout-provider-adapter-interface: done
+  17-3-stripe-connect-adapter-implementation: done
+  17-4-provider-environment-variables-sdk-initialization: done
+  17-5-affiliate-onboarding-link-generation: done
+  17-6-onboarding-return-refresh-handling: done
+  17-7-provider-account-status-display: done
+  17-8-kyc-requirements-rejection-handling: done
+  17-9-provider-webhook-account-status-updates: done
+  17-10-provider-balance-display-on-payouts-page: done
+  17-11-individual-payout-via-provider: done
+  17-12-bulk-payout-via-provider: done
+  17-13-provider-transfer-webhooks-payout-status-lifecycle: done
+  17-14-retry-failed-provider-payouts: done
+  17-15-payout-filter-by-payment-source: done
+  17-16-scheduled-payout-cron-job: done
+  17-17-balance-pre-check-scheduled-payouts: done
+  17-18-mid-batch-failure-handling: done
+  17-19-auto-payout-completion-notification: done
+  17-20-auto-pay-configuration-settings-page: done
+  epic-17-retrospective: optional

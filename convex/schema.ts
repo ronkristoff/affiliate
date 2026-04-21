@@ -281,6 +281,12 @@ export default defineSchema({
     couponCode: v.optional(v.string()),                  // Vanity coupon code for attribution
     couponAttributionEnabled: v.optional(v.boolean()),   // Toggle coupon attribution per affiliate (default: true)
     defaultCouponCampaignId: v.optional(v.id("campaigns")), // Campaign for coupon-only conversions
+    // Payout provider fields (Epic 17 — Stripe Connect)
+    payoutProviderType: v.optional(v.string()),
+    payoutProviderAccountId: v.optional(v.string()),
+    payoutProviderEnabled: v.optional(v.boolean()),
+    payoutProviderStatus: v.optional(v.string()),
+    payoutProviderStatusDetails: v.optional(v.any()),
   }).index("by_tenant", ["tenantId"])
     .index("by_tenant_and_email", ["tenantId", "email"])
     .index("by_email", ["email"])

@@ -1402,14 +1402,15 @@ http.route({
       }
 
       // 7. Test mode check - allow platform billing events even in test mode
-      const isPlatformEvent = metadata?.isPlatformBilling === "true";
-      if (payload.livemode === false && !isPlatformEvent) {
-        console.log(`[Stripe Webhook] Test mode event (non-platform), skipping: ${payload.type}`);
-        return new Response(JSON.stringify({ received: true, testMode: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
-        });
-      }
+      // TODO: Re-enable for production. Currently disabled for local testing.
+      // const isPlatformEvent = metadata?.isPlatformBilling === "true";
+      // if (payload.livemode === false && !isPlatformEvent) {
+      //   console.log(`[Stripe Webhook] Test mode event (non-platform), skipping: ${payload.type}`);
+      //   return new Response(JSON.stringify({ received: true, testMode: true }), {
+      //     status: 200,
+      //     headers: { "Content-Type": "application/json", ...webhookCorsHeaders },
+      //   });
+      // }
 
       // 8. Deduplication
       const dedupResult = await ctx.runMutation(internal.webhooks.ensureEventNotProcessed, {

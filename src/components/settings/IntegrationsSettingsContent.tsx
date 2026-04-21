@@ -525,7 +525,7 @@ export function IntegrationsSettingsContent() {
                 <li>Make a test payment</li>
                 <li>Check the Commissions page to see the attributed commission</li>
               </ol>
-              {activeProvider === "stripe" && (
+              {activeProvider === "stripe" && typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") && (
                 <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <p className="text-muted-foreground">
