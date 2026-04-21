@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link2, Loader2, ShieldCheck, AlertCircle, Info, CheckCircle2, Clock } from "lucide-react";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 interface ProviderPayoutSectionProps {
   payoutProviderStatus?: string;
@@ -164,8 +165,7 @@ export function ProviderPayoutSection({
         setIsRedirecting(false);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to generate payout setup link";
-      setError(message.split("\n")[0].replace(/^Uncaught Error: /, ""));
+      setError(getSanitizedErrorMessage(err, "Failed to generate payout setup link"));
       setIsRedirecting(false);
     }
   };
@@ -185,8 +185,7 @@ export function ProviderPayoutSection({
         setIsRedirecting(false);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to generate payout setup link";
-      setError(message.split("\n")[0].replace(/^Uncaught Error: /, ""));
+      setError(getSanitizedErrorMessage(err, "Failed to generate payout setup link"));
       setIsRedirecting(false);
     }
   };

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Save, KeyRound, Check, AlertCircle, Shield, Building2, Calendar, Mail, Crown, Globe, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 const profileSchema = z.object({
   name: z
@@ -77,8 +78,9 @@ export function ProfileSettingsForm({ user, tenant }: ProfileSettingsFormProps) 
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to update profile"
+        getSanitizedErrorMessage(error, "Failed to update profile")
       );
+      reportClientError({ source: "ProfileSettingsForm", message: getSanitizedErrorMessage(error, "Failed to update profile") });
     } finally {
       setIsSaving(false);
     }

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import {
   useQueryState,
   parseAsStringLiteral,
@@ -488,7 +489,8 @@ function CommissionsContent() {
       setIsDrawerOpen(false);
       setSelectedCommission(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to approve commission");
+      toast.error(getSanitizedErrorMessage(error, "Failed to approve commission"));
+      reportClientError({ source: "CommissionsPage", message: getSanitizedErrorMessage(error, "Failed to approve commission") });
     } finally {
       setIsActionLoading(false);
     }
@@ -508,7 +510,8 @@ function CommissionsContent() {
       setSelectedCommission(null);
       setDeclineReason("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to decline commission");
+      toast.error(getSanitizedErrorMessage(error, "Failed to decline commission"))
+      reportClientError({ source: "CommissionsPage", message: getSanitizedErrorMessage(error, "Failed to decline commission") });
     } finally {
       setIsActionLoading(false);
     }
@@ -522,7 +525,8 @@ function CommissionsContent() {
       setIsDrawerOpen(false);
       setSelectedCommission(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to override commission");
+      toast.error(getSanitizedErrorMessage(error, "Failed to override commission"));
+      reportClientError({ source: "CommissionsPage", message: getSanitizedErrorMessage(error, "Failed to override commission") });
     } finally {
       setIsActionLoading(false);
     }
@@ -587,7 +591,8 @@ function CommissionsContent() {
       downloadCsv(base64Data, "commissions");
       toast.success("Commissions exported successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to export commissions");
+      toast.error(getSanitizedErrorMessage(error, "Failed to export commissions"));
+      reportClientError({ source: "CommissionsPage", message: getSanitizedErrorMessage(error, "Failed to export commissions") });
     } finally {
       setIsExporting(false);
     }

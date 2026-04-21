@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, Clock, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 export default function ReactivationPage() {
   const router = useRouter();
@@ -50,7 +51,8 @@ export default function ReactivationPage() {
       toast.info("Reactivation will be available in a future update. Please contact support.");
       router.push("/settings/billing");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Reactivation failed");
+      toast.error(getSanitizedErrorMessage(error, "Reactivation failed"));
+      reportClientError({ source: "ReactivationPage", message: getSanitizedErrorMessage(error, "Reactivation failed") });
     } finally {
       setIsReactivating(false);
     }

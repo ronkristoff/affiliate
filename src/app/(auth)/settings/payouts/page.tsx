@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Save, CalendarClock, Clock, DollarSign, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 export default function PayoutSettingsPage() {
   const tenantId = useQuery(api.auth.getCurrentTenantId);
@@ -93,7 +94,8 @@ export default function PayoutSettingsPage() {
       });
       toast.success("Payout settings saved successfully");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save payout settings");
+      toast.error(getSanitizedErrorMessage(err, "Failed to save payout settings"));
+      reportClientError({ source: "PayoutSettingsPage", message: getSanitizedErrorMessage(err, "Failed to save payout settings") });
     } finally {
       setIsSaving(false);
     }

@@ -113,49 +113,112 @@ export function decodeCsvContent(base64Data: string): string {
  * Traverses error.cause chains and Convex error wrappers to find the root message.
  * Returns fallback if no usable message is found.
  */
-export function getErrorMessage(error: unknown, fallback: string): string {
-  // Handle null/undefined
+export function getErrorMessage(error: unknown, fallback: string, depth = 0): string {
+  const MAX_DEPTH = 5;
+  if (depth > MAX_DEPTH) return fallback;
+
   if (error == null) return fallback;
 
-  // Handle strings
   if (typeof error === "string") return error;
 
-  // Handle Error-like objects (covers native Error, cross-realm Error, Convex RPC errors)
   if (error instanceof Error) {
     const msg = error.message;
-    // Only use fallback if message is truly empty
     if (msg && msg.length > 0) {
       return msg;
     }
-    // Try .cause if message is empty
     if (error.cause !== undefined) {
-      return getErrorMessage(error.cause, fallback);
+      return getErrorMessage(error.cause, fallback, depth + 1);
     }
     return fallback;
   }
 
-  // Handle plain objects with a message property
   const err = error as Record<string, unknown>;
   if (typeof err.message === "string" && err.message.length > 0) {
     return err.message;
   }
 
-  // Handle Convex error wrapper: { data: { message: string } }
   if (err.data && typeof err.data === "object") {
     const data = err.data as Record<string, unknown>;
     if (typeof data.message === "string" && data.message.length > 0) {
       return data.message;
     }
-    // Try nested cause inside data
     if (data.cause !== undefined) {
-      return getErrorMessage(data.cause, fallback);
+      return getErrorMessage(data.cause, fallback, depth + 1);
     }
   }
 
-  // Last resort: try .cause
   if (err.cause !== undefined) {
-    return getErrorMessage(err.cause, fallback);
+    return getErrorMessage(err.cause, fallback, depth + 1);
   }
 
   return fallback;
+}
+
+const CONVEX_INTERNAL_PREFIXES = [
+  "ReturnsValidationError",
+  "ArgumentValidationError",
+  "FunctionError",
+  "INVALID_ARGUMENT",
+  "Cannot read properties of undefined",
+  "Cannot read property",
+  "is not a function",
+];
+
+function isConvexInternalError(message: string): boolean {
+  return CONVEX_INTERNAL_PREFIXES.some((prefix) => message.startsWith(prefix));
+}
+
+export function getSanitizedErrorMessage(error: unknown, fallback: string): string {
+  const raw = getErrorMessage(error, fallback);
+  if (isConvexInternalError(raw)) {
+    return fallback;
+  }
+  return raw;
+}
+
+const errorDedupeMap = new Map<string, number>();
+const DEDUPE_WINDOW_MS = 10_000;
+const MAX_SAME_SOURCE_PER_WINDOW = 3;
+
+export function reportClientError(opts: {
+  severity?: "error" | "warning" | "info";
+  source: string;
+  message: string;
+  stackTrace?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    const now = Date.now();
+    const key = `${opts.source}:${opts.message.slice(0, 200)}`;
+    const lastSent = errorDedupeMap.get(key);
+    if (lastSent && now - lastSent < DEDUPE_WINDOW_MS) {
+      return;
+    }
+    errorDedupeMap.set(key, now);
+
+    let sourceCount = 0;
+    for (const [k, t] of errorDedupeMap.entries()) {
+      if (k.startsWith(`${opts.source}:`) && now - t < DEDUPE_WINDOW_MS) {
+        sourceCount++;
+      }
+    }
+    if (sourceCount > MAX_SAME_SOURCE_PER_WINDOW) {
+      return;
+    }
+
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        severity: opts.severity ?? "error",
+        source: opts.source,
+        message: opts.message,
+        stackTrace: opts.stackTrace,
+        metadata: opts.metadata,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Silently fail
+  }
 }

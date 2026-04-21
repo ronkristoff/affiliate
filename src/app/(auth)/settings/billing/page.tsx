@@ -23,6 +23,7 @@ import { PageTopbar } from "@/components/ui/PageTopbar";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, Rocket, TrendingDown, XCircle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 function calculateEstimatedProration(
   currentPrice: number,
@@ -221,7 +222,8 @@ export default function BillingSettingsPage() {
         setRefreshKey((k) => k + 1);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Upgrade failed");
+      toast.error(getSanitizedErrorMessage(error, "Upgrade failed"))
+      reportClientError({ source: "BillingSettingsPage", message: getSanitizedErrorMessage(error, "Upgrade failed") });
     } finally {
       setIsUpgrading(false);
     }
@@ -239,7 +241,8 @@ export default function BillingSettingsPage() {
         setRefreshKey((k) => k + 1);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Reactivation failed");
+      toast.error(getSanitizedErrorMessage(error, "Reactivation failed"))
+      reportClientError({ source: "BillingSettingsPage", message: getSanitizedErrorMessage(error, "Reactivation failed") });
     } finally {
       setIsReactivating(false);
     }
@@ -280,7 +283,8 @@ export default function BillingSettingsPage() {
         setRefreshKey((k) => k + 1);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Downgrade failed");
+      toast.error(getSanitizedErrorMessage(error, "Downgrade failed"))
+      reportClientError({ source: "BillingSettingsPage", message: getSanitizedErrorMessage(error, "Downgrade failed") });
     } finally {
       setIsDowngrading(false);
     }
@@ -315,7 +319,8 @@ export default function BillingSettingsPage() {
         setRefreshKey((k) => k + 1);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Cancellation failed");
+      toast.error(getSanitizedErrorMessage(error, "Cancellation failed"));
+      reportClientError({ source: "BillingSettingsPage", message: getSanitizedErrorMessage(error, "Cancellation failed") });
     } finally {
       setIsCancelling(false);
     }
