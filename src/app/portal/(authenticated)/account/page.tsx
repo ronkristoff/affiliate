@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileSection } from "./components/ProfileSection";
 import { PayoutSection } from "./components/PayoutSection";
+import { ProviderPayoutSection } from "./components/ProviderPayoutSection";
 import { PasswordSection } from "./components/PasswordSection";
 
 function AccountPageContent() {
@@ -45,11 +46,18 @@ function AccountPageContent() {
         status={affiliate.status}
       />
 
-      {/* Payout Method */}
+      {/* Manual Payout Option (used when SaaS owner pays outside the system) */}
       <PayoutSection
         payoutMethod={affiliate.payoutMethod}
         payoutMethodLastDigits={affiliate.payoutMethodLastDigits}
         onUpdate={handleUpdatePayoutMethod}
+      />
+
+      {/* Provider Payout (Stripe Connect — automatic payouts) */}
+      <ProviderPayoutSection
+        payoutProviderStatus={affiliate.payoutProviderStatus}
+        payoutProviderAccountId={affiliate.payoutProviderAccountId}
+        payoutProviderStatusDetails={affiliate.payoutProviderStatusDetails}
       />
 
       {/* Password */}

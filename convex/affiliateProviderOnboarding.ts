@@ -37,6 +37,39 @@ export const getAffiliateByEmailInternal = internalQuery({
   },
 });
 
+export const getAffiliateByIdInternal = internalQuery({
+  args: { affiliateId: v.id("affiliates") },
+  returns: v.union(
+    v.object({
+      _id: v.id("affiliates"),
+      tenantId: v.id("tenants"),
+      email: v.string(),
+      name: v.string(),
+      status: v.string(),
+      payoutProviderAccountId: v.optional(v.string()),
+      payoutProviderType: v.optional(v.string()),
+      payoutProviderStatus: v.optional(v.string()),
+      payoutProviderEnabled: v.optional(v.boolean()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) return null;
+    return {
+      _id: affiliate._id,
+      tenantId: affiliate.tenantId,
+      email: affiliate.email,
+      name: affiliate.name,
+      status: affiliate.status,
+      payoutProviderAccountId: affiliate.payoutProviderAccountId,
+      payoutProviderType: affiliate.payoutProviderType,
+      payoutProviderStatus: affiliate.payoutProviderStatus,
+      payoutProviderEnabled: affiliate.payoutProviderEnabled,
+    };
+  },
+});
+
 const CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
 export const getWebhookSignatureFailureCount = internalQuery({

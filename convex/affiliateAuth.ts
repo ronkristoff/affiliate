@@ -126,6 +126,11 @@ export const getCurrentAffiliate = query({
         details: v.string(),
       })),
       payoutMethodLastDigits: v.optional(v.string()),
+      payoutProviderType: v.optional(v.string()),
+      payoutProviderAccountId: v.optional(v.string()),
+      payoutProviderEnabled: v.optional(v.boolean()),
+      payoutProviderStatus: v.optional(v.string()),
+      payoutProviderStatusDetails: v.optional(v.any()),
       tenant: v.object({
         _id: v.id("tenants"),
         name: v.string(),
@@ -177,6 +182,11 @@ export const getCurrentAffiliate = query({
       status: affiliate.status,
       payoutMethod: affiliate.payoutMethod,
       payoutMethodLastDigits: affiliate.payoutMethodLastDigits,
+      payoutProviderType: affiliate.payoutProviderType,
+      payoutProviderAccountId: affiliate.payoutProviderAccountId,
+      payoutProviderEnabled: affiliate.payoutProviderEnabled,
+      payoutProviderStatus: affiliate.payoutProviderStatus,
+      payoutProviderStatusDetails: affiliate.payoutProviderStatusDetails,
       tenant: {
         _id: tenant._id,
         name: tenant.name,

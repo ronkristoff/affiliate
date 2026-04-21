@@ -81,7 +81,7 @@ export function PayoutSection({ payoutMethod, payoutMethodLastDigits, onUpdate }
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Wallet className="h-4 w-4" />
-            Payout Method
+            Payout Method (Manual)
           </CardTitle>
           {!isEditing && (
             <Button
@@ -116,7 +116,7 @@ export function PayoutSection({ payoutMethod, payoutMethodLastDigits, onUpdate }
               <p className="text-xs text-muted-foreground">
                 {payoutMethod
                   ? 'Contact support to change sensitive details'
-                  : 'Add a method to receive commission payouts'}
+                  : 'Provide your details for manual payouts (paid outside the system)'}
               </p>
             </div>
             {success && (

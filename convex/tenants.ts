@@ -318,6 +318,7 @@ export const getTenant = query({
       plan: v.string(),
       trialEndsAt: v.optional(v.number()),
       status: v.string(),
+      stripeAccountId: v.optional(v.string()),
       branding: v.optional(v.object({
         logoUrl: v.optional(v.string()),
         primaryColor: v.optional(v.string()),
@@ -331,7 +332,19 @@ export const getTenant = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.tenantId);
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) return null;
+    return {
+      _id: tenant._id,
+      _creationTime: tenant._creationTime,
+      name: tenant.name,
+      slug: tenant.slug,
+      plan: tenant.plan,
+      trialEndsAt: tenant.trialEndsAt,
+      status: tenant.status,
+      stripeAccountId: tenant.stripeAccountId,
+      branding: tenant.branding,
+    };
   },
 });
 
@@ -364,10 +377,21 @@ export const getTenantBySlug = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    return await ctx.db
+    const tenant = await ctx.db
       .query("tenants")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+    if (!tenant) return null;
+    return {
+      _id: tenant._id,
+      _creationTime: tenant._creationTime,
+      name: tenant.name,
+      slug: tenant.slug,
+      plan: tenant.plan,
+      trialEndsAt: tenant.trialEndsAt,
+      status: tenant.status,
+      branding: tenant.branding,
+    };
   },
 });
 

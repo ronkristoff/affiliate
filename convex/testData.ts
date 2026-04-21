@@ -19,6 +19,12 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { readDefaultTrialDays } from "./platformSettings";
 import { betterAuthComponent } from "./auth";
+import {
+  commissionsAggregate,
+  conversionsAggregate,
+  commissionByStatusAggregate,
+  commissionByFlagAggregate,
+} from "./aggregates";
 
 /** Create a timestamp from year/month/day (1-indexed month). */
 function date(year: number, month: number, day: number): number {
@@ -2184,5 +2190,71 @@ export const deleteUsersByEmail = internalMutation({
     }
 
     return { deleted: result };
+  },
+});
+
+export const createTestCommissionForPayout = internalMutation({
+  args: {
+    tenantId: v.id("tenants"),
+    affiliateId: v.id("affiliates"),
+  },
+  returns: v.object({ commissionId: v.id("commissions") }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.get(args.tenantId);
+    if (!tenant) throw new Error("Tenant not found");
+
+    const affiliate = await ctx.db.get(args.affiliateId);
+    if (!affiliate) throw new Error("Affiliate not found");
+
+    let campaign = await ctx.db
+      .query("campaigns")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
+      .first();
+
+    if (!campaign) {
+      campaign = await ctx.db.insert("campaigns", {
+        tenantId: args.tenantId,
+        name: "Test Campaign",
+        status: "active",
+        commissionType: "percentage",
+        commissionValue: 10,
+        referralRewardType: "percentage",
+        referralRewardValue: 10,
+        cookieDuration: 30,
+        isActive: true,
+      });
+    }
+
+    const conversion = await ctx.db.insert("conversions", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      amount: 5000,
+      status: "approved",
+      customerEmail: "test-buyer@example.com",
+    });
+
+    await conversionsAggregate.insertIfDoesNotExist(ctx, await ctx.db.get(conversion)!);
+
+    const commissionId = await ctx.db.insert("commissions", {
+      tenantId: args.tenantId,
+      affiliateId: args.affiliateId,
+      campaignId: campaign._id,
+      conversionId: conversion._id,
+      amount: 500,
+      status: "approved",
+      eventMetadata: {
+        source: "stripe",
+        transactionId: `txn_test_${Date.now()}`,
+        timestamp: Date.now(),
+      },
+      transactionId: `txn_test_${Date.now()}`,
+    });
+
+    const commissionDoc = await ctx.db.get(commissionId)!;
+    await commissionsAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+    await commissionByStatusAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+    await commissionByFlagAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+
+    return { commissionId };
   },
 });

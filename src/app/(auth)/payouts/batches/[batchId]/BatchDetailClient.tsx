@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -67,6 +67,7 @@ import {
   Hash,
   ChevronDown,
   ChevronRight,
+  Send,
 } from "lucide-react";
 import {
   generatePayoutCsv,
@@ -84,6 +85,8 @@ interface BatchPayout {
   email: string;
   amount: number;
   payoutMethod?: { type: string; details: string };
+  payoutProviderStatus?: string;
+  payoutProviderAccountId?: string;
   status: string;
   commissionCount: number;
   paymentReference?: string;
@@ -102,6 +105,7 @@ export function BatchDetailContent() {
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false);
   const [paymentReference, setPaymentReference] = useState("");
   const [isMarkingAllPaid, setIsMarkingAllPaid] = useState(false);
+  const [isSendingStripe, setIsSendingStripe] = useState(false);
 
   // Single payout mark-as-paid dialog state
   const [markPaidDialogPayout, setMarkPaidDialogPayout] = useState<{
@@ -145,6 +149,7 @@ export function BatchDetailContent() {
   // Mutations
   const markBatchAsPaid = useMutation(api.payouts.markBatchAsPaid);
   const markPayoutAsPaid = useMutation(api.payouts.markPayoutAsPaid);
+  const sendAllViaProvider = useAction(api.providerConnectWebhook.sendAllEligibleViaProvider);
 
   // ── Filter / sort change handlers (reset page to 1) ──────────────────
   const handleFilterChange = (newFilters: ColumnFilter[]) => {
@@ -314,6 +319,35 @@ export function BatchDetailContent() {
     }
   };
 
+  const handleSendAllViaStripe = async () => {
+    setIsSendingStripe(true);
+    try {
+      const result = await sendAllViaProvider({ batchId });
+      if (result.sent > 0) {
+        toast.success(`Stripe transfer initiated`, {
+          description: `${result.sent} payout${result.sent !== 1 ? "s" : ""} sent (${formatCurrency(result.sentAmount)})`,
+        });
+      }
+      if (result.skipped > 0) {
+        toast.info(`${result.skipped} payout${result.skipped !== 1 ? "s" : ""} skipped`, {
+          description: result.errors.length > 0 ? result.errors.join("; ") : "Insufficient balance or affiliate not connected",
+        });
+      }
+      if (result.sent === 0 && result.skipped === 0) {
+        toast.error("No payouts sent", {
+          description: result.errors.join("; "),
+        });
+      }
+      setShowMarkAllConfirm(false);
+    } catch (error) {
+      toast.error("Stripe transfer failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+    } finally {
+      setIsSendingStripe(false);
+    }
+  };
+
   // ── Mark Single Payout as Paid handler ────────────────────────────────
   const handleMarkSinglePaid = async () => {
     if (!markPaidDialogPayout) return;
@@ -395,23 +429,40 @@ export function BatchDetailContent() {
     {
       key: "payoutMethod",
       header: "Payout Method",
-      cell: (row: BatchPayout) =>
-        row.payoutMethod ? (
-          <div>
-            <p className="text-[12px] capitalize">{row.payoutMethod.type}</p>
-            <p className="text-[11px] text-[var(--text-muted)] truncate max-w-[200px]">
-              {row.payoutMethod.details}
-            </p>
+      cell: (row: BatchPayout) => {
+        const hasManual = !!row.payoutMethod;
+        const hasStripe = row.payoutProviderStatus === "verified" || !!row.payoutProviderAccountId;
+
+        if (!hasManual && !hasStripe) {
+          return (
+            <Badge
+              variant="outline"
+              className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]"
+            >
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              Not configured
+            </Badge>
+          );
+        }
+
+        return (
+          <div className="flex flex-wrap gap-1.5">
+            {hasManual && (
+              <Badge variant="outline" className="font-normal text-[12px]">
+                <span className="capitalize">{row.payoutMethod!.type}</span>
+              </Badge>
+            )}
+            {hasStripe && (
+              <Badge
+                variant="outline"
+                className="border-green-200 bg-green-50 font-normal text-green-700 text-[12px]"
+              >
+                Stripe Connect
+              </Badge>
+            )}
           </div>
-        ) : (
-          <Badge
-            variant="outline"
-            className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]"
-          >
-            <AlertTriangle className="mr-1 h-3 w-3" />
-            Not configured
-          </Badge>
-        ),
+        );
+      },
       filterable: true,
       filterType: "select" as const,
       filterOptions: [
@@ -647,11 +698,24 @@ export function BatchDetailContent() {
               </Button>
               <Button
                 variant="outline"
+                onClick={handleSendAllViaStripe}
+                disabled={isSendingStripe}
+                className="text-[12px]"
+              >
+                {isSendingStripe ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                Send via Stripe
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowMarkAllConfirm(false);
                   setPaymentReference("");
                 }}
-                disabled={isMarkingAllPaid}
+                disabled={isMarkingAllPaid || isSendingStripe}
                 className="text-[12px]"
               >
                 Cancel
@@ -959,24 +1023,38 @@ export function BatchDetailContent() {
                   <CreditCard className="w-4 h-4 text-[#9ca3af] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide font-medium">Payout Method</p>
-                    {detailPayout.payoutMethod ? (
-                      <div>
-                        <p className="text-[13px] font-medium text-[var(--text-heading)] capitalize">
-                          {detailPayout.payoutMethod.type}
-                        </p>
-                        <p className="text-[12px] text-[var(--text-muted)]">
-                          {detailPayout.payoutMethod.details}
-                        </p>
-                      </div>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[11px] mt-0.5"
-                      >
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Not configured
-                      </Badge>
-                    )}
+                    {(() => {
+                      const hasManual = !!detailPayout.payoutMethod;
+                      const hasStripe = detailPayout.payoutProviderStatus === "verified" || !!detailPayout.payoutProviderAccountId;
+                      if (!hasManual && !hasStripe) {
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[11px] mt-0.5"
+                          >
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            Not configured
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1.5 mt-0.5">
+                          {hasManual && (
+                            <Badge variant="outline" className="font-normal text-[11px]">
+                              <span className="capitalize">{detailPayout.payoutMethod!.type}</span>
+                            </Badge>
+                          )}
+                          {hasStripe && (
+                            <Badge
+                              variant="outline"
+                              className="border-green-200 bg-green-50 font-normal text-green-700 text-[11px]"
+                            >
+                              Stripe Connect
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

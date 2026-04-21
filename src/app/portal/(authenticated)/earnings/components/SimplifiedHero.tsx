@@ -4,17 +4,13 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Wallet } from "lucide-react";
-import { toast } from "sonner";
 
 interface SimplifiedHeroProps {
   affiliateId: string;
-  hasPayoutMethod: boolean;
 }
 
-export function SimplifiedHero({ affiliateId, hasPayoutMethod }: SimplifiedHeroProps) {
+export function SimplifiedHero({ affiliateId }: SimplifiedHeroProps) {
   const earningsSummary = useQuery(api.affiliateAuth.getAffiliateEarningsSummary, {
     affiliateId: affiliateId as Id<"affiliates">,
   });
@@ -40,33 +36,14 @@ export function SimplifiedHero({ affiliateId, hasPayoutMethod }: SimplifiedHeroP
     );
   }
 
-  const handleWithdraw = () => {
-    if (!hasPayoutMethod) {
-      toast("Set up your payout method first to withdraw earnings.");
-      window.location.href = "/portal/account#payout";
-      return;
-    }
-    toast("Withdrawal initiated");
-  };
-
   return (
     <div className="p-6 rounded-2xl bg-[var(--portal-primary)]/[0.07] border border-[var(--portal-primary)]/15">
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground mb-1">Available to Withdraw</p>
+          <p className="text-sm text-muted-foreground mb-1">Total Earned</p>
           <p className="text-3xl font-black text-[var(--portal-primary)]">
             {formatCurrency(earningsSummary.confirmedBalance)}
           </p>
-          {earningsSummary.confirmedBalance > 0 && (
-            <Button
-              size="sm"
-              className="mt-3 rounded-full"
-              onClick={handleWithdraw}
-            >
-              <Wallet className="h-4 w-4 mr-1.5" />
-              Withdraw
-            </Button>
-          )}
           {earningsSummary.confirmedCount > 0 && (
             <p className="text-xs text-muted-foreground mt-1.5">
               {earningsSummary.confirmedCount} confirmed commission{earningsSummary.confirmedCount !== 1 ? "s" : ""}

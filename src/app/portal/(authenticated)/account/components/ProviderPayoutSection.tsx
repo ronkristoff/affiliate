@@ -84,7 +84,7 @@ export function ProviderPayoutSection({
   const isPending = payoutProviderStatus === "pending";
   const isRejected = payoutProviderStatus === "rejected";
   const isNotStarted = !payoutProviderStatus && !payoutProviderAccountId;
-  const isProviderAvailable = !!stripeAccountId;
+  const isProviderAvailable = true;
 
   const hasFetchedRef = useRef(false);
   const isRedirectingRef = useRef(false);

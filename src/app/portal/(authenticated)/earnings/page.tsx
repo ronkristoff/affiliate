@@ -49,7 +49,6 @@ function EarningsPageContent() {
 
       <SimplifiedHero
         affiliateId={affiliate._id}
-        hasPayoutMethod={!!affiliate.payoutMethod}
       />
 
       <PayoutMethodInfo

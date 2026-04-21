@@ -131,9 +131,10 @@ async function getBalanceRaw(
   accountId: string,
 ): Promise<ProviderBalance> {
   const stripe = requireStripeClient();
-  const balance = await stripe.balance.retrieve({
-    stripeAccount: accountId,
-  });
+  const balance = await stripe.balance.retrieve(
+    {},
+    { stripeAccount: accountId },
+  );
   const available =
     balance.available && balance.available.length > 0
       ? balance.available[0].amount / 100

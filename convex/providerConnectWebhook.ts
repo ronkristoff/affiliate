@@ -405,8 +405,8 @@ export const sendPayoutViaProvider = action({
     }
 
     const affiliate: any = await ctx.runQuery(
-      internal.affiliateProviderOnboarding.getAffiliateByEmailInternal as any,
-      { email: payout.affiliateEmail },
+      internal.affiliateProviderOnboarding.getAffiliateByIdInternal as any,
+      { affiliateId: payout.affiliateId },
     );
     if (!affiliate) {
       return { success: false, error: "Affiliate not found" };
@@ -681,8 +681,8 @@ export const retryPayoutViaProvider = action({
     }
 
     const affiliate: any = await ctx.runQuery(
-      internal.affiliateProviderOnboarding.getAffiliateByEmailInternal as any,
-      { email: payout.affiliateEmail },
+      internal.affiliateProviderOnboarding.getAffiliateByIdInternal as any,
+      { affiliateId: payout.affiliateId },
     );
     if (!affiliate) {
       return { success: false, error: "Affiliate not found" };

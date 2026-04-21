@@ -82,7 +82,7 @@ export function PayoutMethodInfo({ payoutMethod, payoutMethodLastDigits }: Payou
             )}
           </div>
           <div>
-            <p className="font-medium">Payout Method</p>
+              <p className="font-medium">Manual Payout Method</p>
             <p className="text-sm text-muted-foreground">{formatPayoutMethod()}</p>
           </div>
         </div>

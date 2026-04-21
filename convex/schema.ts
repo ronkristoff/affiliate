@@ -292,7 +292,8 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_tenant_and_code", ["tenantId", "uniqueCode"])
     .index("by_tenant_and_status", ["tenantId", "status"])
-    .index("by_tenant_coupon_code", ["tenantId", "couponCode"]), // Coupon code lookup index
+    .index("by_tenant_coupon_code", ["tenantId", "couponCode"]) // Coupon code lookup index
+    .index("by_payout_provider_account_id", ["payoutProviderAccountId"]),
 
   // Affiliate sessions table for server-side session management
   affiliateSessions: defineTable({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Send,
 } from "lucide-react";
 import {
   generatePayoutCsv,
@@ -87,6 +88,8 @@ interface AffiliatePendingPayout {
   pendingAmount: number;
   commissionCount: number;
   payoutMethod?: { type: string; details: string };
+  payoutProviderStatus?: string;
+  payoutProviderAccountId?: string;
 }
 
 // =============================================================================
@@ -131,6 +134,7 @@ export function PayoutsContent() {
   } | null>(null);
   const [paymentReference, setPaymentReference] = useState("");
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [isSendingStripe, setIsSendingStripe] = useState(false);
 
   // Queries
   const pendingTotal = useQuery(api.payouts.getPendingPayoutTotal, {});
@@ -223,6 +227,35 @@ export function PayoutsContent() {
   // Mutations
   const markPayoutAsPaid = useMutation(api.payouts.markPayoutAsPaid);
   const markBatchAsPaid = useMutation(api.payouts.markBatchAsPaid);
+  const sendAllViaProvider = useAction(api.providerConnectWebhook.sendAllEligibleViaProvider);
+  const getProviderBalance = useAction(api.providerConnectWebhook.getProviderBalance);
+
+  // Provider balance state
+  const [providerBalance, setProviderBalance] = useState<{
+    available: number;
+    pending: number;
+    currency: string;
+  } | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceLastSync, setBalanceLastSync] = useState<Date | null>(null);
+
+  const fetchProviderBalance = async () => {
+    setBalanceLoading(true);
+    try {
+      const result = await getProviderBalance({});
+      setProviderBalance(result);
+      setBalanceLastSync(new Date());
+    } catch {
+      setProviderBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  // Fetch provider balance on mount
+  useEffect(() => {
+    fetchProviderBalance();
+  }, []);
 
   // CSV download: use state-driven query pattern for dynamic batchId
   const [csvDownloadError, setCsvDownloadError] = useState<string | null>(null);
@@ -563,6 +596,35 @@ export function PayoutsContent() {
     }
   }
 
+  async function handleSendAllViaStripe(batchId: Id<"payoutBatches">, batchCode: string) {
+    setIsSendingStripe(true);
+    try {
+      const result = await sendAllViaProvider({ batchId });
+      if (result.sent > 0) {
+        toast.success(`Stripe transfer initiated`, {
+          description: `${result.sent} payout${result.sent !== 1 ? "s" : ""} sent (${formatCurrency(result.sentAmount)})`,
+        });
+      }
+      if (result.skipped > 0) {
+        toast.info(`${result.skipped} payout${result.skipped !== 1 ? "s" : ""} skipped`, {
+          description: result.errors.length > 0 ? result.errors.join("; ") : "Insufficient balance or affiliate not connected",
+        });
+      }
+      if (result.sent === 0 && result.skipped === 0) {
+        toast.error("No payouts sent", {
+          description: result.errors.join("; "),
+        });
+      }
+      setMarkAllPaidBatch(null);
+    } catch (error) {
+      toast.error("Stripe transfer failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
+    } finally {
+      setIsSendingStripe(false);
+    }
+  }
+
   // Reset payment reference when dialogs open to prevent stale values
   useEffect(() => {
     if (markPaidDialogPayout || markAllPaidBatch) {
@@ -592,20 +654,38 @@ export function PayoutsContent() {
       {
         key: "payoutMethod",
         header: "Payout Method",
-        cell: (row) =>
-          row.payoutMethod ? (
-            <Badge variant="outline" className="font-normal text-[12px]">
-              {row.payoutMethod.type}
-            </Badge>
-          ) : (
-            <Badge
-              variant="outline"
-              className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]"
-            >
-              <AlertTriangle className="mr-1 h-3 w-3" />
-              Not configured
-            </Badge>
-          ),
+        cell: (row) => {
+          const hasManual = !!row.payoutMethod;
+          const hasStripe = row.payoutProviderStatus === "verified" || !!row.payoutProviderAccountId;
+          if (!hasManual && !hasStripe) {
+            return (
+              <Badge
+                variant="outline"
+                className="border-amber-200 bg-amber-50 font-normal text-amber-700 text-[12px]"
+              >
+                <AlertTriangle className="mr-1 h-3 w-3" />
+                Not configured
+              </Badge>
+            );
+          }
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {hasManual && (
+                <Badge variant="outline" className="font-normal text-[12px]">
+                  <span className="capitalize">{row.payoutMethod!.type}</span>
+                </Badge>
+              )}
+              {hasStripe && (
+                <Badge
+                  variant="outline"
+                  className="border-green-200 bg-green-50 font-normal text-green-700 text-[12px]"
+                >
+                  Stripe Connect
+                </Badge>
+              )}
+            </div>
+          );
+        },
         filterable: true,
         filterType: "select" as const,
         filterOptions: [
@@ -744,7 +824,7 @@ export function PayoutsContent() {
   return (
     <div className="space-y-8">
       {/* ── Metric Cards ─────────────────────────────────────────────── */}
-      <FadeIn className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <FadeIn className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Paid Out (All Time)"
           numericValue={totalPaidOut}
@@ -784,6 +864,36 @@ export function PayoutsContent() {
           isLoading={isLoading}
           icon={<CreditCard className="w-4 h-4" />}
         />
+        {providerBalance !== null && (
+          <MetricCard
+            label="Stripe Balance"
+            numericValue={providerBalance.available}
+            formatValue={(n) => formatCurrency(n)}
+            subtext={
+              <>
+                Pending: {formatCurrency(providerBalance.pending)} · {providerBalance.currency.toUpperCase()}
+                {balanceLastSync && (
+                  <span className="block text-[10px] text-[var(--text-muted)] mt-0.5">
+                    Updated {balanceLastSync.toLocaleTimeString()}
+                  </span>
+                )}
+              </>
+            }
+            variant={
+              providerBalance.available < (pendingTotal?.totalAmount ?? 0) ? "red" : "gray"
+            }
+            isLoading={balanceLoading}
+            icon={
+              <button
+                onClick={fetchProviderBalance}
+                className="hover:scale-110 transition-transform"
+                title="Refresh balance"
+              >
+                <RefreshCw className={`w-4 h-4 ${balanceLoading ? "animate-spin" : ""}`} />
+              </button>
+            }
+          />
+        )}
       </FadeIn>
 
       {/* ── Generate Batch CTA (when there are pending payouts) ─────── */}
@@ -1504,12 +1614,29 @@ export function PayoutsContent() {
           )}
 
           <DialogFooter className="mt-2 gap-2">
-            <Button variant="outline" onClick={() => setMarkAllPaidBatch(null)} className="text-[12px]">
+            <Button variant="outline" onClick={() => setMarkAllPaidBatch(null)} className="text-[12px]" disabled={isMarkingPaid || isSendingStripe}>
               Cancel
             </Button>
             <Button
+              variant="outline"
+              className="text-[12px]"
+              disabled={isSendingStripe}
+              onClick={() => {
+                if (markAllPaidBatch) {
+                  handleSendAllViaStripe(markAllPaidBatch.batchId, markAllPaidBatch.batchCode);
+                }
+              }}
+            >
+              {isSendingStripe ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              Send via Stripe
+            </Button>
+            <Button
               className="bg-green-600 text-white hover:bg-green-700 text-[12px]"
-              disabled={isMarkingPaid}
+              disabled={isMarkingPaid || isSendingStripe}
               onClick={handleMarkBatchAsPaid}
             >
               {isMarkingPaid ? (

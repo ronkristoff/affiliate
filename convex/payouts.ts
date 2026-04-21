@@ -1,4 +1,4 @@
-import { query, internalAction, internalQuery } from "./_generated/server";
+import { query, internalAction, internalQuery, internalMutation } from "./_generated/server";
 import { mutation } from "./triggers";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
@@ -76,8 +76,14 @@ export const generatePayoutBatch = mutation({
     await requireWriteAccess(ctx);
 
     // Query approved unpaid commissions for this tenant (not already in a batch)
-    const approvedCommissions = await paginateAggregateDocs(ctx, commissionsAggregate, tenantId);
-    let commissions = approvedCommissions.filter((c: any) => c.status === "approved" && !c.batchId);
+    const approvedCommissions = await ctx.db
+      .query("commissions")
+      .withIndex("by_tenant_and_status", (q) =>
+        q.eq("tenantId", tenantId).eq("status", "approved")
+      )
+      .take(700);
+
+    let commissions = approvedCommissions.filter((c) => !c.batchId);
 
     // If specific affiliate IDs were provided, only include their commissions
     if (args.affiliateIds && args.affiliateIds.length > 0) {
@@ -541,6 +547,8 @@ export const getBatchPayouts = query({
           details: v.string(),
         })
       ),
+      payoutProviderStatus: v.optional(v.string()),
+      payoutProviderAccountId: v.optional(v.string()),
       status: v.string(),
       commissionCount: v.number(),
       paymentReference: v.optional(v.string()),
@@ -594,6 +602,8 @@ export const getBatchPayouts = query({
                 details: affiliate.payoutMethod.details,
               }
             : undefined,
+          payoutProviderStatus: affiliate.payoutProviderStatus,
+          payoutProviderAccountId: affiliate.payoutProviderAccountId,
           status: payout.status,
           commissionCount: commissionCounts.get(payout.affiliateId) ?? 0,
           paymentReference: payout.paymentReference ?? undefined,
@@ -716,6 +726,8 @@ export const getAffiliatesWithPendingPayouts = query({
           details: v.string(),
         })
       ),
+      payoutProviderStatus: v.optional(v.string()),
+      payoutProviderAccountId: v.optional(v.string()),
       pendingAmount: v.number(),
       commissionCount: v.number(),
     })
@@ -788,6 +800,8 @@ export const getAffiliatesWithPendingPayouts = query({
                 details: affiliate.payoutMethod.details,
               }
             : undefined,
+          payoutProviderStatus: affiliate.payoutProviderStatus,
+          payoutProviderAccountId: affiliate.payoutProviderAccountId,
           pendingAmount: totals.amount,
           commissionCount: totals.count,
         };
@@ -1418,6 +1432,149 @@ export const _backfillCheckAuditExists = internalQuery({
       )
       .first();
     return !!existing;
+  },
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const _getPayoutByIdInternal = internalQuery({
+  args: { payoutId: v.id("payouts") },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.payoutId);
+  },
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const _getEligibleProviderPayoutsInternal = internalQuery({
+  args: { batchId: v.id("payoutBatches") },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const payouts = await ctx.db
+      .query("payouts")
+      .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
+      .take(500);
+    const pending = payouts.filter((p) => p.status === "pending");
+    const enriched: any[] = [];
+    for (const p of pending) {
+      const affiliate = await ctx.db.get(p.affiliateId);
+      enriched.push({ ...p, affiliateEmail: affiliate?.email ?? "" });
+    }
+    return enriched;
+  },
+});
+
+export const _markPayoutProcessing = internalMutation({
+  args: {
+    payoutId: v.id("payouts"),
+    paymentSource: v.string(),
+    paymentReference: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.payoutId, {
+      status: "processing",
+      paymentSource: args.paymentSource,
+      paymentReference: args.paymentReference,
+    });
+    return null;
+  },
+});
+
+export const _markPayoutPaidByProvider = internalMutation({
+  args: {
+    payoutId: v.id("payouts"),
+    providerPayoutId: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const payout = await ctx.db.get(args.payoutId);
+    if (!payout || payout.status !== "processing") return null;
+
+    const now = Date.now();
+    await ctx.db.patch(args.payoutId, {
+      status: "paid",
+      paidAt: now,
+      ...(args.providerPayoutId ? { paymentReference: args.providerPayoutId } : {}),
+    });
+
+    if (payout.tenantId) {
+      const batchCommissions = await ctx.db
+        .query("commissions")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", payout.tenantId))
+        .filter((q) => q.eq(q.field("batchId") as any, payout.batchId))
+        .take(500);
+      for (const commission of batchCommissions) {
+        if (commission.affiliateId === payout.affiliateId && commission.status === "approved") {
+          await ctx.db.patch(commission._id, { status: "paid" });
+          await adjustPendingPayoutTotals(ctx, payout.tenantId, -1, commission.amount);
+        }
+      }
+    }
+
+    await ctx.runMutation(internal.payouts._checkAndCloseBatch as any, {
+      batchId: payout.batchId,
+    });
+
+    return null;
+  },
+});
+
+export const _markPayoutFailed = internalMutation({
+  args: {
+    payoutId: v.id("payouts"),
+    failureReason: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.payoutId, {
+      status: "failed",
+      paymentSource: "stripe",
+    });
+    return null;
+  },
+});
+
+export const _checkAndCloseBatch = internalMutation({
+  args: { batchId: v.id("payoutBatches") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const batch = await ctx.db.get(args.batchId);
+    if (!batch || batch.status === "completed") return null;
+
+    const payouts = await ctx.db
+      .query("payouts")
+      .withIndex("by_batch", (q) => q.eq("batchId", args.batchId))
+      .take(5000);
+
+    const hasPending = payouts.some((p) => p.status === "pending" || p.status === "processing");
+    if (!hasPending) {
+      await ctx.db.patch(args.batchId, {
+        status: "completed",
+        completedAt: Date.now(),
+      });
+    }
+    return null;
+  },
+});
+
+export const _incrementProviderCount = internalMutation({
+  args: {
+    batchId: v.id("payoutBatches"),
+    providerType: v.string(),
+    count: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const batch = await ctx.db.get(args.batchId);
+    if (!batch) return null;
+
+    const field = args.providerType === "stripe" ? "saligPayCount" : "manualCount";
+    const current = (batch as any)[field] ?? 0;
+    const increment = args.count ?? 1;
+    await ctx.db.patch(args.batchId, {
+      [field]: current + increment,
+    });
+    return null;
   },
 });
 
