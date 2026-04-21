@@ -2212,20 +2212,21 @@ export const createTestCommissionForPayout = internalMutation({
       .first();
 
     if (!campaign) {
-      campaign = await ctx.db.insert("campaigns", {
+      const campaignId = await ctx.db.insert("campaigns", {
         tenantId: args.tenantId,
         name: "Test Campaign",
         status: "active",
         commissionType: "percentage",
         commissionValue: 10,
-        referralRewardType: "percentage",
-        referralRewardValue: 10,
+        recurringCommission: false,
         cookieDuration: 30,
-        isActive: true,
       });
+      campaign = await ctx.db.get(campaignId);
     }
 
-    const conversion = await ctx.db.insert("conversions", {
+    if (!campaign) throw new Error("Failed to create test campaign");
+
+    const conversionId = await ctx.db.insert("conversions", {
       tenantId: args.tenantId,
       affiliateId: args.affiliateId,
       amount: 5000,
@@ -2233,13 +2234,16 @@ export const createTestCommissionForPayout = internalMutation({
       customerEmail: "test-buyer@example.com",
     });
 
-    await conversionsAggregate.insertIfDoesNotExist(ctx, await ctx.db.get(conversion)!);
+    const conversionDoc = await ctx.db.get(conversionId);
+    if (conversionDoc) {
+      await conversionsAggregate.insertIfDoesNotExist(ctx, conversionDoc);
+    }
 
     const commissionId = await ctx.db.insert("commissions", {
       tenantId: args.tenantId,
       affiliateId: args.affiliateId,
       campaignId: campaign._id,
-      conversionId: conversion._id,
+      conversionId,
       amount: 500,
       status: "approved",
       eventMetadata: {
@@ -2250,10 +2254,12 @@ export const createTestCommissionForPayout = internalMutation({
       transactionId: `txn_test_${Date.now()}`,
     });
 
-    const commissionDoc = await ctx.db.get(commissionId)!;
-    await commissionsAggregate.insertIfDoesNotExist(ctx, commissionDoc);
-    await commissionByStatusAggregate.insertIfDoesNotExist(ctx, commissionDoc);
-    await commissionByFlagAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+    const commissionDoc = await ctx.db.get(commissionId);
+    if (commissionDoc) {
+      await commissionsAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+      await commissionByStatusAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+      await commissionByFlagAggregate.insertIfDoesNotExist(ctx, commissionDoc);
+    }
 
     return { commissionId };
   },

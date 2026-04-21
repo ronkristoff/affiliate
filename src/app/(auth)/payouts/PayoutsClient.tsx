@@ -229,7 +229,7 @@ export function PayoutsContent() {
   const markPayoutAsPaid = useMutation(api.payouts.markPayoutAsPaid);
   const markBatchAsPaid = useMutation(api.payouts.markBatchAsPaid);
   const sendAllViaProvider = useAction(api.providerConnectWebhook.sendAllEligibleViaProvider);
-  const getProviderBalance = useAction(api.providerConnectWebhook.getProviderBalance);
+  const getProviderBalance = useAction((api.providerConnectWebhook as any).getProviderBalance);
 
   // Provider balance state
   const [providerBalance, setProviderBalance] = useState<{
@@ -876,16 +876,7 @@ export function PayoutsContent() {
             label="Stripe Balance"
             numericValue={providerBalance.available}
             formatValue={(n) => formatCurrency(n)}
-            subtext={
-              <>
-                Pending: {formatCurrency(providerBalance.pending)} · {providerBalance.currency.toUpperCase()}
-                {balanceLastSync && (
-                  <span className="block text-[10px] text-[var(--text-muted)] mt-0.5">
-                    Updated {balanceLastSync.toLocaleTimeString()}
-                  </span>
-                )}
-              </>
-            }
+            subtext={`Pending: ${formatCurrency(providerBalance.pending)} · ${providerBalance.currency.toUpperCase()}`}
             variant={
               providerBalance.available < (pendingTotal?.totalAmount ?? 0) ? "red" : "gray"
             }

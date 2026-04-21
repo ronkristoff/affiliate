@@ -1,6 +1,6 @@
 "use node";
 
-import { action, ActionCtx } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { SignJWT, jwtVerify } from "jose";
 import { getProvider } from "./lib/payoutProvider";
@@ -32,10 +32,10 @@ async function createSignedOnboardingToken(
 export const generateOnboardingLink = action({
   args: {},
   returns: v.object({ url: v.string() }),
-  handler: async (ctx: ActionCtx) => {
-    let betterAuthUser;
+  handler: async (ctx) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       throw new Error("Authentication required");
     }
@@ -44,7 +44,7 @@ export const generateOnboardingLink = action({
     }
 
     const cleanEmail = betterAuthUser.email.trim().toLowerCase();
-    const affiliate = await ctx.runQuery(
+    const affiliate: any = await ctx.runQuery(
       internal.affiliateProviderOnboarding.getAffiliateByEmailInternal as any,
       { email: cleanEmail },
     );
@@ -58,7 +58,7 @@ export const generateOnboardingLink = action({
       );
     }
 
-    const tenant = await ctx.runQuery(
+    const tenant: any = await ctx.runQuery(
       internal.affiliateProviderOnboarding.getTenantStripeConfigInternal as any,
       { tenantId: affiliate.tenantId },
     );
@@ -162,10 +162,10 @@ export const verifyOnboardingToken = action({
     }),
     v.null(),
   ),
-  handler: async (ctx: ActionCtx, args) => {
-    let betterAuthUser;
+  handler: async (ctx, args) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return null;
     }
@@ -203,10 +203,10 @@ export const handleOnboardingReturn = action({
     v.object({ status: v.string(), enabled: v.boolean() }),
     v.null(),
   ),
-  handler: async (ctx: ActionCtx, args) => {
-    let betterAuthUser;
+  handler: async (ctx, args) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return null;
     }
@@ -253,7 +253,7 @@ export const handleOnboardingReturn = action({
         return null;
       }
 
-      const accountStatus = cbResult.data;
+      const accountStatus: any = cbResult.data;
       const statusDetails: Record<string, any> = {};
       if (accountStatus.details) {
         if (accountStatus.details.currentlyDue) {
@@ -297,10 +297,10 @@ export const handleOnboardingRefresh = action({
     v.object({ status: v.string() }),
     v.null(),
   ),
-  handler: async (ctx: ActionCtx, args) => {
-    let betterAuthUser;
+  handler: async (ctx, args) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return null;
     }
@@ -337,10 +337,10 @@ export const refreshProviderStatus = action({
     v.object({ status: v.string(), enabled: v.boolean() }),
     v.null(),
   ),
-  handler: async (ctx: ActionCtx) => {
-    let betterAuthUser;
+  handler: async (ctx) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return null;
     }
@@ -376,7 +376,7 @@ export const refreshProviderStatus = action({
         return null;
       }
 
-      const accountStatus = cbResult.data;
+      const accountStatus: any = cbResult.data;
       const statusDetails: Record<string, any> = {};
       if (accountStatus.details) {
         if (accountStatus.details.currentlyDue) {
@@ -417,10 +417,10 @@ export const refreshProviderStatus = action({
 export const handleRejectedRetry = action({
   args: {},
   returns: v.object({ url: v.string() }),
-  handler: async (ctx: ActionCtx) => {
-    let betterAuthUser;
+  handler: async (ctx) => {
+    let betterAuthUser: any;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       throw new Error("Authentication required");
     }
@@ -447,7 +447,7 @@ export const handleRejectedRetry = action({
       throw new Error("No payout account found to retry. Please set up payouts instead.");
     }
 
-    const tenant = await ctx.runQuery(
+    const tenant: any = await ctx.runQuery(
       internal.affiliateProviderOnboarding.getTenantStripeConfigInternal as any,
       { tenantId: affiliate.tenantId },
     );

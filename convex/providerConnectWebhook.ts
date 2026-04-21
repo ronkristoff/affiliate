@@ -1,6 +1,6 @@
 "use node";
 
-import { action, ActionCtx } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import Stripe from "stripe";
 import { getProvider } from "./lib/payoutProvider";
@@ -30,7 +30,7 @@ export const handleProviderConnectWebhook = action({
     duplicate: v.optional(v.boolean()),
     error: v.optional(v.string()),
   }),
-  handler: async (ctx: ActionCtx, args) => {
+  handler: async (ctx, args) => {
     const webhookSecret = getWebhookSecret();
     if (!webhookSecret) {
       console.error("[ProviderWebhook] STRIPE_WEBHOOK_SECRET is not configured");
@@ -304,7 +304,7 @@ export const handleProviderConnectWebhook = action({
   },
 });
 
-export const getProviderBalance = action({
+export const getProviderBalance: any = action({
   args: {},
   returns: v.union(
     v.object({
@@ -314,7 +314,7 @@ export const getProviderBalance = action({
     }),
     v.null(),
   ),
-  handler: async (ctx: ActionCtx) => {
+  handler: async (ctx: any) => {
     const provider = getProvider("stripe_connect");
     if (!provider) {
       return null;
@@ -322,7 +322,7 @@ export const getProviderBalance = action({
 
     let betterAuthUser;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return null;
     }
@@ -372,10 +372,10 @@ export const sendPayoutViaProvider = action({
     payoutStatus: v.optional(v.string()),
     error: v.optional(v.string()),
   }),
-  handler: async (ctx: ActionCtx, args) => {
+  handler: async (ctx, args) => {
     let betterAuthUser;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return { success: false, error: "Authentication required" };
     }
@@ -495,10 +495,10 @@ export const sendAllEligibleViaProvider = action({
     sentAmount: v.number(),
     errors: v.array(v.string()),
   }),
-  handler: async (ctx: ActionCtx, args) => {
+  handler: async (ctx, args) => {
     let betterAuthUser;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return { sent: 0, skipped: 0, totalAmount: 0, sentAmount: 0, errors: ["Authentication required"] };
     }
@@ -648,10 +648,10 @@ export const retryPayoutViaProvider = action({
     payoutStatus: v.optional(v.string()),
     error: v.optional(v.string()),
   }),
-  handler: async (ctx: ActionCtx, args) => {
+  handler: async (ctx, args) => {
     let betterAuthUser;
     try {
-      betterAuthUser = await betterAuthComponent.getAuthUser(ctx);
+      betterAuthUser = await betterAuthComponent.getAuthUser(ctx as any);
     } catch {
       return { success: false, error: "Authentication required" };
     }
