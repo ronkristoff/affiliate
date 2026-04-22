@@ -12,7 +12,7 @@ import {
   BarChart3, Headphones, Building2, Edit, Plus, Trash2, Check,
   Sparkles, Shield, Zap,
 } from "lucide-react";
-import { cn, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { cn, getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import { EditTierConfigSheet } from "./EditTierConfigSheet";
 import { CreateTierConfigSheet } from "./CreateTierConfigSheet";
 import { toast } from "sonner";
@@ -134,7 +134,7 @@ function TierConfigContent() {
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to delete tier"));
-      reportClientError({ source: "TierConfigClient", message: getSanitizedErrorMessage(error, "Failed to delete tier") });
+      reportClientError({ source: "TierConfigClient", message: getErrorMessage(error, "Failed to delete tier") });
     } finally {
       setIsDeleting(false);
     }

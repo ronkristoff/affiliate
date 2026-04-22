@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, reportClientError } from "@/lib/utils";
 
 const REPORTED_ERRORS = new Set<string>();
 
@@ -16,7 +16,7 @@ export function GlobalErrorReporter() {
       reportClientError({
         severity: "error",
         source: "window.onerror",
-        message: getSanitizedErrorMessage(event.error, event.message || "Unhandled error"),
+        message: getErrorMessage(event.error, event.message || "Unhandled error"),
         stackTrace: event.error?.stack,
         metadata: {
           filename: event.filename,
@@ -35,7 +35,7 @@ export function GlobalErrorReporter() {
 
       const message =
         error instanceof Error
-          ? getSanitizedErrorMessage(error, "Unhandled promise rejection")
+          ? getErrorMessage(error, "Unhandled promise rejection")
           : typeof error === "string"
             ? error
             : "Unhandled promise rejection";

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Layers, DollarSign, SlidersHorizontal, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 // Input field definitions
 const LIMIT_FIELDS = [
@@ -122,7 +122,7 @@ export function CreateTierConfigSheet({ onClose }: CreateTierConfigSheetProps) {
       onClose();
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to create tier"));
-      reportClientError({ source: "CreateTierConfigSheet", message: getSanitizedErrorMessage(error, "Failed to create tier") });
+      reportClientError({ source: "CreateTierConfigSheet", message: getErrorMessage(error, "Failed to create tier") });
     } finally {
       setIsSubmitting(false);
     }

@@ -224,12 +224,13 @@ export function reportClientError(opts: {
 }) {
   try {
     const now = Date.now();
-    const key = `${opts.source}:${opts.message.slice(0, 200)}`;
-    const lastSent = errorDedupeMap.get(key);
+    const sanitized = getSanitizedErrorMessage(opts.message, opts.message);
+    const dedupeKey = `${opts.source}:${sanitized.slice(0, 200)}`;
+    const lastSent = errorDedupeMap.get(dedupeKey);
     if (lastSent && now - lastSent < DEDUPE_WINDOW_MS) {
       return;
     }
-    errorDedupeMap.set(key, now);
+    errorDedupeMap.set(dedupeKey, now);
 
     let sourceCount = 0;
     for (const [k, t] of errorDedupeMap.entries()) {

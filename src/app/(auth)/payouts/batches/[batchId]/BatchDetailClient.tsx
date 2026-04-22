@@ -26,7 +26,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { cn, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { cn, getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import { BatchStatusBadge } from "@/components/shared/BatchStatusBadge";
 import { CopyableId } from "@/components/shared/CopyableId";
 import {
@@ -314,7 +314,7 @@ export function BatchDetailContent() {
       toast.error(
         getSanitizedErrorMessage(error, "Failed to mark payouts as paid")
       );
-      reportClientError({ source: "BatchDetailClient", message: getSanitizedErrorMessage(error, "Failed to mark payouts as paid") });
+      reportClientError({ source: "BatchDetailClient", message: getErrorMessage(error, "Failed to mark payouts as paid") });
     } finally {
       setIsMarkingAllPaid(false);
     }
@@ -344,7 +344,7 @@ export function BatchDetailContent() {
       toast.error("Stripe transfer failed", {
         description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
       });
-      reportClientError({ source: "BatchDetailClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+      reportClientError({ source: "BatchDetailClient", message: getErrorMessage(error, "An unexpected error occurred") });
     } finally {
       setIsSendingStripe(false);
     }
@@ -368,7 +368,7 @@ export function BatchDetailContent() {
       toast.error("Failed to mark payout as paid", {
         description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
       });
-      reportClientError({ source: "BatchDetailClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+      reportClientError({ source: "BatchDetailClient", message: getErrorMessage(error, "An unexpected error occurred") });
     } finally {
       setIsMarkingPaid(false);
     }

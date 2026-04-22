@@ -28,7 +28,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 /**
  * Integrations Settings Content
@@ -140,7 +140,7 @@ export function IntegrationsSettingsContent() {
       setStripeAccountId("");
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to connect Stripe"));
-      reportClientError({ source: "IntegrationsSettingsContent", message: getSanitizedErrorMessage(error, "Failed to connect Stripe") });
+      reportClientError({ source: "IntegrationsSettingsContent", message: getErrorMessage(error, "Failed to connect Stripe") });
     } finally {
       setIsConnectingStripe(false);
     }
@@ -158,7 +158,7 @@ export function IntegrationsSettingsContent() {
       toast.success("SaligPay connected successfully!");
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to connect SaligPay"))
-      reportClientError({ source: "IntegrationsSettingsContent", message: getSanitizedErrorMessage(error, "Failed to connect SaligPay") });
+      reportClientError({ source: "IntegrationsSettingsContent", message: getErrorMessage(error, "Failed to connect SaligPay") });
     }
   };
 
@@ -190,7 +190,7 @@ export function IntegrationsSettingsContent() {
       setDisconnectDialogOpen(false);
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to disconnect"))
-      reportClientError({ source: "IntegrationsSettingsContent", message: getSanitizedErrorMessage(error, "Failed to disconnect") });
+      reportClientError({ source: "IntegrationsSettingsContent", message: getErrorMessage(error, "Failed to disconnect") });
     } finally {
       setIsDisconnecting(false);
     }

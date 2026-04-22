@@ -6,7 +6,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
-import { cn, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { cn, getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -175,7 +175,7 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
       onUpdate?.();
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to pause campaign"))
-      reportClientError({ source: "CampaignCard", message: getSanitizedErrorMessage(error, "Failed to pause campaign") });
+      reportClientError({ source: "CampaignCard", message: getErrorMessage(error, "Failed to pause campaign") });
     } finally {
       setLoading(false);
       setActionType(null);
@@ -192,7 +192,7 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
       onUpdate?.();
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to resume campaign"));
-      reportClientError({ source: "CampaignCard", message: getSanitizedErrorMessage(error, "Failed to resume campaign") });
+      reportClientError({ source: "CampaignCard", message: getErrorMessage(error, "Failed to resume campaign") });
     } finally {
       setLoading(false);
       setActionType(null);
@@ -211,7 +211,7 @@ export function CampaignCard({ campaign, stats, onUpdate }: CampaignCardProps) {
       onUpdate?.();
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to archive campaign"))
-      reportClientError({ source: "CampaignCard", message: getSanitizedErrorMessage(error, "Failed to archive campaign") });
+      reportClientError({ source: "CampaignCard", message: getErrorMessage(error, "Failed to archive campaign") });
     } finally {
       setLoading(false);
       setActionType(null);

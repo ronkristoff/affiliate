@@ -23,9 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertTriangle,
   AlertCircle,
-  Info,
   CheckCircle2,
   XCircle,
   Eye,
@@ -74,29 +72,11 @@ function getSeverityConfig(severity: string) {
         text: "text-red-600",
         border: "border-red-200",
       };
-    case "warning":
-      return {
-        label: "Warning",
-        variant: "warning" as const,
-        icon: <AlertTriangle className="w-3.5 h-3.5" />,
-        bg: "bg-amber-50",
-        text: "text-amber-600",
-        border: "border-amber-200",
-      };
-    case "info":
-      return {
-        label: "Info",
-        variant: "info" as const,
-        icon: <Info className="w-3.5 h-3.5" />,
-        bg: "bg-blue-50",
-        text: "text-blue-600",
-        border: "border-blue-200",
-      };
     default:
       return {
         label: severity,
         variant: "neutral" as const,
-        icon: <Info className="w-3.5 h-3.5" />,
+        icon: <AlertCircle className="w-3.5 h-3.5" />,
         bg: "bg-gray-50",
         text: "text-gray-600",
         border: "border-gray-200",
@@ -221,7 +201,7 @@ function ErrorDetailDialog({
 
 function StatsCards({ stats }: { stats: ErrorStats | undefined }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       <MetricCard
         label="Total Errors"
         numericValue={stats?.total ?? 0}
@@ -242,13 +222,6 @@ function StatsCards({ stats }: { stats: ErrorStats | undefined }) {
         isLoading={stats === undefined}
         variant="red"
         icon={<XCircle className="w-4 h-4" />}
-      />
-      <MetricCard
-        label="Warnings"
-        numericValue={stats?.bySeverity?.warning ?? 0}
-        isLoading={stats === undefined}
-        variant="yellow"
-        icon={<AlertTriangle className="w-4 h-4" />}
       />
     </div>
   );
@@ -358,7 +331,6 @@ function ErrorLogRow({
 // ---------------------------------------------------------------------------
 
 function ErrorLogsContent() {
-  const [severity, setSeverity] = useQueryState("severity", parseAsString.withDefault(""));
   const [source, setSource] = useQueryState("source", parseAsString.withDefault(""));
   const [showUnresolved, setShowUnresolved] = useQueryState("unresolved", parseAsBoolean.withDefault(false));
 
@@ -366,12 +338,9 @@ function ErrorLogsContent() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [resolvingId, setResolvingId] = useState<Id<"errorLogs"> | null>(null);
 
-  const VALID_SEVERITIES = new Set(["error", "warning", "info"]);
-  const safeSeverity = severity && VALID_SEVERITIES.has(severity) ? (severity as "error" | "warning" | "info") : undefined;
-
   const stats = useQuery(api.errorLogs.getErrorStats, {});
   const logs = useQuery(api.errorLogs.getErrorLogs, {
-    severity: safeSeverity,
+    severity: "error",
     source: source || undefined,
     resolved: showUnresolved ? false : undefined,
     limit: 100,
@@ -408,13 +377,12 @@ function ErrorLogsContent() {
 
   const isLoading = logs === undefined;
   const entries = logs ?? [];
-  const hasFilters = severity !== "" || source !== "" || showUnresolved;
+  const hasFilters = source !== "" || showUnresolved;
 
   const handleClearAll = useCallback(() => {
-    setSeverity("");
     setSource("");
     setShowUnresolved(false);
-  }, [setSeverity, setSource, setShowUnresolved]);
+  }, [setSource, setShowUnresolved]);
 
   const sources = stats?.bySource ? Object.keys(stats.bySource).sort() : [];
 
@@ -437,27 +405,6 @@ function ErrorLogsContent() {
               <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
                 <Filter className="w-3.5 h-3.5" />
                 Filters:
-              </div>
-
-              <div className="flex items-center gap-1">
-                {(["error", "warning", "info"] as const).map((sev) => {
-                  const cfg = getSeverityConfig(sev);
-                  const isActive = severity === sev;
-                  return (
-                    <button
-                      key={sev}
-                      onClick={() => setSeverity(isActive ? "" : sev)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${
-                        isActive
-                          ? `${cfg.bg} ${cfg.text} ${cfg.border}`
-                          : "border-[var(--border-light)] text-[var(--text-muted)] hover:bg-[var(--bg-page)]"
-                      }`}
-                    >
-                      {cfg.icon}
-                      {cfg.label}
-                    </button>
-                  );
-                })}
               </div>
 
               <select

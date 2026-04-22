@@ -32,7 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import { renderTemplate } from "@/lib/template-utils";
 
 interface EmailTemplateEditorProps {
@@ -119,7 +119,7 @@ export function EmailTemplateEditor({ templateType, onClose }: EmailTemplateEdit
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to save template"));
-      reportClientError({ source: "EmailTemplateEditor", message: getSanitizedErrorMessage(error, "Failed to save template") });
+      reportClientError({ source: "EmailTemplateEditor", message: getErrorMessage(error, "Failed to save template") });
     } finally {
       setIsSaving(false);
     }
@@ -137,7 +137,7 @@ export function EmailTemplateEditor({ templateType, onClose }: EmailTemplateEdit
       toast.success("Template reset to default");
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to reset template"));
-      reportClientError({ source: "EmailTemplateEditor", message: getSanitizedErrorMessage(error, "Failed to reset template") });
+      reportClientError({ source: "EmailTemplateEditor", message: getErrorMessage(error, "Failed to reset template") });
     } finally {
       setIsResetting(false);
     }

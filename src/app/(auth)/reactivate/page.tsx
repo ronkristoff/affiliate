@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, Clock, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 
 export default function ReactivationPage() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function ReactivationPage() {
       router.push("/settings/billing");
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Reactivation failed"));
-      reportClientError({ source: "ReactivationPage", message: getSanitizedErrorMessage(error, "Reactivation failed") });
+      reportClientError({ source: "ReactivationPage", message: getErrorMessage(error, "Reactivation failed") });
     } finally {
       setIsReactivating(false);
     }

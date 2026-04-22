@@ -1,0 +1,22 @@
+{
+  "description": "Seeded test user credentials for E2E tests. These users must be pre-seeded before running tests.",
+  "notes": [
+    "These credentials are for LOCAL/QA ONLY - never use on production",
+    "Pre-seed these users before running sign-in tests",
+    "Password for all users: TestPass123!"
+  ],
+  "users": [
+    {
+      "email": "owner@test.local",
+      "password": "TestPass123!",
+      "role": "owner",
+      "tenant": "test-tenant"
+    },
+    {
+      "email": "affiliate@test.local",
+      "password": "TestPass123!",
+      "role": "affiliate",
+      "tenant": "test-tenant"
+    }
+  ]
+}

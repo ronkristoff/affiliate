@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Layers, DollarSign, SlidersHorizontal, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import { ImpactWarningModal } from "./ImpactWarningModal";
 
 // Input field definitions
@@ -187,7 +187,7 @@ export function EditTierConfigSheet({ tierConfig, onClose }: EditTierConfigSheet
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to update tier configuration"))
-      reportClientError({ source: "EditTierConfigSheet", message: getSanitizedErrorMessage(error, "Failed to update tier configuration") });
+      reportClientError({ source: "EditTierConfigSheet", message: getErrorMessage(error, "Failed to update tier configuration") });
     } finally {
       if (!impactQueryArgs) {
         setIsSubmitting(false);
@@ -224,7 +224,7 @@ export function EditTierConfigSheet({ tierConfig, onClose }: EditTierConfigSheet
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to update tier configuration"));
-      reportClientError({ source: "EditTierConfigSheet", message: getSanitizedErrorMessage(error, "Failed to update tier configuration") });
+      reportClientError({ source: "EditTierConfigSheet", message: getErrorMessage(error, "Failed to update tier configuration") });
     } finally {
       setIsSubmitting(false);
     }

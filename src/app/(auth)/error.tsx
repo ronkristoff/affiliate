@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, reportClientError } from "@/lib/utils";
 
 export default function ErrorBoundary({
   error,
@@ -14,7 +14,7 @@ export default function ErrorBoundary({
     reportClientError({
       severity: "error",
       source: "error-boundary",
-      message: getSanitizedErrorMessage(error, "Route error"),
+      message: getErrorMessage(error, "Route error"),
       stackTrace: error.stack,
       metadata: { digest: error.digest },
     });

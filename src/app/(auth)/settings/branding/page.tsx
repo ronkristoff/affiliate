@@ -15,7 +15,7 @@ import { ColorPicker } from "./components/ColorPicker";
 import { PortalNameInput } from "./components/PortalNameInput";
 import { BrandingPreview } from "./components/BrandingPreview";
 import { toast } from "sonner";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface TenantBranding {
@@ -108,7 +108,7 @@ export default function BrandingSettingsPage() {
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to save branding"));
-      reportClientError({ source: "BrandingSettingsPage", message: getSanitizedErrorMessage(error, "Failed to save branding") });
+      reportClientError({ source: "BrandingSettingsPage", message: getErrorMessage(error, "Failed to save branding") });
     } finally {
       setIsSaving(false);
     }
@@ -128,7 +128,7 @@ export default function BrandingSettingsPage() {
       }
     } catch (error) {
       toast.error(getSanitizedErrorMessage(error, "Failed to reset branding"));
-      reportClientError({ source: "BrandingSettingsPage", message: getSanitizedErrorMessage(error, "Failed to reset branding") });
+      reportClientError({ source: "BrandingSettingsPage", message: getErrorMessage(error, "Failed to reset branding") });
     } finally {
       setIsResetting(false);
     }

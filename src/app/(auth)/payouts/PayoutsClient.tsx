@@ -41,7 +41,7 @@ import {
   formatDate,
   getInitials,
 } from "@/lib/format";
-import { getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
+import { getErrorMessage, getSanitizedErrorMessage, reportClientError } from "@/lib/utils";
 import {
   CreditCard,
   Wallet,
@@ -298,7 +298,7 @@ export function PayoutsContent() {
         toast.error("CSV Download Failed", {
           description: errorMessage,
         });
-        reportClientError({ source: "PayoutsClient", message: errorMessage });
+        reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "Failed to generate CSV") });
         setCsvDownloadError(errorMessage);
         setCsvDownloadBatchId(null);
         setCsvDownloadDate(null);
@@ -511,7 +511,7 @@ export function PayoutsContent() {
           description:
             getSanitizedErrorMessage(error, "An unexpected error occurred"),
         });
-        reportClientError({ source: "PayoutsClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+        reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "An unexpected error occurred") });
       }
     } finally {
       setIsGenerating(false);
@@ -536,7 +536,7 @@ export function PayoutsContent() {
       toast.error("Failed to sync stats", {
         description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
       });
-      reportClientError({ source: "PayoutsClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+      reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "An unexpected error occurred") });
     } finally {
       setIsRecalcing(false);
     }
@@ -565,7 +565,7 @@ export function PayoutsContent() {
       toast.error("Failed to mark payout as paid", {
         description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
       });
-      reportClientError({ source: "PayoutsClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+      reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "An unexpected error occurred") });
     } finally {
       setIsMarkingPaid(false);
     }
@@ -595,7 +595,7 @@ export function PayoutsContent() {
         toast.error("Failed to mark batch as paid", {
           description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
         });
-        reportClientError({ source: "PayoutsClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+        reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "An unexpected error occurred") });
       }
     } finally {
       setIsMarkingPaid(false);
@@ -626,7 +626,7 @@ export function PayoutsContent() {
       toast.error("Stripe transfer failed", {
         description: getSanitizedErrorMessage(error, "An unexpected error occurred"),
       });
-      reportClientError({ source: "PayoutsClient", message: getSanitizedErrorMessage(error, "An unexpected error occurred") });
+      reportClientError({ source: "PayoutsClient", message: getErrorMessage(error, "An unexpected error occurred") });
     } finally {
       setIsSendingStripe(false);
     }
