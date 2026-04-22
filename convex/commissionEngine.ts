@@ -905,82 +905,6 @@ function detectSubscriptionChangeType(
 }
 
 /**
- * Helper function to calculate recurring commission amount
- */
-function calculateRecurringCommissionAmount(
-  saleAmount: number,
-  campaign: { recurringCommission: boolean; recurringRate?: number; recurringRateType?: string; commissionType: string; commissionValue: number }
-): number {
-  if (!campaign.recurringCommission) {
-    return 0; // No commission for non-recurring campaigns
-  }
-  
-  let rate: number;
-  
-  switch (campaign.recurringRateType) {
-    case "same":
-      rate = campaign.commissionValue;
-      break;
-    case "reduced":
-      // Default reduced rate is 50% of initial
-      rate = campaign.recurringRate ?? (campaign.commissionValue * 0.5);
-      break;
-    case "custom":
-      rate = campaign.recurringRate ?? campaign.commissionValue;
-      break;
-    default:
-      rate = campaign.commissionValue;
-  }
-  
-  if (campaign.commissionType === "percentage") {
-    return saleAmount * (rate / 100);
-  } else {
-    return rate; // flatFee
-  }
-}
-
-/**
- * Helper function to adjust commission for plan changes
- */
-async function adjustCommissionForPlanChange(
-  ctx: any,
-  args: {
-    commissionId: Id<"commissions">;
-    newAmount: number;
-    adjustmentType: "upgrade" | "downgrade";
-    tenantId: Id<"tenants">;
-  }
-): Promise<void> {
-  const existingCommission = await ctx.db.get(args.commissionId);
-  
-  if (!existingCommission || existingCommission.status !== "pending") {
-    // Only adjust pending commissions
-    return;
-  }
-  
-  const previousAmount = existingCommission.amount;
-  
-  // Update commission amount
-  await ctx.db.patch(args.commissionId, {
-    amount: args.newAmount,
-  });
-  
-  // Create audit log
-  await ctx.db.insert("auditLogs", {
-    tenantId: args.tenantId,
-    action: "commission_adjusted",
-    entityType: "commission",
-    entityId: args.commissionId,
-    actorType: "system",
-    previousValue: { amount: previousAmount },
-    newValue: { amount: args.newAmount },
-    metadata: {
-      adjustmentType: args.adjustmentType,
-    },
-  });
-}
-
-/**
  * Internal action to process subscription.updated webhook event
  * Handles renewals, upgrades, and downgrades
  */
@@ -1295,6 +1219,27 @@ export const processSubscriptionUpdatedEvent = internalAction({
         });
         
         if (campaignDoc && campaignDoc.recurringCommission) {
+          // Calculate recurring effective rate based on campaign settings
+          let recurringRate: number;
+          switch (campaignDoc.recurringRateType) {
+            case "same":
+              recurringRate = campaignDoc.commissionValue;
+              break;
+            case "reduced":
+              recurringRate = campaignDoc.recurringRate ?? (campaignDoc.commissionValue * 0.5);
+              break;
+            case "custom":
+              recurringRate = campaignDoc.recurringRate ?? campaignDoc.commissionValue;
+              break;
+            default:
+              recurringRate = campaignDoc.commissionValue;
+          }
+
+          const saleAmount = event.payment.amount / 100;
+          const recurringCommissionAmount = campaignDoc.commissionType === "percentage"
+            ? saleAmount * (recurringRate / 100)
+            : recurringRate;
+
           // AC #1: Campaign has recurring commissions enabled - create commission
           console.log(`Webhook ${event.eventId}: Creating commission for subscription ${adjustmentType} (recurring enabled)`);
           
@@ -1309,10 +1254,10 @@ export const processSubscriptionUpdatedEvent = internalAction({
             const pendingCommission = existingCommissions.find((c: { status: string }) => c.status === "pending");
             
             if (pendingCommission) {
-              // Adjust the existing pending commission amount
+              // Adjust the existing pending commission amount using recurring rate
               await ctx.runMutation(internal.commissions.adjustCommissionAmountInternal, {
                 commissionId: pendingCommission._id,
-                newAmount: event.payment.amount / 100,
+                newAmount: recurringCommissionAmount,
               });
               
               // Create audit log for adjustment
@@ -1323,7 +1268,7 @@ export const processSubscriptionUpdatedEvent = internalAction({
                 entityId: pendingCommission._id.toString(),
                 actorType: "system",
                 previousValue: { amount: pendingCommission.amount },
-                newValue: { amount: event.payment.amount / 100 },
+                newValue: { amount: recurringCommissionAmount },
                 metadata: {
                   subscriptionId: event.subscription?.id,
                   planId: event.subscription?.planId,
@@ -1339,7 +1284,8 @@ export const processSubscriptionUpdatedEvent = internalAction({
             affiliateId: affiliate._id,
             campaignId: referralLink.campaignId,
             conversionId,
-            saleAmount: event.payment.amount / 100,
+            saleAmount: saleAmount,
+            overrideRate: recurringRate,
             eventMetadata: {
               source: "subscription.updated",
               transactionId: event.payment.id,

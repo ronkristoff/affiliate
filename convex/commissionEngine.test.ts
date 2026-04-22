@@ -2852,3 +2852,1056 @@ describe("Story 7.5: Event Deduplication - Integration Tests", () => {
     });
   });
 });
+
+// =============================================================================
+// Commission Calculation & Auto-Approve Tests
+// =============================================================================
+
+describe("Commission Calculation Accuracy", () => {
+  describe("Percentage commission type", () => {
+    it("should calculate 10% of PHP 100.00 as PHP 10.00", async () => {
+      const t = convexTest(schema, testModules);
+
+      const tenantId = await t.run(async (ctx) => {
+        return await ctx.db.insert("tenants", {
+          name: "Test Tenant",
+          slug: "test-tenant-pct",
+          plan: "starter",
+          status: "active" as const,
+          domain: "test.example.com",
+        });
+      });
+
+      const campaignId = await t.run(async (ctx) => {
+        return await ctx.db.insert("campaigns", {
+          tenantId,
+          name: "Percentage Campaign",
+          slug: "pct-campaign",
+          commissionType: "percentage",
+          commissionValue: 10,
+          recurringCommission: false,
+          autoApproveCommissions: true,
+          status: "active" as const,
+        });
+      });
+
+      const affiliateId = await t.run(async (ctx) => {
+        return await ctx.db.insert("affiliates", {
+          tenantId,
+          email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
+          name: "Test Affiliate",
+          uniqueCode: "TESTAFF",
+          status: "active" as const,
+        });
+      });
+
+      await t.run(async (ctx) => {
+        await ctx.db.insert("referralLinks", {
+          tenantId,
+          affiliateId,
+          campaignId,
+          code: "TESTAFF",
+        });
+      });
+
+      const conversionId = await t.run(async (ctx) => {
+        return await ctx.db.insert("conversions", {
+          tenantId,
+          affiliateId,
+          campaignId,
+          amount: 100,
+          status: "completed",
+        });
+      });
+
+      const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+        tenantId,
+        affiliateId,
+        campaignId,
+        conversionId,
+        saleAmount: 100,
+      });
+
+      expect(commissionId).not.toBeNull();
+      const commission: any = await t.run(async (ctx) => {
+        return await ctx.db.get(commissionId!);
+      });
+      expect(commission!.amount).toBe(10);
+    });
+  });
+
+  describe("Flat fee commission type", () => {
+    it("should pay fixed PHP 50.00 regardless of sale amount", async () => {
+      const t = convexTest(schema, testModules);
+
+      const tenantId = await t.run(async (ctx) => {
+        return await ctx.db.insert("tenants", {
+          name: "Test Tenant",
+          slug: "test-tenant-flat",
+          plan: "starter",
+          status: "active" as const,
+          domain: "test.example.com",
+        });
+      });
+
+      const campaignId = await t.run(async (ctx) => {
+        return await ctx.db.insert("campaigns", {
+          tenantId,
+          name: "Flat Fee Campaign",
+          slug: "flat-campaign",
+          commissionType: "flatFee",
+          commissionValue: 50,
+          recurringCommission: false,
+          autoApproveCommissions: true,
+          status: "active" as const,
+        });
+      });
+
+      const affiliateId = await t.run(async (ctx) => {
+        return await ctx.db.insert("affiliates", {
+          tenantId,
+          email: "affiliate@test.com",
+          firstName: "Test",
+          lastName: "Affiliate",
+          name: "Test Affiliate",
+          uniqueCode: "TESTAFF",
+          status: "active" as const,
+        });
+      });
+
+      const conversionId = await t.run(async (ctx) => {
+        return await ctx.db.insert("conversions", {
+          tenantId,
+          affiliateId,
+          campaignId,
+          amount: 1000,
+          status: "completed",
+        });
+      });
+
+      const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+        tenantId,
+        affiliateId,
+        campaignId,
+        conversionId,
+        saleAmount: 1000, // Large sale amount
+      });
+
+      expect(commissionId).not.toBeNull();
+      const commission: any = await t.run(async (ctx) => {
+        return await ctx.db.get(commissionId!);
+      });
+      expect(commission!.amount).toBe(50); // Fixed amount, not percentage
+    });
+  });
+});
+
+describe("Auto-Approve Threshold", () => {
+  it("should auto-approve when amount is BELOW threshold", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-below",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Threshold Campaign",
+        slug: "threshold-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: false,
+        autoApproveCommissions: true,
+        approvalThreshold: 100,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const conversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        amount: 500,
+        status: "completed",
+      });
+    });
+
+    const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+      tenantId,
+      affiliateId,
+      campaignId,
+      conversionId,
+      saleAmount: 500, // 10% = 50, which is below threshold of 100
+    });
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(commissionId!);
+    });
+    expect(commission!.amount).toBe(50);
+    expect(commission!.status).toBe("approved");
+  });
+
+  it("should stay PENDING when amount is AT or ABOVE threshold", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-above",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Threshold Campaign",
+        slug: "threshold-campaign-above",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: false,
+        autoApproveCommissions: true,
+        approvalThreshold: 100,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const conversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        amount: 1500,
+        status: "completed",
+      });
+    });
+
+    const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+      tenantId,
+      affiliateId,
+      campaignId,
+      conversionId,
+      saleAmount: 1500, // 10% = 150, which is at/above threshold of 100
+    });
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(commissionId!);
+    });
+    expect(commission!.amount).toBe(150);
+    expect(commission!.status).toBe("pending");
+  });
+
+  it("should auto-approve ALL when no threshold is set", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-no-threshold",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "No Threshold Campaign",
+        slug: "no-threshold-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: false,
+        autoApproveCommissions: true,
+        // approvalThreshold intentionally omitted
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const conversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        amount: 10000,
+        status: "completed",
+      });
+    });
+
+    const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+      tenantId,
+      affiliateId,
+      campaignId,
+      conversionId,
+      saleAmount: 10000, // 10% = 1000
+    });
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(commissionId!);
+    });
+    expect(commission!.amount).toBe(1000);
+    expect(commission!.status).toBe("approved");
+  });
+
+  it("should keep PENDING when autoApproveCommissions is disabled", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-disabled",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Disabled Auto-Approve Campaign",
+        slug: "disabled-auto-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: false,
+        autoApproveCommissions: false,
+        approvalThreshold: 1000,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const conversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        amount: 50,
+        status: "completed",
+      });
+    });
+
+    const commissionId = await t.mutation(internal.commissions.createCommissionFromConversionInternal, {
+      tenantId,
+      affiliateId,
+      campaignId,
+      conversionId,
+      saleAmount: 50, // 10% = 5, well below threshold
+    });
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(commissionId!);
+    });
+    expect(commission!.amount).toBe(5);
+    expect(commission!.status).toBe("pending");
+  });
+});
+
+describe("Recurring Commission Rate", () => {
+  it("should use SAME rate for recurring commissions", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-rec-same",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Same Rate Campaign",
+        slug: "same-rate-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: true,
+        recurringRateType: "same",
+        autoApproveCommissions: true,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_recurring_same_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_recurring_same_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_recurring_same_001",
+        amount: 10000, // PHP 100.00
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_test_001",
+        status: "active" as const,
+        planId: "plan_test_001",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.commissionId).not.toBeNull();
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(result.commissionId!);
+    });
+
+    expect(commission!.amount).toBe(10); // 10% of 100
+  });
+
+  it("should use REDUCED rate for recurring commissions", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-rec-reduced",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Reduced Rate Campaign",
+        slug: "reduced-rate-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: true,
+        recurringRateType: "reduced",
+        // recurringRate intentionally omitted — should fall back to 50% of initial
+        autoApproveCommissions: true,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_recurring_reduced_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_recurring_reduced_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_recurring_reduced_001",
+        amount: 10000, // PHP 100.00
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_test_002",
+        status: "active" as const,
+        planId: "plan_test_002",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.commissionId).not.toBeNull();
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(result.commissionId!);
+    });
+
+    expect(commission!.amount).toBe(5); // 5% of 100 (50% of initial 10%)
+  });
+
+  it("should use CUSTOM rate for recurring commissions", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-rec-custom",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Custom Rate Campaign",
+        slug: "custom-rate-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: true,
+        recurringRateType: "custom",
+        recurringRate: 7, // Custom 7%
+        autoApproveCommissions: true,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_recurring_custom_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_recurring_custom_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_recurring_custom_001",
+        amount: 10000, // PHP 100.00
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_test_003",
+        status: "active" as const,
+        planId: "plan_test_003",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.commissionId).not.toBeNull();
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(result.commissionId!);
+    });
+
+    expect(commission!.amount).toBe(7); // 7% of 100
+  });
+
+  it("should use recurring flat fee for flat-fee campaigns", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-rec-flat",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Flat Recurring Campaign",
+        slug: "flat-rec-campaign",
+        commissionType: "flatFee",
+        commissionValue: 50,
+        recurringCommission: true,
+        recurringRateType: "reduced",
+        recurringRate: 25, // Reduced flat fee
+        autoApproveCommissions: true,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_recurring_flat_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_recurring_flat_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_recurring_flat_001",
+        amount: 20000, // PHP 200.00
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_test_004",
+        status: "active" as const,
+        planId: "plan_test_004",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.commissionId).not.toBeNull();
+
+    const commission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(result.commissionId!);
+    });
+
+    expect(commission!.amount).toBe(25); // Reduced flat fee, ignores sale amount
+  });
+});
+
+describe("Upgrade/Downgrade Commission Adjustment", () => {
+  it("should adjust existing pending commission correctly on upgrade", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-upgrade",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Upgrade Campaign",
+        slug: "upgrade-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: true,
+        recurringRateType: "same",
+        autoApproveCommissions: false,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const referralLinkId = await t.run(async (ctx) => {
+      return await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    // Create initial conversion and commission for subscription
+    const existingConversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        referralLinkId,
+        amount: 100,
+        status: "completed",
+        metadata: {
+          subscriptionId: "sub_upgrade_001",
+          planId: "plan_basic",
+        },
+      });
+    });
+
+    const existingCommissionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("commissions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        conversionId: existingConversionId,
+        amount: 10, // 10% of 100
+        status: "pending",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_upgrade_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_upgrade_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_upgrade_001",
+        amount: 20000, // PHP 200.00 — upgraded from 100
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_upgrade_001",
+        status: "active" as const,
+        planId: "plan_premium",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.adjustmentType).toBe("upgrade");
+
+    // Existing pending commission should be adjusted to new amount
+    const adjustedCommission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(existingCommissionId);
+    });
+    expect(adjustedCommission!.amount).toBe(20); // 10% of 200, NOT 200
+
+    // New commission should also be created for the new conversion
+    expect(result.commissionId).not.toBeNull();
+    const newCommission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(result.commissionId!);
+    });
+    expect(newCommission!.amount).toBe(20); // 10% of 200
+  });
+
+  it("should adjust existing pending commission correctly on downgrade", async () => {
+    const t = convexTest(schema, testModules);
+
+    const tenantId = await t.run(async (ctx) => {
+      return await ctx.db.insert("tenants", {
+        name: "Test Tenant",
+        slug: "test-tenant-downgrade",
+        plan: "starter",
+        status: "active" as const,
+        domain: "test.example.com",
+      });
+    });
+
+    const campaignId = await t.run(async (ctx) => {
+      return await ctx.db.insert("campaigns", {
+        tenantId,
+        name: "Downgrade Campaign",
+        slug: "downgrade-campaign",
+        commissionType: "percentage",
+        commissionValue: 10,
+        recurringCommission: true,
+        recurringRateType: "same",
+        autoApproveCommissions: false,
+        status: "active" as const,
+      });
+    });
+
+    const affiliateId = await t.run(async (ctx) => {
+      return await ctx.db.insert("affiliates", {
+        tenantId,
+        email: "affiliate@test.com",
+        firstName: "Test",
+        lastName: "Affiliate",
+        name: "Test Affiliate",
+        uniqueCode: "TESTAFF",
+        status: "active" as const,
+      });
+    });
+
+    const referralLinkId = await t.run(async (ctx) => {
+      return await ctx.db.insert("referralLinks", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        code: "TESTAFF",
+      });
+    });
+
+    // Create initial conversion and commission for subscription
+    const existingConversionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("conversions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        referralLinkId,
+        amount: 200,
+        status: "completed",
+        metadata: {
+          subscriptionId: "sub_downgrade_001",
+          planId: "plan_premium",
+        },
+      });
+    });
+
+    const existingCommissionId = await t.run(async (ctx) => {
+      return await ctx.db.insert("commissions", {
+        tenantId,
+        affiliateId,
+        campaignId,
+        conversionId: existingConversionId,
+        amount: 20, // 10% of 200
+        status: "pending",
+      });
+    });
+
+    const webhookId = await t.mutation(internal.webhooks.storeRawWebhook, {
+      source: "saligpay",
+      eventId: "evt_downgrade_001",
+      eventType: "subscription.updated",
+      rawPayload: JSON.stringify({ test: true }),
+      signatureValid: true,
+      tenantId,
+      status: "received",
+    });
+
+    const billingEvent = {
+      eventId: "evt_downgrade_001",
+      eventType: "subscription.updated",
+      timestamp: Date.now(),
+      tenantId: tenantId.toString(),
+      attribution: {
+        affiliateCode: "TESTAFF",
+        clickId: undefined,
+      },
+      payment: {
+        id: "pay_downgrade_001",
+        amount: 10000, // PHP 100.00 — downgraded from 200
+        currency: "PHP",
+        status: "paid",
+        customerEmail: "customer@test.com",
+      },
+      subscription: {
+        id: "sub_downgrade_001",
+        status: "active" as const,
+        planId: "plan_basic",
+      },
+      rawPayload: JSON.stringify({ test: true }),
+    };
+
+    const result = await t.action(internal.commissionEngine.processSubscriptionUpdatedEvent, {
+      webhookId,
+      billingEvent,
+    });
+
+    expect(result.processed).toBe(true);
+    expect(result.adjustmentType).toBe("downgrade");
+
+    // Existing pending commission should be adjusted to new amount
+    const adjustedCommission: any = await t.run(async (ctx) => {
+      return await ctx.db.get(existingCommissionId);
+    });
+    expect(adjustedCommission!.amount).toBe(10); // 10% of 100, NOT 100
+  });
+});

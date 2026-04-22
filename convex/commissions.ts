@@ -180,6 +180,7 @@ export const createCommissionFromConversionInternal = internalMutation({
       timestamp: v.number(),
       subscriptionId: v.optional(v.string()),
     })),
+    overrideRate: v.optional(v.number()), // For recurring commissions — bypasses normal rate lookup
   },
   returns: v.union(v.id("commissions"), v.null()),
   handler: async (ctx, args) => {
@@ -298,13 +299,16 @@ export const createCommissionFromConversionInternal = internalMutation({
         o.campaignId === args.campaignId && o.status === "active"
     )?.rate ?? campaign.commissionValue;
 
+    // Use overrideRate for recurring commissions when provided
+    const finalRate = args.overrideRate ?? effectiveRate;
+
     // Calculate commission amount based on campaign type
     let commissionAmount: number;
     if (campaign.commissionType === "percentage") {
-      commissionAmount = args.saleAmount * (effectiveRate / 100);
+      commissionAmount = args.saleAmount * (finalRate / 100);
     } else {
       // flatFee - the rate IS the commission amount (regardless of sale amount)
-      commissionAmount = effectiveRate;
+      commissionAmount = finalRate;
     }
 
     // Determine commission status based on campaign approval threshold (Story 4.6 AC #1, #2, #3, #5)
@@ -329,7 +333,7 @@ export const createCommissionFromConversionInternal = internalMutation({
     }
     // AC #3: If autoApproveCommissions is false/null, all commissions are pending
 
-    console.log(`Commission created with effective rate: ${effectiveRate}%, amount: ${commissionAmount} (override applied)`);
+    console.log(`Commission created with effective rate: ${finalRate}%, amount: ${commissionAmount} (override applied)`);
 
     // Create the commission with calculated amount and fraud fields (Story 5.6)
     const commissionId = await ctx.db.insert("commissions", {
@@ -870,6 +874,14 @@ export const adjustCommissionAmountInternal = internalMutation({
     await ctx.db.patch(args.commissionId, {
       amount: args.newAmount,
     });
+
+    // Keep pendingPayoutTotals in sync for approved commissions
+    if (commission.status === "approved") {
+      const delta = args.newAmount - oldAmount;
+      if (delta !== 0) {
+        await adjustPendingPayoutTotals(ctx, commission.tenantId, 0, delta);
+      }
+    }
 
     return null;
   },
