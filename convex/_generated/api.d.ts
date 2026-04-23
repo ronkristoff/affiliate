@@ -76,6 +76,8 @@ import type * as platformBillingWebhook from "../platformBillingWebhook.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as platformTemplates from "../platformTemplates.js";
 import type * as providerConnectWebhook from "../providerConnectWebhook.js";
+import type * as qaSeed from "../qaSeed.js";
+import type * as qaSeedInternal from "../qaSeedInternal.js";
 import type * as queryBuilder from "../queryBuilder.js";
 import type * as queryBuilder__utils from "../queryBuilder/_utils.js";
 import type * as queryBuilderExport from "../queryBuilderExport.js";
@@ -193,6 +195,8 @@ declare const fullApi: ApiFromModules<{
   platformSettings: typeof platformSettings;
   platformTemplates: typeof platformTemplates;
   providerConnectWebhook: typeof providerConnectWebhook;
+  qaSeed: typeof qaSeed;
+  qaSeedInternal: typeof qaSeedInternal;
   queryBuilder: typeof queryBuilder;
   "queryBuilder/_utils": typeof queryBuilder__utils;
   queryBuilderExport: typeof queryBuilderExport;
